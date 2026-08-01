@@ -91,6 +91,17 @@ header.topbar{
 .trial-badge{background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:6px 10px; border-radius:10px; text-align:center; flex-shrink:0; min-width:60px;}
 .btn-header-settings{background:rgba(255,255,255,0.2); border:none; color:#fff; font-size:18px; width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;}
 .btn-header-settings:active{transform:scale(0.95);}
+
+/* ========== Platform Carousel ========== */
+.plat-carousel{position:relative; overflow:hidden; border-radius:var(--radius-lg); color:#fff;}
+.plat-carousel-track{display:flex; transition:transform .35s ease;}
+.plat-carousel-slide{min-width:100%; padding:20px 18px;}
+.plat-carousel-slide .plat-emoji{font-size:28px; margin-bottom:8px;}
+.plat-carousel-slide .plat-title{font-size:15px; font-weight:800; margin-bottom:4px; line-height:1.3;}
+.plat-carousel-slide .plat-body{font-size:12.5px; opacity:0.88; line-height:1.55;}
+.plat-carousel-dots{display:flex; justify-content:center; gap:6px; padding:0 0 12px 0;}
+.plat-dot{width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,0.4); border:none; cursor:pointer; padding:0; transition:all .2s;}
+.plat-dot.active{background:#fff; width:18px; border-radius:4px;}
 .header-title{font-size:20px; margin:14px 0 2px 0;}
 .header-sub{font-size:12.5px; opacity:0.9;}
 
@@ -486,7 +497,7 @@ body.laporan-active main{padding-bottom:170px;}
   <main>
     <!-- ============ DASHBOARD ============ -->
     <section class="screen active" id="screen-dashboard">
-      <div class="card" id="kasStatusCard" style="margin-bottom:16px;"></div>
+      <div id="platCarouselEl" style="margin-bottom:14px;"></div>
 
       <div class="section-label">Ringkasan Hari Ini</div>
       <div class="stat-grid">
@@ -979,6 +990,15 @@ db.version(2).stores({
   kas: '++id, tanggal, tipe',
   kasShift: '++id, status, waktuBuka'
 });
+db.version(3).stores({
+  settings: 'key',
+  kategori: '++id, nama, aktif',
+  transaksi: '++id, tipe, tanggal',
+  transaksiItem: '++id, transaksiId, kategoriId',
+  kas: '++id, tanggal, tipe',
+  kasShift: '++id, status, waktuBuka',
+  platformMessages: '++id, order, visibleFrom, visibleUntil'
+});
 
 /* ---------------- APP STATE ---------------- */
 let SETTINGS = {};
@@ -1285,6 +1305,7 @@ async function initApp(){
     console.log('Loading app state...');
     await loadSettingsIntoState();
     await seedKategoriIfEmpty();
+    await seedPlatformMessagesIfEmpty();
     await loadKategori();
     await refreshAll();
     console.log('App state loaded');
@@ -1340,6 +1361,19 @@ async function loadKategori(){
   KATEGORI = await db.kategori.orderBy('nama').toArray();
 }
 
+async function seedPlatformMessagesIfEmpty(){
+  const count = await db.platformMessages.count();
+  if(count > 0) return;
+  const now = new Date().toISOString();
+  const farFuture = new Date(Date.now() + 365*24*3600*1000).toISOString();
+  const defaults = [
+    {order:1, visibleFrom: now, visibleUntil: farFuture, emoji:'🔥', title:'Promo Akhir Bulan!', body:'Setiap pembelian ≥ 50 kg, dapatkan diskon 5% untuk pembelian berikutnya. Berlaku sampai akhir bulan ini.', gradient:'linear-gradient(135deg, #E85D04 0%, #FF8C42 100%)'},
+    {order:2, visibleFrom: now, visibleUntil: farFuture, emoji:'📱', title:'Info Penting', body:'Jangan lupa buka kas setiap pagi sebelum mulai transaksi. Tutup kas saat selesai kerja untuk menjaga keamanan.', gradient:'linear-gradient(135deg, #1982C4 0%, #2EABCA 100%)'},
+    {order:3, visibleFrom: now, visibleUntil: farFuture, emoji:'🎁', title:'Perpanjang Trial Gratis', body:'Masih punya masa trial? Perpanjang otomatis 1 hari gratis setiap kali kamu membuka aplikasi!', gradient:'linear-gradient(135deg, #70117E 0%, #B5368D 100%)'},
+  ];
+  await db.platformMessages.bulkAdd(defaults);
+}
+
 async function finishOnboarding(){
   const name = document.getElementById('onbBizName').value.trim();
   if(!name){ toast('Isi nama usaha dulu ya'); return; }
@@ -1392,7 +1426,6 @@ function showScreen(name){
 async function openTransaksi(tipe){
   await refreshShiftCache();
   if(!openShiftCache){
-    renderKasStatusCard();
     toast('Buka kas dulu sebelum mulai transaksi');
     openBukaKasSheet();
     return;
@@ -2315,37 +2348,96 @@ async function tutupKas(){
   else toast(`Kas ditutup. Selisih ${selisih>0?'lebih':'kurang'} ${fmtRupiah(Math.abs(selisih))}`);
 }
 
-function renderKasStatusCard(){
-  const card = document.getElementById('kasStatusCard');
-  if(!card) return;
-  if(!openShiftCache){
-    card.innerHTML = `
-      <div class="flex-between">
-        <div>
-          <div style="font-weight:800;">🔒 Kas Belum Dibuka</div>
-          <div class="hint" style="margin-top:2px;">Buka kas & masukkan modal awal sebelum mulai transaksi</div>
-        </div>
-      </div>
-      <button class="btn btn-outline mt12" onclick="openBukaKasSheet()">🔓 Buka Kas</button>
-    `;
-  } else {
-    card.innerHTML = `
-      <div class="flex-between">
-        <div>
-          <div style="font-weight:800;">🔓 Kas Sedang Buka</div>
-          <div class="hint" style="margin-top:2px;">Dibuka ${fmtDate(openShiftCache.waktuBuka)} · Modal ${fmtRupiah(openShiftCache.modalAwal)}</div>
-        </div>
-        <span class="badge green">Aktif</span>
-      </div>
-      <button class="btn btn-outline mt12" onclick="openTutupKasSheet()">🔒 Tutup Kas</button>
-    `;
+/* ---------------- PLATFORM CAROUSEL ---------------- */
+let platCurrentSlide = 0;
+let platAutoTimer = null;
+const PLAT_SCROLL_MS = 4000;
+
+async function renderPlatformCarousel(){
+  const el = document.getElementById('platCarouselEl');
+  if(!el) return;
+
+  const now = new Date().toISOString();
+  let msgs = await db.platformMessages
+    .where('visibleFrom').belowOrEqual(now)
+    .and(m => m.visibleUntil === null || m.visibleUntil >= now)
+    .toArray();
+  msgs = msgs.sort((a,b) => (a.order||0) - (b.order||0)).slice(0, 5);
+
+  if(msgs.length === 0){
+    el.innerHTML = '';
+    return;
   }
+
+  const gradients = [
+    'linear-gradient(135deg, #E85D04 0%, #FF8C42 100%)',
+    'linear-gradient(135deg, #1982C4 0%, #2EABCA 100%)',
+    'linear-gradient(135deg, #70117E 0%, #B5368D 100%)',
+    'linear-gradient(135deg, #0A5636 0%, #248A4F 100%)',
+    'linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)'
+  ];
+
+  let slidesHtml = msgs.map((m, i) => `
+    <div class="plat-carousel-slide" style="background:${m.gradient || gradients[i % gradients.length]}; border-radius:var(--radius-lg);">
+      <div class="plat-emoji">${m.emoji || '📢'}</div>
+      <div class="plat-title">${escapeHtml(m.title)}</div>
+      <div class="plat-body">${escapeHtml(m.body)}</div>
+    </div>
+  `).join('');
+
+  const dotsHtml = msgs.map((_, i) =>
+    `<button class="plat-dot${i===0?' active':''}" onclick="platGoTo(${i})"></button>`
+  ).join('');
+
+  el.innerHTML = `
+    <div class="plat-carousel" id="platCarouselRoot">
+      <div class="plat-carousel-track" id="platTrack">${slidesHtml}</div>
+      <div class="plat-carousel-dots">${dotsHtml}</div>
+    </div>
+  `;
+
+  // Touch / swipe support
+  let touchStartX = 0;
+  const root = document.getElementById('platCarouselRoot');
+  root.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive:true});
+  root.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    if(Math.abs(dx) > 40) platPrev();
+  }, {passive:true});
+
+  platCurrentSlide = 0;
+  platSetSlide(0);
+  platStartAuto();
 }
+
+function platSetSlide(i){
+  const track = document.getElementById('platTrack');
+  if(!track) return;
+  platCurrentSlide = i;
+  track.style.transform = `translateX(-${i*100}%)`;
+  document.querySelectorAll('.plat-dot').forEach((d,idx) => d.classList.toggle('active', idx===i));
+}
+function platNext(){
+  const count = document.querySelectorAll('.plat-carousel-slide').length;
+  platSetSlide((platCurrentSlide+1) % Math.max(1,count));
+}
+function platPrev(){
+  const count = document.querySelectorAll('.plat-carousel-slide').length;
+  platSetSlide((platCurrentSlide-1+count) % Math.max(1,count));
+}
+function platGoTo(i){ platSetSlide(i); platResetAuto(); }
+
+function platStartAuto(){
+  platStopAuto();
+  platAutoTimer = setInterval(platNext, PLAT_SCROLL_MS);
+}
+function platStopAuto(){ if(platAutoTimer){ clearInterval(platAutoTimer); platAutoTimer = null; } }
+function platResetAuto(){ platStopAuto(); platStartAuto(); }
 
 /* ---------------- DASHBOARD ---------------- */
 async function refreshAll(){
   await refreshShiftCache();
-  renderKasStatusCard();
+  renderPlatformCarousel();
 
   const allKas = await db.kas.toArray();
   const saldo = allKas.reduce((s,k)=> s + (k.tipe==='masuk' ? k.jumlah : -k.jumlah), 0);
