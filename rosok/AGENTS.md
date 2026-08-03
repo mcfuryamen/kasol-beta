@@ -50,7 +50,7 @@ rosok/
 │   ├── router.js       # Route hashing
 │   └── utils.js        # Utilitas (fmt, toast, escape, overlay)
 ├── assets/             # Logo, icon, favicon, splash (satu sumber)
-├── sw.js               # Service Worker (v10, Stale-While-Revalidate)
+├── sw.js               # Service Worker (Stale-While-Revalidate)
 ├── manifest.json       # PWA manifest
 ├── dexie.min.js        # Library Dexie (IndexedDB)
 ├── run-local.js        # Dev server lokal (node run-local.js)
@@ -150,16 +150,39 @@ Folder produksi berkode modular. Deploy ke cloud via monorepo `kasol` (2 skrip):
    report) otomatis dikecualikan.
 2. **`push-to-github.sh`** (di root monorepo `kasol`) — commit + push ke `origin/main`.
 
-**Perilaku Vercel — penting:** Vercel TIDAK auto-detect dari git monorepo. Deteksi per-folder
-dilakukan oleh **GitHub Actions** (`.github/workflows/deploy-*.yml`) yang punya **path filter**
-(`paths: 'rosok/**'`). Artinya: hanya app yang foldernya berubah yang kedeploy; app lain tanpa
-perubahan tidak ikut. `deploy-all.yml` adalah fallback yang memakai `dorny/paths-filter` untuk
-memutuskan subrepo mana yang berubah.
+**Perilaku Vercel — penting:** ada **dua lapis** yang menentukan app mana yang kedeploy.
 
-**Konfigurasi Vercel:** setiap project bertipe statis (`buildCommand: null`, `outputDirectory: "."`
-untuk rosok). Root Directory tiap project = folder app-nya (`rosok/`, `gerobak/`, dst). Tanpa
-`.vercel/project.json` di repo — deploy dikontrol via GitHub Actions + secrets (`VERCEL_TOKEN`,
-`VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_*`).
+1. **GitHub Actions path filter** — `.github/workflows/deploy-rosok.yml` punya
+   `on: push: paths: 'rosok/**'`, jadi workflow hanya jalan kalau folder rosok berubah.
+   `deploy-all.yml` hanya `workflow_dispatch` (manual).
+2. **Vercel Ignored Build Step** — tiap project menjalankan `bash ../vercel-ignore.sh`
+   yang membandingkan `git diff HEAD^ HEAD .` untuk foldernya sendiri dan membatalkan
+   build kalau tidak ada perubahan. Vercel sendiri **tidak** auto-detect per-folder.
+
+**Konfigurasi Vercel:** setiap project bertipe statis (`buildCommand: null`,
+`outputDirectory: "."`). Root Directory tiap project = folder app-nya. Tanpa
+`.vercel/project.json` di repo — deploy dikontrol via GitHub Actions + secrets
+(`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_*`).
+
+### ⚠️ Empat aturan yang TIDAK BOLEH dilanggar
+
+Semuanya pernah dilanggar dan membuat production mati total. Detail lengkap +
+troubleshooting ada di [`../DEPLOYMENT.md`](../DEPLOYMENT.md) seksi "Aturan Wajib".
+
+| # | Aturan | Kalau dilanggar |
+|---|--------|-----------------|
+| 1 | `.vercelignore` **tanpa** `.git` | `git diff` gagal → deteksi per-app mati → semua app kedeploy |
+| 2 | `dexie.min.js` wajib punya negasi `!rosok/dexie.min.js` di root `.gitignore` | `*.min.js` menelannya → `Dexie is not defined` → seluruh app mati di production |
+| 3 | `run:` di workflow pakai block scalar `run: \|` | **Invalid workflow file** → Actions tidak jalan sama sekali |
+| 4 | Bump `CACHE_VERSION` di `sw.js` setiap deploy | klien tetap melihat versi rusak dari cache SW |
+
+Verifikasi setelah deploy — jangan berhenti di "sudah di-push":
+
+```bash
+curl -sI "https://rosok.vercel.app/dexie.min.js" | grep -i content-type
+#   ✅ application/javascript    ❌ text/html = file TIDAK ADA di deployment
+curl -s "https://rosok.vercel.app/sw.js" | grep -oE "CACHE_VERSION = '[^']+'"
+```
 
 ---
 

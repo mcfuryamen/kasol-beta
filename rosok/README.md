@@ -67,6 +67,12 @@ Lalu buka: `http://localhost:8084`
 - ✅ Bekerja offline (PWA)
 - ✅ Responsive mobile-first design
 
+## 📝 Update Terbaru (v1.3.5) - 2026-08-03
+- **Fix Deploy Production (4 bug konfigurasi)** - production mati total sementara localhost normal: (1) `dexie.min.js` tak pernah ter-commit karena telan `.gitignore` `*.min.js`; (2) workflow YAML invalid (`run:` plain scalar) → GitHub Actions tak jalan; (3) `.vercelignore` menghapus `.git` → Ignored Build Step gagal → semua app kedeploy; (4) `vercel-ignore.sh` fail-safe
+- **Service Worker** - CACHE_VERSION bump v10 → v12; situs normal, `dexie.min.js` kini ter-serve `application/javascript`
+- **Isolasi deploy terbukti** - push ke `rosok/` saja → hanya rosok yang update; gerobak tidak ikut (ETag identik + Age naik)
+- **Dokumentasi deploy monorepo** - seksi "Aturan Wajib", checklist app baru, troubleshooting di `../DEPLOYMENT.md`
+
 ## 📝 Update Terbaru (v1.3.4) - 2026-08-03
 - **Cleanup Filter Laporan** - hapus dropdown bulan kalender (`bulanFilter`) dan tab preset "Setahun"; periode kini hanya `Semua | Hari Ini | 7 Hari | 30 Hari | Custom`
 - **Fix "Fitur Ilang" (Service Worker)** - ubah strategi asset dari cache-first menjadi **Stale-While-Revalidate** (CACHE_VERSION v10); sajikan cache instan lalu revalidate dari server di background, sehingga setiap update kode otomatis tampil setelah reload tanpa perlu bump versi manual
@@ -111,7 +117,7 @@ rosok/
 │   ├── router.js       # Route hashing
 │   └── utils.js        # Utilitas (fmt, toast, escape, overlay)
 ├── assets/             # Logo, icon, favicon, splash (satu sumber)
-├── sw.js               # Service Worker (v10, Stale-While-Revalidate)
+├── sw.js               # Service Worker (Stale-While-Revalidate)
 ├── manifest.json       # PWA manifest
 ├── dexie.min.js        # Library Dexie (IndexedDB)
 ├── run-local.js        # Development server lokal (node run-local.js)
@@ -146,5 +152,5 @@ Copyright © 2026 PT Mesin Kasir Solo
 
 ---
 
-**Versi:** 1.3.4  
+**Versi:** 1.3.5  
 **Last Updated:** 2026-08-03

@@ -1,5 +1,61 @@
 # Changelog - Kasir Solo Rosok
 
+## [1.3.5] - 2026-08-03 (Fix Deploy Production — 4 Bug Konfigurasi)
+
+Production (`rosok.vercel.app`) mati total sementara localhost normal. Penyebabnya empat bug
+konfigurasi bertumpuk; masing-masing menutupi perbaikan yang lain sehingga gejalanya identik.
+
+### 🐛 Bug 1 — `dexie.min.js` tidak pernah ter-deploy
+- **Gejala** - `Refused to execute script ... MIME type ('text/html')` lalu
+  `Uncaught ReferenceError: Dexie is not defined at db.js:5` → seluruh modul gagal load,
+  `showScreen`/`openTransaksi` undefined
+- **Penyebab** - root `.gitignore` punya pola generik `*.min.js` yang ikut menelan library
+  Dexie. File berhasil disalin `sync-to-mirror.sh` ke folder mirror tapi **tidak pernah
+  ter-commit**, jadi tidak ada di deployment
+- **Kenapa terlihat sebagai error MIME** - rewrite catch-all `/(.*)` → `/index.html` di
+  `vercel.json` menangkap file yang hilang dan membalas HTML dengan status **200**, bukan 404
+- **Fix** - negasi `!rosok/dexie.min.js` di root `.gitignore` + `git add` file tersebut
+
+### 🐛 Bug 2 — GitHub Actions tidak pernah jalan
+- **Gejala** - commit masuk GitHub tapi tidak ada deploy; site tetap menyajikan versi lama
+  sehingga fix Bug 1 seolah tidak berefek
+- **Penyebab** - `run: echo "Preview URL: ${{ ... }}"` memakai YAML plain scalar yang memuat
+  titik-dua + spasi → GitHub menolak seluruh file (**Invalid workflow file**, line 32)
+- **Fix** - block scalar `run: |`, tambah `id: vercel` di step deploy (tanpa itu
+  `steps.vercel.outputs` selalu kosong), dan bracket notation `outputs['preview-url']`
+  untuk nama ber-hyphen. Diterapkan ke keempat `deploy-*.yml`
+
+### 🐛 Bug 3 — Semua app kedeploy tiap push
+- **Gejala** - gerobak/landing/retail ikut rebuild padahal hanya `rosok/` yang berubah
+- **Penyebab** - `.vercelignore` menghapus `.git`, sehingga Ignored Build Step
+  (`git diff HEAD^ HEAD .`) gagal dengan `warning: Not a git repository` → Vercel
+  menganggapnya error dan **melanjutkan** build
+- **Fix** - `.git` dikeluarkan dari `.vercelignore` (Vercel membuangnya dari output akhir
+  secara otomatis). Diperbaiki di **ketiga** file: root, `rosok/`, `landing/` — app tanpa
+  file sendiri (gerobak) memakai yang root
+
+### 🐛 Bug 4 — `vercel-ignore.sh` bisa gagal senyap
+- **Penyebab** - versi awal tidak menangani `.git`/`HEAD^` yang tidak tersedia dan bisa
+  keluar dengan exit code selain 0/1 (Vercel menganggapnya error)
+- **Fix** - ditulis ulang *fail-safe*: kalau tidak bisa memastikan, lanjutkan build
+  (`exit 1`) daripada kehilangan deploy tanpa jejak
+
+### 🔧 Service Worker
+- **CACHE_VERSION** bump v10 → v11 → **v12** untuk memaksa klien lama mengambil aset baru
+  (SW lama masih menyajikan versi rusak dari cache)
+
+### ✅ Verifikasi
+- `dexie.min.js` → `Content-Type: application/javascript`, 81.605 byte
+  (sebelumnya `text/html`, 32.189 byte = halaman index)
+- Console production: **0 error**; `Dexie`, `showScreen`, `openTransaksi` semua `function`
+- Isolasi deploy terbukti: push yang hanya menyentuh `rosok/sw.js` → rosok update ke v12,
+  sementara ETag gerobak identik dan `Age` naik monoton (234 → 254 → 275) = tidak kedeploy
+
+### 📚 Dokumentasi
+- `DEPLOYMENT.md` — seksi **"Aturan Wajib"** (4 aturan + verifikasi), checklist app baru,
+  tabel troubleshooting, Ignored Build Step di setup tiap project
+- `AGENTS.md` — tabel 4 aturan + perintah verifikasi `curl`
+
 ## [1.3.4] - 2026-08-03 (Cleanup Filter Laporan, SW Stale-While-Revalidate, Deploy Monorepo)
 
 ### 🧹 Cleanup Filter Laporan
@@ -312,5 +368,5 @@ Tidak ada breaking changes. Semua perubahan backward compatible.
 
 **Catatan:** Changelog ini diupdate secara berkala setiap ada perubahan signifikan.
 
-**Versi:** 1.0.0 → 1.3.4  
+**Versi:** 1.0.0 → 1.3.5  
 **Last Updated:** 2026-08-03
