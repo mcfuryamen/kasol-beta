@@ -1,8 +1,8 @@
 /* =========================================================================
    KASIR SOLO - ROSOK
-   Service Worker v11 — SPA fallback + stale-while-revalidate (auto-update)
+   Service Worker v12 — SPA fallback + stale-while-revalidate (auto-update)
    ========================================================================= */
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v12';
 const CACHE_NAME = `kasir-solo-rosok-${CACHE_VERSION}`;
 const CORE_ASSETS = [
   "./", "./index.html", "./style.css", "./dexie.min.js",
