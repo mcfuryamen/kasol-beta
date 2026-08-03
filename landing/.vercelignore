@@ -7,8 +7,10 @@ npm-debug.log*
 # Vercel
 .vercel
 
-# Git
-.git
+# Git - JANGAN ignore .git
+# Vercel butuh .git untuk menjalankan Ignored Build Step (git diff HEAD^ HEAD .).
+# Kalau .git dihapus, deteksi perubahan per-app gagal -> SEMUA app kedeploy.
+# .git dibuang otomatis oleh Vercel dari output akhir, jadi tidak ikut ter-serve.
 .gitignore
 
 # OS
