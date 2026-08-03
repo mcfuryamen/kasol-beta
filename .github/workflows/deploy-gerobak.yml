@@ -1,6 +1,7 @@
 name: Deploy Kasir Gerobak
 
 on:
+  workflow_call:
   push:
     paths:
       - 'gerobak/**'

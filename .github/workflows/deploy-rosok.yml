@@ -1,6 +1,7 @@
 name: Deploy Kasir Rosok
 
 on:
+  workflow_call:
   push:
     paths:
       - 'rosok/**'

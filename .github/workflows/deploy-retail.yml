@@ -1,6 +1,7 @@
 name: Deploy Kasir Retail
 
 on:
+  workflow_call:
   push:
     paths:
       - 'retail/**'

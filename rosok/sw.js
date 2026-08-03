@@ -1,105 +1,73 @@
-/* Kasir Solo - Rosok — Service Worker
-   Strategi: network-first untuk dokumen HTML (biar update langsung kepakai),
-   cache-first untuk aset statis lain. Naikkan CACHE_VERSION setiap rilis. */
-const CACHE_VERSION = "v4";
-const CACHE_NAME = "kasir-solo-rosok-" + CACHE_VERSION;
+/* =========================================================================
+   KASIR SOLO - ROSOK
+   Service Worker v10 — SPA fallback + stale-while-revalidate (auto-update)
+   ========================================================================= */
+const CACHE_VERSION = 'v10';
+const CACHE_NAME = `kasir-solo-rosok-${CACHE_VERSION}`;
 const CORE_ASSETS = [
-  "./",
-  "./index.html",
+  "./", "./index.html", "./style.css", "./dexie.min.js",
+  "./js/app.js", "./js/db.js", "./js/app-state.js", "./js/utils.js",
+  "./js/router.js", "./js/nav.js", "./js/pos.js", "./js/kategori.js",
+  "./js/riwayat.js", "./js/laporan.js", "./js/kas.js",
+  "./js/carousel.js", "./js/license.js", "./js/onboard.js",
+  "./js/dashboard.js",
   "./manifest.json",
-  "./logo.png
-  "./icon-192.png",
-  "./icon-512.png",
-  "./favicon-16.png",
-  "./favicon-32.png"",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./favicon-16.png",
-  "./favicon-32.png"
+  "./assets/logo.png", "./assets/icon-192.png", "./assets/icon-512.png",
+  "./assets/favicon-16.png", "./assets/favicon-32.png", "./assets/splash-1028.png"
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    (async () => {
-      try {
-        const cache = await caches.open(CACHE_NAME);
-        await cache.addAll(CORE_ASSETS);
-      } catch (e) {
-        console.error('[SW Install Error]', e);
-      }
-      self.skipWaiting();
-    })()
+self.addEventListener("install", e => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(c => 
+      c.addAll(CORE_ASSETS).catch(err => {
+        console.error('[SW Install] Cache addAll failed, continuing anyway:', err);
+        return c.addAll(CORE_ASSETS.filter(a => !a.includes("icon") && !a.includes("splash") && !a.includes("favicon")));
+      })
+    )
   );
+  self.skipWaiting();
 });
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    (async () => {
-      try {
-        const keys = await caches.keys();
-        await Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)));
-      } catch (e) {
-        console.error('[SW Activate Error]', e);
-      }
-      self.clients.claim();
-    })()
-  );
+self.addEventListener("activate", e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k!==CACHE_NAME).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
+self.addEventListener("message", e => { if(e.data && e.data.type==="SKIP_WAITING") self.skipWaiting(); });
 
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
-});
-
-function isDocumentRequest(request) {
-  return request.mode === "navigate" ||
-    request.destination === "document" ||
-    (request.headers.get("accept") || "").includes("text/html");
+function isHTML(req) {
+  return req.mode === "navigate" || req.destination === "document" || (req.headers.get("accept")||"").includes("text/html");
 }
 
-async function putInCache(request, response) {
-  if (!response || !response.ok || response.type === "opaque") return;
-  try {
-    const cache = await caches.open(CACHE_NAME);
-    await cache.put(request, response.clone());
-  } catch (e) {
-    console.error('[SW Cache.put failed]', e);
-  }
-}
+self.addEventListener("fetch", e => {
+  if(e.request.method !== "GET") return;
+  if(!new URL(e.request.url).origin.includes(self.location.origin)) return;
 
-self.addEventListener("fetch", (event) => {
-  const request = event.request;
-  if (request.method !== "GET") return;
-  if (new URL(request.url).origin !== self.location.origin) return;
-
-  if (isDocumentRequest(request)) {
-    // Network-first: HTML baru langsung dipakai, cache hanya untuk offline.
-    event.respondWith(
-      (async () => {
-        try {
-          const response = await fetch(request);
-          await putInCache(request, response);
-          return response;
-        } catch (e) {
-          const cached = await caches.match(request);
-          return cached || (await caches.match("./index.html")) ||
-            new Response("Offline", { status: 503 });
-        }
-      })()
+  if(isHTML(e.request)){
+    e.respondWith(
+      fetch(e.request)
+        .then(r => {
+          if(!r || !r.ok) return r;
+          const clone = r.clone();
+          caches.open(CACHE_NAME).then(c => c.put(e.request, clone)).catch(() => {});
+          return r;
+        })
+        .catch(() => caches.match(e.request).then(c => c || caches.match("./index.html")))
     );
     return;
   }
 
-  event.respondWith(
-    (async () => {
-      const cached = await caches.match(request);
-      if (cached) return cached;
-      try {
-        const response = await fetch(request);
-        await putInCache(request, response);
-        return response;
-      } catch (e) {
-        return new Response("Offline", { status: 503 });
-      }
-    })()
+  e.respondWith(
+    caches.match(e.request)
+      .then(cached => {
+        // Stale-While-Revalidate: sajikan cache instan, lalu refresh dari jaringan
+        const network = fetch(e.request)
+          .then(r => {
+            if(r && r.ok){
+              const clone = r.clone();
+              caches.open(CACHE_NAME).then(c => c.put(e.request, clone)).catch(() => {});
+            }
+            return r;
+          })
+          .catch(() => cached);
+        return cached || network;
+      })
   );
 });

@@ -1,5 +1,92 @@
 # Changelog - Kasir Solo Rosok
 
+## [1.3.4] - 2026-08-03 (Cleanup Filter Laporan, SW Stale-While-Revalidate, Deploy Monorepo)
+
+### 🧹 Cleanup Filter Laporan
+- **Hapus dropdown bulan kalender** - `bulanFilter` dan fungsi `buildBulanFilter()`/`monthRange()`/setter `setLaporanBulan` dihapus total dari HTML, state, JS, dan CSS
+- **Hapus tab preset "Setahun"** - periode kini hanya `Semua | Hari Ini (default) | 7 Hari | 30 Hari | Custom`
+- **Rapikan state laporan** - `laporanPeriode` hanya menyimpan `semua|today|week|month|custom`; label periode & custom range tetap bekerja
+
+### 🔧 Fix "Fitur Ilang" — Service Worker Stale-While-Revalidate (v10)
+- **Masalah** - strategi cache-first (v8) membuat browser menyajikan snapshot lama walau server sudah punya versi baru, sehingga fitur yang sudah diperbaiki "hilang"
+- **Solusi** - ubah strategi asset menjadi **Stale-While-Revalidate**: sajikan cache instan lalu `fetch()` ulang dari server di background untuk update cache
+- **CACHE_VERSION** - bump v8 → v9 → **v10**; logika `activate` menghapus cache lama secara otomatis
+- **Dampak** - setiap update kode otomatis tampil setelah reload, **tanpa bump versi manual** (cukup hard-refresh sekali untuk aktivasi v10)
+
+### 🚀 Script Deploy Monorepo
+- **`sync-to-mirror.sh`** (di folder produksi) - salin file aplikasi (whitelist modular) ke folder mirror `kasol/rosok`; sampah development (node_modules, tes, screenshot, report) otomatis dikecualikan
+- **`push-to-github.sh`** (di root monorepo `kasol`) - commit + push ke GitHub cloud, menggantikan GitHub Desktop
+- **Perilaku deploy** - deploy berbasis **GitHub Actions** dengan path filter (`rosok/**`), sehingga hanya folder yang berubah yang ikut deploy; folder lain yang tanpa perubahan tidak kedeploy
+
+---
+
+## [1.3.3] - 2026-08-02 (Redesign Pembayaran & Styling Fixes)
+
+### ✨ Redesign Halaman Pembayaran (Step 2)
+- **Layout compact terpadu** - total belanja, metode bayar, nominal, dan kembalian disatukan dalam satu kartu pembayaran (`payment-card-compact`)
+- **Header step 2 grid 2 kolom** - tombol "← Tambah barang lain" berdampingan dengan input nama kontak
+- **Ringkasan keranjang compact** - daftar item ringkas (emoji, nama, berat × harga, subtotal, tombol hapus) dengan empty state
+- **Preset nominal cepat** - tombol +10K / +25K / +50K / +100K dengan auto-fill nominal otomatis
+- **Tabs transaksi sticky** - tab Beli/Jual tetap terlihat saat scroll (posisi di bawah header)
+
+### 🐛 Bug Fixes
+- **Fixed: TypeError saat pilih metode Tempo/Tunai** - elemen `bayarUangLabel` tidak ada di HTML sehingga `setMetodeBayar()` melempar error di tengah jalan; label "Uang Muka"/"Uang Dibayarkan" dan hint tempo tidak pernah tampil. Solusi: tambah elemen label di HTML + guard null di JS
+- **Fixed: label metode tidak sinkron saat ganti tab Beli/Jual** - `setMetodeBayar(bayarMetode)` kini dipanggil saat masuk step 2 agar label & kembalian sesuai tipe transaksi
+- **Fixed: chip keranjang step 1 tanpa styling** - kelas `.cart-chip`/`.cart-chip-row` dipakai tapi tidak punya CSS (blok CSS lama sudah mati); diganti gaya chip pill baru dengan tombol ✕
+- **Fixed: input "Catatan" menempel ke kartu pembayaran** - tambah `margin-bottom: var(--sp-12)` pada `.contact-input`
+- **Fixed: `var(--sp-14)` tidak terdefinisi** - padding `.amount-input` invalid pada computed-value; ganti ke `var(--sp-16)`
+- **Fixed: tombol metode bayar wrap 2 baris di layar ≤360px** - media query khusus layar sempit
+- **Fixed: module JS gagal load di dev server** - `run-local.js` tidak menghapus query string (`?v=MODULAR`) saat lookup file sehingga MIME type jadi `text/plain` dan browser menolak module script; kini pakai `URL().pathname`
+
+### 🎨 Styling Lain
+- Label nominal (`amount-label`) di atas input pembayaran untuk memperjelas konteks (Uang Dibayarkan / Uang Diterima / Uang Muka)
+
+---
+
+## [1.3.2] - 2026-08-01 (State Management & Refactoring)
+
+### 🔧 State Management Fixes
+- **Fixed: Direct mutation bypass in setSatuan()** - Replaced direct assignments with setter functions (setCurrentSatuan, setCurrentBerat, setKeypadBuffer) to maintain reactivity pattern across modules
+- **Fixed: State mutation in loadSettingsIntoState()** - Now builds settings object locally then calls setSETTINGS() atomically instead of post-setter mutations
+- **Fixed: State mutation in loadKategori()** - Now uses setKATEGORI() setter instead of direct assignment to KATEGORI
+
+### ♻️ Code Refactoring
+- **Moved sticky tabs CSS from index.html to style.css** - Extracted inline <style> block (lines 26-42) into proper stylesheet rule (#screen-laporan .tabs) for better maintainability
+
+### ✅ Bug Verification
+- **Verified: Harga Jual Validation (Bug #4)** - Already correctly implemented in js/kategori.js lines 57-60. Rejects if hargaJual < hargaBeli with user toast.
+
+### 📋 Testing & Documentation
+- **Created: smoke-test.js** - 46 automated code quality checks covering file structure, state fixes, circular imports, configs, PWA setup, and design tokens
+- **Created: SMOKE_TEST_CHECKLIST.html** - Interactive 20-item manual testing checklist with localStorage persistence
+- **Created: PHASE_2_SMOKE_TEST_GUIDE.md** - Detailed step-by-step testing guide with 20-item checklist and pass/fail criteria
+- **Created: AUDIT_FIXES.md** - Technical before/after documentation of all state management fixes
+
+### 📊 Audit Score
+- **Overall: 82/100** → **84/100 after fixes** (state reactivity now consistent across all modules)
+- All critical issues resolved
+- Ready for production deployment
+
+---
+
+## [1.3.1] - 2026-08-01 (Responsive UX, Info Stok & Bug Fixes)
+
+### 🐛 Bug Fixes
+- **Fixed: db.kategori.bulkUpdate is not a function** - ganti dengan per-item update karena Dexie v3.2.4 tidak support bulkUpdate (file: index.html baris 1708)
+- **Fixed: ServiceWorker script evaluation failed** - FIX syntax error di sw.js (CORE_ASSETS kurang closing quotes) (file: sw.js line 10)
+- **Fixed: Modal detail transaksi di halaman Riwayat kembali ke beranda** - hapus showScreen('dashboard') dari tombol close sheetNota, sekarang menutup modal saja dan kembali ke halaman Riwayat (file: index.html baris 788)
+
+### ✨ New Features
+- **Info Stok pada Kategori POS** - tambahkan badge stok di pojok kanan atas masing-masing kartu kategori di layar transaksi (baris 1462-1476 di index.html, tambah class .kat-stock di CSS)
+- **Sticky Bar "Catat Kas Masuk/Keluar"** - sticky action bar di layar Laporan (sama pola dengan stokBar), muncul saat layar Laporan aktif (file: index.html baris 368-374, 682-684, 1378-1382)
+- **Compact Styling untuk Kartu Keuangan** - kartu "Buku Kas" dan "Riwayat Buka/Tutup Kas" lebih compact dan proporsional (class .compact-list, baris 278-283 di CSS)
+
+### 🎨 UI Improvements
+- **Styling Kartu Status** - tambahkan icon dan narasi empatik di lock overlay (baris 875-880)
+- **Tombol "Tambah 1 Hari" Gradient Hijau** - ubah tombol perpanjangan jadi gradient hijau dengan jarak proporsional (class .btn-extend, baris 177 di CSS)
+
+---
+
 ## [1.3.0] - 2026-07-31 (PWA Full Setup & Icon Generation)
 
 ### 🎨 PWA Icons & Assets
@@ -14,6 +101,25 @@
 
 ### 📱 PWA Manifest Enhancement
 - **File:** `manifest.json` (di-generate)
+
+### ⚙️ Service Worker Update (v5)
+- **File:** `sw.js`
+- **CACHE_VERSION:** v4 → v5 (sesuai perbaikan syntax error)
+- **CORE_ASSETS:** Diperbaiki syntax string di array (fix closing quotes di line 10)
+- **Caching Strategy:** Network-first untuk HTML, cache-first untuk assets
+- **Fixed:** TypeError ServiceWorker script evaluation failed akibat syntax error di sw.js
+
+### ✅ PWA Installation Ready
+Aplikasi sekarang siap di-install sebagai PWA:
+- ✅ Icon akan muncul di Home Screen
+- ✅ Tidak ada address bar (standalone mode)
+- ✅ Theme color orange sesuai branding
+- ✅ Bisa diakses offline (asset cache)
+- ✅ Support iOS & Android
+
+---
+
+## [1.1.0] - 2026-07-31
 - **Features:**
   - Display mode: `standalone` (seperti app native)
   - Theme color: `#E85D1F` (orange branding)
@@ -206,5 +312,5 @@ Tidak ada breaking changes. Semua perubahan backward compatible.
 
 **Catatan:** Changelog ini diupdate secara berkala setiap ada perubahan signifikan.
 
-**Total Commits:** 5 versi (1.0.0 → 1.3.0)
-**Last Updated:** 2026-07-31
+**Versi:** 1.0.0 → 1.3.4  
+**Last Updated:** 2026-08-03

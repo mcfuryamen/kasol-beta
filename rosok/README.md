@@ -17,14 +17,18 @@ Aplikasi kasir PWA untuk usaha pengepul rosok / barang bekas. Catat pembelian, p
 ## 🚀 Running Locally
 
 ```bash
-# Menggunakan Python (simple HTTP server)
-python3 -m http.server 8080
+# Development server bawaan (port 7777, MIME type ESM sudah diatur)
+node run-local.js
+# Buka: http://localhost:7777
+
+# Alternatif: Python simple HTTP server
+python3 -m http.server 8084
 
 # Atau menggunakan Node.js
 npx serve .
 ```
 
-Lalu buka: `http://localhost:8080`
+Lalu buka: `http://localhost:8084`
 
 **Note:** PWA memerlukan HTTPS atau localhost untuk berfungsi penuh (Service Worker & Manifest).
 
@@ -63,11 +67,25 @@ Lalu buka: `http://localhost:8080`
 - ✅ Bekerja offline (PWA)
 - ✅ Responsive mobile-first design
 
+## 📝 Update Terbaru (v1.3.4) - 2026-08-03
+- **Cleanup Filter Laporan** - hapus dropdown bulan kalender (`bulanFilter`) dan tab preset "Setahun"; periode kini hanya `Semua | Hari Ini | 7 Hari | 30 Hari | Custom`
+- **Fix "Fitur Ilang" (Service Worker)** - ubah strategi asset dari cache-first menjadi **Stale-While-Revalidate** (CACHE_VERSION v10); sajikan cache instan lalu revalidate dari server di background, sehingga setiap update kode otomatis tampil setelah reload tanpa perlu bump versi manual
+- **Script Deploy Monorepo** - tambah `sync-to-mirror.sh` (produksi → mirror, whitelist otomatis) + `push-to-github.sh` (commit & push ke GitHub cloud), menggantikan GitHub Desktop
+
+## 📝 Update Terbaru (v1.3.3) - 2026-08-02
+- **Redesign Halaman Pembayaran** - layout compact terpadu (total, metode bayar, nominal, kembalian dalam satu kartu), header step 2 grid 2 kolom, ringkasan keranjang compact, preset nominal +10K/+25K/+50K/+100K dengan auto-fill
+- **Fix Label Tempo/Utang** - perbaiki TypeError saat pilih metode Tempo/Tunai (elemen label hilang); label "Uang Muka"/"Sisa Utang" dan hint tempo kini tampil benar
+- **Fix Styling Pembayaran** - jarak input Catatan ke kartu, chip keranjang step 1, tombol metode bayar di layar ≤360px, koreksi variabel CSS tidak terdefinisi
+- **Fix Dev Server** - module JS gagal load di `run-local.js` karena query string tidak dihapus saat lookup file (MIME type salah)
+
 ## 🏗️ Tech Stack
 
-- **Frontend:** Vanilla HTML5, CSS3, JavaScript (ES6+)
+- **Frontend:** Vanilla HTML5, CSS3, JavaScript (ES6+ Modules)
 - **Database:** Dexie.js (IndexedDB wrapper)
-- **PWA:** Service Worker + Web App Manifest
+- **PWA:** Service Worker (v10) + Web App Manifest
+  - Network-first untuk HTML, **Stale-While-Revalidate** untuk assets
+  - CACHE_VERSION: v10
+  - Auto-update dengan skipWaiting dan clientClaim
 - **Build Tools:** Sharp.js (icon generation)
 - **Icons:** 192x192, 512x512, favicon 16/32px
 
@@ -75,19 +93,40 @@ Lalu buka: `http://localhost:8080`
 
 ```
 rosok/
-├── index.html          # Main application (267KB)
-├── sw.js               # Service Worker (v4)
+├── index.html          # Entry point (HTML + loader ESM)
+├── style.css           # Seluruh styling aplikasi (design tokens CSS)
+├── js/                 # Modul ES6+ (state, fitur, utilitas)
+│   ├── app.js          # Entry module (wire global handlers)
+│   ├── app-state.js    # State terpusat + setter (read-only binding)
+│   ├── pos.js          # POS: timbang, keranjang, pembayaran, nota
+│   ├── nav.js          # Navigasi screen + sticky bar
+│   ├── dashboard.js    # Beranda & statistik
+│   ├── kategori.js     # Stok & kategori barang
+│   ├── riwayat.js      # Riwayat transaksi
+│   ├── laporan.js      # Laporan & tempo
+│   ├── kas.js          # Buka/tutup kas & kas manual
+│   ├── license.js      # Lisensi (trial/HMAC)
+│   ├── onboard.js      # Onboarding pertama
+│   ├── carousel.js     # Platform carousel
+│   ├── router.js       # Route hashing
+│   └── utils.js        # Utilitas (fmt, toast, escape, overlay)
+├── assets/             # Logo, icon, favicon, splash (satu sumber)
+├── sw.js               # Service Worker (v10, Stale-While-Revalidate)
 ├── manifest.json       # PWA manifest
-├── logo.png            # Source logo (600x600)
-├── icon-192.png        # PWA icon 192x192
-├── icon-512.png        # PWA icon 512x512
-├── favicon-16.png      # Favicon 16x16
-├── favicon-32.png      # Favicon 32x32
-├── splash-1028.png     # iOS splash screen
-├── AUDIT_REPORT.md     # Audit report
-├── CHANGELOG.md        # Version history
-└── README.md           # This file
+├── dexie.min.js        # Library Dexie (IndexedDB)
+├── run-local.js        # Development server lokal (node run-local.js)
+├── sync-to-mirror.sh   # Salin produksi -> folder mirror (whitelist otomatis)
+├── vercel.json         # Konfigurasi deploy Vercel
+├── AGENTS.md           # Panduan agen AI (konteks proyek)
+├── CHANGELOG.md        # Riwayat versi
+└── README.md           # File ini
 ```
+
+## 🎨 UI Styling Reference
+
+- **`.kat-stock`** - badge stok di pojok kanan atas kategori (background var(--green-soft), warna var(--green), font-size 11px)
+- **`.btn-extend`** - tombol perpanjangan gradian hijau (background linear-gradient(var(--grad-green)), padding 14px 16px)
+- **`.compact-list`** - styling compact untuk daftar keuangan (font-size 13px, padding 8px 2px, icon 32x32px)
 
 ## 🔐 Security
 
@@ -107,5 +146,5 @@ Copyright © 2026 PT Mesin Kasir Solo
 
 ---
 
-**Versi:** 1.3.0  
-**Last Updated:** 2026-07-31
+**Versi:** 1.3.4  
+**Last Updated:** 2026-08-03

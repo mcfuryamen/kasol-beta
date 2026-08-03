@@ -12,16 +12,13 @@ kasol/
 │   ├── deploy-retail.yml       # Deploy aplikasi retail
 │   ├── deploy-landing.yml      # Deploy landing page
 │   └── deploy-all.yml          # Fallback deploy semua
-├── rosok/                      # Aplikasi Kasir Rosok
-│   ├── index.html              # Single HTML app
-│   ├── sw.js                   # Service Worker
+├── rosok/                      # Aplikasi Kasir Rosok (MODULAR)
+│   ├── index.html              # Entry point (loader ESM + HTML)
+│   ├── style.css               # Seluruh styling (design tokens CSS)
+│   ├── js/                     # Modul ES6+ (state, fitur, utilitas)
+│   ├── assets/                 # Logo, icon, favicon, splash
+│   ├── sw.js                   # Service Worker (v10, Stale-While-Revalidate)
 │   ├── manifest.json           # PWA manifest
-│   ├── logo.png                # Logo source
-│   ├── icon-192.png            # PWA icon
-│   ├── icon-512.png            # PWA icon high-res
-│   ├── favicon-16.png          # Browser favicon
-│   ├── favicon-32.png          # Browser favicon
-│   ├── splash-1028.png         # iOS splash
 │   ├── vercel.json             # Vercel config
 │   └── .vercelignore           # Vercel ignore
 ├── gerobak/                    # Aplikasi Kasir Gerobak
@@ -46,6 +43,20 @@ kasol/
 ## 🚀 Deployment
 
 Setiap aplikasi di-deploy secara independen ke Vercel. Deploy otomatis terjadi ketika ada perubahan di folder aplikasi tersebut.
+
+### ⚠️ Cara deteksi berjalan (penting)
+
+**Vercel tidak melakukan auto-detect dari git monorepo.** Yang menentukan "app mana yang di-deploy"
+adalah **GitHub Actions** (`.github/workflows/deploy-*.yml`) lewat **path filter**:
+
+- Setiap app punya file workflow sendiri (`deploy-rosok.yml`, `deploy-gerobak.yml`, ...)
+  yang berisi `on: push: paths: 'rosok/**'` (dst) → workflow **hanya jalan** jika ada perubahan
+  di folder itu.
+- `deploy-all.yml` adalah fallback: memakai `dorny/paths-filter` untuk mendeteksi subrepo mana
+  yang berubah, lalu memanggil workflow deploy hanya untuk yang berubah.
+
+Artinya, ketika push berisi perubahan di beberapa folder monorepo sekaligus, hanya folder yang
+benar-benar berubah yang akan di-deploy; folder lain tanpa perubahan **tidak ikut deploy**.
 
 ### Cara Kerja:
 1. **Push ke folder `rosok/`** → Hanya aplikasi Rosok yang deploy

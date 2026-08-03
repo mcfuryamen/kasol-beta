@@ -1,6 +1,7 @@
 name: Deploy Landing Page
 
 on:
+  workflow_call:
   push:
     paths:
       - 'landing/**'

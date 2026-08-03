@@ -1,8 +1,14 @@
-name: Deploy All (Fallback)
+name: Deploy All (Fallback Manual)
+
+# Manual fallback: jalan via tombol "Run workflow" di Actions.
+# Jalur otomatis harian ditangani oleh masing-masing deploy-<app>.yml
+# yang punya path filter (push ke rosok/** hanya memicu deploy rosok).
+#
+# Gunakan ini untuk memaksa deploy beberapa/total app sekaligus,
+# atau jika workflow per-app bermasalah. Deteksi per-folder tetap
+# menggunakan dorny/paths-filter, jadi app tanpa perubahan TIDAK di-deploy.
 
 on:
-  push:
-    branches: [main, master]
   workflow_dispatch:
 
 jobs:
