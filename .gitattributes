@@ -1,0 +1,42 @@
+# ============================================================
+#  Normalisasi line-ending — monorepo kasol
+#  Semua file teks disimpan sebagai LF di repo (tidak peduli OS).
+#  Menghilangkan warning "LF will be replaced by CRLF" dan
+#  mencegah file menjadi CRLF yang bisa merusak skrip shell
+#  (bash di CI Linux) atau membuat diff berisik.
+# ============================================================
+
+* text=auto
+
+# File teks proyek: simpan & checkout sebagai LF
+*.js        text eol=lf
+*.css       text eol=lf
+*.html      text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.sh        text eol=lf
+*.txt       text eol=lf
+*.xml       text eol=lf
+
+# Skrip shell WAJIB LF — kalau CRLF, bash bisa gagal di CI/Vercel
+*.sh        text eol=lf
+
+# .vercelignore / .gitignore tanpa ekstensi: perlakukan sebagai teks
+.vercelignore text eol=lf
+.gitignore    text eol=lf
+.gitattributes text eol=lf
+
+# Library vendor dan binary: jangan pernah diubah Git
+*.min.js    binary
+*.min.css   binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.webp      binary
+*.ico       binary
+*.gif       binary
+*.woff      binary
+*.woff2     binary
+*.svg       -text
