@@ -61,3 +61,6 @@ temp/
 # Generated files
 *.min.js
 *.min.css
+
+# Dexie library — WAJIB di-deploy (library, bukan file generated)
+!rosok/dexie.min.js
