@@ -4,13 +4,13 @@ on:
   workflow_call:
   # push:  # DISABLED — Vercel native git integration yang handle deploy
   #         workflow ini hanya untuk manual trigger (workflow_dispatch via deploy-all.yml)
-    paths:
-      - 'rosok/**'
-      - 'rosok/.vercel/**'
-  pull_request:
-    paths:
-      - 'rosok/**'
-      - 'rosok/.vercel/**'
+  #   paths:
+  #     - 'rosok/**'
+  #     - 'rosok/.vercel/**'
+  # pull_request:
+  #   paths:
+  #     - 'rosok/**'
+  #     - 'rosok/.vercel/**'
 
 jobs:
   deploy:
