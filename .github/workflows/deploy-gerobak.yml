@@ -2,7 +2,8 @@ name: Deploy Kasir Gerobak
 
 on:
   workflow_call:
-  push:
+  # push:  # DISABLED — Vercel native git integration yang handle deploy
+  #         workflow ini hanya untuk manual trigger (workflow_dispatch via deploy-all.yml)
     paths:
       - 'gerobak/**'
       - 'gerobak/.vercel/**'

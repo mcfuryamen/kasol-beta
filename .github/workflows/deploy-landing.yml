@@ -2,7 +2,8 @@ name: Deploy Landing Page
 
 on:
   workflow_call:
-  push:
+  # push:  # DISABLED — Vercel native git integration yang handle deploy
+  #         workflow ini hanya untuk manual trigger (workflow_dispatch via deploy-all.yml)
     paths:
       - 'landing/**'
       - 'landing/.vercel/**'
