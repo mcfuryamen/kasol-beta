@@ -1,0 +1,31 @@
+{
+  "name": "Kasir Solo - Kaki Lima",
+  "short_name": "KasirKaki5",
+  "description": "Aplikasi kasir gratis untuk pedagang kaki lima. Catat jualan, pengeluaran, dan lihat untung tiap hari!",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#FFFAF5",
+  "theme_color": "#E65100",
+  "orientation": "portrait-primary",
+  "lang": "id",
+  "categories": [
+    "business",
+    "finance"
+  ],
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "apple_touch_icon": "assets/icon-192.png",
+  "msapplication_tilecolor": "#E65100"
+}

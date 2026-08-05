@@ -4,38 +4,11 @@ import { showToast } from './helpers.js';
 let deferredPrompt = null;
 
 // Generate manifest blob URL with icon
-export async function setupPWA() {
-  let iconSrc = 'assets/icon.png';
-  try {
-    const res = await fetch('assets/icon.png');
-    const blob = await res.blob();
-    iconSrc = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
-  } catch(e) { console.warn('[PWA] icon fetch failed, using path', e.message); }
-
-  // Create manifest
-  const manifest = {
-    name: 'Kasir Solo - Kaki Lima',
-    short_name: 'Kasir Solo',
-    description: 'Aplikasi kasir gratis untuk pedagang kaki lima',
-    start_url: './',
-    display: 'standalone',
-    orientation: 'any',
-    background_color: '#FFFAF5',
-    theme_color: '#E65100',
-    icons: [
-      { src: iconSrc, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-      { src: iconSrc, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-    ]
-  };
-
-  const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-  const manifestUrl = URL.createObjectURL(manifestBlob);
-  const manifestLink = document.createElement('link');
-  manifestLink.rel = 'manifest';
-  manifestLink.href = manifestUrl;
-  document.head.appendChild(manifestLink);
-
-  // Register Service Worker (external file for proper browser support)
+export function setupPWA() {
+  // Manifest disediakan sebagai file statis (manifest.json) yang direferensikan
+  // di index.html via <link rel="manifest">. Browser TIDAK menerima manifest dari
+  // blob: URL untuk persyaratan installability, jadi jangan dibangun dinamis.
+  // Cukup daftarkan Service Worker (file eksternal, cache-first).
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
       console.log('[SW] Registered, scope:', reg.scope);
