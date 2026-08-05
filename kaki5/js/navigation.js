@@ -6,6 +6,7 @@ import { renderMenuList } from './menu.js';
 import { loadExpenses } from './pengeluaran.js';
 import { loadReport } from './laporan.js';
 import { loadSettings } from './settings.js';
+import { initBantuan } from './bantuan.js';
 
 export function showPage(page) {
   setCurrentPage(page);
@@ -19,7 +20,7 @@ export function showPage(page) {
   if (page === 'beranda') loadBeranda();
   else if (page === 'jualan') loadPOS();
   else if (page === 'menu') renderMenuList();
-  else if (page === 'pengeluaran') loadExpenses();
-  else if (page === 'laporan') loadReport();
+  else if (page === 'laporan') { loadReport(); loadExpenses(); }
   else if (page === 'pengaturan') loadSettings();
+  else if (page === 'bantuan') initBantuan();
 }

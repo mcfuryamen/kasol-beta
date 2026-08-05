@@ -23,7 +23,7 @@
 <img src="assets/icon.png" class="header-logo" alt="Logo"><h1>Kasir Solo<br><span style="font-size:12px;font-weight:400;opacity:.85">Kaki Lima Edition</span></h1>
 <div class="header-right">
 <div class="trial-badge" id="trialChip" onclick="window._ksr_openLicenseSheet()" role="button" title="Status Lisensi"><div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">7 hari</div></div>
-<button class="header-btn" onclick="showPage('pengaturan')" title="Pengaturan">⚙️</button>
+<button class="header-btn" onclick="showPage('bantuan')" title="Bantuan">❓</button>
 </div>
 </header>
 
@@ -107,15 +107,7 @@
 <button class="fab" onclick="openMenuForm()" title="Tambah Menu">➕</button>
 </div>
 
-<!-- ====== HALAMAN PENGELUARAN ====== -->
-<div class="page" id="page-pengeluaran">
-<div class="date-nav" id="expDateNav"></div>
-<div id="expenseList"></div>
-<div id="expenseTotal" style="margin-top:8px"></div>
-<button class="fab" onclick="openExpenseForm()" title="Catat Pengeluaran">➕</button>
-</div>
-
-<!-- ====== HALAMAN LAPORAN ====== -->
+<!-- ====== HALAMAN LAPORAN (+ Pengeluaran digabung) ====== -->
 <div class="page" id="page-laporan">
 <div class="report-tabs" id="reportPeriodTabs">
 <div class="report-tab active" data-period="harian" onclick="setReportPeriod('harian')">Harian</div>
@@ -124,6 +116,14 @@
 </div>
 <div class="date-nav" id="reportDateNav"></div>
 <div id="reportContent"></div>
+
+<div class="card" style="margin-top:16px">
+<div class="card-title">💸 Pengeluaran</div>
+</div>
+<div class="date-nav" id="expDateNav"></div>
+<div id="expenseList"></div>
+<div id="expenseTotal" style="margin-top:8px"></div>
+<button class="fab" onclick="openExpenseForm()" title="Catat Pengeluaran">➕</button>
 </div>
 
 <!-- ====== HALAMAN PENGATURAN ====== -->
@@ -209,6 +209,17 @@
 </div>
 </div>
 
+<!-- ====== HALAMAN BANTUAN ====== -->
+<div class="page" id="page-bantuan">
+<div class="card">
+<div class="card-title">❓ Bantuan</div>
+<div style="font-size:14px;color:var(--text2);line-height:1.6">
+Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
+</div>
+</div>
+<div id="bantuanContent"></div>
+</div>
+
 </main>
 
 <!-- BOTTOM NAVIGATION -->
@@ -225,13 +236,13 @@
 <span class="nav-icon">🍽️</span>
 <span>Menu</span>
 </button>
-<button class="nav-item" data-page="pengeluaran" onclick="showPage('pengeluaran')">
-<span class="nav-icon">💸</span>
-<span>Keluar</span>
-</button>
 <button class="nav-item" data-page="laporan" onclick="showPage('laporan')">
 <span class="nav-icon">📊</span>
 <span>Laporan</span>
+</button>
+<button class="nav-item" data-page="pengaturan" onclick="showPage('pengaturan')">
+<span class="nav-icon">⚙️</span>
+<span>Pengaturan</span>
 </button>
 </nav>
 
