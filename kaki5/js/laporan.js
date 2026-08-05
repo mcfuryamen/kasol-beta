@@ -105,38 +105,62 @@ export async function loadReport() {
     html += '</div>';
   }
 
-  // Expense breakdown by category
+  // Expense breakdown by category with accordion (expandable transaction list)
   if (expenses.length > 0) {
     const expCats = {};
+    const expCatItems = {}; // kategori -> array of expense objects
     expenses.forEach(e => {
-      if (!expCats[e.kategori]) expCats[e.kategori] = 0;
+      if (!expCats[e.kategori]) {
+        expCats[e.kategori] = 0;
+        expCatItems[e.kategori] = [];
+      }
       expCats[e.kategori] += e.jumlah;
+      expCatItems[e.kategori].push(e);
     });
     const catEmoji = {'Bahan Baku':'🥬','Gas & BBM':'⛽','Sewa Tempat':'🏪','Peralatan':'🍳','Lainnya':'📦'};
     html += '<div class="card"><div class="card-title">💸 Rincian Pengeluaran</div>';
+    
     Object.entries(expCats).sort((a,b) => b[1]-a[1]).forEach(([cat, total]) => {
       const pct = totalExp > 0 ? Math.round((total/totalExp)*100) : 0;
-      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-        <span style="font-size:20px">${escapeHtml(catEmoji[cat]||'📦')}</span>
-        <div style="flex:1"><div style="font-weight:600;font-size:14px">${escapeHtml(cat)}</div>
-        <div style="background:#f5f5f5;border-radius:6px;height:8px;margin-top:4px;overflow:hidden"><div style="background:var(--red-light);height:100%;width:${pct}%;border-radius:6px"></div></div></div>
-        <div style="text-align:right"><div style="font-weight:800;font-size:14px;color:var(--red)">${formatRp(total)}</div><div style="font-size:11px;color:var(--text3)">${pct}%</div></div>
-      </div>`;
+      const catId = `expCat-${escapeHtml(cat).replace(/\s+/g,'')}`;
+      
+      // Category header (clickable to expand/collapse)
+      html += `<div>
+        <div onclick="toggleExpenseCat('${catId}')" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer">
+          <span style="font-size:20px">${escapeHtml(catEmoji[cat]||'📦')}</span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:14px">${escapeHtml(cat)}</div>
+            <div style="background:#f5f5f5;border-radius:6px;height:8px;margin-top:4px;overflow:hidden">
+              <div style="background:var(--red-light);height:100%;width:${pct}%;border-radius:6px"></div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:800;font-size:14px;color:var(--red)">${formatRp(total)}</div>
+            <div style="font-size:11px;color:var(--text3)">${pct}%</div>
+          </div>
+          <span id="${catId}-arrow" style="font-size:18px;color:var(--text3);transition:transform .2s">›</span>
+        </div>
+        
+        <div id="${catId}" style="display:none;padding-left:32px;border-bottom:1px solid var(--border)">`;
+      
+      // Transaction list for this category (sorted by time, newest first)
+      if (reportPeriod === 'harian') {
+        expCatItems[cat].sort((a,b) => b.waktu - a.waktu).forEach(e => {
+          html += `<div class="trx-item" onclick="showExpenseDetail(${e.id})" style="padding:10px 0;gap:10px">
+            <div style="width:12px;height:12px;background:var(--red-light);border-radius:50%;flex-shrink:0"></div>
+            <div class="trx-info" style="flex:1">
+              <div class="trx-title" style="font-size:13px">${escapeHtml(e.keterangan)}</div>
+              <div class="trx-sub" style="font-size:11px">${escapeHtml(formatTime(e.waktu))}</div>
+            </div>
+            <div class="trx-amount red" style="font-size:13px">-${formatRp(e.jumlah)}</div>
+          </div>`;
+        });
+      }
+      
+      html += `</div></div>`;
     });
+    
     html += '</div>';
-
-    // Expense transaction list (individual items)
-    if (reportPeriod === 'harian') {
-      html += '<div class="card"><div class="card-title">📋 Daftar Pengeluaran</div>';
-      expenses.sort((a,b) => b.waktu - a.waktu).forEach(e => {
-        html += `<div class="trx-item" onclick="showExpenseDetail(${e.id})">
-          <div class="trx-icon expense">${escapeHtml(catEmoji[e.kategori]||'📦')}</div>
-          <div class="trx-info"><div class="trx-title">${escapeHtml(e.keterangan)}</div><div class="trx-sub">${escapeHtml(formatTime(e.waktu))} • ${escapeHtml(e.kategori)}</div></div>
-          <div class="trx-amount red">-${formatRp(e.jumlah)}</div>
-        </div>`;
-      });
-      html += '</div>';
-    }
   }
 
   // Transaction list for daily
@@ -273,4 +297,15 @@ export function navReportDate(delta) {
   }
   setReportDate(next);
   loadReport();
+}
+
+// Toggle expense category accordion (expand/collapse transaction list)
+export function toggleExpenseCat(catId) {
+  const panel = document.getElementById(catId);
+  const arrow = document.getElementById(`${catId}-arrow`);
+  if (!panel || !arrow) return;
+  
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
 }
