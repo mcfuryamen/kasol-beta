@@ -1,0 +1,263 @@
+// ==================== LAPORAN (ESM) ====================
+import { DB } from './db.js';
+import { escapeHtml, formatRp, formatDate, formatTime, todayStr, addDays, dayName, getWeekRange, getMonthRange, showLoading, showToast } from './helpers.js';
+import { reportPeriod, setReportPeriod, reportDate, setReportDate } from './app-state.js';
+
+export function setReportPeriodUI(p) {
+  setReportPeriod(p);
+  document.querySelectorAll('.report-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.period === p);
+  });
+  loadReport();
+}
+
+export async function loadReport() {
+  await renderReportDateNav();
+  const load = showLoading('reportContent', 6); // skeleton while querying chart data
+  try {
+    let dateRange;
+    if (reportPeriod === 'harian') {
+      dateRange = { start: reportDate, end: reportDate };
+    } else if (reportPeriod === 'mingguan') {
+      dateRange = getWeekRange(reportDate);
+    } else {
+      dateRange = getMonthRange(reportDate);
+    }
+
+    const sales = await DB.penjualan.where('tanggal').between(dateRange.start, dateRange.end, true, true).toArray();
+    const expenses = await DB.pengeluaran.where('tanggal').between(dateRange.start, dateRange.end, true, true).toArray();
+
+  let omzet = 0, modal = 0, totalQty = 0;
+  const menuStats = {};
+  sales.forEach(s => {
+    omzet += s.totalHarga;
+    modal += s.totalModal;
+    if (s.items) s.items.forEach(i => {
+      totalQty += i.qty;
+      if (!menuStats[i.nama]) menuStats[i.nama] = { qty: 0, total: 0 };
+      menuStats[i.nama].qty += i.qty;
+      menuStats[i.nama].total += i.qty * i.hargaJual;
+    });
+  });
+
+  const totalExp = expenses.reduce((a,e) => a + e.jumlah, 0);
+  const profit = omzet - modal - totalExp;
+  const marginPct = omzet > 0 ? Math.round(((omzet - modal) / omzet) * 100) : 0;
+
+  let html = '';
+
+  // Summary cards
+  html += `<div class="stat-grid">
+    <div class="stat-card" style="background:var(--green-bg);border-color:#A5D6A7">
+      <div class="stat-label">💰 Omzet</div>
+      <div class="stat-value green">${formatRp(omzet)}</div>
+    </div>
+    <div class="stat-card" style="background:var(--orange-bg);border-color:#FFCC80">
+      <div class="stat-label">🧮 Modal Bahan</div>
+      <div class="stat-value orange">${formatRp(modal)}</div>
+    </div>
+    <div class="stat-card" style="background:var(--red-bg);border-color:#EF9A9A">
+      <div class="stat-label">💸 Pengeluaran</div>
+      <div class="stat-value red">${formatRp(totalExp)}</div>
+    </div>
+    <div class="stat-card" style="background:var(--blue-bg);border-color:#90CAF9">
+      <div class="stat-label">📈 Untung Bersih</div>
+      <div class="stat-value ${profit>=0?'blue':'red'}">${formatRp(profit)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">🛒 Transaksi</div>
+      <div class="stat-value orange">${sales.length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">🍽️ Porsi Terjual</div>
+      <div class="stat-value orange">${totalQty}</div>
+    </div>
+  </div>`;
+
+  // Margin
+  html += `<div class="card" style="text-align:center">
+    <div class="card-title" style="justify-content:center">📊 Margin Kotor</div>
+    <div style="background:#f5f5f5;border-radius:10px;height:24px;overflow:hidden;margin-bottom:8px">
+      <div style="background:${marginPct>30?'var(--green)':marginPct>15?'var(--primary)':'var(--red)'};height:100%;width:${marginPct}%;border-radius:10px;transition:width .5s"></div>
+    </div>
+    <div style="font-size:20px;font-weight:800;color:${marginPct>30?'var(--green)':marginPct>15?'var(--primary)':'var(--red)'}">${marginPct}%</div>
+  </div>`;
+
+  // Chart for weekly/monthly (uses already-fetched sales/expenses — no N+1)
+  if (reportPeriod !== 'harian') {
+    html += await renderChart(dateRange, reportPeriod, sales, expenses);
+  }
+
+  // Top menu
+  const sortedMenus = Object.entries(menuStats).sort((a,b) => b[1].qty - a[1].qty).slice(0, 5);
+  if (sortedMenus.length > 0) {
+    html += '<div class="card"><div class="card-title">🏆 Menu Paling Laris</div>';
+    sortedMenus.forEach(([name, stat], i) => {
+      html += `<div class="top-menu-item">
+        <div class="top-rank">${i+1}</div>
+        <div class="top-menu-info">
+          <div class="top-menu-name">${escapeHtml(name)}</div>
+          <div class="top-menu-stat">${stat.qty} porsi terjual</div>
+        </div>
+        <div class="top-menu-total">${formatRp(stat.total)}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // Expense breakdown
+  if (expenses.length > 0) {
+    const expCats = {};
+    expenses.forEach(e => {
+      if (!expCats[e.kategori]) expCats[e.kategori] = 0;
+      expCats[e.kategori] += e.jumlah;
+    });
+    const catEmoji = {'Bahan Baku':'🥬','Gas & BBM':'⛽','Sewa Tempat':'🏪','Peralatan':'🍳','Lainnya':'📦'};
+    html += '<div class="card"><div class="card-title">💸 Rincian Pengeluaran</div>';
+    Object.entries(expCats).sort((a,b) => b[1]-a[1]).forEach(([cat, total]) => {
+      const pct = totalExp > 0 ? Math.round((total/totalExp)*100) : 0;
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:20px">${escapeHtml(catEmoji[cat]||'📦')}</span>
+        <div style="flex:1"><div style="font-weight:600;font-size:14px">${escapeHtml(cat)}</div>
+        <div style="background:#f5f5f5;border-radius:6px;height:8px;margin-top:4px;overflow:hidden"><div style="background:var(--red-light);height:100%;width:${pct}%;border-radius:6px"></div></div></div>
+        <div style="text-align:right"><div style="font-weight:800;font-size:14px;color:var(--red)">${formatRp(total)}</div><div style="font-size:11px;color:var(--text3)">${pct}%</div></div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // Transaction list for daily
+  if (reportPeriod === 'harian' && sales.length > 0) {
+    html += '<div class="card"><div class="card-title">📝 Daftar Transaksi</div>';
+    sales.sort((a,b) => b.waktu - a.waktu).forEach(s => {
+      const itemNames = s.items ? s.items.map(i => `${escapeHtml(i.nama)}×${i.qty}`).join(', ') : '';
+      html += `<div class="trx-item" onclick="showTrxDetail(${s.id})">
+        <div class="trx-icon sale">🛒</div>
+        <div class="trx-info"><div class="trx-title">${itemNames}</div><div class="trx-sub">${escapeHtml(formatTime(s.waktu))}</div></div>
+        <div class="trx-amount green">${formatRp(s.totalHarga)}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('reportContent').innerHTML = html;
+  } catch (err) {
+    console.error('[Report] load error:', err);
+    showToast('Gagal memuat laporan. Coba lagi.', 'error');
+  } finally {
+    load.done();
+  }
+}
+
+async function renderChart(range, period, sales, expenses) {
+  // Build lookup maps once — O(n) instead of N+1 queries
+  const dayIncome = {};   // 'YYYY-MM-DD' -> total income
+  const dayExpense = {};  // 'YYYY-MM-DD' -> total expense
+  sales.forEach(s => {
+    dayIncome[s.tanggal] = (dayIncome[s.tanggal] || 0) + s.totalHarga;
+  });
+  expenses.forEach(e => {
+    dayExpense[e.tanggal] = (dayExpense[e.tanggal] || 0) + e.jumlah;
+  });
+  const dayTotal = (map, d) => map[d] || 0;
+
+  let labels = [], incomeData = [], expenseData = [];
+  if (period === 'mingguan') {
+    let d = range.start;
+    while (d <= range.end) {
+      labels.push(dayName(d).substring(0,3));
+      incomeData.push(dayTotal(dayIncome, d));
+      expenseData.push(dayTotal(dayExpense, d));
+      d = addDays(d, 1);
+    }
+  } else {
+    // monthly - group by week (M1..M5)
+    const weeks = [];
+    let d = range.start;
+    let weekNum = 1;
+    let weekIncome = 0, weekExpense = 0, count = 0;
+    while (d <= range.end) {
+      weekIncome += dayTotal(dayIncome, d);
+      weekExpense += dayTotal(dayExpense, d);
+      count++;
+      if (count === 7 || d === range.end) {
+        labels.push('M' + weekNum);
+        incomeData.push(weekIncome);
+        expenseData.push(weekExpense);
+        weekNum++;
+        weekIncome = 0; weekExpense = 0; count = 0;
+      }
+      d = addDays(d, 1);
+    }
+  }
+
+  const maxVal = Math.max(...incomeData, ...expenseData, 1);
+  let barsHtml = '';
+  for (let i = 0; i < labels.length; i++) {
+    const incH = Math.max((incomeData[i] / maxVal) * 120, 4);
+    const expH = Math.max((expenseData[i] / maxVal) * 120, expenseData[i] > 0 ? 4 : 0);
+    barsHtml += `<div class="chart-col">
+      <div class="chart-val">${incomeData[i]>0?Math.round(incomeData[i]/1000)+'k':''}</div>
+      <div style="display:flex;gap:3px;align-items:flex-end;width:100%;height:120px">
+        <div class="chart-bar income" style="flex:1;height:${incH}px"></div>
+        <div class="chart-bar expense" style="flex:1;height:${expH}px"></div>
+      </div>
+      <div class="chart-label">${labels[i]}</div>
+    </div>`;
+  }
+
+  return `<div class="card">
+    <div class="card-title">📊 Grafik ${period === 'mingguan' ? 'Mingguan' : 'Bulanan'}</div>
+    <div style="display:flex;gap:12px;margin-bottom:8px;justify-content:center">
+      <div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--green-light)"></div>Omzet</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--red-light)"></div>Pengeluaran</div>
+    </div>
+    <div class="chart-bars">${barsHtml}</div>
+  </div>`;
+}
+
+async function renderReportDateNav() {
+  const box = document.getElementById('reportDateNav');
+  let label = '';
+  let prevStep, nextStep;
+  if (reportPeriod === 'harian') {
+    const isToday = reportDate === todayStr();
+    label = isToday ? 'Hari Ini' : formatDate(reportDate);
+    prevStep = -1; nextStep = 1;
+  } else if (reportPeriod === 'mingguan') {
+    const w = getWeekRange(reportDate);
+    label = formatDate(w.start) + ' - ' + formatDate(w.end);
+    prevStep = -7; nextStep = 7;
+  } else {
+    const [y,m] = reportDate.split('-');
+    const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    label = months[parseInt(m)-1] + ' ' + y;
+  }
+
+  let prevDelta, nextDelta;
+  if (reportPeriod === 'bulanan') {
+    prevDelta = -1; nextDelta = 1;
+  } else {
+    prevDelta = prevStep; nextDelta = nextStep;
+  }
+
+  box.innerHTML = `
+    <button class="date-btn" onclick="navReportDate(${prevDelta})">‹</button>
+    <div class="date-label">📅 ${label}</div>
+    <button class="date-btn" onclick="navReportDate(${nextDelta})">›</button>
+  `;
+}
+
+// Window-wired date navigation (handles monthly via month arithmetic, otherwise day math)
+export function navReportDate(delta) {
+  let next = reportDate;
+  if (reportPeriod === 'bulanan') {
+    const [y,m] = reportDate.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    next = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-01';
+  } else {
+    next = addDays(reportDate, delta);
+  }
+  setReportDate(next);
+  loadReport();
+}
