@@ -22,6 +22,7 @@ import {
 } from './pengeluaran.js';
 import { loadReport, setReportPeriodUI, navReportDate } from './laporan.js';
 import { showTrxDetail, closeTrxDetail, hapusPenjualan } from './trxdetail.js';
+import { showExpenseDetail } from './expensedetail.js';
 import { loadSettings, openNameModal, closeNameModal, saveNamaWarung, openOwnerModal, closeOwnerModal, saveOwner, openWaModal, closeWaModal, saveWa, openAlamatModal, closeAlamatModal, saveAlamat } from './settings.js';
 import { showConfirm, closeConfirm } from './confirm.js';
 import { exportData, importData, confirmClearAll } from './backup.js';
@@ -68,6 +69,7 @@ window.navReportDate      = navReportDate;
 window.showTrxDetail      = showTrxDetail;
 window.closeTrxDetail     = closeTrxDetail;
 window.hapusPenjualan     = hapusPenjualan;
+window.showExpenseDetail  = showExpenseDetail;
 window.loadSettings       = loadSettings;
 window.openNameModal      = openNameModal;
 window.closeNameModal     = closeNameModal;

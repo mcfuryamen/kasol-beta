@@ -105,7 +105,7 @@ export async function loadReport() {
     html += '</div>';
   }
 
-  // Expense breakdown
+  // Expense breakdown by category
   if (expenses.length > 0) {
     const expCats = {};
     expenses.forEach(e => {
@@ -124,6 +124,19 @@ export async function loadReport() {
       </div>`;
     });
     html += '</div>';
+
+    // Expense transaction list (individual items)
+    if (reportPeriod === 'harian') {
+      html += '<div class="card"><div class="card-title">📋 Daftar Pengeluaran</div>';
+      expenses.sort((a,b) => b.waktu - a.waktu).forEach(e => {
+        html += `<div class="trx-item" onclick="showExpenseDetail(${e.id})">
+          <div class="trx-icon expense">${escapeHtml(catEmoji[e.kategori]||'📦')}</div>
+          <div class="trx-info"><div class="trx-title">${escapeHtml(e.keterangan)}</div><div class="trx-sub">${escapeHtml(formatTime(e.waktu))} • ${escapeHtml(e.kategori)}</div></div>
+          <div class="trx-amount red">-${formatRp(e.jumlah)}</div>
+        </div>`;
+      });
+      html += '</div>';
+    }
   }
 
   // Transaction list for daily
