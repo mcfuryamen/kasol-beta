@@ -450,23 +450,28 @@
 </div>
 
 <!-- ONBOARDING OVERLAY -->
-<div class="modal-overlay" id="onboardingModal" style="align-items:center;padding:20px">
-<div style="background:#fff;border-radius:20px;padding:32px 20px;max-width:480px;width:90%;text-align:center;animation:popIn .3s ease">
+<div class="modal-overlay" id="onboardingModal" style="align-items:center;padding:20px;z-index:500;background:#fff">
+<div style="background:#fff;border-radius:20px;padding:32px 20px;max-width:520px;width:100%;text-align:center;animation:popIn .3s ease">
 <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px;border-radius:50%" alt="Logo">
 <div style="font-size:22px;font-weight:800;margin-bottom:4px">Kasir Solo</div><div style="font-size:14px;color:var(--text2);margin-bottom:8px">Kaki Lima Edition</div>
-<div style="font-size:15px;color:var(--text2);margin-bottom:20px;line-height:1.5">Aplikasi kasir gratis buat<br><strong>pedagang kaki lima</strong>.<br>Catat jualan, pengeluaran,<br>dan lihat untung tiap hari!</div>
+<div style="font-size:15px;color:var(--text2);margin-bottom:20px;line-height:1.5;width:100%;max-width:100%">Aplikasi kasir gratis buat <strong>pedagang kaki lima</strong>. Catat jualan, pengeluaran, dan lihat untung tiap hari!</div>
 <div class="form-group" style="text-align:left">
-<label class="form-label">Siapa nama usaha kamu?</label>
+<label class="form-label">Nama Usaha <span style="color:var(--red);font-weight:700">*</span></label>
 <input type="text" class="form-input" id="onboardName" placeholder="Contoh: Bakso Pak Joko">
 </div>
 <div class="form-group" style="text-align:left">
-<label class="form-label">Nama pemilik</label>
+<label class="form-label">Nama Pemilik <span style="color:var(--red);font-weight:700">*</span></label>
 <input type="text" class="form-input" id="onboardOwner" placeholder="Contoh: Pak Joko">
 </div>
 <div class="form-group" style="text-align:left">
-<label class="form-label">Nomor WhatsApp</label>
+<label class="form-label">Nomor WhatsApp <span style="color:var(--red);font-weight:700">*</span></label>
 <input type="tel" class="form-input" id="onboardWa" placeholder="Contoh: 0812-3456-7890">
 </div>
+<div class="form-group" style="text-align:left">
+<label class="form-label">Alamat <span style="color:var(--red);font-weight:700">*</span></label>
+<input type="text" class="form-input" id="onboardAlamat" placeholder="Contoh: Jl. Pasar Baru No. 12">
+</div>
+<div id="onboardMsg" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px;text-align:left"></div>
 <button class="btn btn-primary" onclick="finishOnboarding()">🚀 Mulai Pakai!</button>
 </div>
 </div>
