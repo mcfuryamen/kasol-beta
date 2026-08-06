@@ -1,6 +1,6 @@
 # Admin Dashboard — Setup & Deploy
 
-Panduan lengkap development dan deployment admin dashboard (modular ESM, local development).
+Panduan lengkap development dan deployment admin dashboard (modular ESM, Vercel deployment).
 
 ---
 
@@ -42,6 +42,80 @@ export const ADMIN_PASSWORD = 'admin123';
 
 ---
 
+## ☁️ Deploy ke Vercel
+
+### Setup Vercel Project (Sekali Saja)
+
+1. Login ke [vercel.com](https://vercel.com)
+2. Klik **Add New...** → **Project**
+3. Import repository GitHub: `mcfuryamen/kasol`
+4. Atur:
+   - **Root Directory**: `admin/`
+   - **Framework Preset**: Other
+   - **Build Command**: *(kosong)*
+   - **Output Directory**: `.`
+   - **Install Command**: *(kosong)*
+5. Klik **Deploy**
+
+### Deploy Workflow (Manual Push)
+
+```bash
+# 1. Sync produksi ke mirror
+cd /c/Users/Admin/Documents/kasol/admin
+cp -r . /c/Users/Admin/Documents/GitHub/kasol/admin/
+
+# 2. Commit & push dari monorepo root
+cd /c/Users/Admin/Documents/GitHub/kasol
+git add admin/
+git commit -m "admin: <deskripsi perubahan>"
+git push origin main
+
+# 3. Vercel auto-deploy dari GitHub
+```
+
+> **Note:** GitHub Actions workflows sudah dihapus. Deploy dilakukan manual push → Vercel auto-detect changes.
+
+### File Konfigurasi Vercel
+
+**`vercel.json`** (di folder admin/)
+
+```json
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/js/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
+}
+```
+
+**`.vercelignore`**
+
+```
+node_modules
+*.log
+.DS_Store
+Thumbs.db
+*.md
+docs/
+```
+
+---
+
 ## 📂 Struktur File Deploy
 
 ```
@@ -63,6 +137,8 @@ admin/
 │   ├── catalog.js
 │   ├── license-ui.js
 │   └── settings.js
+├── vercel.json         # Vercel config
+├── .vercelignore       # Vercel ignore
 ├── manifest.json       # PWA
 ├── sw.js               # Service Worker
 └── docs/               # Dokumentasi (8 files)
@@ -196,12 +272,6 @@ export async function storageSetJSON(key, value) {
   }
 }
 
-export async function storageClearAll() {
-  Object.keys(localStorage)
-    .filter(k => k.startsWith(PREFIX))
-    .forEach(k => localStorage.removeItem(k));
-}
-
 // js/storage.js - SESUDAH (Supabase)
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -229,7 +299,6 @@ export async function storageGetJSON(key, fallback = null) {
 
 export async function storageSetJSON(key, value) {
   const table = TABLE_MAP[key] || key;
-  // Upsert logic depends on data structure
   const { error } = await supabase.from(table).upsert(value);
   if (error) {
     console.error('Supabase set error:', error);
@@ -237,16 +306,9 @@ export async function storageSetJSON(key, value) {
   }
   return true;
 }
-
-export async function storageClearAll() {
-  // Admin only - hapus semua data user
-  for (const table of Object.values(TABLE_MAP)) {
-    await supabase.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  }
-}
 ```
 
-**Keuntungan:** Semua module lain (`dashboard.js`, `leads.js`, `catalog.js`, `license-ui.js`, `settings.js`) **tidak perlu diubah** — mereka memanggil `storageGetJSON`/`storageSetJSON` yang interface-nya sama.
+**Keuntungan:** Semua module lain (`dashboard.js`, `leads.js`, `catalog.js`, `license-ui.js`, `settings.js`) **tidak perlu diubah**.
 
 ### Fase 3: Implementasi RLS
 
@@ -277,21 +339,19 @@ Ganti `js/auth.js` untuk menggunakan Supabase Auth:
 
 ```javascript
 // js/auth.js - Supabase version
-import { supabase } from './storage.js'; // atau buat supabase-client.js terpisah
+import { supabase } from './storage.js';
 
 export async function doLogin(password) {
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: 'admin@kasirsolo.com', // atau input email
+    email: 'admin@kasirsolo.com',
     password
   });
   if (error) return false;
-  // Set session, redirect to app
   return true;
 }
 
 export async function doLogout() {
   await supabase.auth.signOut();
-  // Redirect to login
 }
 
 export async function checkAuth() {
@@ -305,16 +365,17 @@ export async function checkAuth() {
 ## ✅ Checklist Testing
 
 - [ ] Test login dengan password `admin123`
-- [ ] Test Dashboard: 6 KPI cards + bar charts render benar
+- [ ] Test Dashboard: 6 KPI cards + bar charts
 - [ ] Test Leads: tabel 5 kolom, search, filter, export CSV
-- [ ] Test Katalog: card grid responsif, tambah/edit/hapus, sheet modal `.field-grid`
-- [ ] Test Lisensi: product registry grid 3-tier, generate/verify serial, reference code
-- [ ] Test Pengaturan: Info Usaha (field-grid 2 kolom), Landing Config, Backup/Restore
-- [ ] Test Responsive: HP (<768), Tablet (768-1023), Desktop (≥1024), Large (≥1440)
+- [ ] Test Katalog: card grid responsif, tambah/edit/hapus, sheet modal
+- [ ] Test Lisensi: product registry, generate/verify serial
+- [ ] Test Pengaturan: forms, backup/restore
+- [ ] Test Responsive: HP/Tablet/Desktop/Large
 - [ ] Test Sheets/Modals: HP bottom-sheet, Desktop center modal
-- [ ] Test Empty States: semua pakai `hidden` attribute + semantic classes
+- [ ] Test Empty States: `hidden` attribute + semantic classes
 - [ ] Test Toast notifications: success/warning/error
 - [ ] No console errors
+- [ ] Vercel deployment working
 
 ---
 

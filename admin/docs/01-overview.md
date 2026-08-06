@@ -16,7 +16,7 @@ Dashboard internal untuk mengelola seluruh ekosistem KASIRSOLO — leads, katalo
 | **Nama** | Admin Marketing — KASIRSOLO |
 | **Tipe** | Modular Vanilla ESM SPA (Single Page Application) |
 | **Bahasa** | Indonesia |
-| **Deployment** | Local development only (production TBD) |
+| **Deployment** | Vercel (manual push, no GitHub Actions) |
 | **Arsitektur** | 3-layer: Entry → State/Data → Core/UI/Utils |
 | **Storage** | Abstraction layer (localStorage → Supabase ready) |
 | **Auth** | Simple password gate (password: `admin123`) |
@@ -58,9 +58,10 @@ admin/
 │   ├── license-ui.js       # Product registry + Generate/Verify + Reference code
 │   ├── license-core.js     # Pure HMAC-SHA256 (no DOM, no side-effects)
 │   └── settings.js         # Business/Landing forms + backup/restore/reset
+├── vercel.json             # Vercel config (rewrites to index.html)
 ├── manifest.json           # PWA manifest
 ├── sw.js                   # Service Worker
-└── .gitignore              # Git ignore rules
+└── .vercelignore           # Vercel ignore rules
 ```
 
 ---
@@ -197,9 +198,10 @@ admin/
 │   ├── license-ui.js           # License UI module
 │   ├── license-core.js         # Pure HMAC core
 │   └── settings.js             # Settings module
+├── vercel.json
 ├── manifest.json
 ├── sw.js
-└── .gitignore
+└── .vercelignore
 ```
 
 ---

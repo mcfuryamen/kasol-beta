@@ -136,29 +136,38 @@ Migrasi ke cloud dengan RLS (Row Level Security):
 
 ## 🚢 Deploy
 
-### Production Deployment
+### Vercel (Production)
 
-**Status:** Production deployment strategy TBD (To Be Determined)
+**Strategi:** Manual push ke GitHub, Vercel auto-deploy (no GitHub Actions workflow)
 
-**Local Development:**
-```bash
-# Start server on port 8082
-cd /c/Users/Admin/Documents/kasol/admin
-python -m http.server 8082
-```
-
-**Version Control:**
 ```bash
 # 1. Sync produksi ke mirror
 cd /c/Users/Admin/Documents/kasol/admin
 cp -r . /c/Users/Admin/Documents/GitHub/kasol/admin/
 
-# 2. Commit dari monorepo root
+# 2. Commit & push dari monorepo root
 cd /c/Users/Admin/Documents/GitHub/kasol
 git add admin/
 git commit -m "admin: <deskripsi perubahan>"
 git push origin main
+
+# 3. Vercel auto-deploy dari GitHub (configured via Vercel dashboard)
 ```
+
+**Vercel Project Settings:**
+- **Root Directory:** `admin/`
+- **Framework Preset:** Other
+- **Build Command:** *(leave empty)*
+- **Output Directory:** `.`
+- **Install Command:** *(leave empty)*
+
+**File Config:**
+- `vercel.json` — SPA rewrites + caching headers
+- `.vercelignore` — ignore docs/, *.md, node_modules
+
+**Domain:** Akan dikonfigurasi sebagai subdomain (e.g., `admin.kasirsolo.com`)
+
+> **Note:** GitHub Actions workflows sudah dihapus. Deploy dilakukan manual push → Vercel auto-detect changes.
 
 ---
 
@@ -186,7 +195,7 @@ git push origin main
 | [`docs/04-license-system.md`](docs/04-license-system.md) | Algoritma HMAC-SHA256 + reference code + validasi flow |
 | [`docs/05-design-system.md`](docs/05-design-system.md) | Color palette + typography + components + responsive |
 | [`docs/06-product-features.md`](docs/06-product-features.md) | Spec detail 5 modul (Dashboard/Leads/Katalog/Lisensi/Settings) |
-| [`docs/07-setup-deploy.md`](docs/07-setup-deploy.md) | Setup lokal + migrasi Supabase |
+| [`docs/07-setup-deploy.md`](docs/07-setup-deploy.md) | Setup lokal + deploy Vercel + migrasi Supabase |
 
 ---
 
