@@ -936,3 +936,70 @@ td .btn-sm { min-height: 34px; padding: var(--space-1) var(--space-3); font-size
   .btn-primary { background: #000; color: #fff; border: 2px solid #000; }
   .card { border-width: 2px; }
 }
+
+/* ===== EMOJI PICKER ===== */
+.emoji-picker {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.emoji-picker input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  background: var(--bg-card);
+  transition: border-color 0.2s;
+}
+
+.emoji-picker input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.emoji-picker-grid {
+  display: none;
+  position: absolute;
+  z-index: 1000;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.emoji-picker-grid.show {
+  display: grid;
+}
+
+.emoji-picker-grid button {
+  aspect-ratio: 1;
+  font-size: 20px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: background 0.2s;
+}
+
+.emoji-picker-grid button:hover,
+.emoji-picker-grid button:active {
+  background: var(--orange-50);
+  transform: scale(1.1);
+}
+
+.emoji-picker-grid button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}

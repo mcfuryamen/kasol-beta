@@ -122,7 +122,7 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 | **Peran** | Pusat kontrol seluruh ekosistem |
 | **Hubungan ke Landing** | Menulis katalog, settings; membaca leads, stats |
 | **Hubungan ke Klien** | Generate & verifikasi lisensi |
-| **Hubungan ke Supabase** | Rencana: read/write semua data (dengan RLS) |
+| **Hubungan ke Supabase** | ✅ Katalog tersimpan di Supabase (RLS: public read, service role CRUD) |
 | **Dokumentasi** | `admin/docs/` (file ini) |
 
 ### 3. Aplikasi Klien
@@ -142,7 +142,7 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 | `users` | Multi-user dengan RLS | Admin |
 | `businesses` | Data bisnis klien | Admin |
 | `leads` | Pendaftar trial | Admin |
-| `products` | Katalog aplikasi | Admin, Landing |
+| `products` | Katalog aplikasi | ✅ Admin, Landing |
 | `settings` | Pengaturan landing | Admin |
 | `licenses` | Generate & **validasi** serial (status active/expired/revoked) | Admin, Klien |
 | `stats` | Analytics | Admin |
@@ -201,8 +201,8 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 │           │                        │                          │
 │           └──────────┬─────────────┘                          │
 │                      │                                        │
-│              localStorage (tahap awal)                        │
-│              Supabase (rencana)                               │
+|              localStorage (tahap awal)                        │
+│              Supabase (katalog ✅)                             │
 └──────────────────────┼───────────────────────────────────────┘
                        │
 ┌──────────────────────▼───────────────────────────────────────┐

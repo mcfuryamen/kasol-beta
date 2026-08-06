@@ -1,0 +1,5 @@
+# Environment variables (DO NOT COMMIT)
+.env*
+.env
+.env.local
+!.env.example
