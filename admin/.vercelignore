@@ -1,0 +1,13 @@
+# Vercel ignore - files not needed for deployment
+node_modules/
+.git/
+.gitignore
+*.log
+*.local
+.DS_Store
+Thumbs.db
+*.md
+!README.md
+docs/
+*.sh
+*.bat

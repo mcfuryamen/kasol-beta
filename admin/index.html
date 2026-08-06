@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<!-- BUILD-MODULAR-V1 -->
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Admin Marketing — KASIRSOLO</title>
+<meta name="description" content="Dashboard admin untuk mengelola landing page, leads, katalog, dan lisensi KASIRSOLO">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F7941D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KasirAdmin">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="msapplication-TileColor" content="#F7941D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="dexie.min.js"></script>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand-badge">
+        <img id="headerLogo" src="assets/logo.png" alt="logo">
+      </div>
+      <div class="brand-txt">
+        <div class="biz" id="bizNameHeader">Admin Marketing KASIRSOLO</div>
+        <div class="tag" id="bizTagHeader">Kelola Landing, Leads, Katalog & Lisensi</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="trial-badge" id="licenseChip" onclick="openLicenseSheet()">
+        <div class="trial-label-xs">LICENSE</div>
+        <div class="trial-value-sm" id="licenseChipText">Aktif</div>
+      </div>
+      <button class="hamburger" aria-label="Buka menu" aria-expanded="false" aria-controls="sidebar">
+        <span class="ham-line"></span>
+        <span class="ham-line"></span>
+        <span class="ham-line"></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="sidebar-overlay" aria-hidden="true"></div>
+
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Menu utama">
+    <div class="sb-brand">
+      <div class="sb-logo">
+        <img src="assets/logo.png" alt="KASIRSOLO" width="32" height="32">
+      </div>
+      <div class="sb-title">
+        <span class="sb-name">Admin Marketing</span>
+        <span class="sb-tag">KASIRSOLO</span>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <button class="sb-link active" data-screen="dashboard" aria-current="page">
+        <span class="sb-icon">📊</span><span class="sb-label">Dashboard</span>
+      </button>
+      <button class="sb-link" data-screen="leads">
+        <span class="sb-icon">👥</span><span class="sb-label">Leads</span>
+      </button>
+      <button class="sb-link" data-screen="catalog">
+        <span class="sb-icon">📦</span><span class="sb-label">Katalog</span>
+      </button>
+      <button class="sb-link" data-screen="license">
+        <span class="sb-icon">🔐</span><span class="sb-label">Lisensi</span>
+      </button>
+      <button class="sb-link" data-screen="settings">
+        <span class="sb-icon">⚙️</span><span class="sb-label">Pengaturan</span>
+      </button>
+    </nav>
+    <div class="sb-foot">
+      <div class="sb-version">v1.0.0</div>
+      <div class="sb-copy">PT Mesin Kasir Solo</div>
+    </div>
+  </aside>
+
+  <main class="main" role="main">
+    <!-- ============ DASHBOARD ============ -->
+    <section class="screen active" id="screen-dashboard" aria-label="Dashboard">
+      <div class="section-label">Ringkasan</div>
+      <div class="stat-grid" id="statCards"></div>
+
+      <div class="section-label mt24">Leads per Aplikasi</div>
+      <div class="card" id="leadsByApp"></div>
+
+      <div class="section-label mt24">Leads per Status</div>
+      <div class="card" id="leadsByStatus"></div>
+
+      <div class="section-label mt24">Aktivitas Terbaru</div>
+      <div class="card" id="recentActivityCard"></div>
+    </section>
+
+    <!-- ============ LEADS ============ -->
+    <section class="screen" id="screen-leads" aria-label="Manajemen Leads">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="search" class="search" id="leadsSearch" placeholder="Cari nama, email, telepon..." aria-label="Cari leads">
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <select class="status-select" id="leadsStatusFilter" aria-label="Filter status">
+            <option value="">Semua Status</option>
+            <option value="baru">🆕 Baru</option>
+            <option value="dihubungi">📞 Dihubungi</option>
+            <option value="tertarik">💡 Tertarik</option>
+            <option value="deal">🤝 Deal</option>
+            <option value="batal">❌ Batal</option>
+          </select>
+          <button class="btn btn-primary" onclick="exportLeadsCSV()">📥 Export CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table" id="leadsTable">
+            <thead>
+              <tr>
+                <th>Nama / Kontak</th>
+                <th>Sumber</th>
+                <th>Status</th>
+                <th>Tanggal</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="leadsTbody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="leadsEmpty" style="display:none;">
+          <div class="empty-icon">👥</div>
+          <div class="empty-title">Belum ada leads</div>
+          <div class="empty-desc">Leads akan muncul saat ada pengunjung mengisi form di landing page</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ KATALOG ============ -->
+    <section class="screen" id="screen-catalog" aria-label="Manajemen Katalog Aplikasi">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <h2 class="toolbar-title">Katalog Aplikasi</h2>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-primary" onclick="openCatalogSheet()">➕ Tambah Aplikasi</button>
+        </div>
+      </div>
+      <div class="card" id="catalogCard">
+        <div class="catalog-grid" id="catalogList"></div>
+        <div class="empty-state" id="catalogEmpty" style="display:none;">
+          <div class="ic">📦</div>
+          <div class="t1">Belum ada aplikasi</div>
+          <div class="t2">Tambah aplikasi pertama untuk ditampilkan di landing page</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LICENSE ============ -->
+    <section class="screen" id="screen-license" aria-label="Manajemen Lisensi">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <h2 class="toolbar-title">Lisensi & Produk</h2>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-primary" onclick="openProductForm()">➕ Tambah Produk</button>
+        </div>
+      </div>
+
+      <!-- Produk Registry -->
+      <div class="card mt12">
+        <div class="section-label mb0">Daftar Produk Terdaftar</div>
+        <div class="hint mt8">Produk ini menjadi basis pembuatan serial number lisensi</div>
+        <div id="productRegistry"></div>
+      </div>
+
+      <!-- Generate License -->
+      <div class="card mt12">
+        <div class="section-label mb0">Generate Serial Number</div>
+        <div class="hint mt8">Isi data klien untuk generate serial number lisensi</div>
+        <div class="settings-grid mt12">
+          <div class="field">
+            <label class="field-label" for="genProduct">Produk</label>
+            <select id="genProduct"></select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="genUnitId">Unit ID</label>
+            <input type="text" id="genUnitId" placeholder="Contoh: K5-ABCD / GBK-XYZ1" maxlength="20">
+          </div>
+          <div class="field">
+            <label class="field-label" for="genOwnerName">Nama Pemilik</label>
+            <input type="text" id="genOwnerName" placeholder="Nama pemilik usaha">
+          </div>
+          <div class="field">
+            <label class="field-label" for="genPhone">No. WhatsApp</label>
+            <input type="tel" id="genPhone" placeholder="08xxxxxxxxxx">
+          </div>
+          <div class="field">
+            <label class="field-label" for="genDays">Masa Aktif (hari)</label>
+            <input type="number" id="genDays" value="365" min="1" max="3650">
+          </div>
+          <div class="field">
+            <label class="field-label" for="genMaxDevices">Max Device</label>
+            <input type="number" id="genMaxDevices" value="1" min="1" max="10">
+          </div>
+          <div class="field">
+            <label class="field-label" for="genRefCode">Referral Code (opsional)</label>
+            <input type="text" id="genRefCode" placeholder="Kode referrer (unitId)">
+          </div>
+        </div>
+        <button class="btn btn-primary mt12" onclick="generateSerial()">🔑 Generate Serial Number</button>
+        <div class="mt16">
+          <label class="field-label">Hasil Serial Number</label>
+          <textarea id="serialOutput" readonly rows="2" style="font-family:'Space Mono',monospace; font-size:13px; background:var(--cream);"></textarea>
+          <div class="btn-block-row mt8">
+            <button class="btn btn-outline" onclick="copySerial()">📋 Copy</button>
+            <button class="btn btn-primary" onclick="downloadSerial()">💾 Download .txt</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Verify License -->
+      <div class="card mt12">
+        <div class="section-label mb0">Verifikasi Serial Number</div>
+        <div class="hint mt8">Masukkan serial number untuk memverifikasi validitas lisensi</div>
+        <div class="field mt12">
+          <label class="field-label" for="verifySerial">Serial Number</label>
+          <input type="text" id="verifySerial" placeholder="Masukkan 30-karakter serial number" style="font-family:'Space Mono',monospace; text-transform:uppercase;">
+        </div>
+        <div class="field">
+          <label class="field-label" for="verifyDeviceCode">Device Code (opsional)</label>
+          <input type="text" id="verifyDeviceCode" placeholder="Kode device 8 karakter" style="font-family:'Space Mono',monospace; text-transform:uppercase;">
+        </div>
+        <button class="btn btn-primary mt12" onclick="verifySerial()">✅ Verifikasi Lisensi</button>
+        <div id="verifyResult" class="mt12" style="display:none;"></div>
+      </div>
+
+      <!-- Referral / Berbagi -->
+      <div class="card mt12">
+        <div class="section-label mb0">🎁 Program Berbagi (Referral)</div>
+        <div class="hint mt8">Bagikan kode referral Anda. Anda dapat reward koin saat teman mulai menjual.</div>
+        <div class="settings-grid mt12">
+          <div class="field">
+            <label class="field-label">Kode Referral Anda</label>
+            <input type="text" id="myRefCode" readonly style="background:var(--cream); font-weight:700; text-align:center; font-size:16px; letter-spacing:1px;">
+          </div>
+          <div class="field">
+            <label class="field-label">Total Referral Berhasil</label>
+            <input type="text" id="refSuccessCount" readonly value="0" style="background:var(--cream); text-align:center; font-size:20px; font-weight:800; color:var(--green-600);">
+          </div>
+          <div class="field">
+            <label class="field-label">Koin Tertampung</label>
+            <input type="text" id="refCoins" readonly value="0" style="background:var(--cream); text-align:center; font-size:20px; font-weight:800; color:var(--orange-500);">
+          </div>
+        </div>
+        <div class="hint mt12" style="font-size:12px; line-height:1.6;">
+          <b>Aturan:</b> Kode referral = Unit ID Anda. Reward koin diberikan hanya jika referee benar-benar mulai transaksi (min 1 transaksi). 1 claim per device (installId). Koin bisa dicairkan via admin (validasi server).
+        </div>
+        <button class="btn btn-outline mt12" onclick="copyRefCode()">📋 Copy Kode Referral</button>
+      </div>
+
+      <!-- Backup / Restore License -->
+      <div class="card mt12">
+        <div class="section-label mb0">💾 Backup & Restore Lisensi</div>
+        <div class="hint mt8">Backup data produk & serial ke file JSON. Restore untuk migrasi device.</div>
+        <div class="two-col-grid">
+          <button class="btn-backup-action" onclick="exportLicenseBackup()"><span class="backup-icon">📥</span> Export Backup Lisensi</button>
+          <label class="btn-backup-action">
+            <span class="backup-icon">📤</span> Import Backup Lisensi
+            <input type="file" id="licenseImportFile" accept="application/json" class="hidden" onchange="importLicenseBackup(event)">
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SETTINGS ============ -->
+    <section class="screen" id="screen-settings" aria-label="Pengaturan Aplikasi">
+      <div class="section-label mb0">Info Usaha (Ditampilkan di Landing Page)</div>
+      <div class="card mt12">
+        <div class="field"><label class="field-label" for="setBizName">Nama Usaha</label><input type="text" id="setBizName" placeholder="Contoh: PT Mesin Kasir Solo"></div>
+        <div class="field"><label class="field-label" for="setBizTag">Tagline</label><input type="text" id="setBizTag" placeholder="Contoh: Solusi POS Modern untuk UMKM"></div>
+        <div class="field"><label class="field-label" for="setBizAddr">Alamat</label><input type="text" id="setBizAddr" placeholder="Contoh: Jl. Sudirman No.1, Solo"></div>
+        <div class="field"><label class="field-label" for="setBizPhone">Telepon</label><input type="tel" id="setBizPhone" placeholder="08xxxxxxxxxx"></div>
+        <div class="field"><label class="field-label" for="setBizEmail">Email</label><input type="email" id="setBizEmail" placeholder="admin@kasirsolo.com"></div>
+        <div class="field"><label class="field-label" for="setBizWa">WhatsApp (untuk CTA)</label><input type="tel" id="setBizWa" placeholder="628xxxxxxxxxx (format internasional)"></div>
+        <div class="field"><label class="field-label" for="setBizIg">Instagram (opsional)</label><input type="text" id="setBizIg" placeholder="@kasirsolo"></div>
+        <button class="btn btn-primary mt12" onclick="saveBizSettings()">Simpan Info Usaha</button>
+      </div>
+
+      <div class="section-label mt24">Landing Page Config</div>
+      <div class="card mt12">
+        <div class="field"><label class="field-label" for="setHeroTitle">Hero Title</label><input type="text" id="setHeroTitle" placeholder="Kasir Solo - Solusi POS Terbaik"></div>
+        <div class="field"><label class="field-label" for="setHeroDesc">Hero Description</label><textarea id="setHeroDesc" rows="3" placeholder="Aplikasi kasir modern untuk UMKM Indonesia..."></textarea></div>
+        <div class="field"><label class="field-label" for="setHeroCta">CTA Button Text</label><input type="text" id="setHeroCta" placeholder="Mulai Gratis 7 Hari"></div>
+        <button class="btn btn-primary mt12" onclick="saveLandingSettings()">Simpan Landing Config</button>
+      </div>
+
+      <div class="section-label mt24">Backup & Restore Data Admin</div>
+      <div class="card mt12">
+        <p class="muted-note">Backup semua data admin (leads, katalog, settings, produk lisensi) ke file JSON.</p>
+        <div class="two-col-grid">
+          <button class="btn-backup-action" onclick="exportAdminBackup()"><span class="backup-icon">📥</span> Export Backup Admin</button>
+          <label class="btn-backup-action">
+            <span class="backup-icon">📤</span> Import Backup Admin
+            <input type="file" id="adminImportFile" accept="application/json" class="hidden" onchange="importAdminBackup(event)">
+          </label>
+        </div>
+      </div>
+
+      <div class="section-label mt24">Bantuan & Dukungan</div>
+      <div class="card mt12">
+        <p class="muted-note">Ada kendala? Hubungi tim <b>PT Mesin Kasir Solo</b>.</p>
+        <div class="contact-strip"><span>💬</span><a href="https://wa.me/628816566935" target="_blank" rel="noopener">WhatsApp: 0881-6566-935</a></div>
+        <div class="contact-strip"><span>✉️</span><a href="mailto:owner.kasirsolo@gmail.com">owner.kasirsolo@gmail.com</a></div>
+      </div>
+
+      <div class="section-label mt24">Lainnya</div>
+      <div class="card mt12">
+        <button class="btn btn-danger" onclick="confirmResetAdminData()">🗑️ Hapus Semua Data Admin</button>
+      </div>
+      <p class="footer-note">Admin Marketing KASIRSOLO · v1.0.0<br>Dikembangkan oleh PT Mesin Kasir Solo</p>
+    </section>
+  </main>
+
+  <nav class="bottomnav" aria-label="Navigasi bawah">
+    <div class="bottomnav-inner">
+      <div class="nav-item active" data-screen="dashboard" onclick="showScreen('dashboard')"><div class="ic">📊</div><div class="lbl">Dashboard</div></div>
+      <div class="nav-item" data-screen="leads" onclick="showScreen('leads')"><div class="ic">👥</div><div class="lbl">Leads</div></div>
+      <div class="nav-item" data-screen="catalog" onclick="showScreen('catalog')"><div class="ic">📦</div><div class="lbl">Katalog</div></div>
+      <div class="nav-item" data-screen="license" onclick="showScreen('license')"><div class="ic">🔐</div><div class="lbl">Lisensi</div></div>
+      <div class="nav-item" data-screen="settings" onclick="showScreen('settings')"><div class="ic">⚙️</div><div class="lbl">Pengaturan</div></div>
+    </div>
+  </nav>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+<!-- ============ SHEET: Product Form (License) ============ -->
+<div class="overlay" id="sheetProduct">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span id="prodFormTitle">Tambah Produk</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetProduct')">✕</span></div>
+    <input type="hidden" id="prodFormId">
+    <div class="field"><label class="field-label" for="prodFormCode">Kode Produk (2-4 huruf)</label><input type="text" id="prodFormCode" placeholder="KSR / K5 / GBK" maxlength="4" style="text-transform:uppercase;"></div>
+    <div class="field"><label class="field-label" for="prodFormName">Nama Produk</label><input type="text" id="prodFormName" placeholder="Kasir Solo - Rosok"></div>
+    <div class="field"><label class="field-label" for="prodFormPrefix">Prefix Serial</label><input type="text" id="prodFormPrefix" placeholder="KSR" maxlength="6" style="text-transform:uppercase;"></div>
+    <div class="field"><label class="field-label" for="prodFormSecret">Secret Key (HMAC)</label><input type="text" id="prodFormSecret" placeholder="Auto-generate jika kosong"></div>
+    <div class="field"><label class="field-label" for="prodFormDefaultDays">Default Masa Aktif (hari)</label><input type="number" id="prodFormDefaultDays" value="365" min="1"></div>
+    <div class="field"><label class="field-label" for="prodFormMaxDevices">Default Max Device</label><input type="number" id="prodFormMaxDevices" value="1" min="1"></div>
+    <div class="field hot-toggle"><label><input type="checkbox" id="prodFormActive" checked> Aktif</label></div>
+    <div class="btn-block-row mt12">
+      <button class="btn btn-outline" onclick="closeSheet('sheetProduct')">Batal</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Simpan Produk</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SHEET: Catalog Form ============ -->
+<div class="overlay" id="catalogSheetOverlay">
+  <div class="sheet" id="catalogSheet"></div>
+</div>
+
+<!-- ============ SHEET: License Sheet (from header chip) ============ -->
+<div class="overlay" id="sheetLicense">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>Status Lisensi Admin</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetLicense')">✕</span></div>
+    <div id="licenseSheetBody"></div>
+  </div>
+</div>
+
+<!-- ============ ONBOARDING (first run) ============ -->
+<div class="overlay" id="sheetOnboarding">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="text-center mb6"><img id="onbLogo" src="assets/logo.png" class="logo-lg" alt="logo"></div>
+    <div class="sheet-title text-center"><span>Selamat Datang! 👋</span></div>
+    <p class="muted-note text-center">Konfigurasi admin marketing untuk pertama kali.</p>
+    <div class="field"><label class="field-label" for="onbBizName">Nama Usaha</label><input type="text" id="onbBizName" placeholder="Contoh: PT Mesin Kasir Solo"></div>
+    <div class="field"><label class="field-label" for="onbOwnerName">Nama Admin</label><input type="text" id="onbOwnerName" placeholder="Contoh: Budi Santoso"></div>
+    <div class="field"><label class="field-label" for="onbPhone">No. Telepon Admin</label><input type="tel" id="onbPhone" placeholder="08xxxxxxxxxx"></div>
+    <button class="btn btn-primary mt12" onclick="finishAdminOnboarding()">🚀 Mulai Pakai Admin</button>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner">
+    <div class="spinner"></div>
+    <div class="text" id="loadingText">Memproses...</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Lead Detail Modal (reuses sheet pattern) -->
+<div class="overlay" id="sheetLeadDetail">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>Detail Lead</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetLeadDetail')">✕</span></div>
+    <div id="leadDetailBody"></div>
+  </div>
+</div>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="loginScreen" class="login-overlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <div class="login-card">
+    <img id="loginLogo" src="assets/logo.png" alt="KASIRSOLO" class="login-logo">
+    <h1 id="loginTitle">Admin Marketing</h1>
+    <p class="login-sub">Masukkan password untuk mengakses dashboard</p>
+    <div class="field">
+      <label class="field-label" for="loginPass">Password</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" inputmode="text">
+    </div>
+    <div id="loginError" class="login-error" style="display:none;">Password salah</div>
+    <button class="btn btn-primary login-btn" id="loginBtn">🔓 Masuk</button>
+  </div>
+</div>
+
+<!-- Load modules in order -->
+<script type="module" src="js/app.js?v=MODULAR"></script>
+</body>
+</html>
