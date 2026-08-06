@@ -42,11 +42,11 @@ export function renderCatalog() {
 
   if (apps.length === 0) {
     catalogGrid.innerHTML = '';
-    catalogEmpty.style.display = 'block';
+    catalogEmpty.hidden = false;
     return;
   }
 
-  catalogEmpty.style.display = 'none';
+  catalogEmpty.hidden = true;
 
   catalogGrid.innerHTML = apps.map((app, idx) => `
     <article class="catalog-card" data-idx="${idx}">
@@ -56,6 +56,10 @@ export function renderCatalog() {
       <div class="catalog-card-meta">${formatRupiah(app.price || 0)}</div>
       <div class="catalog-card-category">${getCategoryLabel(app.category)}</div>
       ${app.hot ? '<span class="catalog-card-hot">🔥 Hot</span>' : ''}
+      <div class="catalog-card-actions">
+        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); openCatalogSheet(${idx})">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteCatalogApp(${idx})">🗑️ Hapus</button>
+      </div>
     </article>
   `).join('');
 
@@ -106,34 +110,36 @@ window.openCatalogSheet = function(idx = null) {
       <h3>${isEdit ? 'Edit Aplikasi' : 'Tambah Aplikasi'}</h3>
       <button class="sheet-close" onclick="closeCatalogSheet()" aria-label="Tutup">&times;</button>
     </div>
-    <div class="field">
-      <label class="field-label">Ikon Emoji</label>
-      <input type="text" id="catIcon" value="${escapeHtml(app.icon)}" maxlength="4" placeholder="📦">
-    </div>
-    <div class="field">
-      <label class="field-label">Nama Aplikasi</label>
-      <input type="text" id="catName" value="${escapeHtml(app.name)}" placeholder="Contoh: Kasir Solo">
-    </div>
-    <div class="field">
-      <label class="field-label">Deskripsi</label>
-      <textarea id="catDesc" rows="3" placeholder="Deskripsi singkat untuk landing page">${escapeHtml(app.desc)}</textarea>
-    </div>
-    <div class="field">
-      <label class="field-label">Kategori</label>
-      <select id="catCategory">
-        <option value="bisnis" ${app.category === 'bisnis' ? 'selected' : ''}>💼 Bisnis</option>
-        <option value="institusi" ${app.category === 'institusi' ? 'selected' : ''}>🏛️ Institusi</option>
-        <option value="kesehatan" ${app.category === 'kesehatan' ? 'selected' : ''}>🏥 Kesehatan</option>
-      </select>
-    </div>
-    <div class="field">
-      <label class="field-label">Harga</label>
-      <input type="number" id="catPrice" value="${app.price || 0}" min="0" step="10000" placeholder="0">
-    </div>
-    <div class="field">
-      <label class="field-label">
-        <input type="checkbox" id="catHot" ${app.hot ? 'checked' : ''}> Hot (tampilkan badge di landing)
-      </label>
+    <div class="field-grid">
+      <div class="field">
+        <label class="field-label">Ikon Emoji</label>
+        <input type="text" id="catIcon" value="${escapeHtml(app.icon)}" maxlength="4" placeholder="📦">
+      </div>
+      <div class="field">
+        <label class="field-label">Nama Aplikasi</label>
+        <input type="text" id="catName" value="${escapeHtml(app.name)}" placeholder="Contoh: Kasir Solo">
+      </div>
+      <div class="field field-span-2">
+        <label class="field-label">Deskripsi</label>
+        <textarea id="catDesc" rows="3" placeholder="Deskripsi singkat untuk landing page">${escapeHtml(app.desc)}</textarea>
+      </div>
+      <div class="field">
+        <label class="field-label">Kategori</label>
+        <select id="catCategory">
+          <option value="bisnis" ${app.category === 'bisnis' ? 'selected' : ''}>💼 Bisnis</option>
+          <option value="institusi" ${app.category === 'institusi' ? 'selected' : ''}>🏛️ Institusi</option>
+          <option value="kesehatan" ${app.category === 'kesehatan' ? 'selected' : ''}>🏥 Kesehatan</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Harga</label>
+        <input type="number" id="catPrice" value="${app.price || 0}" min="0" step="10000" placeholder="0">
+      </div>
+      <div class="field">
+        <label class="field-label">
+          <input type="checkbox" id="catHot" ${app.hot ? 'checked' : ''}> Hot (tampilkan badge di landing)
+        </label>
+      </div>
     </div>
     <div class="btn-block-row mt12">
       <button class="btn btn-outline" onclick="closeCatalogSheet()">Batal</button>

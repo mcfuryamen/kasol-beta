@@ -70,7 +70,7 @@ export function renderLeads() {
 
   // Update empty state
   if (leadsEmpty) {
-    leadsEmpty.style.display = filtered.length ? 'none' : 'block';
+    leadsEmpty.hidden = filtered.length ? true : false;
   }
 
   // Render rows

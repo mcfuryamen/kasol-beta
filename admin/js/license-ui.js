@@ -330,8 +330,8 @@ async function handleVerify() {
     if (verifyResult) {
       if (result.valid && !result.expired) {
         verifyResult.innerHTML = `
-          <div style="color:var(--green-600); font-weight:700;">✅ VALID</div>
-          <div style="font-size:12px; color:var(--ink-soft); margin-top:4px;">
+          <div class="verify-badge success">✅ VALID</div>
+          <div class="verify-detail">
             Produk: ${product.name}<br>
             Device Code: ${result.deviceCode}<br>
             Masa Berlaku: ${LicenseCore.formatExpiry(result.expCode)}<br>
@@ -341,8 +341,8 @@ async function handleVerify() {
         verifyResult.className = 'verify-result success';
       } else if (result.valid && result.expired) {
         verifyResult.innerHTML = `
-          <div style="color:var(--orange-600); font-weight:700;">⚠️ KADALUARSA</div>
-          <div style="font-size:12px; color:var(--ink-soft); margin-top:4px;">
+          <div class="verify-badge warning">⚠️ KADALUARSA</div>
+          <div class="verify-detail">
             Produk: ${product.name}<br>
             Device Code: ${result.deviceCode}<br>
             Kadaluarsa: ${LicenseCore.formatExpiry(result.expCode)}<br>
@@ -352,15 +352,15 @@ async function handleVerify() {
         verifyResult.className = 'verify-result warning';
       } else {
         verifyResult.innerHTML = `
-          <div style="color:var(--red-600); font-weight:700;">❌ TIDAK VALID</div>
-          <div style="font-size:12px; color:var(--ink-soft); margin-top:4px;">
+          <div class="verify-badge error">❌ TIDAK VALID</div>
+          <div class="verify-detail">
             Serial tidak cocok dengan Device Code atau salt produk.<br>
             Periksa kembali input Anda.
           </div>
         `;
         verifyResult.className = 'verify-result error';
       }
-      verifyResult.style.display = 'block';
+      verifyResult.hidden = false;
     }
 
     showToast(result.valid ? 'Verifikasi selesai' : 'Serial tidak valid', 2000, result.valid ? 'success' : 'error');
@@ -378,28 +378,16 @@ async function handleVerify() {
  */
 function loadReferralData() {
   if (!myRefCode) return;
-  
+
   const unitId = STATE.settings?.unitId || 'KSR-' + generateId().slice(0, 8).toUpperCase();
   myRefCode.value = unitId;
-  myRefCode.style.background = 'var(--cream)';
-  myRefCode.style.fontWeight = '700';
-  myRefCode.style.textAlign = 'center';
-  myRefCode.style.fontSize = '16px';
-  myRefCode.style.letterSpacing = '1px';
-  
+  myRefCode.className = 'input-readonly center-lg';
+
   refSuccessCount.value = STATE.referral?.successCount || 0;
-  refSuccessCount.style.background = 'var(--cream)';
-  refSuccessCount.style.textAlign = 'center';
-  refSuccessCount.style.fontSize = '20px';
-  refSuccessCount.style.fontWeight = '800';
-  refSuccessCount.style.color = 'var(--green-600)';
-  
+  refSuccessCount.className = 'input-readonly center-xl green';
+
   refCoins.value = STATE.referral?.coins || 0;
-  refCoins.style.background = 'var(--cream)';
-  refCoins.style.textAlign = 'center';
-  refCoins.style.fontSize = '20px';
-  refCoins.style.fontWeight = '800';
-  refCoins.style.color = 'var(--orange-500)';
+  refCoins.className = 'input-readonly center-xl orange';
 }
 
 /**

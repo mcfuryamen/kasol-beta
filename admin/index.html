@@ -136,7 +136,7 @@
             <tbody id="leadsTbody"></tbody>
           </table>
         </div>
-        <div class="empty-state" id="leadsEmpty" style="display:none;">
+        <div class="empty-state" id="leadsEmpty" hidden>
           <div class="empty-icon">👥</div>
           <div class="empty-title">Belum ada leads</div>
           <div class="empty-desc">Leads akan muncul saat ada pengunjung mengisi form di landing page</div>
@@ -156,10 +156,10 @@
       </div>
       <div class="card" id="catalogCard">
         <div class="catalog-grid" id="catalogList"></div>
-        <div class="empty-state" id="catalogEmpty" style="display:none;">
-          <div class="ic">📦</div>
-          <div class="t1">Belum ada aplikasi</div>
-          <div class="t2">Tambah aplikasi pertama untuk ditampilkan di landing page</div>
+        <div class="catalog-empty" id="catalogEmpty" hidden>
+          <div class="empty-icon">📦</div>
+          <div class="empty-title">Belum ada aplikasi</div>
+          <div class="empty-desc">Tambah aplikasi pertama untuk ditampilkan di landing page</div>
         </div>
       </div>
     </section>
@@ -219,7 +219,7 @@
         <button class="btn btn-primary mt12" onclick="generateSerial()">🔑 Generate Serial Number</button>
         <div class="mt16">
           <label class="field-label">Hasil Serial Number</label>
-          <textarea id="serialOutput" readonly rows="2" style="font-family:'Space Mono',monospace; font-size:13px; background:var(--cream);"></textarea>
+          <textarea id="serialOutput" readonly rows="2" class="input-mono"></textarea>
           <div class="btn-block-row mt8">
             <button class="btn btn-outline" onclick="copySerial()">📋 Copy</button>
             <button class="btn btn-primary" onclick="downloadSerial()">💾 Download .txt</button>
@@ -233,14 +233,14 @@
         <div class="hint mt8">Masukkan serial number untuk memverifikasi validitas lisensi</div>
         <div class="field mt12">
           <label class="field-label" for="verifySerial">Serial Number</label>
-          <input type="text" id="verifySerial" placeholder="Masukkan 30-karakter serial number" style="font-family:'Space Mono',monospace; text-transform:uppercase;">
+          <input type="text" id="verifySerial" placeholder="Masukkan 30-karakter serial number" class="input-mono uppercase">
         </div>
         <div class="field">
           <label class="field-label" for="verifyDeviceCode">Device Code (opsional)</label>
-          <input type="text" id="verifyDeviceCode" placeholder="Kode device 8 karakter" style="font-family:'Space Mono',monospace; text-transform:uppercase;">
+          <input type="text" id="verifyDeviceCode" placeholder="Kode device 8 karakter" class="input-mono uppercase">
         </div>
         <button class="btn btn-primary mt12" onclick="verifySerial()">✅ Verifikasi Lisensi</button>
-        <div id="verifyResult" class="mt12" style="display:none;"></div>
+        <div id="verifyResult" class="mt12" hidden></div>
       </div>
 
       <!-- Referral / Berbagi -->
@@ -250,18 +250,18 @@
         <div class="settings-grid mt12">
           <div class="field">
             <label class="field-label">Kode Referral Anda</label>
-            <input type="text" id="myRefCode" readonly style="background:var(--cream); font-weight:700; text-align:center; font-size:16px; letter-spacing:1px;">
+            <input type="text" id="myRefCode" readonly class="input-readonly center-lg">
           </div>
           <div class="field">
             <label class="field-label">Total Referral Berhasil</label>
-            <input type="text" id="refSuccessCount" readonly value="0" style="background:var(--cream); text-align:center; font-size:20px; font-weight:800; color:var(--green-600);">
+            <input type="text" id="refSuccessCount" readonly value="0" class="input-readonly center-xl green">
           </div>
           <div class="field">
             <label class="field-label">Koin Tertampung</label>
-            <input type="text" id="refCoins" readonly value="0" style="background:var(--cream); text-align:center; font-size:20px; font-weight:800; color:var(--orange-500);">
+            <input type="text" id="refCoins" readonly value="0" class="input-readonly center-xl orange">
           </div>
         </div>
-        <div class="hint mt12" style="font-size:12px; line-height:1.6;">
+        <div class="hint hint-small mt12">
           <b>Aturan:</b> Kode referral = Unit ID Anda. Reward koin diberikan hanya jika referee benar-benar mulai transaksi (min 1 transaksi). 1 claim per device (installId). Koin bisa dicairkan via admin (validasi server).
         </div>
         <button class="btn btn-outline mt12" onclick="copyRefCode()">📋 Copy Kode Referral</button>
@@ -285,21 +285,25 @@
     <section class="screen" id="screen-settings" aria-label="Pengaturan Aplikasi">
       <div class="section-label mb0">Info Usaha (Ditampilkan di Landing Page)</div>
       <div class="card mt12">
-        <div class="field"><label class="field-label" for="setBizName">Nama Usaha</label><input type="text" id="setBizName" placeholder="Contoh: PT Mesin Kasir Solo"></div>
-        <div class="field"><label class="field-label" for="setBizTag">Tagline</label><input type="text" id="setBizTag" placeholder="Contoh: Solusi POS Modern untuk UMKM"></div>
-        <div class="field"><label class="field-label" for="setBizAddr">Alamat</label><input type="text" id="setBizAddr" placeholder="Contoh: Jl. Sudirman No.1, Solo"></div>
-        <div class="field"><label class="field-label" for="setBizPhone">Telepon</label><input type="tel" id="setBizPhone" placeholder="08xxxxxxxxxx"></div>
-        <div class="field"><label class="field-label" for="setBizEmail">Email</label><input type="email" id="setBizEmail" placeholder="admin@kasirsolo.com"></div>
-        <div class="field"><label class="field-label" for="setBizWa">WhatsApp (untuk CTA)</label><input type="tel" id="setBizWa" placeholder="628xxxxxxxxxx (format internasional)"></div>
-        <div class="field"><label class="field-label" for="setBizIg">Instagram (opsional)</label><input type="text" id="setBizIg" placeholder="@kasirsolo"></div>
+        <div class="field-grid">
+          <div class="field"><label class="field-label" for="setBizName">Nama Usaha</label><input type="text" id="setBizName" placeholder="Contoh: PT Mesin Kasir Solo"></div>
+          <div class="field"><label class="field-label" for="setBizTag">Tagline</label><input type="text" id="setBizTag" placeholder="Contoh: Solusi POS Modern untuk UMKM"></div>
+          <div class="field field-span-2"><label class="field-label" for="setBizAddr">Alamat</label><input type="text" id="setBizAddr" placeholder="Contoh: Jl. Sudirman No.1, Solo"></div>
+          <div class="field"><label class="field-label" for="setBizPhone">Telepon</label><input type="tel" id="setBizPhone" placeholder="08xxxxxxxxxx"></div>
+          <div class="field"><label class="field-label" for="setBizEmail">Email</label><input type="email" id="setBizEmail" placeholder="admin@kasirsolo.com"></div>
+          <div class="field"><label class="field-label" for="setBizWa">WhatsApp (untuk CTA)</label><input type="tel" id="setBizWa" placeholder="628xxxxxxxxxx (format internasional)"></div>
+          <div class="field"><label class="field-label" for="setBizIg">Instagram (opsional)</label><input type="text" id="setBizIg" placeholder="@kasirsolo"></div>
+        </div>
         <button class="btn btn-primary mt12" onclick="saveBizSettings()">Simpan Info Usaha</button>
       </div>
 
       <div class="section-label mt24">Landing Page Config</div>
       <div class="card mt12">
-        <div class="field"><label class="field-label" for="setHeroTitle">Hero Title</label><input type="text" id="setHeroTitle" placeholder="Kasir Solo - Solusi POS Terbaik"></div>
-        <div class="field"><label class="field-label" for="setHeroDesc">Hero Description</label><textarea id="setHeroDesc" rows="3" placeholder="Aplikasi kasir modern untuk UMKM Indonesia..."></textarea></div>
-        <div class="field"><label class="field-label" for="setHeroCta">CTA Button Text</label><input type="text" id="setHeroCta" placeholder="Mulai Gratis 7 Hari"></div>
+        <div class="field-grid">
+          <div class="field"><label class="field-label" for="setHeroTitle">Hero Title</label><input type="text" id="setHeroTitle" placeholder="Kasir Solo - Solusi POS Terbaik"></div>
+          <div class="field field-span-2"><label class="field-label" for="setHeroDesc">Hero Description</label><textarea id="setHeroDesc" rows="3" placeholder="Aplikasi kasir modern untuk UMKM Indonesia..."></textarea></div>
+          <div class="field"><label class="field-label" for="setHeroCta">CTA Button Text</label><input type="text" id="setHeroCta" placeholder="Mulai Gratis 7 Hari"></div>
+        </div>
         <button class="btn btn-primary mt12" onclick="saveLandingSettings()">Simpan Landing Config</button>
       </div>
 
@@ -349,9 +353,9 @@
     <div class="sheet-handle"></div>
     <div class="sheet-title"><span id="prodFormTitle">Tambah Produk</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetProduct')">✕</span></div>
     <input type="hidden" id="prodFormId">
-    <div class="field"><label class="field-label" for="prodFormCode">Kode Produk (2-4 huruf)</label><input type="text" id="prodFormCode" placeholder="KSR / K5 / GBK" maxlength="4" style="text-transform:uppercase;"></div>
+    <div class="field"><label class="field-label" for="prodFormCode">Kode Produk (2-4 huruf)</label><input type="text" id="prodFormCode" placeholder="KSR / K5 / GBK" maxlength="4" class="input-mono uppercase"></div>
     <div class="field"><label class="field-label" for="prodFormName">Nama Produk</label><input type="text" id="prodFormName" placeholder="Kasir Solo - Rosok"></div>
-    <div class="field"><label class="field-label" for="prodFormPrefix">Prefix Serial</label><input type="text" id="prodFormPrefix" placeholder="KSR" maxlength="6" style="text-transform:uppercase;"></div>
+    <div class="field"><label class="field-label" for="prodFormPrefix">Prefix Serial</label><input type="text" id="prodFormPrefix" placeholder="KSR" maxlength="6" class="input-mono uppercase"></div>
     <div class="field"><label class="field-label" for="prodFormSecret">Secret Key (HMAC)</label><input type="text" id="prodFormSecret" placeholder="Auto-generate jika kosong"></div>
     <div class="field"><label class="field-label" for="prodFormDefaultDays">Default Masa Aktif (hari)</label><input type="number" id="prodFormDefaultDays" value="365" min="1"></div>
     <div class="field"><label class="field-label" for="prodFormMaxDevices">Default Max Device</label><input type="number" id="prodFormMaxDevices" value="1" min="1"></div>
@@ -420,7 +424,7 @@
       <label class="field-label" for="loginPass">Password</label>
       <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" inputmode="text">
     </div>
-    <div id="loginError" class="login-error" style="display:none;">Password salah</div>
+    <div id="loginError" class="login-error" hidden>Password salah</div>
     <button class="btn btn-primary login-btn" id="loginBtn">🔓 Masuk</button>
   </div>
 </div>

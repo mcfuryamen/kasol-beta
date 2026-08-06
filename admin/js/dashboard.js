@@ -76,7 +76,7 @@ export function renderOverview() {
     </div>
     <div class="summary-card teal">
       <div class="kpi-head"><span class="icon">📦</span><span class="label">Aplikasi Aktif</span></div>
-      <span class="value">${formatNumber(activeApps)}<small style="font-size:13px;opacity:.8"> / ${formatNumber(totalApps)}</small></span>
+      <span class="value">${formatNumber(activeApps)}<small class="text-xs" style="opacity:.8"> / ${formatNumber(totalApps)}</small></span>
     </div>
     <div class="summary-card purple">
       <div class="kpi-head"><span class="icon">💰</span><span class="label">Potensial Revenue</span></div>
@@ -118,7 +118,7 @@ function renderLeadsByApp() {
   const maxApp = Math.max(1, ...appEntries.map(e => e[1]));
 
   if (appEntries.length === 0) {
-    container.innerHTML = '<p class="empty-state" style="padding:20px;">Belum ada data leads.</p>';
+    container.innerHTML = '<p class="empty-state" hidden>Belum ada data leads.</p>';
     return;
   }
 
@@ -147,7 +147,7 @@ function renderLeadsByStatus() {
   const maxStatus = Math.max(1, ...statusEntries.map(e => e[1]));
 
   if (statusEntries.length === 0) {
-    container.innerHTML = '<p class="empty-state" style="padding:20px;">Belum ada data leads.</p>';
+    container.innerHTML = '<p class="empty-state" hidden>Belum ada data leads.</p>';
     return;
   }
 
@@ -182,10 +182,10 @@ function renderRecentActivity() {
 
   if (recentLeads.length === 0) {
     container.innerHTML = `
-      <div class="empty-state" style="padding:24px;">
-        <div class="ic">📋</div>
-        <div class="t1">Belum ada aktivitas</div>
-        <div class="t2">Aktivitas terbaru akan muncul di sini</div>
+      <div class="empty-state" hidden>
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">Belum ada aktivitas</div>
+        <div class="empty-desc">Aktivitas terbaru akan muncul di sini</div>
       </div>
     `;
     return;
