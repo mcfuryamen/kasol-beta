@@ -1,6 +1,6 @@
 # Admin Dashboard — Arsitektur
 
-SPA architecture dengan 5 tab navigasi dan integrasi sistem lisensi HMAC-SHA256.
+Modular Vanilla ESM SPA architecture dengan 5 tab navigasi, integrasi sistem lisensi HMAC-SHA256, dan design system kaki5.
 
 > ⚠️ **Arah Arsitektur Cloud (2026):** Admin adalah **Lapisan Meta/CRM**. Sistem
 > lisensi melakukan **generate + validasi via Supabase** (menggantikan offline saat
@@ -9,53 +9,73 @@ SPA architecture dengan 5 tab navigasi dan integrasi sistem lisensi HMAC-SHA256.
 
 ---
 
-## 🏛️ Arsitektur
+## 🏛️ Arsitektur 3-Layer
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        index.html (SPA)                                 │
+│                        index.html (Entry Point)                         │
 │                                                                         │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │  HTML STRUCTURE                                                 │   │
 │  │  ├── #loginScreen (login gate, z-index 999)                    │   │
-│  │  └── #app (main shell, grid 250px + 1fr)                       │   │
-│  │      ├── .sidebar (sticky, dark theme)                         │   │
+│  │  └── #app (main shell)                                         │   │
+│  │      ├── .sidebar (desktop: sticky 250px, dark theme)          │   │
 │  │      │   ├── .sb-brand (logo + nama)                           │   │
 │  │      │   ├── .sb-nav (5 tab links)                             │   │
 │  │      │   └── .sb-foot (refresh + logout buttons)               │   │
-│  │      └── .main (content area)                                  │   │
-│  │          ├── #view-dashboard (overview stats)                   │   │
-│  │          ├── #view-leads (table + search + filter)              │   │
-│  │          ├── #view-catalog (CRUD apps)                          │   │
-│  │          ├── #view-license (generate + verify + reference)      │   │
-│  │          └── #view-settings (form)                              │   │
+│  │      ├── .main (content area, margin-left: 250px desktop)      │   │
+│  │      │   ├── #screen-dashboard (6 KPI + charts)                │   │
+│  │      │   ├── #screen-leads (table + search + filter)           │   │
+│  │      │   ├── #screen-catalog (card grid + actions + sheet)     │   │
+│  │      │   ├── #screen-license (registry + generate/verify)      │   │
+│  │      │   └── #screen-settings (forms + backup)                 │   │
+│  │      ├── .bottomnav (HP: fixed bottom, 5 items)                │   │
+│  │      ├── .overlay + .sheet (modals: catalog, license)          │   │
+│  │      └── #toast (notification)                                  │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │                                                                         │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  CSS (internal)                                                 │   │
-│  │  ├── CSS Variables (color, sidebar, radius)                     │   │
-│  │  ├── Login gate styles                                         │   │
-│  │  ├── Sidebar styles                                            │   │
-│  │  ├── Main content styles                                       │   │
-│  │  ├── Table & form styles                                       │   │
-│  │  ├── Chart (bar) styles                                        │   │
-│  │  └── Toast notification styles                                 │   │
+│  │  CSS (style.css — ~940 lines)                                   │   │
+│  │  ├── CSS Variables (color, spacing, radius, sidebar, breakpoints)│   │
+│  │  ├── Reset & Base                                               │   │
+│  │  ├── Layout: app shell, sidebar, bottomnav, main               │   │
+│  │  ├── Components: buttons, cards, tables, forms, badges         │   │
+│  │  ├── KPI Cards (gradient, 6 metrics, .kpi-head emoji-left)     │   │
+│  │  ├── Charts: .bar-row, .bar-track, .bar-fill                   │   │
+│  │  ├── Catalog: .catalog-grid, .catalog-card, .catalog-card-actions│   │
+│  │  ├── Forms: .field-grid, .field-span-2, .input-mono, .input-readonly│   │
+│  │  ├── Sheets/Modals: .overlay.open.show, .sheet, desktop center │   │
+│  │  ├── License: .app-row grid (3-tier responsive)                │   │
+│  │  ├── Utility: .mt4/.mt8/.mt12/.mt24, .mb0, .gap4, .flex,      │   │
+│  │  │         .items-center, .justify-between, .hidden (attr)     │   │
+│  │  └── Media Queries: 768px / 1024px / 1440px (4 tiers)         │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │                                                                         │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  JAVASCRIPT (internal)                                          │   │
-│  │  ├── Utilities (formatRupiah, formatDate, showToast)            │   │
-│  │  ├── Auth (doLogin, doLogout)                                  │   │
-│  │  ├── Navigation (tab switching)                                │   │
-│  │  ├── Data Loading (loadAllData from localStorage)              │   │
-│  │  ├── Dashboard (renderOverview)                                │   │
-│  │  ├── Leads (renderLeads, search, filter, delete, export CSV)   │   │
-│  │  ├── Catalog (renderCatalog, addApp, saveApp, removeApp)        │   │
-│  │  ├── License (renderProductList, doGenerate, doVerify,         │   │
-│  │  │            renderRefCode, exportProducts, importProducts)    │   │
-│  │  ├── Settings (renderSettingsForm, saveSettings)               │   │
-│  │  └── License Algorithm (hmacSignature, b32Encode,             │   │
-│  │             generateSerial, verifySerial, normalizeDeviceCode)  │   │
+│  │  JAVASCRIPT (ES Modules — 12 files)                             │   │
+│  │                                                                 │   │
+│  │  ENTRY LAYER                                                    │   │
+│  │  ├── app.js                  # Boot, routing, screen switching │   │
+│  │                                                                 │   │
+│  │  STATE/DATA LAYER                                             │   │
+│  │  ├── app-state.js            # STATE object, setState, getState│   │
+│  │  ├── storage.js              # Storage abstraction (localStorage│   │
+│  │  │                            → Supabase ready interface)      │   │
+│  │                                                                 │   │
+│  │  CORE/UI/UTILS LAYER                                          │   │
+│  │  ├── utils.js                # escapeHtml, formatRupiah,       │   │
+│  │  │                            formatDate, showToast            │   │
+│  │  ├── toast.js                # Toast notification system       │   │
+│  │  ├── auth.js                 # doLogin, doLogout, checkAuth    │   │
+│  │  ├── navigation.js           # showScreen, sidebar/bottomnav   │   │
+│  │  ├── license-core.js         # Pure HMAC-SHA256 (no DOM)       │   │
+│  │                                                                 │   │
+│  │  MODULE LAYER (screens)                                       │   │
+│  │  ├── dashboard.js            # 6 KPI + bar charts + empty      │   │
+│  │  ├── leads.js                # 5-col table + search/filter/CSV │   │
+│  │  ├── catalog.js              # Card grid + actions + sheet     │   │
+│  │  ├── license-ui.js           # Registry + generate/verify/ref  │   │
+│  │  └── settings.js             # Forms + backup/restore/reset    │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -85,7 +105,7 @@ SPA architecture dengan 5 tab navigasi dan integrasi sistem lisensi HMAC-SHA256.
 │   │                                                                 │       │
 │   │  kasirsolo:catalog    ◄── tulis ──┐                            │       │
 │   │  kasirsolo:settings   ◄── tulis ──┤  Admin Dashboard           │       │
-│   │  kasirsolo:leads      ──► baca   ─┤  (read/write)              │       │
+│   │  kasirsolo:leads      ──► baca   ─┤  (read/write via storage.js)│      │
 │   │  kasirsolo:stats      ──► baca   ─┘                            │       │
 │   │  license_products     ◄── tulis ──┘                            │       │
 │   └─────────────────────────────────────────────────────────────────┘       │
@@ -113,6 +133,42 @@ SPA architecture dengan 5 tab navigasi dan integrasi sistem lisensi HMAC-SHA256.
 
 ---
 
+## 📦 Module Dependencies (ESM)
+
+```
+app.js (entry)
+├── app-state.js
+├── storage.js
+├── utils.js
+├── toast.js
+├── auth.js
+├── navigation.js
+├── license-core.js
+├── dashboard.js
+├── leads.js
+├── catalog.js
+├── license-ui.js
+└── settings.js
+```
+
+**Import pattern:**
+```javascript
+// app.js
+import { STATE, setState, getState } from './app-state.js';
+import { storageGetJSON, storageSetJSON, storageClearAll } from './storage.js';
+import { escapeHtml, formatRupiah, formatDate } from './utils.js';
+import { showToast } from './toast.js';
+import { doLogin, doLogout, checkAuth } from './auth.js';
+import { showScreen } from './navigation.js';
+import { renderDashboard } from './dashboard.js';
+import { renderLeads } from './leads.js';
+import { renderCatalog, openCatalogSheet } from './catalog.js';
+import { renderLicenseScreen, openProductForm, openLicenseSheet } from './license-ui.js';
+import { renderSettingsForm } from './settings.js';
+```
+
+---
+
 ## 🔐 Sistem Lisensi
 
 Lisensi terintegrasi langsung di tab **Lisensi** pada admin dashboard.
@@ -136,7 +192,7 @@ Algoritma yang digunakan adalah **HMAC-SHA256** (sama seperti generator universa
   5. Klik "Buat Nomor Serial"
          │
          ▼
-  6. Sistem generate serial HMAC-SHA256
+  6. Sistem generate serial HMAC-SHA256 (license-core.js)
          │
          ▼
   7. Serial ditampilkan + tombol salin
@@ -213,42 +269,101 @@ CREATE POLICY "team_read" ON leads FOR SELECT
 
 ### Tahap 4: Update Admin Dashboard
 
-Ganti semua `localStorage` calls dengan Supabase client:
-```javascript
-// Sebelum
-await storageGetJSON('kasirsolo:leads', []);
+Ganti semua `localStorage` calls dengan Supabase client di `storage.js`:
 
-// Sesudah
-const { data } = await supabase.from('leads').select('*');
+```javascript
+// SEBELUM (di storage.js)
+export async function storageGetJSON(key, fallback) {
+  const raw = localStorage.getItem(key);
+  return raw ? JSON.parse(raw) : fallback;
+}
+
+// SESUDAH (di storage.js — interface sama, implementasi beda)
+export async function storageGetJSON(key, fallback) {
+  const { data, error } = await supabase.from(key.replace('kasirsolo:', '')).select('*');
+  if (error) return fallback;
+  return data;
+}
+```
+
+**Keuntungan abstraction layer:** Hanya `storage.js` yang perlu diubah, semua module lain (`dashboard.js`, `leads.js`, `catalog.js`, `license-ui.js`, `settings.js`) tidak perlu disentuh.
+
+---
+
+## 📐 Navigasi (Screen System)
+
+```javascript
+// navigation.js — Simple screen switching
+window.showScreen = function(screenId) {
+  // Update bottom nav active state
+  document.querySelectorAll('.bottomnav .nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.screen === screenId);
+  });
+  // Update sidebar active state (desktop)
+  document.querySelectorAll('.sb-link').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === screenId);
+  });
+  // Hide all screens
+  document.querySelectorAll('.main > .screen').forEach(s => s.classList.remove('active'));
+  // Show target screen
+  const target = document.getElementById('screen-' + screenId);
+  if (target) target.classList.add('active');
+  // Scroll to top
+  window.scrollTo(0, 0);
+  // Trigger render if needed
+  if (screenId === 'dashboard') renderDashboard();
+  if (screenId === 'leads') renderLeads();
+  if (screenId === 'catalog') renderCatalog();
+  if (screenId === 'license') renderLicenseScreen();
+  if (screenId === 'settings') renderSettingsForm();
+};
+```
+
+5 Screen:
+| Screen | data-screen / data-view | ID Element |
+|--------|------------------------|------------|
+| Dashboard | `dashboard` | `screen-dashboard` |
+| Leads | `leads` | `screen-leads` |
+| Katalog | `catalog` | `screen-catalog` |
+| Lisensi | `license` | `screen-license` |
+| Pengaturan | `settings` | `screen-settings` |
+
+---
+
+## 🎨 Responsive Breakpoints (4 Tiers)
+
+| Tier | Breakpoint | Sidebar | Bottom Nav | KPI Grid | Catalog Grid | Sheets |
+|------|------------|---------|------------|----------|--------------|--------|
+| **HP** | `< 768px` | Hidden (drawer) | Fixed bottom 5 items | 2 kolom | 1 kolom | Bottom-sheet (full) |
+| **Tablet** | `768-1023px` | Hidden (drawer) | Fixed bottom 5 items | 3 kolom | 2 kolom | Center modal |
+| **Desktop** | `≥ 1024px` | Fixed 250px | Hidden | 4 kolom | 3 kolom | Center modal |
+| **Large** | `≥ 1440px` | Fixed 250px | Hidden | 6 kolom | 4 kolom | Center modal |
+
+**CSS Media Queries:**
+```css
+/* Base = HP (< 768px) */
+@media (min-width: 768px) { /* Tablet */ }
+@media (min-width: 1024px) { /* Desktop */ }
+@media (min-width: 1440px) { /* Large Desktop */ }
 ```
 
 ---
 
-## 📐 Navigasi (Tab System)
+## 🔧 Key Technical Decisions
 
-```javascript
-// Simple tab switching — tidak ada routing framework
-document.querySelectorAll('.sb-link').forEach(btn => {
-  btn.addEventListener('click', () => {
-    // Remove active from all links
-    document.querySelectorAll('.sb-link').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    // Hide all views
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    // Show target view
-    document.getElementById('view-' + btn.dataset.view).classList.add('active');
-  });
-});
-```
-
-5 Tab:
-| Tab | data-view | ID Element |
-|-----|-----------|------------|
-| Dashboard | `dashboard` | `view-dashboard` |
-| Leads | `leads` | `view-leads` |
-| Katalog | `catalog` | `view-catalog` |
-| Lisensi | `license` | `view-license` |
-| Pengaturan | `settings` | `view-settings` |
+| Decision | Rationale |
+|----------|-----------|
+| **Vanilla ESM (no build)** | Zero config, runs in browser, easy to debug |
+| **3-layer architecture** | Separation of concerns, testable, Supabase-ready |
+| **Storage abstraction** | Swap localStorage → Supabase by changing only `storage.js` |
+| **license-core.js pure** | No DOM, no side-effects — reusable in client apps (Dexie) |
+| **kaki5 design system** | Consistent with other KASIRSOLO apps (orange, bottom nav, sheets) |
+| **Gerobak KPI pattern** | 6 gradient metrics, proven UX |
+| **4-tier responsive** | Covers all device classes properly |
+| **Utility classes CSS** | No inline styles, maintainable, consistent |
+| **Sheet modal pattern** | `.overlay.open.show` + `.sheet` — works HP & Desktop |
+| **Hidden attribute** | Semantic empty states, no inline `display:none` |
+| **Local mirror deploy** | No GitHub Actions, simple rsync + commit |
 
 ---
 
