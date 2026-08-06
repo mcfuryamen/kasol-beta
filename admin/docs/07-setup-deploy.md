@@ -1,6 +1,6 @@
 # Admin Dashboard — Setup & Deploy
 
-Panduan lengkap development dan deployment admin dashboard (modular ESM, local mirror deploy).
+Panduan lengkap development dan deployment admin dashboard (modular ESM, local development).
 
 ---
 
@@ -19,12 +19,12 @@ Panduan lengkap development dan deployment admin dashboard (modular ESM, local m
 cd /c/Users/Admin/Documents/kasol/admin
 
 # Cara 1: Python HTTP server (recommended untuk ESM)
-python3 -m http.server 8083
-# Buka http://127.0.0.1:8083
+python3 -m http.server 8082
+# Buka http://127.0.0.1:8082
 
 # Cara 2: Node.js http-server (jika Python tidak ada)
-npx http-server -p 8083
-# Buka http://127.0.0.1:8083
+npx http-server -p 8082
+# Buka http://127.0.0.1:8082
 
 # Catatan: ESM modules butuh HTTP server (tidak bisa pakai file:// protocol)
 ```
@@ -34,111 +34,38 @@ npx http-server -p 8083
 Password default: **`admin123`**
 
 ```javascript
-// Di js/auth.js (atau index.html inline script untuk login gate)
-if (val === 'admin123') { ... }
+// Di js/auth.js
+export const ADMIN_PASSWORD = 'admin123';
 ```
 
 > **Saran:** Untuk produksi, migrasikan ke Supabase Auth dengan RLS.
 
 ---
 
-## ☁️ Deploy ke Vercel
-
-### Strategi Deploy: Local Mirror Only
-
-**Tidak menggunakan GitHub Actions.** Deploy dilakukan melalui mirror lokal:
+## 📂 Struktur File Deploy
 
 ```
-Produksi (source of truth)     →     Mirror (GitHub)     →     Vercel
-C:\Users\Admin\Documents\kasol\admin    →    C:\Users\Admin\Documents\GitHub\kasol\admin    →    Vercel auto-deploy
-```
-
-### Setup Vercel Project (Sekali Saja)
-
-1. Login ke [vercel.com](https://vercel.com)
-2. Klik **Add New...** → **Project**
-3. Import repository GitHub: `mcfuryamen/kasol`
-4. Atur:
-   - **Root Directory**: `admin/`
-   - **Framework Preset**: Other
-   - **Build Command**: *(kosong)*
-   - **Output Directory**: `.`
-5. Klik **Deploy**
-
-### GitHub Secrets (Sudah Dikonfigurasi)
-
-```bash
-VERCEL_TOKEN                 = vc_xxx...
-VERCEL_ORG_ID                = org_xxx...
-VERCEL_PROJECT_ID_ADMIN      = prj_xxx...
-VERCEL_SCOPE                 = personal (opsional)
-```
-
-### Deploy Workflow (Manual, Satu Perintah)
-
-```bash
-# 1. Sync produksi ke mirror (dari folder produksi)
-cd /c/Users/Admin/Documents/kasol/admin
-./sync-to-mirror.sh
-
-# Atau manual:
-cp -r . /c/Users/Admin/Documents/GitHub/kasol/admin/
-
-# 2. Commit & push dari mirror root (monorepo)
-cd /c/Users/Admin/Documents/GitHub/kasol
-git add admin/
-git commit -m "admin: <deskripsi perubahan>"
-git push origin main
-
-# 3. Vercel auto-deploy triggered by push to main (path filter: admin/**)
-```
-
-> **Catatan:** User preference: "ga usah push github" — commit ke mirror lokal saja, push manual saat diperlukan.
-
----
-
-## 📁 File Konfigurasi Vercel
-
-### `vercel.json` (di folder admin/)
-
-```json
-{
-  "version": 2,
-  "framework": "none",
-  "buildCommand": "",
-  "outputDirectory": ".",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "headers": [
-    {
-      "source": "/sw.js",
-      "headers": [
-        { "key": "Service-Worker-Allowed", "value": "/" },
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/manifest.json",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    }
-  ]
-}
-```
-
-### `.vercelignore`
-
-```
-# Vercel ignore - JANGAN ignore .git (dibutuhkan untuk vercel-ignore.sh)
-# .git
-node_modules
-*.log
-.DS_Store
-Thumbs.db
-*.md
-docs/
+admin/
+├── index.html          # Entry (loads all modules via type=module)
+├── style.css           # Full design system
+├── DESIGN.md          # Design tokens spec
+├── js/
+│   ├── app.js          # Entry point
+│   ├── app-state.js    # State management
+│   ├── storage.js      # Storage abstraction (swap target for Supabase)
+│   ├── utils.js        # Shared utilities
+│   ├── toast.js        # Toast system
+│   ├── auth.js         # Auth gate
+│   ├── navigation.js   # Screen switching
+│   ├── license-core.js # Pure HMAC (reusable)
+│   ├── dashboard.js
+│   ├── leads.js
+│   ├── catalog.js
+│   ├── license-ui.js
+│   └── settings.js
+├── manifest.json       # PWA
+├── sw.js               # Service Worker
+└── docs/               # Dokumentasi (8 files)
 ```
 
 ---
@@ -150,12 +77,6 @@ Cari string `admin123` di `js/auth.js` dan ganti:
 ```javascript
 // js/auth.js
 export const ADMIN_PASSWORD = 'admin123';  // ← GANTI password di sini
-```
-
-Atau jika masih pakai inline di `index.html` (login gate):
-```javascript
-// index.html ~line 400
-if (val === 'admin123') { ... }
 ```
 
 ---
@@ -222,9 +143,6 @@ export function renderNewScreen() {
     </div>
   `;
 }
-
-// Auto-render when screen is shown (if needed)
-// window.addEventListener('screen-new-screen', renderNewScreen);
 ```
 
 ### 3. Import di `app.js`
@@ -384,7 +302,7 @@ export async function checkAuth() {
 
 ---
 
-## ✅ Checklist Deploy
+## ✅ Checklist Testing
 
 - [ ] Test login dengan password `admin123`
 - [ ] Test Dashboard: 6 KPI cards + bar charts render benar
@@ -396,38 +314,7 @@ export async function checkAuth() {
 - [ ] Test Sheets/Modals: HP bottom-sheet, Desktop center modal
 - [ ] Test Empty States: semua pakai `hidden` attribute + semantic classes
 - [ ] Test Toast notifications: success/warning/error
-- [ ] Refresh landing page — pastikan katalog & settings terupdate
 - [ ] No console errors
-- [ ] Sync ke mirror lokal & commit
-
----
-
-## 📂 Struktur File Deploy
-
-```
-admin/
-├── index.html          # Entry (loads all modules via type=module)
-├── style.css           # Full design system
-├── js/
-│   ├── app.js          # Entry point
-│   ├── app-state.js    # State management
-│   ├── storage.js      # Storage abstraction (swap target for Supabase)
-│   ├── utils.js        # Shared utilities
-│   ├── toast.js        # Toast system
-│   ├── auth.js         # Auth gate
-│   ├── navigation.js   # Screen switching
-│   ├── license-core.js # Pure HMAC (reusable)
-│   ├── dashboard.js
-│   ├── leads.js
-│   ├── catalog.js
-│   ├── license-ui.js
-│   └── settings.js
-├── vercel.json         # Vercel config
-├── manifest.json       # PWA
-├── sw.js               # Service Worker
-├── .vercelignore       # Vercel ignore
-└── docs/               # Dokumentasi (8 files)
-```
 
 ---
 

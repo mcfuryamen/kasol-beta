@@ -136,31 +136,29 @@ Migrasi ke cloud dengan RLS (Row Level Security):
 
 ## 🚢 Deploy
 
-### Vercel (Production)
+### Production Deployment
 
-**Strategi:** Local mirror → GitHub → Vercel auto-deploy
+**Status:** Production deployment strategy TBD (To Be Determined)
 
+**Local Development:**
+```bash
+# Start server on port 8082
+cd /c/Users/Admin/Documents/kasol/admin
+python -m http.server 8082
+```
+
+**Version Control:**
 ```bash
 # 1. Sync produksi ke mirror
 cd /c/Users/Admin/Documents/kasol/admin
 cp -r . /c/Users/Admin/Documents/GitHub/kasol/admin/
 
-# 2. Commit & push dari monorepo root
+# 2. Commit dari monorepo root
 cd /c/Users/Admin/Documents/GitHub/kasol
 git add admin/
 git commit -m "admin: <deskripsi perubahan>"
 git push origin main
-
-# 3. Vercel auto-deploy (path filter: admin/**)
 ```
-
-**Vercel config:**
-- Root Directory: `admin/`
-- Framework: Other
-- Build Command: *(kosong)*
-- Output Directory: `.`
-
-**Domain:** Akan dikonfigurasi sebagai `admin.kasirsolo.com`
 
 ---
 
@@ -188,7 +186,7 @@ git push origin main
 | [`docs/04-license-system.md`](docs/04-license-system.md) | Algoritma HMAC-SHA256 + reference code + validasi flow |
 | [`docs/05-design-system.md`](docs/05-design-system.md) | Color palette + typography + components + responsive |
 | [`docs/06-product-features.md`](docs/06-product-features.md) | Spec detail 5 modul (Dashboard/Leads/Katalog/Lisensi/Settings) |
-| [`docs/07-setup-deploy.md`](docs/07-setup-deploy.md) | Setup lokal + deploy Vercel + migrasi Supabase |
+| [`docs/07-setup-deploy.md`](docs/07-setup-deploy.md) | Setup lokal + migrasi Supabase |
 
 ---
 
@@ -275,7 +273,7 @@ Proprietary — PT Mesin Kasir Solo
 
 ## 🔗 Links
 
-- **Live Demo:** (akan dikonfigurasi di Vercel)
+- **Live Demo:** TBD (production deployment pending)
 - **Landing Page:** `../landing/`
 - **Aplikasi Klien:** `../rosok/`, `../gerobak/`, `../kaki5/`, `../retail/`
 - **Design System:** [`DESIGN.md`](DESIGN.md)

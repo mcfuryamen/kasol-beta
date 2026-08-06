@@ -235,7 +235,6 @@ Ketika membangun aplikasi klien baru, ikuti checklist ini:
 - [ ] Tambah tabel `settings` untuk `bizName`, `setupDone`, **`unitId`**, dan lisensi
 - [ ] Simpan data transaksi di Dexie.js (offline); jaga **offline-first** (premium = offline + sync)
 - [ ] Siapkan abstraksi `fetchMeta()` / `validateLicense()` (cloud-ready sejak freemium)
-- [ ] Deploy ke Vercel (root directory sesuai nama aplikasi)
 - [ ] Daftarkan produk di admin dashboard (tambah product registry)
 - [ ] Tambahkan ke katalog landing page (via admin)
 - [ ] Dokumentasikan di folder `docs/` aplikasi tersebut
