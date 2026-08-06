@@ -66,3 +66,4 @@ temp/
 !rosok/dexie.min.js
 !kaki5/dexie.min.js
 !admin/dexie.min.js
+env.example

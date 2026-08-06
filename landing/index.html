@@ -738,6 +738,8 @@
   </div>
 </footer>
 
+<script src="supabase-client.js"></script>
+
 <script>
   // Mobile menu toggle
   const burgerBtn = document.getElementById('burgerBtn');
@@ -837,10 +839,9 @@
   let CURRENT_CATALOG = DEFAULT_CATALOG;
 
   (async function initSharedData(){
-    const [catalog, settings] = await Promise.all([
-      storageGetJSON('kasirsolo:catalog', DEFAULT_CATALOG),
-      storageGetJSON('kasirsolo:settings', DEFAULT_SETTINGS)
-    ]);
+    // Fetch catalog from Supabase (with localStorage fallback)
+    const catalog = await getCatalog(DEFAULT_CATALOG);
+    const settings = await storageGetJSON('kasirsolo:settings', DEFAULT_SETTINGS);
     CURRENT_CATALOG = catalog;
     renderCatalog(catalog);
     applySettings(settings);
