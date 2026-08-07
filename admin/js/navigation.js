@@ -3,8 +3,7 @@
  * Sidebar tab switching, mobile toggle (rosok-style)
  */
 
-import { STATE, subscribe } from './app-state.js';
-import { showToast } from './toast.js';
+import { subscribe } from './app-state.js';
 
 let sidebar = null;
 let sidebarOverlay = null;

@@ -1,9 +1,21 @@
 /* Kasir Solo - Gerobak — Service Worker
    Strategi: network-first untuk dokumen HTML (biar update langsung kepakai),
    cache-first untuk aset statis lain. Naikkan CACHE_VERSION setiap rilis. */
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const CACHE_NAME = "kasirsolo-gerobak-" + CACHE_VERSION;
-const CORE_ASSETS = ["./", "./index.html"];
+const CORE_ASSETS = [
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./css/style.css",
+  "./js/app.js",
+  "./js/vendor/dexie.min.js",
+  "./assets/logo.png",
+  "./assets/favicon-16.png",
+  "./assets/favicon-32.png",
+  "./assets/icon-192.png",
+  "./assets/icon-512.png"
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -56,7 +68,13 @@ async function putInCache(request, response) {
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
-  if (new URL(request.url).origin !== self.location.origin) return;
+  
+  // Hanya handle request di dalam scope subdirektori ini
+  const swScope = self.registration.scope;
+  const requestUrl = new URL(request.url);
+  
+  // Skip kalau request di luar scope SW
+  if (!requestUrl.href.startsWith(swScope)) return;
 
   if (isDocumentRequest(request)) {
     // Network-first: HTML baru langsung dipakai, cache hanya untuk offline.

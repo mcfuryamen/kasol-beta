@@ -5,7 +5,6 @@
 
 import { STATE, subscribe, setState } from './app-state.js';
 import { storage } from './storage.js';
-import { escapeHtml } from './utils.js';
 import { showToast } from './toast.js';
 
 /**
@@ -224,3 +223,34 @@ async function resetAdminData() {
     showToast('Gagal menghapus data', 2000, 'error');
   }
 }
+
+/**
+ * Selesaikan onboarding pertama kali (tombol "Mulai Pakai Admin")
+ */
+window.finishAdminOnboarding = async function() {
+  const bizName = document.getElementById('onbBizName')?.value.trim();
+  const ownerName = document.getElementById('onbOwnerName')?.value.trim();
+  const phone = document.getElementById('onbPhone')?.value.trim();
+
+  if (!bizName) {
+    showToast('Nama usaha wajib diisi', 2000, 'warning');
+    document.getElementById('onbBizName')?.focus();
+    return;
+  }
+
+  const newSettings = {
+    ...(STATE.settings || {}),
+    bizName,
+    ownerName: ownerName || 'Admin',
+    phone: phone || ''
+  };
+
+  const ok = await storage.set('settings', newSettings);
+  if (ok) setState('settings', newSettings);
+
+  const overlay = document.getElementById('sheetOnboarding');
+  if (overlay) overlay.classList.remove('open');
+
+  showToast(ok ? 'Pengaturan awal tersimpan! 🎉' : 'Gagal menyimpan pengaturan', 2000, ok ? 'success' : 'error');
+  window.dispatchEvent(new CustomEvent('app:ready'));
+};

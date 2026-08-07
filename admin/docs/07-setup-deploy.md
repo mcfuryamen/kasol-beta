@@ -1,6 +1,6 @@
 # Admin Dashboard — Setup & Deploy
 
-Panduan lengkap development dan deployment admin dashboard (modular ESM, Supabase cloud, Vercel deployment).
+Panduan lengkap development dan deployment admin dashboard (modular ESM, Vercel deployment).
 
 ---
 
@@ -11,52 +11,23 @@ Panduan lengkap development dan deployment admin dashboard (modular ESM, Supabas
 - Browser modern (Chrome, Firefox, Safari, Edge) dengan ES Modules support
 - Python 3 (untuk HTTP server) atau Node.js (http-server)
 - **Tidak perlu build tool, bundler, atau Node.js dependencies**
-- Supabase project aktif
 
-### Setup Environment
-
-1. **Buat `.env.local`** di folder `admin/`:
-
-```bash
-# Di C:/Users/Admin/Documents/kasol/admin/
-cat > .env.local << 'EOF'
-SUPABASE_URL=https://PROJECT.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-EOF
-```
-
-2. **Generate `env-loader.js`** (atau edit manual):
-
-```bash
-# Ambil dari .env Hermes
-SERVICE_KEY=$(grep "SUPABASE_SERVICE_ROLE_KEY=" ~/.hermes/.env | cut -d'=' -f2)
-ANON_KEY=$(grep "NEXT_PUBLIC_SUPABASE_ANON_KEY=" ~/.hermes/.env | cut -d'=' -f2)
-URL=$(grep "NEXT_PUBLIC_SUPABASE_URL=" ~/.hermes/.env | cut -d'=' -f2)
-
-# Update env-loader.js
-sed -i "s|https://hhywrvedlwljawgxzpkq.supabase.co|$URL|" js/env-loader.js
-sed -i "s|eyJhbG...4x50|$ANON_KEY|" js/env-loader.js
-sed -i "s|eyJhbG...aFIU|$SERVICE_KEY|" js/env-loader.js
-```
-
-3. **Jalankan HTTP server**:
+### Menjalankan Lokal
 
 ```bash
 # Masuk ke folder admin
-cd C:/Users/Admin/Documents/kasol/admin
+cd /c/Users/Admin/Documents/kasol/admin
 
-# Python (recommended)
-python -m http.server 8082
+# Cara 1: Python HTTP server (recommended untuk ESM)
+python3 -m http.server 8082
+# Buka http://127.0.0.1:8082
 
-# Atau Node.js
+# Cara 2: Node.js http-server (jika Python tidak ada)
 npx http-server -p 8082
+# Buka http://127.0.0.1:8082
 
-# Buka browser
-# http://localhost:8082
+# Catatan: ESM modules butuh HTTP server (tidak bisa pakai file:// protocol)
 ```
-
-> **Catatan:** ESM modules butuh HTTP server (tidak bisa pakai `file://` protocol)
 
 ### Login
 
@@ -64,11 +35,7 @@ Password default: **`admin123`**
 
 ```javascript
 // Di js/auth.js
-function doLogin() {
-  if (val === 'admin123') {
-    showApp();
-  }
-}
+export const ADMIN_PASSWORD = 'admin123';
 ```
 
 > **Saran:** Untuk produksi, migrasikan ke Supabase Auth dengan RLS.
@@ -90,26 +57,15 @@ function doLogin() {
    - **Install Command**: *(kosong)*
 5. Klik **Deploy**
 
-### Environment Variables di Vercel
-
-Tambahkan di **Vercel Dashboard → Settings → Environment Variables**:
-
-| Variable | Value | Environment |
-|----------|-------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://PROJECT.supabase.co` | Production, Preview, Development |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJ...` | Production, Preview, Development |
-
-> **Service role key TIDAK perlu di-set di Vercel** karena admin CRUD dilakukan dari browser dengan key lokal.
-
 ### Deploy Workflow (Manual Push)
 
 ```bash
 # 1. Sync produksi ke mirror
-cd C:/Users/Admin/Documents/kasol/admin
+cd /c/Users/Admin/Documents/kasol/admin
 cp -r . /c/Users/Admin/Documents/GitHub/kasol/admin/
 
 # 2. Commit & push dari monorepo root
-cd C:/Users/Admin/Documents/GitHub/kasol
+cd /c/Users/Admin/Documents/GitHub/kasol
 git add admin/
 git commit -m "admin: <deskripsi perubahan>"
 git push origin main
@@ -156,9 +112,6 @@ node_modules
 Thumbs.db
 *.md
 docs/
-.env*
-.env
-.env.local
 ```
 
 ---
@@ -169,11 +122,11 @@ docs/
 admin/
 ├── index.html          # Entry (loads all modules via type=module)
 ├── style.css           # Full design system
-├── DESIGN.md           # Design tokens spec
+├── DESIGN.md          # Design tokens spec
 ├── js/
 │   ├── app.js          # Entry point
 │   ├── app-state.js    # State management
-│   ├── storage.js      # Storage abstraction (localStorage)
+│   ├── storage.js      # Storage abstraction (swap target for Supabase)
 │   ├── utils.js        # Shared utilities
 │   ├── toast.js        # Toast system
 │   ├── auth.js         # Auth gate
@@ -181,17 +134,13 @@ admin/
 │   ├── license-core.js # Pure HMAC (reusable)
 │   ├── dashboard.js
 │   ├── leads.js
-│   ├── catalog.js      # CRUD via Supabase
+│   ├── catalog.js
 │   ├── license-ui.js
-│   ├── settings.js
-│   ├── supabase-client.js  # Supabase REST client
-│   └── env-loader.js       # Load .env.local → window vars
+│   └── settings.js
 ├── vercel.json         # Vercel config
 ├── .vercelignore       # Vercel ignore
-├── .gitignore          # Git ignore (.env.local)
 ├── manifest.json       # PWA
 ├── sw.js               # Service Worker
-├── .env.local          # Local env (NOT committed)
 └── docs/               # Dokumentasi (8 files)
 ```
 
@@ -203,11 +152,7 @@ Cari string `admin123` di `js/auth.js` dan ganti:
 
 ```javascript
 // js/auth.js
-function doLogin() {
-  if (val === 'admin123') {  // ← GANTI password di sini
-    showApp();
-  }
-}
+export const ADMIN_PASSWORD = 'admin123';  // ← GANTI password di sini
 ```
 
 ---
@@ -250,15 +195,23 @@ function doLogin() {
 
 `js/new-screen.js`:
 ```javascript
+/**
+ * New Screen Module
+ */
+
 import { STATE, getState, setState } from './app-state.js';
 import { storageGetJSON, storageSetJSON } from './storage.js';
 import { escapeHtml, formatRupiah, formatDate } from './utils.js';
 import { showToast } from './toast.js';
 
+/**
+ * Render new screen content
+ */
 export function renderNewScreen() {
   const container = document.getElementById('screen-new-screen');
   if (!container) return;
   
+  // Render logic here
   container.querySelector('.panel').innerHTML = `
     <div class="card">
       <h3>New Screen</h3>
@@ -271,9 +224,10 @@ export function renderNewScreen() {
 ### 3. Import di `app.js`
 
 ```javascript
+// app.js - add to imports
 import { renderNewScreen } from './new-screen.js';
 
-// Di showScreen handler
+// app.js - add to showScreen handler
 if (screenId === 'new-screen') renderNewScreen();
 ```
 
@@ -285,40 +239,78 @@ Di `style.css`, tambahkan styling untuk komponen baru mengikuti design system.
 
 ## 🗺️ Langkah Migrasi ke Supabase
 
-### Fase 1: Setup Supabase ✅ (SELESAI)
+### Fase 1: Setup Supabase
 
 ```bash
 # 1. Buat project di supabase.com
 # 2. Dapatkan URL & anon key
-# 3. Jalankan SQL migration untuk tabel products
+# 3. Jalankan migration SQL (lihat docs/03-data-schema.md untuk schema)
 ```
 
-### Fase 2: Katalog CRUD ✅ (SELESAI)
+### Fase 2: Update `storage.js` (Satu File Saja!)
 
-- `js/catalog.js` sudah menggunakan Supabase REST API
-- Admin bisa CRUD produk langsung ke Supabase
-- Landing page fetch dari Supabase
-
-### Fase 3: Leads Migration (Rencana)
+Karena storage abstraction layer, hanya `storage.js` yang perlu diubah:
 
 ```javascript
-// js/leads.js - update untuk fetch dari Supabase
-import { getSupabaseConfig } from './supabase-client.js';
+// js/storage.js - SEBELUM (localStorage)
+import { STATE } from './app-state.js';
 
-async function fetchLeads() {
-  const { url, key } = getSupabaseConfig();
-  const response = await fetch(`${url}/rest/v1/leads`, {
-    headers: { 'apikey': key, 'Authorization': `Bearer ${key}` }
-  });
-  return response.json();
+const PREFIX = 'kasirsolo:';
+
+export async function storageGetJSON(key, fallback = null) {
+  const raw = localStorage.getItem(PREFIX + key);
+  return raw ? JSON.parse(raw) : fallback;
+}
+
+export async function storageSetJSON(key, value) {
+  try {
+    localStorage.setItem(PREFIX + key, JSON.stringify(value));
+    return true;
+  } catch (e) {
+    console.error('Storage set error:', e);
+    return false;
+  }
+}
+
+// js/storage.js - SESUDAH (Supabase)
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const supabaseUrl = 'YOUR_SUPABASE_URL';
+const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const TABLE_MAP = {
+  catalog: 'products',
+  settings: 'settings',
+  leads: 'leads',
+  stats: 'stats',
+  products: 'license_products'
+};
+
+export async function storageGetJSON(key, fallback = null) {
+  const table = TABLE_MAP[key] || key;
+  const { data, error } = await supabase.from(table).select('*');
+  if (error) {
+    console.error('Supabase get error:', error);
+    return fallback;
+  }
+  return data || fallback;
+}
+
+export async function storageSetJSON(key, value) {
+  const table = TABLE_MAP[key] || key;
+  const { error } = await supabase.from(table).upsert(value);
+  if (error) {
+    console.error('Supabase set error:', error);
+    return false;
+  }
+  return true;
 }
 ```
 
-### Fase 4: Settings Migration (Rencana)
+**Keuntungan:** Semua module lain (`dashboard.js`, `leads.js`, `catalog.js`, `license-ui.js`, `settings.js`) **tidak perlu diubah**.
 
-Sama seperti leads, update `js/settings.js` untuk CRUD ke Supabase.
-
-### RLS Implementation
+### Fase 3: Implementasi RLS
 
 ```sql
 -- Contoh policy untuk leads
@@ -341,6 +333,33 @@ CREATE POLICY "owner_write_leads" ON leads
   );
 ```
 
+### Fase 4: Auth Integration
+
+Ganti `js/auth.js` untuk menggunakan Supabase Auth:
+
+```javascript
+// js/auth.js - Supabase version
+import { supabase } from './storage.js';
+
+export async function doLogin(password) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: 'admin@kasirsolo.com',
+    password
+  });
+  if (error) return false;
+  return true;
+}
+
+export async function doLogout() {
+  await supabase.auth.signOut();
+}
+
+export async function checkAuth() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return !!session;
+}
+```
+
 ---
 
 ## ✅ Checklist Testing
@@ -348,7 +367,7 @@ CREATE POLICY "owner_write_leads" ON leads
 - [ ] Test login dengan password `admin123`
 - [ ] Test Dashboard: 6 KPI cards + bar charts
 - [ ] Test Leads: tabel 5 kolom, search, filter, export CSV
-- [ ] Test Katalog: card grid responsif, tambah/edit/hapus (Supabase)
+- [ ] Test Katalog: card grid responsif, tambah/edit/hapus, sheet modal
 - [ ] Test Lisensi: product registry, generate/verify serial
 - [ ] Test Pengaturan: forms, backup/restore
 - [ ] Test Responsive: HP/Tablet/Desktop/Large

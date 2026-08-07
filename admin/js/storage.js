@@ -1,21 +1,37 @@
 /**
  * Admin Marketing KASIRSOLO — Storage Abstraction
- * Interface for localStorage (now) and Supabase (future)
- * All UI modules use this - swap implementation without touching UI
+ * Interface untuk localStorage (browser normal) DAN window.storage (lingkungan host seperti Hermes).
+ * Semua module UI pakai ini — swap implementasi tanpa sentuh UI.
+ *
+ * Prioritas backend:
+ *   1. window.storage  (environment yang inject storage khusus, mis. Hermes WebUI)
+ *   2. window.localStorage (browser produksi standar)
+ * Semua method return Promise agar kompatibel dengan swap Supabase di masa depan.
  */
 
 const STORAGE_PREFIX = 'kasirsolo:';
 const LICENSE_PRODUCTS_KEY = 'kasirsolo_license_products_v3';
 
 /**
- * Check if we're in a valid storage environment
+ * Cek backend window.storage (khusus environment host)
  */
-function isStorageAvailable() {
+function hasNativeStorage() {
   return typeof window !== 'undefined' && !!window.storage;
 }
 
 /**
- * Parse JSON safely
+ * Cek backend localStorage (browser standar)
+ */
+function hasLocalStorage() {
+  try {
+    return typeof window !== 'undefined' && !!window.localStorage;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Parse JSON dengan aman
  */
 function safeParse(json, fallback = null) {
   try {
@@ -26,24 +42,64 @@ function safeParse(json, fallback = null) {
 }
 
 /**
+ * Baca nilai mentah (string) dari backend mana pun yang tersedia
+ * @returns {string|null}
+ */
+async function readRaw(fullKey) {
+  if (hasNativeStorage()) {
+    const res = await window.storage.get(fullKey, true);
+    return res && res.value != null ? res.value : null;
+  }
+  if (hasLocalStorage()) {
+    return window.localStorage.getItem(fullKey);
+  }
+  return null;
+}
+
+/**
+ * Tulis nilai mentah (string) ke backend yang tersedia
+ * @returns {boolean}
+ */
+async function writeRaw(fullKey, value) {
+  if (hasNativeStorage()) {
+    await window.storage.set(fullKey, value, true);
+    return true;
+  }
+  if (hasLocalStorage()) {
+    window.localStorage.setItem(fullKey, value);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Hapus nilai mentah dari backend yang tersedia
+ */
+async function deleteRaw(fullKey) {
+  if (hasNativeStorage()) {
+    await window.storage.remove(fullKey, true);
+    return;
+  }
+  if (hasLocalStorage()) {
+    window.localStorage.removeItem(fullKey);
+  }
+}
+
+/**
  * Storage abstraction interface
- * All methods return Promises for future Supabase compatibility
+ * Semua method return Promises untuk kompatibilitas Supabase di masa depan
  */
 export const storage = {
   /**
-   * Get a value by key
-   * @param {string} key - Key without prefix (e.g., 'catalog', 'leads')
-   * @param {*} fallback - Default value if not found
+   * Get a value by key (tanpa prefix). Fallback: nilai default.
+   * @param {string} key
+   * @param {*} fallback
    */
   async get(key, fallback = null) {
-    if (!isStorageAvailable()) return fallback;
-
     try {
-      const res = await window.storage.get(STORAGE_PREFIX + key, true);
-      if (res && res.value) {
-        return safeParse(res.value, fallback);
-      }
-      return fallback;
+      const raw = await readRaw(STORAGE_PREFIX + key);
+      if (raw == null) return fallback;
+      return safeParse(raw, fallback);
     } catch (error) {
       console.warn(`Storage get failed for ${key}:`, error);
       return fallback;
@@ -51,16 +107,12 @@ export const storage = {
   },
 
   /**
-   * Set a value by key
-   * @param {string} key - Key without prefix
-   * @param {*} value - Value to store (will be JSON stringified)
+   * Set a value by key (akan di-JSON-stringify).
+   * @returns {boolean}
    */
   async set(key, value) {
-    if (!isStorageAvailable()) return false;
-
     try {
-      await window.storage.set(STORAGE_PREFIX + key, JSON.stringify(value), true);
-      return true;
+      return await writeRaw(STORAGE_PREFIX + key, JSON.stringify(value));
     } catch (error) {
       console.error(`Storage set failed for ${key}:`, error);
       return false;
@@ -68,17 +120,13 @@ export const storage = {
   },
 
   /**
-   * Get license products (different storage key)
+   * Get license products (storage key terpisah)
    */
   async getLicenseProducts() {
-    if (!isStorageAvailable()) return null;
-
     try {
-      const res = await window.storage.get(LICENSE_PRODUCTS_KEY, true);
-      if (res && res.value) {
-        return safeParse(res.value, null);
-      }
-      return null;
+      const raw = await readRaw(LICENSE_PRODUCTS_KEY);
+      if (raw == null) return null;
+      return safeParse(raw, null);
     } catch (error) {
       console.warn('Storage getLicenseProducts failed:', error);
       return null;
@@ -89,11 +137,8 @@ export const storage = {
    * Set license products
    */
   async setLicenseProducts(products) {
-    if (!isStorageAvailable()) return false;
-
     try {
-      await window.storage.set(LICENSE_PRODUCTS_KEY, JSON.stringify(products), true);
-      return true;
+      return await writeRaw(LICENSE_PRODUCTS_KEY, JSON.stringify(products));
     } catch (error) {
       console.error('Storage setLicenseProducts failed:', error);
       return false;
@@ -101,16 +146,12 @@ export const storage = {
   },
 
   /**
-   * Subscribe to cross-tab storage changes (localStorage only)
-   * @param {string} key - Key without prefix
-   * @param {Function} callback - Called with new value
-   * @returns {Function} Unsubscribe function
+   * Subscribe ke perubahan storage lintas-tab (localStorage). Return unsubscribe fn.
+   * @param {string} key - Key tanpa prefix
+   * @param {Function} callback - Dipanggil dengan nilai baru
    */
   subscribe(key, callback) {
-    if (!isStorageAvailable() || typeof window === 'undefined') {
-      return () => {};
-    }
-
+    if (typeof window === 'undefined') return () => {};
     const fullKey = STORAGE_PREFIX + key;
     const handler = (event) => {
       if (event.key === fullKey && event.newValue !== null) {
@@ -121,19 +162,15 @@ export const storage = {
         }
       }
     };
-
     window.addEventListener('storage', handler);
     return () => window.removeEventListener('storage', handler);
   },
 
   /**
-   * Subscribe to license products changes
+   * Subscribe ke perubahan license products
    */
   subscribeLicenseProducts(callback) {
-    if (!isStorageAvailable() || typeof window === 'undefined') {
-      return () => {};
-    }
-
+    if (typeof window === 'undefined') return () => {};
     const handler = (event) => {
       if (event.key === LICENSE_PRODUCTS_KEY && event.newValue !== null) {
         try {
@@ -143,21 +180,18 @@ export const storage = {
         }
       }
     };
-
     window.addEventListener('storage', handler);
     return () => window.removeEventListener('storage', handler);
   },
 
   /**
-   * Clear all app data (for testing/logout)
+   * Clear semua data app (untuk testing/logout)
    */
   async clearAll() {
-    if (!isStorageAvailable()) return false;
-
     const keys = ['catalog', 'settings', 'leads', 'stats'];
     try {
-      await Promise.all(keys.map(k => window.storage.remove(STORAGE_PREFIX + k, true)));
-      await window.storage.remove(LICENSE_PRODUCTS_KEY, true);
+      for (const k of keys) await deleteRaw(STORAGE_PREFIX + k);
+      await deleteRaw(LICENSE_PRODUCTS_KEY);
       return true;
     } catch (error) {
       console.error('Storage clearAll failed:', error);
@@ -166,10 +200,12 @@ export const storage = {
   },
 
   /**
-   * Check if storage is available
+   * Cek apakah ada backend storage yang tersedia
    */
-  isAvailable: isStorageAvailable
+  isAvailable() {
+    return hasNativeStorage() || hasLocalStorage();
+  }
 };
 
-// Export constants for reference
+// Export constants untuk referensi
 export { STORAGE_PREFIX, LICENSE_PRODUCTS_KEY };

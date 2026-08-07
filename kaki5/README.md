@@ -31,15 +31,15 @@ kaki5/
 ├── index.html          ← Shell HTML (modal templates + ESM script type="module")  ≈ 23KB
 ├── IDEA.md             ← Catatan singkat: kaki5 klien ekosistem kasirsolo POS
 ├── dexie.min.js        ← Library Dexie 3.2.4 (global script, bukan modul)
-├── sw.js               ← Service Worker v2 (pre-cache offline)
+├── sw.js               ← Service Worker v4 (pre-cache offline, network-first)
 ├── vercel.json         ← Konfigurasi Vercel (SPA rewrite + cache headers)
 ├── css/
 │   └── style.css       ← Styling + skeleton loading + carousel styles      ≈ 26KB
 ├── assets/
-│   └── icon.png        ← Logo aplikasi (600×600 PNG)
+│   └── icon.png, icon-192.png, icon-512.png  ← Logo aplikasi (PWA icons)
 ├── docs/
 │   └── DEVELOPER.md     ← Panduan teknis untuk developer
-└── js/                 ← 23 modul ESM
+└── js/                 ← 21 modul ESM
     ├── app.js          ── ENTRY POINT: inisialisasi app + wire window globals
     ├── app-state.js    ── State terpusat (cart, nav, report, carousel state + setters)
     ├── db.js           ── Dexie setup (v1 legacy, v2 settings, v3 platformMessages)
@@ -48,8 +48,8 @@ kaki5/
     ├── beranda.js      ── Dashboard: omzet, pengeluaran, untung, carousel, recent trx
     ├── pos.js          ── POS: menu grid, search, filter, cart, payment
     ├── menu.js         ── Menu CRUD: tambah, edit, hapus, toggle aktif
-    ├── pengeluaran.js  ── Expense tracking: catat, navigasi tanggal
-    ├── laporan.js      ── Reports: harian/mingguan/bulanan + grafik + period nav
+    ├── pengeluaran.js  ── Expense tracking (legacy, masih ada untuk backward-compat)
+    ├── laporan.js      ── Reports + Pengeluaran integrated: harian/mingguan/bulanan + expense form
     ├── trxdetail.js    ── Transaction detail + print + delete
     ├── confirm.js      ── Reusable confirm dialog (hapus, clear all, dll)
     ├── settings.js     ── Settings page: profil (nama, owner, WA, alamat) + printer + backup
@@ -57,10 +57,19 @@ kaki5/
     ├── onboarding.js   ── Welcome screen + sample menu + profil capture
     ├── license.js      ── Trial (7 hari) + share-to-extend (20x) + serial activation
     ├── carousel.js     ── Platform carousel: render, auto-scroll (4s), swipe, dots
+    ├── bantuan.js      ── Help & Tutorial (🆕 v4)
     ├── printer.js      ── Bluetooth printer: connect, test print, disconnect
     ├── pwa.js          ── PWA: manifest dinamis + install prompt
     └── test_validate.js── Unit test: validateBackup() — jalankan: node test_validate.js
 ```
+
+**UI/UX Changes (v4):**
+- ✅ Header: gear icon ⚙️ **removed** → `pengaturan` moved to **bottom nav**
+- ✅ Bottom nav: **5 tabs** (dari 6) — Beranda | Menu | Jualan | Laporan | Pengaturan
+- ✅ Laporan: **integrated pengeluaran** — `pengeluaran` halaman removed, fitur moved inside Laporan
+- ✅ Header: logo + nama + **trial chip only** (cleaner, minimal)
+- ✅ Bantuan: **new page** accessible via navigation or within app
+- ✅ Service Worker: **v4** (cache invalidation bumped, bantuan.js added)
 
 **Urutan load penting**:
 1. `<script src="dexie.min.js">` (global, before ESM)
@@ -81,8 +90,9 @@ Aplikasi ini **menolak dibuka lewat `file://`** (Service Worker & IndexedDB butu
 
 ```bash
 cd kaki5
-python -m http.server 8123 --bind 127.0.0.1
-# buka → http://127.0.0.1:8123/
+# PORT RESMI app ini = 8086 (lihat Port Registry: kasol/CONTEXT.md)
+python -m http.server 8086 --bind 127.0.0.1
+# buka → http://127.0.0.1:8086/
 ```
 
 Cara lain (Node):
@@ -90,12 +100,12 @@ Cara lain (Node):
 ```bash
 npx serve .
 # atau
-npx http-server -p 8123
+npx http-server -p 8086
 ```
 
 ### Deploy produksi
 
-Deploy dilakukan lewat **monorepo kasol git** → **GitHub Actions** → **Vercel** (bukan auto-detect Vercel). Lihat bagian **Deploy & CI/CD** di bawah.
+Deploy otomatis lewat **Vercel git integration (auto-detect)** dari monorepo `kasol` — project `kasir-kaki5` dengan root directory `kaki5/`. **GitHub Actions tidak dipakai lagi.** Lihat bagian **Catatan Ekosistem** di bawah.
 
 ---
 
@@ -108,7 +118,9 @@ Didefinisikan di `js/db.js`. Semua data disimpan **lokal di perangkat** (Indexed
 | **`menu`** | `++id, nama, kategori, hargaJual, hargaModal, aktif, urutan` | Daftar produk/menu |
 | **`penjualan`** | `++id, tanggal, items, totalHarga, totalModal, bayar, kembalian, waktu` | Riwayat transaksi penjualan |
 | **`pengeluaran`** | `++id, tanggal, keterangan, kategori, jumlah, waktu` | Catatan pengeluaran usaha |
-| **`pengaturan`** | `key` | Pengaturan aplikasi (nama warung, dll.) |
+| **`settings`** | `key` | Pengaturan utama (profil, lisensi, unitId) — akses via `getSetting`/`setSetting` |
+| **`platformMessages`** | `++id, order, visibleFrom, visibleUntil` | Banner/promo carousel (v3) |
+| **`pengaturan`** *(legacy)* | `key` | Dipertahankan di skema v1 untuk backward-compat; tidak lagi dibaca/tulis oleh kode |
 
 Nama database: **`KasirSoloKakiLima`**.
 
@@ -123,39 +135,48 @@ Nama database: **`KasirSoloKakiLima`**.
 - Ringkasan hari ini: **omzet**, **pengeluaran**, **keuntungan bersih**, **jumlah transaksi**, **porsi terjual**.
 - Daftar **transaksi terakhir**.
 
-### 2. 🛒 Jualan (POS)
-- Grid menu dengan **pencarian** dan **filter kategori**.
-- Keranjang floating → atur qty → preset button (🆕, numeric only, tanpa "Rp") → input uang diterima → hitung **kembalian otomatis** → **Simpan penjualan**.
-- **Persist cart**: keranjang disimpan ke `localStorage` (`kaki5-cart`), sehingga tidak hilang saat aplikasi ditutup/dibuka ulang.
-- **Cetak nota** setelah transaksi selesai.
-- Bottom nav z-index di-upgrade ke 350 (di atas modal overlay 300) agar tetap klickable.
-
-### 3. 🍽️ Menu
+### 2. 🍽️ Menu
 - CRUD menu: nama, kategori (Makanan/Minuman/Snack/Lainnya), harga jual, harga modal/bahan.
 - Pencarian daftar menu.
+- Tombol **Tambah Menu** (FAB).
 
-### 4. 💸 Pengeluaran
-- Catat pengeluaran per tanggal dengan kategori (Bahan Baku, Gas & BBM, Sewa Tempat, Peralatan, Lainnya).
-- Navigasi tanggal, tampil total pengeluaran.
+### 3. 🛒 Jualan (POS)
+- Grid menu dengan **pencarian** dan **filter kategori**.
+- Keranjang floating → atur qty → preset button (numeric only, tanpa "Rp") → input uang diterima → hitung **kembalian otomatis** → **Simpan penjualan**.
+- **Persist cart**: keranjang disimpan ke `localStorage` (`kaki5-cart`), sehingga tidak hilang saat aplikasi ditutup/dibuka ulang.
+- **Cetak nota** setelah transaksi selesai.
 
-### 5. 📊 Laporan
+### 4. 📊 Laporan (+ Pengeluaran)
+- **Integrasi Laporan & Pengeluaran**: Laporan sekarang include pengeluaran di satu halaman.
 - Tiga periode: **Harian / Mingguan / Bulanan**.
 - Kartu statistik (omzet, pengeluaran, untung bersih) + **grafik batang**.
 - **Navigasi periode yang benar** (aritmatika bulan, bukan sekadar +30 hari) — termasuk lintas tahun (Des → Jan).
-- 🆕 **Loading skeleton + error boundary** (toast bila gagal).
+- **Loading skeleton + error boundary** (toast bila gagal).
+- **Catat pengeluaran** langsung dari halaman laporan (navigasi tanggal, kategori dropdown).
 
-### 6. ⚙️ Pengaturan (Profil)
-Halaman pengaturan (sekarang bernama "📋 Profil") menampilkan kartu **"📋 Info Usaha"** dengan field:
-- **Nama Usaha** (diperlukan saat onboarding, boleh diubah)
-- **Nama Pemilik** (diperlukan saat onboarding, ditampilkan di kartu — akan didorong ke Supabase per unitId untuk CRM)
-- **Nomor WhatsApp** (diperlukan saat onboarding, akan digunakan untuk kontak pelanggan/push notification)
-- **Alamat** (diperlukan di form pengaturan, untuk cloud sync ke lapisan CRM)
+### 5. ⚙️ Pengaturan (Profil)
+Onboarding **single-step**: isi **Nama Usaha** + setujui **Syarat & Ketentuan**
+→ "Mulai Masa Percobaan". Setelah masuk, bila profil belum lengkap
+muncul **banner "📝 Lengkapi profil usahamu"** di beranda dengan tombol menuju
+Pengaturan. Halaman pengaturan menampilkan kartu **"📋 Info Usaha"** dengan field:
+- **Nama Usaha** (diisi saat onboarding, boleh diubah)
+- **Nama Pemilik** (diisi di sini → didorong ke Supabase per unitId untuk CRM)
+- **Nomor WhatsApp** (diisi di sini → untuk kontak/push)
+- **Alamat** (region picker: Provinsi → Kota/Kab → Kecamatan + detail — cloud sync ke lapisan CRM)
+- Kartu **☁️ Sinkronisasi** + tombol "Sinkron Sekarang".
+Setiap perubahan profil otomatis **menyinkronkan ulang ke Supabase** (`js/sync.js`).
 
 Fitur lain:
 - **Simpan cadangan (export JSON)** & **Pulihkan data (import JSON)** dengan **validasi struktur ketat**.
 - **Hapus semua data** (dengan konfirmasi).
 - **Printer Bluetooth** (hubungkan / cetak tes / putuskan).
 - Info kontak developer + versi.
+- **🎫 Kelola Lisensi** — tombol akses license sheet (status, extend, activate).
+
+### 6. ❓ Bantuan (Help & Tutorial)
+- Panduan singkat cara memakai Kasir Solo - Kaki Lima.
+- Tutorial untuk setiap fitur (onboarding, POS, laporan, printer, etc).
+- Konten bantuan dirender dari modul `js/bantuan.js`.
 
 ### 7. 📲 PWA & Offline
 - Service Worker eksternal (`sw.js`) dengan **cache-first + fallback offline**.
@@ -165,6 +186,17 @@ Fitur lain:
 ### 8. 🖨️ Cetak Nota
 - Dukungan **printer thermal Bluetooth** (mendukung `format` ESC/POS untuk lebar 58/80mm).
 - Cetak nota langsung, dari detail transaksi, atau nota transaksi terakhir.
+
+### 9. ☁️ Sinkronisasi Profil (CRM → Admin)
+- Mengirim **profil identitas outlet** (nama usaha, pemilik, WhatsApp, **wilayah**,
+  device code) ke Supabase tabel `clients` → ditampilkan & dikelola di Admin (tab **Klien**).
+- **Offline-first**: app tetap jalan tanpa internet; sync dicoba saat online.
+- **Backfill otomatis**: user lama yang datanya cuma lokal ikut tersinkron di boot berikutnya.
+- **Wilayah Indonesia** (Provinsi → Kota/Kab → Kecamatan) dari API **emsifa** (`js/region.js`).
+- Keamanan: **Supabase Anonymous Auth + RLS** — tiap perangkat cuma bisa mengubah
+  barisnya sendiri (profil antar-outlet terpisah).
+- Modul: `js/sync.js`, `js/region.js`, `js/supabase-config.js`. Tombol "Sinkron Sekarang"
+  ada di halaman Pengaturan.
 
 ---
 
@@ -273,7 +305,7 @@ window._ksr_platGoTo = (slideIdx) => { platGoTo(slideIdx); };
 |---|---|---|
 | **UI** | HTML + CSS murni | Tanpa framework, mobile-first responsive |
 | **State & rendering** | Vanilla JS (ESM modules) | Per-modul functions; state centralized di `app-state.js` |
-| **Database lokal** | **Dexie.js 3.2.4** di atas IndexedDB | 4 tabel: menu, penjualan, pengeluaran, settings, platformMessages (v3) |
+| **Database lokal** | **Dexie.js 3.2.4** di atas IndexedDB | 5 tabel aktif: menu, penjualan, pengeluaran, settings, platformMessages (v3) + 1 legacy `pengaturan` |
 | **Persist sementara** | Web Storage API (`localStorage`) | Cart persisted ke kaki5-cart |
 | **Offline/PWA** | Service Worker (`sw.js`) + manifest | Cache-first asset, network-first HTML |
 | **Printer** | Web Bluetooth API | ESC/POS 58/80mm thermal |
@@ -308,7 +340,7 @@ node test_validate.js        # unit test validasi backup (14 kasus)
 ### Catatan Ekosistem (monorepo kasol)
 - `kaki5` hidup di repo root `kasol` bersama `rosok/`, `gerobak/`, `landing/`, dan `retail` (direncanakan).
 - **Saat men-deploy, ingat**: file `.min.js` yang dibutuhkan aplikasi (mis. `dexie.min.js`) harus diberi pengecualian di root `.gitignore` (`!kaki5/dexie.min.js`), karena aturan global `*.min.js` akan meng-ignore-nya dan membuat app mati (Dexie undefined) setelah deploy.
-- Deploy ke Vercel didorong oleh GitHub Actions dengan **path filter per-app**; bukan Vercel auto-detect.
+- `kaki5` di-deploy otomatis ke Vercel lewat **git integration (auto-detect)** — project `kasir-kaki5` dengan root directory `kaki5/`. **GitHub Actions tidak dipakai lagi** (semua workflow sudah dihapus).
 
 ---
 

@@ -25,7 +25,6 @@
 <script src="dexie.min.js"></script>
 <script src="js/env-loader.js"></script>
 <script src="js/supabase-client.js"></script>
-<script src="js/emoji-picker.js?v=1786033668685"></script>
 </head>
 <body>
 <div id="app">
@@ -76,6 +75,9 @@
       </button>
       <button class="sb-link" data-screen="license">
         <span class="sb-icon">🔐</span><span class="sb-label">Lisensi</span>
+      </button>
+      <button class="sb-link" data-screen="klien">
+        <span class="sb-icon">📇</span><span class="sb-label">Klien</span>
       </button>
       <button class="sb-link" data-screen="settings">
         <span class="sb-icon">⚙️</span><span class="sb-label">Pengaturan</span>
@@ -195,8 +197,9 @@
             <select id="genProduct"></select>
           </div>
           <div class="field">
-            <label class="field-label" for="genUnitId">Unit ID</label>
-            <input type="text" id="genUnitId" placeholder="Contoh: K5-ABCD / GBK-XYZ1" maxlength="20">
+            <label class="field-label" for="genUnitId">Device Code (dari app klien)</label>
+            <input type="text" id="genUnitId" placeholder="Contoh: KSR-ABCD-1234 / K5-1A2B-3C4D" maxlength="20">
+            <small class="hint-xs">Salin Kode Perangkat yang ditampilkan di halaman Lisensi app klien. Serial terikat device ini.</small>
           </div>
           <div class="field">
             <label class="field-label" for="genOwnerName">Nama Pemilik</label>
@@ -284,6 +287,39 @@
       </div>
     </section>
 
+    <!-- ============ KLIEN (CRM) ============ -->
+    <section class="screen" id="screen-klien" aria-label="Manajemen Klien">
+      <div class="section-label">Analitik Klien</div>
+      <div class="stat-grid" id="clientStatCards"></div>
+
+      <div class="section-label mt24">Klien Terdaftar</div>
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="search" class="search" id="clientsSearch" placeholder="Cari nama / device / WA..." aria-label="Cari klien">
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <select class="status-select" id="clientsAppFilter" aria-label="Filter aplikasi">
+            <option value="">Semua Aplikasi</option>
+            <option value="kaki5">🛵 Kaki Lima</option>
+            <option value="rosok">♻️ Rosok</option>
+            <option value="gerobak">🛒 Gerobak</option>
+            <option value="retail">🏪 Retail</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div id="clientsList"></div>
+        <div class="empty-state" id="clientsEmpty" hidden>
+          <div class="empty-icon">📇</div>
+          <div class="empty-title">Belum ada klien</div>
+          <div class="empty-desc">Profil klien muncul di sini setelah app klien (kaki5 dll) tersinkron ke Supabase</div>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ SETTINGS ============ -->
     <section class="screen" id="screen-settings" aria-label="Pengaturan Aplikasi">
       <div class="section-label mb0">Info Usaha (Ditampilkan di Landing Page)</div>
@@ -343,6 +379,7 @@
       <div class="nav-item" data-screen="leads" onclick="showScreen('leads')"><div class="ic">👥</div><div class="lbl">Leads</div></div>
       <div class="nav-item" data-screen="catalog" onclick="showScreen('catalog')"><div class="ic">📦</div><div class="lbl">Katalog</div></div>
       <div class="nav-item" data-screen="license" onclick="showScreen('license')"><div class="ic">🔐</div><div class="lbl">Lisensi</div></div>
+      <div class="nav-item" data-screen="klien" onclick="showScreen('klien')"><div class="ic">📇</div><div class="lbl">Klien</div></div>
       <div class="nav-item" data-screen="settings" onclick="showScreen('settings')"><div class="ic">⚙️</div><div class="lbl">Pengaturan</div></div>
     </div>
   </nav>
@@ -415,6 +452,11 @@
     <div class="sheet-title"><span>Detail Lead</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetLeadDetail')">✕</span></div>
     <div id="leadDetailBody"></div>
   </div>
+</div>
+
+<!-- Client Detail / License Sheet -->
+<div class="overlay" id="sheetClient">
+  <div class="sheet" id="clientSheetBody"></div>
 </div>
 
 <!-- ============ LOGIN SCREEN ============ -->

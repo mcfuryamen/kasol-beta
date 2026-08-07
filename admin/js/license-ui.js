@@ -4,7 +4,7 @@
  * Rosok-style: cards + settings-grid forms, sheet modals for product form
  */
 
-import { STATE, subscribe, setState, loadLicenseProducts, saveLicenseProducts } from './app-state.js';
+import { STATE, subscribe, loadLicenseProducts, saveLicenseProducts } from './app-state.js';
 import { storage } from './storage.js';
 import * as LicenseCore from './license-core.js';
 import { formatRupiah, escapeHtml, generateId } from './utils.js';
@@ -33,11 +33,13 @@ let refCoins = null;
 let copyRefCodeBtn = null;
 
 // Product registry (from license-core defaults + custom)
+// ⚠️ SALT HARUS SAMA PERSIS dengan PRODUCT_SALT di tiap app klien,
+//    kalau beda, serial yang di-generate di TOLAK oleh validasi app.
 const PRODUCT_REGISTRY = {
-  KSR: { name: 'Kasir Rosok (rosok)', salt: 'KASIRSOLO-ROSOK-SALT-2024', price: 250000 },
-  K5: { name: 'Kasir Kaki5 (kaki5)', salt: 'KASIRSOLO-KAKI5-SALT-2024', price: 200000 },
-  GBK: { name: 'Gerobak (gerobak)', salt: 'KASIRSOLO-GEROBAK-SALT-2024', price: 300000 },
-  RTL: { name: 'Kasir Retail (retail)', salt: 'KASIRSOLO-RETAIL-SALT-2024', price: 350000 }
+  KSR: { name: 'Kasir Rosok (rosok)', salt: 'KASIRSOLO-ROSOK-HMAC-V2', price: 250000 },
+  KK5: { name: 'Kasir Kaki5 (kaki5)', salt: 'KASIRSOLO-KAKI5-HMAC-V2', price: 200000 },
+  GBK: { name: 'Gerobak (gerobak)', salt: 'KASIRSOLO-GEROBAK-HMAC-V2', price: 300000 },
+  RTL: { name: 'Kasir Retail (retail)', salt: 'KASIRSOLO-RETAIL-HMAC-V2', price: 350000 }
 };
 
 /**
@@ -188,7 +190,7 @@ function updateProductSelect(products) {
  * Get icon for product prefix
  */
 function getProductIcon(prefix) {
-  const icons = { KSR: '🛒', K5: '🛵', GBK: '🛒', RTL: '🏪' };
+  const icons = { KSR: '🛒', KK5: '🛵', GBK: '🛒', RTL: '🏪' };
   return icons[prefix] || '📦';
 }
 
@@ -209,7 +211,7 @@ async function handleGenerate() {
     return;
   }
   if (!unitId) {
-    showToast('Masukkan Unit ID', 2000, 'warning');
+    showToast('Masukkan Device Code', 2000, 'warning');
     genUnitId?.focus();
     return;
   }
@@ -529,6 +531,76 @@ export function closeSheet(id) {
   if (overlay) overlay.classList.remove('open');
 }
 
+/**
+ * Buka sheet "Status Lisensi Admin" (chip LICENSE di header)
+ */
+export function openLicenseSheet() {
+  const overlay = document.getElementById('sheetLicense');
+  const body = document.getElementById('licenseSheetBody');
+  if (!overlay) return;
+
+  if (body) {
+    const custom = (STATE.licenseProducts || []).filter(p => !PRODUCT_REGISTRY[p.prefix]);
+    const rows = [
+      ...Object.values(PRODUCT_REGISTRY).map(p => ({ prefix: Object.keys(PRODUCT_REGISTRY).find(k => PRODUCT_REGISTRY[k] === p), ...p })),
+      ...custom
+    ];
+    body.innerHTML = `
+      <div class="hint mb8">Produk lisensi yang dikelola melalui dashboard ini.</div>
+      ${rows.map(p => `
+        <div class="app-row" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line,#ECE1D3)">
+          <div><b>${escapeHtml(p.prefix)}</b> · ${escapeHtml(p.name)}</div>
+          <span class="badge green">${formatRupiah(p.price || 0)}</span>
+        </div>`).join('')}
+    `;
+  }
+  overlay.classList.add('open');
+}
+
+/**
+ * Export backup lisensi (produk & serial) ke file JSON
+ */
+export function exportLicenseBackup() {
+  const data = {
+    app: 'admin-kasirsolo',
+    type: 'license',
+    exportedAt: new Date().toISOString(),
+    licenseProducts: STATE.licenseProducts || []
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `license-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Backup lisensi terunduh', 2000, 'success');
+}
+
+/**
+ * Import backup lisensi dari file JSON
+ */
+export async function importLicenseBackup(event) {
+  const file = event?.target?.files?.[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const products = Array.isArray(parsed) ? parsed : parsed.licenseProducts;
+    if (!Array.isArray(products)) throw new Error('Format tidak dikenali');
+    const ok = await saveLicenseProducts(storage, products);
+    if (ok) {
+      renderProductRegistry();
+      showToast('Backup lisensi diimpor', 2000, 'success');
+    } else {
+      showToast('Gagal mengimpor backup', 2000, 'error');
+    }
+  } catch (e) {
+    console.error('Import license backup error:', e);
+    showToast('File backup tidak valid', 3000, 'error');
+  }
+}
+
 // Make functions globally accessible for inline onclick
 window.openProductForm = openProductForm;
 window.saveProduct = saveProduct;
@@ -538,3 +610,6 @@ window.generateSerial = handleGenerate;
 window.copySerial = copySerial;
 window.downloadSerial = downloadSerial;
 window.verifySerial = handleVerify;
+window.openLicenseSheet = openLicenseSheet;
+window.exportLicenseBackup = exportLicenseBackup;
+window.importLicenseBackup = importLicenseBackup;

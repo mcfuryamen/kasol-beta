@@ -5,3 +5,6 @@ node_modules
 Thumbs.db
 *.md
 docs/
+# Migrasi/Sensitiv — jangan deploy file helper yang memuat utility kredensial
+migrate-catalog-to-supabase.html
+run-migration.html

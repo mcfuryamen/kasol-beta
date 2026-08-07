@@ -196,6 +196,15 @@ export async function ensureUnitId() {
   await getUnitId();
 }
 
+// ----- device identity (dipakai modul sync / profil klien) -----
+export async function getDeviceCode() {
+  return (await getDeviceIdentity()).deviceCode;
+}
+
+export async function getInstallId() {
+  return (await getDeviceIdentity()).installId;
+}
+
 // ----- UI wiring (refs injected by app.js to avoid circular imports) -----
 let _updateTrialChip = null;
 let _renderLicenseInfoCard = null;
@@ -227,6 +236,11 @@ window._ksr_closeSheet = closeSheet;
 export { closeSheet };
 
 export async function checkLicenseGate() {
+  // Jika gate full-screen (onboarding / trial-habis) sedang tampil, jangan pop lock —
+  // gate sendiri yang menangani state. (Smart gate → hindari double overlay.)
+  const gateEl = document.getElementById('licenseGate');
+  if (gateEl && gateEl.style.display !== 'none') return;
+
   const lic = await getLicense();
   const left = daysLeft(lic);
   if (await isLicensed()) {

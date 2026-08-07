@@ -5,8 +5,7 @@
  */
 
 import { STATE, subscribe, setState } from './app-state.js';
-import { storage } from './storage.js';
-import { formatRupiah, escapeHtml, generateId } from './utils.js';
+import { formatRupiah, escapeHtml } from './utils.js';
 import { showToast } from './toast.js';
 
 let catalogGrid = null;

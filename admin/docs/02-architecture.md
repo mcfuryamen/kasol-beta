@@ -1,205 +1,370 @@
-# Admin Dashboard — Architecture
+# Admin Dashboard — Arsitektur
 
-Arsitektur admin dashboard KASIRSOLO: modular ESM, Supabase cloud sync, offline-first hybrid.
+Modular Vanilla ESM SPA architecture dengan 5 tab navigasi, integrasi sistem lisensi HMAC-SHA256, dan design system kaki5.
 
----
-
-## 🏗️ Arsitektur Overview
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    CLIENT (Browser)                        │
-├─────────────────────────────────────────────────────────────┤
-│  index.html                                                 │
-│  ├── js/env-loader.js      (load .env.local → window vars) │
-│  ├── js/supabase-client.js (Supabase REST client)          │
-│  ├── js/app.js             (entry point)                   │
-│  ├── js/app-state.js       (global state)                  │
-│  ├── js/catalog.js         (CRUD → Supabase)               │
-│  ├── js/leads.js           (localStorage)                  │
-│  ├── js/dashboard.js       (localStorage)                  │
-│  └── js/settings.js        (localStorage)                  │
-└─────────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   SUPABASE (Cloud)                         │
-├─────────────────────────────────────────────────────────────┤
-│  Table: products (catalog)                                  │
-│  ├── id UUID PRIMARY KEY                                   │
-│  ├── app_type TEXT (rosok, gerobak, kaki5, retail, ...)    │
-│  ├── name TEXT NOT NULL                                    │
-│  ├── tagline TEXT                                          │
-│  ├── description TEXT                                      │
-│  ├── price_label TEXT                                      │
-│  ├── features JSONB                                        │
-│  ├── icon TEXT                                             │
-│  ├── color TEXT                                            │
-│  ├── order_index INTEGER                                   │
-│  ├── visible BOOLEAN                                       │
-│  ├── created_at TIMESTAMPTZ                                │
-│  └── updated_at TIMESTAMPTZ                                │
-│                                                             │
-│  RLS Policies:                                              │
-│  ├── public_read: anon key can READ visible=true           │
-│  └── service_role: service_role key full CRUD              │
-└─────────────────────────────────────────────────────────────┘
-```
+> ⚠️ **Arah Arsitektur Cloud (2026):** Admin adalah **Lapisan Meta/CRM**. Sistem
+> lisensi melakukan **generate + validasi via Supabase** (menggantikan offline saat
+> ini). Data Bisnis transaksi klien & Dashboard Hub termasuk **Lapisan B** — bukan
+> bagian admin. Rujukan: **`../CLOUD-ROADMAP.md`**.
 
 ---
 
-## 📦 Modul JavaScript
+## 🏛️ Arsitektur 3-Layer
 
-### 1. `js/env-loader.js`
-Load environment variables dari `.env.local` ke `window`.
-**Jangan di-commit** dengan key real.
-
-```javascript
-window.SUPABASE_URL = 'https://PROJECT.supabase.co';
-window.SUPABASE_ANON_KEY = 'eyJ...';
-window.SUPABASE_SERVICE_KEY = 'eyJ...';
 ```
-
-### 2. `js/supabase-client.js`
-Supabase REST API client. Export ke window untuk diakses module lain.
-- **READ**: `GET /rest/v1/products`
-- **CREATE**: `POST /rest/v1/products`
-- **UPDATE**: `PATCH /rest/v1/products?id=eq.<uuid>`
-- **DELETE**: `DELETE /rest/v1/products?id=eq.<uuid>`
-
-### 3. `js/catalog.js`
-Module CRUD katalog.
-- **READ**: Fetch dari Supabase (semua produk, urut `order_index`)
-- **CREATE**: Insert ke Supabase dengan service_role key
-- **UPDATE**: Patch ke Supabase
-- **DELETE**: Delete dari Supabase
-
-### 4. `js/leads.js`, `js/dashboard.js`, `js/settings.js`
-Masih menggunakan **localStorage** untuk tahap awal.
-
----
-
-## 🔐 Environment Variables
-
-### File: `.env.local` (LOKAL SAJA)
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        index.html (Entry Point)                         │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  HTML STRUCTURE                                                 │   │
+│  │  ├── #loginScreen (login gate, z-index 999)                    │   │
+│  │  └── #app (main shell)                                         │   │
+│  │      ├── .sidebar (desktop: sticky 250px, dark theme)          │   │
+│  │      │   ├── .sb-brand (logo + nama)                           │   │
+│  │      │   ├── .sb-nav (5 tab links)                             │   │
+│  │      │   └── .sb-foot (refresh + logout buttons)               │   │
+│  │      ├── .main (content area, margin-left: 250px desktop)      │   │
+│  │      │   ├── #screen-dashboard (6 KPI + charts)                │   │
+│  │      │   ├── #screen-leads (table + search + filter)           │   │
+│  │      │   ├── #screen-catalog (card grid + actions + sheet)     │   │
+│  │      │   ├── #screen-license (registry + generate/verify)      │   │
+│  │      │   └── #screen-settings (forms + backup)                 │   │
+│  │      ├── .bottomnav (HP: fixed bottom, 5 items)                │   │
+│  │      ├── .overlay + .sheet (modals: catalog, license)          │   │
+│  │      └── #toast (notification)                                  │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  CSS (style.css — ~940 lines)                                   │   │
+│  │  ├── CSS Variables (color, spacing, radius, sidebar, breakpoints)│   │
+│  │  ├── Reset & Base                                               │   │
+│  │  ├── Layout: app shell, sidebar, bottomnav, main               │   │
+│  │  ├── Components: buttons, cards, tables, forms, badges         │   │
+│  │  ├── KPI Cards (gradient, 6 metrics, .kpi-head emoji-left)     │   │
+│  │  ├── Charts: .bar-row, .bar-track, .bar-fill                   │   │
+│  │  ├── Catalog: .catalog-grid, .catalog-card, .catalog-card-actions│   │
+│  │  ├── Forms: .field-grid, .field-span-2, .input-mono, .input-readonly│   │
+│  │  ├── Sheets/Modals: .overlay.open.show, .sheet, desktop center │   │
+│  │  ├── License: .app-row grid (3-tier responsive)                │   │
+│  │  ├── Utility: .mt4/.mt8/.mt12/.mt24, .mb0, .gap4, .flex,      │   │
+│  │  │         .items-center, .justify-between, .hidden (attr)     │   │
+│  │  └── Media Queries: 768px / 1024px / 1440px (4 tiers)         │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  JAVASCRIPT (ES Modules — 12 files)                             │   │
+│  │                                                                 │   │
+│  │  ENTRY LAYER                                                    │   │
+│  │  ├── app.js                  # Boot, routing, screen switching │   │
+│  │                                                                 │   │
+│  │  STATE/DATA LAYER                                             │   │
+│  │  ├── app-state.js            # STATE object, setState, getState│   │
+│  │  ├── storage.js              # Storage abstraction (localStorage│   │
+│  │  │                            → Supabase ready interface)      │   │
+│  │                                                                 │   │
+│  │  CORE/UI/UTILS LAYER                                          │   │
+│  │  ├── utils.js                # escapeHtml, formatRupiah,       │   │
+│  │  │                            formatDate, showToast            │   │
+│  │  ├── toast.js                # Toast notification system       │   │
+│  │  ├── auth.js                 # doLogin, doLogout, checkAuth    │   │
+│  │  ├── navigation.js           # showScreen, sidebar/bottomnav   │   │
+│  │  ├── license-core.js         # Pure HMAC-SHA256 (no DOM)       │   │
+│  │                                                                 │   │
+│  │  MODULE LAYER (screens)                                       │   │
+│  │  ├── dashboard.js            # 6 KPI + bar charts + empty      │   │
+│  │  ├── leads.js                # 5-col table + search/filter/CSV │   │
+│  │  ├── catalog.js              # Card grid + actions + sheet     │   │
+│  │  ├── license-ui.js           # Registry + generate/verify/ref  │   │
+│  │  └── settings.js             # Forms + backup/restore/reset    │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
-SUPABASE_URL=https://PROJECT.supabase.co
-SUPABASE_ANON_KEY=eyJ... (read-only)
-SUPABASE_SERVICE_ROLE_KEY=eyJ... (full CRUD)
-```
-
-### File: `.gitignore`
-```
-.env*
-.env
-.env.local
-!.env.example
-```
-
-### Deployment Vercel
-Environment variables di-set via **Vercel Dashboard → Settings → Environment Variables**:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-> **Service role key TIDAK perlu di-deploy ke Vercel** karena admin CRUD dilakukan dari browser dengan service key lokal.
 
 ---
 
 ## 🔄 Data Flow
 
-### Admin → Supabase (CRUD)
 ```
-Admin (browser)
-  └─ service_role key (.env.local)
-      └─ POST/PATCH/DELETE /rest/v1/products
-          └─ Supabase Cloud
+┌────────────────────────────────────────────────────────────────────────────┐
+│                           DATA FLOW                                        │
+│                                                                            │
+│   ┌─────────────────────┐                                                 │
+│   │   Landing Page      │                                                 │
+│   │                     │                                                 │
+│   │  Membaca:          │                                                   │
+│   │  • kasirsolo:cat   │                                                   │
+│   │  • kasirsolo:set  ├──────────────────────────────────────┐            │
+│   │  • kasirsolo:lea   │                                      │            │
+│   │  • kasirsolo:sta   │                                      │            │
+│   └─────────────────────┘                                      │            │
+│            ▲                                                   │            │
+│            │ tulis (form submit)                               │            │
+│            │                                                   ▼            │
+│   ┌─────────────────────────────────────────────────────────────────┐       │
+│   │                    localStorage (browser)                        │       │
+│   │                                                                 │       │
+│   │  kasirsolo:catalog    ◄── tulis ──┐                            │       │
+│   │  kasirsolo:settings   ◄── tulis ──┤  Admin Dashboard           │       │
+│   │  kasirsolo:leads      ──► baca   ─┤  (read/write via storage.js)│      │
+│   │  kasirsolo:stats      ──► baca   ─┘                            │       │
+│   │  license_products     ◄── tulis ──┘                            │       │
+│   └─────────────────────────────────────────────────────────────────┘       │
+│            ▲                                                   │            │
+│            │                                                   │            │
+│            │                                                   │            │
+│   ┌─────────────────────┐                                  ┌───────────┐   │
+│   │   Aplikasi Klien    │                                  │ SUPABASE  │   │
+│   │   (rosok, gerobak,  │                                  │ (rencana) │   │
+│   │   retail, dll)     │                                  │           │   │
+│   │                     │                                  │ users     │   │
+│   │  Dexie.js (offline) │                                  │ businesses│   │
+│   │  + HMAC validation  │                                  │ licenses  │   │
+│   └─────────────────────┘                                  │ leads     │   │
+│            │                                               │ products  │   │
+│            │ license validation                            │ settings  │   │
+│            ▼                                               └───────────┘   │
+│   ┌─────────────────────┐                                                 │
+│   │  License Generator  │  (sudah terintegrasi di admin)                  │
+│   │  HMAC-SHA256        │                                                 │
+│   └─────────────────────┘                                                 │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
-
-### Landing → Supabase (Read-Only)
-```
-Landing (browser)
-  └─ anon key (public)
-      └─ GET /rest/v1/products?visible=eq.true
-          └─ Supabase Cloud (RLS: public read)
-```
-
-### Admin ↔ Landing Sync
-Tidak perlu sync manual — kedua app fetch dari Supabase yang sama.
 
 ---
 
-## 🗄️ Database Schema
+## 📦 Module Dependencies (ESM)
 
-### Tabel `products`
+```
+app.js (entry)
+├── app-state.js
+├── storage.js
+├── utils.js
+├── toast.js
+├── auth.js
+├── navigation.js
+├── license-core.js
+├── dashboard.js
+├── leads.js
+├── catalog.js
+├── license-ui.js
+└── settings.js
+```
+
+**Import pattern:**
+```javascript
+// app.js
+import { STATE, setState, getState } from './app-state.js';
+import { storageGetJSON, storageSetJSON, storageClearAll } from './storage.js';
+import { escapeHtml, formatRupiah, formatDate } from './utils.js';
+import { showToast } from './toast.js';
+import { doLogin, doLogout, checkAuth } from './auth.js';
+import { showScreen } from './navigation.js';
+import { renderDashboard } from './dashboard.js';
+import { renderLeads } from './leads.js';
+import { renderCatalog, openCatalogSheet } from './catalog.js';
+import { renderLicenseScreen, openProductForm, openLicenseSheet } from './license-ui.js';
+import { renderSettingsForm } from './settings.js';
+```
+
+---
+
+## 🔐 Sistem Lisensi
+
+Lisensi terintegrasi langsung di tab **Lisensi** pada admin dashboard.
+Algoritma yang digunakan adalah **HMAC-SHA256** (sama seperti generator universal).
+
+### Flow Penerbitan Lisensi
+
+```
+  1. Admin buka tab "Lisensi"
+         │
+         ▼
+  2. Pilih produk dari dropdown (daftar dari product registry)
+         │
+         ▼
+  3. Minta pembeli mengirim Device Code dari aplikasi mereka
+         │
+         ▼
+  4. Admin masukkan Device Code + pilih masa berlaku
+         │
+         ▼
+  5. Klik "Buat Nomor Serial"
+         │
+         ▼
+  6. Sistem generate serial HMAC-SHA256 (license-core.js)
+         │
+         ▼
+  7. Serial ditampilkan + tombol salin
+         │
+         ▼
+  8. [target] Serial + device + expiry disimpan ke Supabase `licenses` (status active)
+         │
+         ▼
+  9. Admin kirim serial ke pembeli (via WhatsApp)
+         │
+         ▼
+ 10. Pembeli masukkan serial di aplikasi → validasi HMAC lokal
+         │
+         ▼
+ 11. [target] App klien validasi tambahan server-side via Supabase → aktivasi
+```
+
+> **Saat ini:** langkah 8 & 11 masih offline (validasi HMAC lokal penuh) sampai
+> `admin/` & app klien sinkron ke Supabase. **Arah target:** keduanya via Supabase,
+> memungkinkan revoke/reset terpusat. Lihat `04-license-system.md` & `../CLOUD-ROADMAP.md`.
+
+### Format Serial
+
+```
+KSR-A1B2-C3D4-99-X7K9M2
+│   │      │    │  └── HMAC signature (6 char, Base32)
+│   │      │    │
+│   │      │    └─────── Expiry code (99 = seumur hidup)
+│   │      │
+│   │      └──────────── Device Code part 2 (4 char)
+│   │
+│   └─────────────────── Device Code part 1 (4 char)
+│
+└─────────────────────── Product Prefix (KSR = Rosok)
+```
+
+---
+
+## 📡 Rencana Migrasi ke Supabase (Lapisan Meta/CRM)
+
+> Migrasi ini mencakup **Lapisan A (Meta/CRM)** — data admin/CRM. **Data Bisnis**
+> transaksi klien & Dashboard Hub (Lapisan B) adalah proyek terpisah, didokumentasikan
+> di `../CLOUD-ROADMAP.md`.
+
+### Tahap 1: Setup Supabase
+
+1. Buat project di [supabase.com](https://supabase.com)
+2. Clone repo Supabase di root project
+3. Jalankan migration SQL untuk membuat tabel
+
+### Tahap 2: Migrasi Data
+
+| Dari (localStorage) | Ke (Supabase) |
+|---------------------|---------------|
+| `kasirsolo:leads` | Tabel `leads` |
+| `kasirsolo:catalog` | Tabel `products` |
+| `kasirsolo:settings` | Tabel `settings` |
+| `kasirsolo:stats` | Tabel `stats` |
+| `kasirsolo_license_products_v3` | Tabel `products` (with salt) |
+
+### Tahap 3: Implementasi RLS
 
 ```sql
-CREATE TABLE products (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  app_type TEXT NOT NULL,
-  name TEXT NOT NULL,
-  tagline TEXT,
-  description TEXT,
-  price_label TEXT,
-  features JSONB DEFAULT '[]',
-  icon TEXT,
-  color TEXT,
-  order_index INTEGER DEFAULT 0,
-  visible BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+-- Owner bisa read/write semua
+CREATE POLICY "owner_all" ON leads FOR ALL
+  USING (auth.uid() = (SELECT user_id FROM businesses WHERE id = business_id));
 
-CREATE INDEX idx_products_visible ON products(visible);
-CREATE INDEX idx_products_order ON products(order_index);
+-- Team hanya bisa read
+CREATE POLICY "team_read" ON leads FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM users WHERE id = auth.uid() AND role = 'team'
+  ));
 ```
 
-### RLS Policies
+### Tahap 4: Update Admin Dashboard
 
-```sql
--- Public read (landing page)
-CREATE POLICY "public_read_products" ON products
-  FOR SELECT USING (visible = true);
+Ganti semua `localStorage` calls dengan Supabase client di `storage.js`:
 
--- Service role full access (admin CRUD)
-CREATE POLICY "service_role_all_products" ON products
-  FOR ALL USING (true);
+```javascript
+// SEBELUM (di storage.js)
+export async function storageGetJSON(key, fallback) {
+  const raw = localStorage.getItem(key);
+  return raw ? JSON.parse(raw) : fallback;
+}
+
+// SESUDAH (di storage.js — interface sama, implementasi beda)
+export async function storageGetJSON(key, fallback) {
+  const { data, error } = await supabase.from(key.replace('kasirsolo:', '')).select('*');
+  if (error) return fallback;
+  return data;
+}
+```
+
+**Keuntungan abstraction layer:** Hanya `storage.js` yang perlu diubah, semua module lain (`dashboard.js`, `leads.js`, `catalog.js`, `license-ui.js`, `settings.js`) tidak perlu disentuh.
+
+---
+
+## 📐 Navigasi (Screen System)
+
+```javascript
+// navigation.js — Simple screen switching
+window.showScreen = function(screenId) {
+  // Update bottom nav active state
+  document.querySelectorAll('.bottomnav .nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.screen === screenId);
+  });
+  // Update sidebar active state (desktop)
+  document.querySelectorAll('.sb-link').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === screenId);
+  });
+  // Hide all screens
+  document.querySelectorAll('.main > .screen').forEach(s => s.classList.remove('active'));
+  // Show target screen
+  const target = document.getElementById('screen-' + screenId);
+  if (target) target.classList.add('active');
+  // Scroll to top
+  window.scrollTo(0, 0);
+  // Trigger render if needed
+  if (screenId === 'dashboard') renderDashboard();
+  if (screenId === 'leads') renderLeads();
+  if (screenId === 'catalog') renderCatalog();
+  if (screenId === 'license') renderLicenseScreen();
+  if (screenId === 'settings') renderSettingsForm();
+};
+```
+
+5 Screen:
+| Screen | data-screen / data-view | ID Element |
+|--------|------------------------|------------|
+| Dashboard | `dashboard` | `screen-dashboard` |
+| Leads | `leads` | `screen-leads` |
+| Katalog | `catalog` | `screen-catalog` |
+| Lisensi | `license` | `screen-license` |
+| Pengaturan | `settings` | `screen-settings` |
+
+---
+
+## 🎨 Responsive Breakpoints (4 Tiers)
+
+| Tier | Breakpoint | Sidebar | Bottom Nav | KPI Grid | Catalog Grid | Sheets |
+|------|------------|---------|------------|----------|--------------|--------|
+| **HP** | `< 768px` | Hidden (drawer) | Fixed bottom 5 items | 2 kolom | 1 kolom | Bottom-sheet (full) |
+| **Tablet** | `768-1023px` | Hidden (drawer) | Fixed bottom 5 items | 3 kolom | 2 kolom | Center modal |
+| **Desktop** | `≥ 1024px` | Fixed 250px | Hidden | 4 kolom | 3 kolom | Center modal |
+| **Large** | `≥ 1440px` | Fixed 250px | Hidden | 6 kolom | 4 kolom | Center modal |
+
+**CSS Media Queries:**
+```css
+/* Base = HP (< 768px) */
+@media (min-width: 768px) { /* Tablet */ }
+@media (min-width: 1024px) { /* Desktop */ }
+@media (min-width: 1440px) { /* Large Desktop */ }
 ```
 
 ---
 
-## 🚀 Local Development
+## 🔧 Key Technical Decisions
 
-### Prasyarat
-- Browser modern (Chrome, Firefox, Safari, Edge)
-- Python 3 atau Node.js
-- `.env.local` di folder `admin/`
-
-### Setup
-```bash
-# 1. Buat .env.local
-cd C:/Users/Admin/Documents/kasol/admin
-copy ..\..\env.local .env.local
-
-# 2. Jalankan server
-python -m http.server 8082
-
-# 3. Buka browser
-http://localhost:8082
-```
-
-### Password Admin
-Default: `admin123` (lihat `js/auth.js`)
+| Decision | Rationale |
+|----------|-----------|
+| **Vanilla ESM (no build)** | Zero config, runs in browser, easy to debug |
+| **3-layer architecture** | Separation of concerns, testable, Supabase-ready |
+| **Storage abstraction** | Swap localStorage → Supabase by changing only `storage.js` |
+| **license-core.js pure** | No DOM, no side-effects — reusable in client apps (Dexie) |
+| **kaki5 design system** | Consistent with other KASIRSOLO apps (orange, bottom nav, sheets) |
+| **Gerobak KPI pattern** | 6 gradient metrics, proven UX |
+| **4-tier responsive** | Covers all device classes properly |
+| **Utility classes CSS** | No inline styles, maintainable, consistent |
+| **Sheet modal pattern** | `.overlay.open.show` + `.sheet` — works HP & Desktop |
+| **Hidden attribute** | Semantic empty states, no inline `display:none` |
+| **Local mirror deploy** | No GitHub Actions, simple rsync + commit |
 
 ---
 
-## 📝 Changelog
-
-| Tanggal | Perubahan |
-|---------|-----------|
-| 2026-08-06 | Supabase integration — katalog fetch/CRUD via REST API |
-| 2026-08-06 | `.env.local` untuk local dev keys |
-| 2026-08-06 | `js/supabase-client.js` dan `js/env-loader.js` ditambahkan |
-
----
-
-*Architecture — KASIRSOLO Admin Dashboard*
+*Architecture Admin Dashboard — KASIRSOLO*

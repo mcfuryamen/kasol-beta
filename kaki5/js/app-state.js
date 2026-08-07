@@ -44,10 +44,6 @@ export function setPosCat(value) {
   posCat = value;
 }
 
-export function setExpDate(value) {
-  expDate = value;
-}
-
 export function setReportPeriod(value) {
   reportPeriod = value;
 }

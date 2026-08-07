@@ -61,9 +61,11 @@ temp/
 # Generated files
 *.min.js
 *.min.css
-
-# Dexie library — WAJIB di-deploy (library, bukan file generated)
-!rosok/dexie.min.js
+# Exceptions: keep the vendor lib required by PWAs (Dexie).
+# Without these negations, `*.min.js` ignores <app>/dexie.min.js and the
+# deployed app breaks (Dexie undefined). Per PWA yang load dexie WAJIB punya
+# pengecualiannya di sini. Lihat DEPLOYMENT.md "Aturan Penting".
 !kaki5/dexie.min.js
+!rosok/dexie.min.js
 !admin/dexie.min.js
-env.example
+!retail/dexie.min.js

@@ -1,0 +1,39 @@
+{
+  "name": "Kasir Solo - Gerobak",
+  "short_name": "KasirGerobak",
+  "description": "Aplikasi kasir untuk usaha gerobak/angkringan. Kelola menu, transaksi, dan kas dengan mudah.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFF8EF",
+  "theme_color": "#FF7A1A",
+  "orientation": "portrait-primary",
+  "lang": "id",
+  "categories": ["business", "food"],
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Transaksi Baru",
+      "url": "./index.html#pos",
+      "description": "Buka kasir untuk transaksi baru"
+    },
+    {
+      "name": "Laporan",
+      "url": "./index.html#laporan",
+      "description": "Lihat laporan penjualan"
+    }
+  ]
+}

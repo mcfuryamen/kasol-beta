@@ -44,17 +44,6 @@ export async function setSetting(key, value) {
   await db.settings.put({ key, value });
 }
 
-// Kept for backward-compat with the old `pengaturan` table (used by legacy
-// flows). New code should prefer the `settings` table above.
-export async function getPengaturan(key, defaultVal) {
-  const row = await db.pengaturan.get(key);
-  return row ? row.value : defaultVal;
-}
-
-export async function setPengaturan(key, value) {
-  await db.pengaturan.put({ key, value });
-}
-
 export { showToast };
 // Re-export db for convenience
 export const DB = db;

@@ -150,31 +150,25 @@ Folder produksi berkode modular. Deploy ke cloud via monorepo `kasol` (2 skrip):
    report) otomatis dikecualikan.
 2. **`push-to-github.sh`** (di root monorepo `kasol`) — commit + push ke `origin/main`.
 
-**Perilaku Vercel — penting:** ada **dua lapis** yang menentukan app mana yang kedeploy.
+**Perilaku Vercel — penting:** deploy **tidak lagi memakai GitHub Actions**. Semua
+`.github/workflows/*` sudah dihapus. Deploy otomatis oleh **Vercel git integration
+(auto-detect)**.
 
-1. **GitHub Actions path filter** — `.github/workflows/deploy-rosok.yml` punya
-   `on: push: paths: 'rosok/**'`, jadi workflow hanya jalan kalau folder rosok berubah.
-   `deploy-all.yml` hanya `workflow_dispatch` (manual).
-2. **Vercel Ignored Build Step** — tiap project menjalankan `bash ../vercel-ignore.sh`
-   yang membandingkan `git diff HEAD^ HEAD .` untuk foldernya sendiri dan membatalkan
-   build kalau tidak ada perubahan. Vercel sendiri **tidak** auto-detect per-folder.
+1. Project `kasir-rosok` terhubung ke repo dengan **Root Directory = `rosok/`**.
+2. Push ke branch utama → Vercel otomatis deploy project rosok.
+3. **Tanpa** `vercel-ignore.sh`, tanpa `deploy-all.yml`, tanpa secrets CI
+   (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_*`).
+4. `vercel.json` rosok ber-tipe statis (`buildCommand: null`, `outputDirectory: "."`).
 
-**Konfigurasi Vercel:** setiap project bertipe statis (`buildCommand: null`,
-`outputDirectory: "."`). Root Directory tiap project = folder app-nya. Tanpa
-`.vercel/project.json` di repo — deploy dikontrol via GitHub Actions + secrets
-(`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_*`).
+### ⚠️ Aturan yang TIDAK BOLEH dilanggar
 
-### ⚠️ Empat aturan yang TIDAK BOLEH dilanggar
-
-Semuanya pernah dilanggar dan membuat production mati total. Detail lengkap +
-troubleshooting ada di [`../DEPLOYMENT.md`](../DEPLOYMENT.md) seksi "Aturan Wajib".
+Beberapa pernah dilanggar dan membuat production mati total. Detail + troubleshooting
+ada di [`../DEPLOYMENT.md`](../DEPLOYMENT.md).
 
 | # | Aturan | Kalau dilanggar |
 |---|--------|-----------------|
-| 1 | `.vercelignore` **tanpa** `.git` | `git diff` gagal → deteksi per-app mati → semua app kedeploy |
-| 2 | `dexie.min.js` wajib punya negasi `!rosok/dexie.min.js` di root `.gitignore` | `*.min.js` menelannya → `Dexie is not defined` → seluruh app mati di production |
-| 3 | `run:` di workflow pakai block scalar `run: \|` | **Invalid workflow file** → Actions tidak jalan sama sekali |
-| 4 | Bump `CACHE_VERSION` di `sw.js` setiap deploy | klien tetap melihat versi rusak dari cache SW |
+| 1 | `dexie.min.js` wajib punya negasi `!rosok/dexie.min.js` di root `.gitignore` | `*.min.js` menelannya → `Dexie is not defined` → seluruh app mati di production |
+| 2 | Bump cache `sw.js` (CACHE_VERSION) setiap deploy | klien melihat versi rusak dari cache SW |
 
 Verifikasi setelah deploy — jangan berhenti di "sudah di-push":
 

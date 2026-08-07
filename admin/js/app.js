@@ -12,6 +12,7 @@ import { initLeads } from './leads.js';
 import { initCatalog } from './catalog.js';
 import { initSettings } from './settings.js';
 import { initLicense } from './license-ui.js';
+import { initClients } from './clients.js';
 import { initToast } from './toast.js';
 import { showToast } from './toast.js';
 
@@ -49,6 +50,7 @@ async function bootstrap() {
     initCatalog();
     initSettings();
     initLicense();
+    initClients();
 
     // Listen for screen changes to trigger specific renders if needed
     window.addEventListener('screen:change', (e) => {

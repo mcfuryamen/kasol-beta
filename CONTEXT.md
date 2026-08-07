@@ -1,0 +1,504 @@
+# CONTEXT — KASIRSOLO Ecosystem Standards
+
+> **File ini dibaca oleh setiap AI agent** sebelum membangun atau mengedit aplikasi klien KASIRSOLO.
+> Semua aplikasi klien HARUS mengikuti standar di bawah ini.
+
+---
+
+## 🏛️ Peta Ekosistem
+
+```
+  ┌─────────────────┐
+  │   LANDING PAGE  │  Marketing, funnel, lead gen
+  │   (landing/)    │
+  └────────┬────────┘
+           │ reads catalog/settings, writes leads/stats
+           ▼
+  ┌─────────────────┐         ┌──────────────────────┐
+  │  ADMIN DASHBOARD│────────►│   SUPABASE (cloud)   │
+  │  (admin/)       │  write  │   [rencana tahap 2]   │
+  └────────┬────────┘         └──────────┬───────────┘
+           │ generate licenses           │ validate
+           ▼                              ▼
+  ┌─────────────────────────────────────────────────┐
+  │           APPLICATION CLIENTS                   │
+  │  rosok/  gerobak/  retail/  [baru...]           │
+  │                                                 │
+  │  ┌───────────────────────────────────────────┐  │
+  │  │  Dexie.js (IndexedDB) — Full Offline       │  │
+  │  │  Transaksi, produk, pelanggan, laporan     │  │
+  │  └───────────────────────────────────────────┘  │
+  │                                                 │
+  │  ┌───────────────────────────────────────────┐  │
+  │  │  License: HMAC-SHA256 device-bound         │  │
+  │  │  Prefix unik per produk + salt rahasia     │  │
+  │  └───────────────────────────────────────────┘  │
+  └─────────────────────────────────────────────────┘
+```
+
+### 🚪 Port Dev Server (REGISTRY — SUMBER KEBENARAN)
+
+**Setiap app klien & ekosistem punya PORT tetap yang TIDAK BOLEH diubah-ubah** oleh agent.
+Sebelum jalanin preview/dev server, SELALU pakai port dari tabel ini. **Jangan ngacak / nebak port.**
+
+| App | Folder | Port | Kategori |
+|-----|--------|------|----------|
+| Landing | `landing/` | **8081** | ekosistem |
+| Admin | `admin/` | **8082** | ekosistem (bukan app klien) |
+| Gerobak | `gerobak/` | **8083** | app klien |
+| Rosok | `rosok/` | **8084** | app klien (flagship) |
+| Retail | `retail/` | **8085** | app klien |
+| Kaki5 | `kaki5/` | **8086** | app klien |
+
+**Aturan penomoran app klien baru:** aplikasi selanjutnya meneruskan urutan dari 8087,
+8088, dst (urutan app klien). Ekosistem (landing/admin) memegang 8081–8082 secara permanen.
+
+**Contoh pemicu port**: `python -m http.server 8086`, `npx serve -l 8084`, `php -S localhost:8083`.
+
+---
+
+## 📦 Referensi Arsitektur Aplikasi Klien
+
+### RUJUKAN UTAMA: `rosok.zip`
+
+File `rosok.zip` adalah **versi single-HTML final** dari aplikasi Rosok yang sudah berjalan di produksi.
+File ini menjadi **standar referensi** untuk:
+- **Fitur** yang harus ada di setiap aplikasi klien
+- **Layout & navigasi** (topbar + bottom nav)
+- **Color palette & design system**
+- **Sheet/overlay pattern** untuk form & modals
+- **Database schema** Dexie
+- **License validation** flow
+- **Service Worker** pattern
+- **PWA manifest**
+
+> **Catatan:** Folder `rosok/` yang modular sedang dalam proses refactor. **Jangan gunakan sebagai referensi** — gunakan `rosok.zip` saja.
+
+### Pola Development
+
+```
+  TINGKAT 1: Single HTML (sekarang)
+  └─ Satu file index.html (~276KB)
+  └─ Dexie.js di-embed inline di <script>
+  └─ Semua CSS inline di <style>
+  └─ Semua JS inline di <script>
+  └─ Gambar eksternal (assets/)
+  
+  TINGKAT 2: Modular (rencana ke depan)
+  └─ index.html (HTML shell)
+  └─ style.css (eksternal)
+  └─ js/app.js (entry point)
+  └─ js/db.js (Dexie)
+  └─ js/license.js, js/onboard.js, dll
+```
+
+**Aplikasi baru dibangun dengan pola Single HTML (Tingkat 1),**
+kemudian bisa di-refactor ke modular nanti.
+
+---
+
+## 🎨 Design System (Dari Rosok.zip)
+
+### Color Palette
+
+```css
+--brand:        #F5821F    /* Primary orange */
+--brand-dark:   #D6501C    /* Dark orange (gradient end) */
+--brand-light:  #FDBA5C   /* Light orange (gradient start) */
+--grad:         linear-gradient(135deg, var(--brand-light), var(--brand), var(--brand-dark))
+--ink:          #2B2420    /* Text primary */
+--ink-soft:     #6B5F54    /* Text secondary */
+--paper:        #FBF6EF    /* Page background */
+--surface:      #FFFFFF   /* Card background */
+--line:         #ECE1D3   /* Border */
+--green:        #3F8C52   /* Success */
+--green-soft:   #E7F3E9   /* Success bg */
+--red:          #D2483A   /* Danger */
+--red-soft:     #FBEAE7   /* Danger bg */
+```
+
+### Typography
+
+| Element | Font | Weight |
+|---------|------|--------|
+| Heading | Plus Jakarta Sans | 700-800 |
+| Body | Inter | 400-600 |
+| Monospace (serial) | Space Mono | 700 |
+
+### UI Components
+
+| Component | Style |
+|-----------|-------|
+| Topbar | Gradient background, fixed top, brand badge + trial chip + settings btn |
+| Bottom Nav | Fixed bottom, 5 tabs (Dashboard, Kasir, Stok, Riwayat, Laporan) |
+| Card | White bg, border `--line`, radius 20px, padding 16px, shadow |
+| Stat Card | Color-coded (kas=orange, stok=teal, beli=red, jual=green, laba=yellow) |
+| Button Primary | Gradient bg, white text, radius 14px, shadow |
+| Button Outline | White bg, border, ink text |
+| Button Danger | Red-soft bg, red text |
+| Sheet/Overlay | Full-screen bottom sheet, rounded top, handle bar |
+| Input | Border `--line`, radius 12px, focus orange border |
+| Tab Button | Small pill, active = orange gradient |
+
+### Layout Pattern
+
+```
+┌──────────────────────┐
+│  TOPBAR (fixed)      │  ← gradient bg, brand + trial + settings
+├──────────────────────┤
+│                      │
+│  SCREEN CONTENT      │  ← max-width 560px, margin auto
+│  (scrollable)        │
+│                      │
+├──────────────────────┤
+│  BOTTOM NAV (fixed)  │  ← 5 tabs: Dash│Kasir│Stok│Riwayat│Laporan
+└──────────────────────┘
+
+Sheets overlay everything when opened:
+┌──────────────────────┐
+│  OVERLAY (dim)       │
+├──────────────────────┤
+│  BOTTOM SHEET        │  ← rounded top, handle, title, form, buttons
+└──────────────────────┘
+```
+
+---
+
+## 🗂️ Struktur File Aplikasi Klien
+
+### Pola Single-HTML (Referensi dari rosok.zip)
+
+```
+nama-aplikasi/
+├── index.html              # Single file (~250-400KB)
+│                           #   - Dexie.js embedded inline
+│                           #   - CSS inline di <style>
+│                           #   - JS inline di <script>
+├── assets/
+│   ├── logo.png            # 256x256
+│   ├── icon-192.png        # 192x192 (maskable)
+│   ├── icon-512.png        # 512x512 (maskable)
+│   ├── favicon-16.png
+│   ├── favicon-32.png
+│   └── splash-1028.png     # iOS splash screen
+├── manifest.json           # PWA manifest
+├── sw.js                   # Service Worker
+├── vercel.json             # Vercel config
+└── .vercelignore           # Files to ignore
+```
+
+### Pola Modular (Rencana, TIDAK JADI REFERENSI SEKARANG)
+
+```
+nama-aplikasi/
+├── index.html              # HTML shell only
+├── style.css               # CSS terpisah
+├── dexie.min.js            # Library eksternal
+├── assets/
+├── manifest.json
+├── sw.js
+├── vercel.json
+├── .vercelignore
+└── js/
+    ├── app.js              # Entry point
+    ├── db.js               # Dexie setup
+    ├── license.js          # License logic
+    └── ...
+```
+
+---
+
+## 🔐 Sistem Lisensi (WAJIB)
+
+Semua aplikasi klien HARUS memiliki validasi lisensi di onboard.
+
+### Konstanta yang Harus Diganti per Aplikasi
+
+```javascript
+// DI dalam <script> index.html — GANTI untuk setiap aplikasi baru:
+const PRODUCT_SALT = "KASIRSOLO-ROSOK-HMAC-V2";  // ← GANTI salt
+const TRIAL_DAYS = 7;
+const MAX_EXTENSIONS = 20;
+const EXTEND_DAYS = 1;
+```
+
+### Format Serial
+
+```
+KSR-A1B2-C3D4-99-X7K9M2
+│   │      │    │  └── HMAC signature (6 char, Base32)
+│   │      │    └─────── Expiry code (99=seumur hidup, NN=bulan, ND=hari)
+│   │      └──────────── Device Code part 2
+│   └─────────────────── Device Code part 1
+└─────────────────────── Product Prefix (3-5 huruf kapital)
+```
+
+### Algoritma (Copy-Paste dari rosok.zip)
+
+Kode license module lengkap ada di baris ~1056-1170 `rosok/index.html`.
+Copy paste dan ganti `PRODUCT_SALT` untuk aplikasi baru.
+
+### Flow Onboarding — SMART GATE (STANDAR semua app klien)
+
+Satu overlay gate (`#licenseGate`) yang **dual-mode** menangani 3 state, sehingga
+onboarding, trial jalan, dan trial-habis konsisten di semua app (referensi: kaki5,
+`js/app.js` + `js/license.js`).
+
+```
+State (getLicenseStatus):
+  none     → user baru        → mode ONBOARDING
+  trial    → trial jalan      → SKIP gate, langsung masuk app
+  active   → lisensi aktif    → SKIP gate, langsung masuk app
+  expired  → trial/lisensi habis → mode LISENSI (input serial)
+```
+
+**Mode ONBOARDING — 2-LANGKAH (tanpa checkbox)** (`#gateOnboarding`) — untuk `status = none`:
+- **Langkah 1**: Input **Nama Usaha** (wajib) → tombol **"🚀 Mulai Masa Percobaan"**
+  (`#trialBtn`, handler `_ksr_proceedToTC`). **Trial BELUM dimulai** di sini.
+- **Langkah 2**: Modal `#tcModal` (Syarat & Ketentuan) tersaji dengan **2 tombol**:
+  **🔙 Batal** (`_ksr_cancelTC` → kembali ke Langkah 1, nama tetap tersimpan)
+  / **✓ Setuju & Lanjut** (`_ksr_acceptTC`).
+- **Trial mulai DI Langkah 2** (`_ksr_acceptTC` → `startTrial()`), lalu tutup gate + `boot()`.
+- Tombol **Batal aman** karena trial belum dimulai — desain ini menggantikan checkbox
+  S&K lama (dihapus total karena berulang bikin bug & kurang ramah user gaptek).
+
+**Mode LISENSI** (`#gateLicenseBlock`, di-render dinamis `gateLicenseHtml()`) — untuk `status = expired`:
+- Teks "Masa Coba / Lisensi Habis" + input kode lisensi.
+- Tombol: **💬 Beli** → `contactViaWA()` · **🔓 Aktifkan** → `activateSerial()`.
+- **"Perpanjang masa coba (+1 hari)"** sebagai TEKS link di bawah (share-to-extend, maks `MAX_EXTENSIONS`x) + counter `x/20`.
+- Sembarang berhasil → tutup gate + `boot()`.
+
+**Kontrak struktur (index.html):**
+```html
+<div id="licenseGate">                <!-- overlay full-screen -->
+  <div id="gateOnboarding">…</div>    <!-- static: nama usaha + S&K + trial btn -->
+  <div id="gateLicenseBlock"></div>   <!-- static: diisi dinamis saat expired -->
+</div>
+<div class="modal-overlay" id="tcModal">…Syarat & Ketentuan…</div>
+```
+
+**Kontrak fungsi (app.js):** `renderGate(status)` pilih mode; `gateLicenseHtml(status)`
+render mode lisensi; handler onboarding `_ksr_proceedToTC/_ksr_cancelTC/_ksr_acceptTC`,
+mode lisensi `_ksr_buyGate/_ksr_activateGate/_ksr_extendGate`, `resolveLicenseGate()`.
+**`init()`**: active/trial → `boot()`; else → `renderGate` + tampilkan gate.
+
+**Aturan anti-double-overlay:** `checkLicenseGate()` (license.js) **skip** `#lockOverlay`
+selama `#licenseGate` terlihat (`display !== 'none'`). Aktivasi/perpanjang dari gate
+harus memanggil `boot()`.
+
+> Template & catatan adaptasi per app: skill `kasol-ecosystem-apps` → `references/smart-gate.md`.
+
+---
+
+## ✨ Fitur Standar Global (UX & Anti-Gaptek) — WAJIB Semua App Klien
+
+Selain arsitektur & lisensi, ada **standar fitur/UUX** yang wajib diadopsi semua app klien
+(referensi & sumber kebenaran implementasi: `kaki5/`). Prinsip inti: **1 layar = 1 keputusan,
+narasi ramah, fungsi tersembunyi di balik tombol akses** — targetnya pengguna non-teknis.
+
+| # | Fitur Standar | Kontrak / Detail |
+|---|---------------|------------------|
+| 1 | **Onboarding 2-langkah tanpa checkbox** | Step1 Nama Usaha → Step2 modal S&K (Batal/Setuju); trial mulai di Step2. Lihat section Smart Gate di atas. |
+| 2 | **Profil tersruktur (region picker)** | 4 field inti: Nama Usaha, Nama Pemilik, No WhatsApp, Alamat. Alamat pakai rantai dropdown **Provinsi → Kota/Kab → Kecamatan** (API emsifa, `js/region.js`) + detail. `id` + `nama` disimpan untuk CRM analitik. |
+| 3 | **Auto-sync profil (background)** | Tiap simpan profil panggil `ensureSynced()` (di semua handler save). Offline-first tetap — retry saat online. JANGAN tampilkan kartu "Sinkronisasi" di layar (fungsi jalan otomatis). |
+| 4 | **Banner "Lengkapi Profil" (center-large immersive)** | `#profileBanner` `position:fixed;inset:0;z-index:520` + backdrop blur, kartu ~420px. Muncul saat profil belum lengkap (`!namaPemilik || !noWhatsapp || (!kabkota && !alamat)`). CTA → halaman Pengaturan; dismiss "Nanti Saja"/✕/klik backdrop. |
+| 5 | **Kontrak z-index** | `header 100 < bottom-nav 350 < gate #licenseGate 500 < modal-overlay 600 < confirm-overlay 610 < toast 620`. Modal SESUATU berada DI ATAS gate (jangan sampai tertutup). |
+| 6 | **Copy benefit-driven (non-teknis)** | Narasi berfokus KEUNTUNGAN user (bantuan lebih cepat, tips sesuai daerah), bukan teknis (sinkronisasi, statistik, akurasi). Bahasa sederhana, ga pakai jargonya sistem. |
+| 7 | **Akorodion tutorial/Bantuan auto-close** | Halaman Bantuan pakai akordeon yang **hanya satu terbuka** (`toggleTutorial` menutup panel lain). Isi tutorial harus **akurat berdasar kode asli** (bukan karangan/perkiraan visual). |
+| 8 | **Pengaturan ramping** | Jangan penuhi layar pengaturan dengan kartu/fitur. Fungsi tersembunyi di balik **satu tombol akses** — mis. semua urusan lisensi (status/masa coba/kode/aktifkan/beli) cukup lewat **1 tombol "🎫 Kelola Lisensi"**. |
+
+**Pola kode wajib (dari kaki5):**
+- `settings.js` → `saveOwner/saveWa/saveAlamat/saveNamaWarung` semua akhiri dengan `ensureSynced(); checkProfileNotification();`.
+- `sync.js` → `ensureSynced({force,silent})`; `isSyncConfigured()`.
+- `region.js` → `setupRegionPicker({provSel,kabSel,kecSel,state})`, state membaca `.provinsi_id/.provinsi/...`.
+- `index.html` → banner `#profileBanner` + kelas `.prof-banner-*`; halaman Bantuan `#bantuanContent`.
+
+**Template adaptasi per app:** skill `kasol-ecosystem-apps` → `references/smart-gate.md`
+(+ pola banner profil & akordeon bantuan di bagian catatan adaptasi).
+
+---
+
+## 🗄️ Database Schema (Dexie.js)
+
+### Pola Dasar (Copy dari rosok.zip)
+
+```javascript
+const db = new Dexie("NamaAplikasiDB");
+
+db.version(1).stores({
+  settings: 'key',
+  // tabel dasar
+});
+
+db.version(2).stores({
+  // tabel v1 + tabel baru
+});
+```
+
+### Tabel Standar yang Harus Ada
+
+| Tabel | Primary Key | Index | Fungsi |
+|-------|-------------|-------|--------|
+| `settings` | `key` (PK) | — | Pengaturan: bizName, setupDone, trialStart, licenseActivatedAt, deviceCode |
+| `transaksi` | `++id` | `tipe, tanggal` | Catatan transaksi |
+| `transaksiItem` | `++id` | `transaksiId` | Item per transaksi |
+
+### Tabel Opsional (sesuai kebutuhan aplikasi)
+
+| Tabel | Fungsi |
+|-------|--------|
+| `kategori` | Kategori barang/produk |
+| `produk` | Daftar produk dengan harga |
+| `pelanggan` | Data pelanggan |
+| `kas` | Catatan kas masuk/keluar |
+| `kasShift` | Buka/tutup kas shift |
+| `supplier` | Data supplier |
+
+---
+
+## ☁️ Sinkronisasi Profil Klien (CRM → Supabase)
+
+App klien mengirim **profil identitas outlet** (bukan transaksi) ke tabel `clients`
+di Supabase, lalu ditampilkan & dikelola di repo `admin/` (tab **Klien**). Detail
+arsitektur: [`CLOUD-ROADMAP.md`](./CLOUD-ROADMAP.md) (Lapisan A).
+
+### Tabel `clients` (1 baris per outlet)
+Kunci natural = `unit_id`. Kolom: `unit_id, app_type, device_code, install_id,`
+`nama_warung, nama_pemilik, no_whatsapp,`
+`provinsi_id/provinsi, kabkota_id/kabkota, kecamatan_id/kecamatan, alamat_detail,`
+`first_seen, last_seen, user_id`.
+
+- **Wilayah tersruktur** (`id` + `nama`) — supaya agregasi analitik (per provinsi/kabupaten)
+  akurat, bukan free-text. Data wilayah dari API **emsifa** (`js/region.js`).
+- SQL DDL: `supabase/migration-clients.sql`.
+
+### Keamanan — Anonymous Auth + RLS
+- Setiap perangkat pakai **anonymous sign-in** (`signInAnonymously`); baris punya
+  `user_id = auth.uid()`.
+- RLS `clients own select/insert/update` → tiap device cuma bisa ubah barisnya sendiri.
+- Admin baca/ubah **semua** baris via **service_role** key (bypass RLS).
+- Syarat: Anonymous Auth **harus diaktifkan** di project (config auth
+  `external_anonymous_users_enabled=true`).
+
+### Pola modul `sync.js` (contoh: kaki5)
+- `ensureSynced()`: `signInAnonymously()` → `upsert(...)` dengan `onConflict:'unit_id'`
+  (dedupe = update, bukan duplikat).
+- **Dua skenario**: user baru push saat onboarding/aktivasi; user lama di-**backfill
+  otomatis** sekali di boot lewat flag lokal `sync` (`none`/`pending`/`synced`),
+  retry saat online. **Offline-first tetap dijaga.**
+- Konfig (URL + anon key) di `js/supabase-config.js` (anon = public, aman untuk browser).
+
+### Catatan lisensi
+- Prefix produk kaki5 = **`KK5`** (bukan `K5`) — admin product registry wajib
+  `KK5` agar serial yang digenerate diterima app. (`KSR/GBK/RTL` sesuai app.)
+
+**Kredensial Supabase** disimpan di env hermes (`C:\Users\Admin\AppData\Local\hermes\.env`):
+`SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`,
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`. Gunakan access token untuk eksekusi SQL via
+Management API `POST /v1/projects/{ref}/database/query`.
+
+## 🌐 PWA
+
+### manifest.json Template
+
+```json
+{
+  "name": "Kasir Solo - NamaAplikasi",
+  "short_name": "NamaAplikasi",
+  "description": "Deskripsi singkat aplikasi.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FFF8EF",
+  "theme_color": "#E85D1F",
+  "orientation": "portrait-primary",
+  "lang": "id",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+```
+
+### Service Worker (sw.js)
+
+Network-first untuk HTML, cache-first untuk aset statis.
+Naikkan `CACHE_VERSION` setiap rilis.
+
+---
+
+## 🚀 Deploy
+
+### vercel.json Template
+
+```json
+{
+  "name": "kasir-nama-aplikasi",
+  "buildCommand": null,
+  "outputDirectory": ".",
+  "framework": null,
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+      ]
+    }
+  ]
+}
+```
+
+### Deployment — Vercel Git Integration (tanpa GitHub Actions)
+
+> GitHub Actions **tidak dipakai** lagi. Semua `.github/workflows/*` sudah dihapus. Deploy otomatis lewat **Vercel git integration** (auto-detect).
+
+Setiap aplikasi = satu **Vercel project** terhubung ke repo dengan **Root Directory** = folder aplikasi. Push ke branch utama → Vercel deploy project yang foldernya berubah. Tidak ada secrets CI (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_*`).
+
+| App | Vercel Project | Root Directory | Build Command |
+|-----|----------------|----------------|---------------|
+| rosok | `kasir-rosok` | `rosok/` | (kosong) |
+| gerobak | `kasir-gerobak` | `gerobak/` | (kosong) |
+| retail | `kasir-retail` | `retail/` | (kosong) |
+| landing | `kasir-solo-landing` | `landing/` | (kosong) |
+| kaki5 | `kasir-kaki5` | `kaki5/` | (kosong) |
+| admin | `kasir-admin` | `admin/` | `node scripts/build-env-loader.mjs` |
+
+Env var per project (mis. `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` untuk admin) diatur di dashboard Vercel / konektor Vercel+Supabase — **tidak di-commit**.
+
+**Wajib per app:** jika app PWA meng-load `dexie.min.js`, file itu harus ter-track git. Root `.gitignore` meng-ignore `*.min.js` sehingga tiap app butuh pengecualian `!<app>/dexie.min.js`; kalau tidak → deploy = `Dexie is not defined` (app mati).
+
+---
+
+## 📝 Naming Convention
+
+| Elemen | Convention | Contoh |
+|--------|-----------|--------|
+| Folder | lowercase, tanpa spasi | `rosok/`, `konveksi/` |
+| Database Dexie | PascalCase + "DB" | `KasirSoloRosokDB` |
+| Product Prefix | 3-5 huruf kapital UNIK | `KSR`, `KKN`, `KSL` |
+| Product Salt | `KASIRSOLO-{PREFIX}-{YEAR}-{RANDOM}` | `KASIRSOLO-KONVEKSI-2026-abc123` |
+| Vercel project | `kasir-nama-aplikasi` | `kasir-konveksi` |
+
+---
+
+## 📚 Dokumentasi Terkait
+
+| Dokumen | Lokasi |
+|---------|--------|
+| Ekosistem overview | `landing/docs/00-ekosistem.md` |
+| Arsitektur landing | `landing/docs/02-architecture.md` |
+| Arsitektur admin | `admin/docs/02-architecture.md` |
+| Sistem lisensi | `admin/docs/04-license-system.md` |
+| **Cloud & Dashboard Hub (roadmap)** | **`CLOUD-ROADMAP.md`** |
+| Rosok spesifik | `rosok/AGENTS.md` |
+| Gerobak spesifik | `gerobak/AGENTS.md` |
+| Retail spesifik | `retail/AGENTS.md` |
+| Kaki5 spesifik | `kaki5/README.md`, `kaki5/docs/DEVELOPER.md` |
+
+---
+
+*CONTEXT.md — KASIRSOLO Ecosystem Standards*
+*PT Mesin Kasir Solo — Agustus 2026*
+*Referensi utama: rosok.zip (single HTML production build)*

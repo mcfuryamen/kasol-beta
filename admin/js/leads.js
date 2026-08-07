@@ -87,7 +87,7 @@ export function renderLeads() {
       <td>
         <select class="status-select" data-id="${escapeHtml(lead.id)}">
           ${['baru', 'dihubungi', 'tertarik', 'deal', 'batal'].map(s =>
-            `<option ${s === lead.status ? 'selected' : ''}>${getStatusLabel(s)}</option>`
+            `<option value="${s}" ${s === lead.status ? 'selected' : ''}>${getStatusLabel(s)}</option>`
           ).join('')}
         </select>
       </td>
@@ -191,3 +191,32 @@ function getStatusLabel(status) {
   };
   return labels[status] || status;
 }
+
+/**
+ * Open lead detail sheet (dipanggil dari recent activity di dashboard)
+ */
+export function openLeadDetail(id) {
+  const overlay = document.getElementById('sheetLeadDetail');
+  const body = document.getElementById('leadDetailBody');
+  if (!overlay || !body) return;
+
+  const lead = (STATE.leads || []).find(l => String(l.id) === String(id));
+
+  if (!lead) {
+    body.innerHTML = '<p class="empty-state" hidden>Lead tidak ditemukan.</p>';
+  } else {
+    body.innerHTML = `
+      <div class="field"><label class="field-label">Nama / Bisnis</label><input class="input-mono" readonly value="${escapeHtml(lead.name || '')}"></div>
+      <div class="field"><label class="field-label">Alamat</label><input class="input-mono" readonly value="${escapeHtml(lead.address || '-')}"></div>
+      <div class="field"><label class="field-label">WhatsApp</label><input class="input-mono" readonly value="${escapeHtml(lead.wa || '-')}"></div>
+      <div class="field"><label class="field-label">Aplikasi</label><input class="input-mono" readonly value="${escapeHtml(lead.app || '-')}"></div>
+      <div class="field"><label class="field-label">Status</label><input class="input-mono" readonly value="${escapeHtml(getStatusLabel(lead.status) || lead.status)}"></div>
+      <div class="field"><label class="field-label">Tanggal Daftar</label><input class="input-mono" readonly value="${escapeHtml(lead.createdAt || '-')}"></div>
+    `;
+  }
+  overlay.classList.add('open');
+}
+
+// Global aliases untuk inline onclick di index.html
+window.exportLeadsCSV = exportCSV;
+window.openLeadDetail = openLeadDetail;

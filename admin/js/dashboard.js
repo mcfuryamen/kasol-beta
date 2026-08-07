@@ -4,7 +4,7 @@
  */
 
 import { STATE, subscribe } from './app-state.js';
-import { formatNumber, formatRupiah } from './utils.js';
+import { formatNumber, formatRupiah, escapeHtml } from './utils.js';
 import { showToast } from './toast.js';
 
 let refreshBtn = null;
@@ -55,7 +55,10 @@ export function renderOverview() {
   const interestedLeads = STATE.leads?.filter(l => l.status === 'tertarik').length || 0;
   const dealLeads = STATE.leads?.filter(l => l.status === 'deal').length || 0;
   const totalApps = STATE.catalog?.length || 0;
-  const activeApps = STATE.catalog?.filter(c => c.active).length || 0;
+  // "visible" adalah field keaktifan katalog (dari Supabase). Default katalog tanpa
+  // field visible dianggap aktif (visible !== false). Sebelumnya filter c.active
+  // → salah (data pakai visible) → selalu 0.
+  const activeApps = STATE.catalog?.filter(c => c.visible !== false).length || 0;
 
   // Render KPI stat cards grid (Gerobak summary-card gradients)
   const container = document.getElementById('statCards');
@@ -256,18 +259,6 @@ function formatDate(dateStr) {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
-/**
- * Escape HTML
- */
-function escapeHtml(str) {
-  return String(str || '')
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"')
-    .replace(/'/g, '&#039;');
 }
 
 /**

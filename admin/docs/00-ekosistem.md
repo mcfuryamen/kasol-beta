@@ -122,7 +122,7 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 | **Peran** | Pusat kontrol seluruh ekosistem |
 | **Hubungan ke Landing** | Menulis katalog, settings; membaca leads, stats |
 | **Hubungan ke Klien** | Generate & verifikasi lisensi |
-| **Hubungan ke Supabase** | ✅ Katalog tersimpan di Supabase (RLS: public read, service role CRUD) |
+| **Hubungan ke Supabase** | Rencana: read/write semua data (dengan RLS) |
 | **Dokumentasi** | `admin/docs/` (file ini) |
 
 ### 3. Aplikasi Klien
@@ -142,7 +142,7 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 | `users` | Multi-user dengan RLS | Admin |
 | `businesses` | Data bisnis klien | Admin |
 | `leads` | Pendaftar trial | Admin |
-| `products` | Katalog aplikasi | ✅ Admin, Landing |
+| `products` | Katalog aplikasi | Admin, Landing |
 | `settings` | Pengaturan landing | Admin |
 | `licenses` | Generate & **validasi** serial (status active/expired/revoked) | Admin, Klien |
 | `stats` | Analytics | Admin |
@@ -201,8 +201,8 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 │           │                        │                          │
 │           └──────────┬─────────────┘                          │
 │                      │                                        │
-|              localStorage (tahap awal)                        │
-│              Supabase (katalog ✅)                             │
+│              localStorage (tahap awal)                        │
+│              Supabase (rencana)                               │
 └──────────────────────┼───────────────────────────────────────┘
                        │
 ┌──────────────────────▼───────────────────────────────────────┐
@@ -239,6 +239,10 @@ Ketika membangun aplikasi klien baru, ikuti checklist ini:
 - [ ] Tambahkan ke katalog landing page (via admin)
 - [ ] Dokumentasikan di folder `docs/` aplikasi tersebut
 - [ ] Rujuk `CLOUD-ROADMAP.md` utk kesiapan Dashboard Hub (`unitId` sebagai DNA)
+- [ ] **Adopsi Fitur Standar Global UX** (root `CONTEXT.md` → "Fitur Standar Global"):
+      onboarding 2-langkah tanpa checkbox, profil tersruktur (region picker Provinsi/Kab/Kec),
+      auto-sync profil on-update, banner "Lengkapi Profil" center-large, kontrak z-index,
+      narasi benefit-driven, akordeon Bantuan auto-close. Referensi implementasi: `kaki5/`.
 
 ---
 

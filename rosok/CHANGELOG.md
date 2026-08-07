@@ -1,5 +1,11 @@
 # Changelog - Kasir Solo Rosok
 
+## [1.3.6] - 2026-08-07 (Deploy model: GitHub Actions → Vercel auto-detect)
+
+- **GitHub Actions dihapus sepenuhnya** — semua `.github/workflows/*` dan `vercel-ignore.sh` tidak dipakai lagi. Deploy via **Vercel git integration (auto-detect)**, project `kasir-rosok`, Root Directory `rosok/`.
+- Dengan auto-detect, tidak ada lagi path-filter workflow & Ignored Build Step — per-app dihandle oleh Root Directory tiap Vercel project.
+- Aturan yang tetap berlaku: `!rosok/dexie.min.js` di root `.gitignore` + bump cache `sw.js` tiap deploy.
+
 ## [1.3.5] - 2026-08-03 (Fix Deploy Production — 4 Bug Konfigurasi)
 
 Production (`rosok.vercel.app`) mati total sementara localhost normal. Penyebabnya empat bug

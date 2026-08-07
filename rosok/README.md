@@ -16,10 +16,12 @@ Aplikasi kasir PWA untuk usaha pengepul rosok / barang bekas. Catat pembelian, p
 
 ## 🚀 Running Locally
 
+> **PORT RESMI app ini = `8084`** (Port Registry — sumber kebenaran: `kasol/CONTEXT.md`). Jangan ganti-ganti.
+
 ```bash
-# Development server bawaan (port 7777, MIME type ESM sudah diatur)
+# Development server bawaan (MIME type ESM sudah diatur) — default port 8084
 node run-local.js
-# Buka: http://localhost:7777
+# Buka: http://localhost:8084
 
 # Alternatif: Python simple HTTP server
 python3 -m http.server 8084

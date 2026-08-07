@@ -148,7 +148,6 @@ export function openCartModal() {
   
   document.getElementById('kembalianBox').style.display = 'none';
   document.getElementById('cartModal').classList.add('show');
-  document.querySelector('.modal-overlay').classList.add('show');
   
   // Trigger hitung kembalian untuk tampilkan info (uang pas)
   hitungKembalian();
@@ -181,7 +180,6 @@ function generatePresetNominal(totalPrice) {
 
 export function closeCartModal() {
   document.getElementById('cartModal').classList.remove('show');
-  document.querySelector('.modal-overlay').classList.remove('show');
 }
 
 export function changeQty(menuId, delta) {
