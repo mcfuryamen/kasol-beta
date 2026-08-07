@@ -1,7 +1,7 @@
 // ==================== LAPORAN (ESM) ====================
 import { DB } from './db.js';
 import { escapeHtml, formatRp, formatDate, formatTime, todayStr, addDays, dayName, getWeekRange, getMonthRange, showLoading, showToast } from './helpers.js';
-import { reportPeriod, setReportPeriod, reportDate, setReportDate } from './app-state.js';
+import { reportPeriod, setReportPeriod, reportDate, setReportDate, customStart, customEnd, setCustomStart, setCustomEnd } from './app-state.js';
 
 export function setReportPeriodUI(p) {
   setReportPeriod(p);
@@ -20,8 +20,11 @@ export async function loadReport() {
       dateRange = { start: reportDate, end: reportDate };
     } else if (reportPeriod === 'mingguan') {
       dateRange = getWeekRange(reportDate);
-    } else {
+    } else if (reportPeriod === 'bulanan') {
       dateRange = getMonthRange(reportDate);
+    } else {
+      // custom — rentang bebas pilihan user
+      dateRange = { start: customStart, end: customEnd };
     }
 
     const sales = await DB.penjualan.where('tanggal').between(dateRange.start, dateRange.end, true, true).toArray();
@@ -30,13 +33,14 @@ export async function loadReport() {
   let omzet = 0, modal = 0, totalQty = 0;
   const menuStats = {};
   sales.forEach(s => {
-    omzet += s.totalHarga;
-    modal += s.totalModal;
+    omzet += s.totalHarga || 0;
+    modal += s.totalModal || 0;
     if (s.items) s.items.forEach(i => {
-      totalQty += i.qty;
+      totalQty += i.qty || 0;
+      const qty = i.qty || 0, price = i.hargaJual || 0;
       if (!menuStats[i.nama]) menuStats[i.nama] = { qty: 0, total: 0 };
-      menuStats[i.nama].qty += i.qty;
-      menuStats[i.nama].total += i.qty * i.hargaJual;
+      menuStats[i.nama].qty += qty;
+      menuStats[i.nama].total += qty * price;
     });
   });
 
@@ -176,7 +180,7 @@ export async function loadReport() {
     html += '<div class="card"><div class="card-title">📝 Riwayat Transaksi</div>';
     dates.forEach(tgl => {
       const items = byDay[tgl].sort((a, b) => b.waktu - a.waktu);
-      const daySum = items.reduce((a, s) => a + s.totalHarga, 0);
+      const daySum = items.reduce((a, s) => a + (s.totalHarga || 0), 0);
       html += `<div style="margin-top:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:var(--orange-bg);border-radius:12px;margin-bottom:6px">
           <div style="font-weight:800;font-size:14px;color:var(--text)">📅 ${escapeHtml(dayName(tgl))}, ${escapeHtml(formatDate(tgl))}</div>
@@ -262,7 +266,7 @@ async function renderChart(range, period, sales, expenses) {
   }
 
   return `<div class="card">
-    <div class="card-title">📊 Grafik ${period === 'mingguan' ? 'Mingguan' : 'Bulanan'}</div>
+    <div class="card-title">📊 Grafik ${period === 'mingguan' ? 'Mingguan' : period === 'bulanan' ? 'Bulanan' : 'Custom'}</div>
     <div style="display:flex;gap:12px;margin-bottom:8px;justify-content:center">
       <div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--green-light)"></div>Omzet</div>
       <div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--red-light)"></div>Pengeluaran</div>
@@ -275,6 +279,23 @@ async function renderReportDateNav() {
   const box = document.getElementById('reportDateNav');
   let label = '';
   let prevStep, nextStep;
+
+  // Custom period — tampilkan dua input tanggal (mulai → selesai), tanpa ‹ ›
+  if (reportPeriod === 'custom') {
+    box.innerHTML = `
+      <div style="width:100%;display:flex;flex-direction:column;gap:8px;align-items:stretch">
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="date" id="customStartInput" value="${customStart}" class="custom-date-input"
+            onchange="setCustomDate('start')" style="flex:1" />
+          <span style="color:var(--text3);font-size:14px">→</span>
+          <input type="date" id="customEndInput" value="${customEnd}" class="custom-date-input"
+            onchange="setCustomDate('end')" style="flex:1" />
+        </div>
+        <div class="date-label" style="text-align:center">📅 ${formatDate(customStart)} - ${formatDate(customEnd)}</div>
+      </div>`;
+    return;
+  }
+
   if (reportPeriod === 'harian') {
     const isToday = reportDate === todayStr();
     label = isToday ? 'Hari Ini' : formatDate(reportDate);
@@ -314,6 +335,21 @@ export function navReportDate(delta) {
     next = addDays(reportDate, delta);
   }
   setReportDate(next);
+  loadReport();
+}
+
+// Custom period: dipanggil saat user memilih tanggal mulai/selesai di input date
+export function setCustomDate(w) {
+  const sEl = document.getElementById('customStartInput');
+  const eEl = document.getElementById('customEndInput');
+  const s = sEl ? sEl.value : customStart;
+  const e = eEl ? eEl.value : customEnd;
+  if (w === 'start' && s) setCustomStart(s);
+  if (w === 'end' && e) setCustomEnd(e);
+  // Validasi: mulai harus <= selesai (user bisa hubungi ulang setelah diperbaiki)
+  if ((s && e && s > e) || (w === 'start' && e && s > e)) {
+    showToast('Tanggal mulai tidak boleh lewat dari tanggal selesai', 'error');
+  }
   loadReport();
 }
 

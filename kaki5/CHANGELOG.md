@@ -2,6 +2,41 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-07 (PWA Install Detection + API Wilayah Desa + Custom Period Laporan)
+
+- **PWA Install Detection** (`js/pwa.js`):
+  - Deteksi otomatis kalau PWA sudah terinstal (standalone, iOS standalone, SW controlling, localStorage flag)
+  - Tidak tampilkan banner "Pasang di HP" jika sudah terinstal
+  - Persist flag ke localStorage `kasirsolo:pwa-installed`
+  - Listen `display-mode` change untuk deteksi instalasi sesudah reload
+  - Notifikasi update SW versi baru tersedia
+  - Export `isPWAInstalled`, `checkPWAInstalled` untuk manual check
+- **API Wilayah Indonesia sampai Desa** (`js/region.js`):
+  - Support 4-level dropdown: Provinsi → Kota/Kab → Kecamatan → Desa/Kelurahan
+  - Endpoint: raw GitHub `master/static/api/villages/{kecId}.json`
+  - Update `settings.js` + `index.html` (modal alamat) tambah dropdown Desa
+- **Custom Period di Laporan** (`js/laporan.js`, `js/app-state.js`, `js/app.js`, `index.html`):
+  - Tab baru "Custom" di halaman Laporan
+  - Date picker mulai → selesai (input type=date)
+  - Validasi mulai ≤ selesai
+  - Grafik label "Custom"
+- **Fix NaN Laporan** (`js/laporan.js`): Guard `|| 0` di akumulator (totalModal, totalHarga, qty, hargaJual, daySum)
+- **Fix Tanggal Bocor** (`js/app-state.js`): `setReportPeriod()` reset tanggal ke hari ini
+- **Sync ke mirror & commit** semua perubahan kaki5 + admin docs
+
+## 2026-08-07 (Fix Tanggal "Bocor" saat Ganti Tab Periode Laporan)
+
+Hasil audit logika tampilan laporan (diuji 6 skenario di browser):
+- **Skenario A** Normal Mingguan: Omzet/Modal/Pengeluaran/Untung/Porsi/Margin ✓ akurat.
+- **Skenario B** Transaksi **tanpa field `totalModal`** (data lama/import): ❌ dibuget —
+  `modal += undefined` → NaN merambat ke **Modal=0, Untung=0, Margin=NaN%**. **DIPERBAIKI**
+  dengan guard `|| 0` di akumulator (`totalHarga`, `totalModal`, `qty`, `hargaJual`, `daySum`).
+- **Skenario D** Bulanan: chart M1–M5 + agregasi menu laris ✓.
+- **Skenario E** Periode kosong: tampil Rp 0 tanpa crash/NaN ✓.
+- **Skenario F** Harian: label "Hari Ini" + akordeon pengeluaran dengan item list ✓.
+- Catatan desain: item list pengeluaran hanya tampil di mode Harian (mingguan/bulanan cuma total kategori).
+- SW cache `v21` → `v22`.
+
 ## 2026-08-07 (Riwayat Transaksi di-Group per Hari & Tanggal)
 
 Di halaman Laporan, daftar transaksi kini **dipisahkan/di-group per hari & tanggal**:

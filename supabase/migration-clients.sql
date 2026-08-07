@@ -25,6 +25,8 @@ create table if not exists public.clients (
   kabkota       text,
   kecamatan_id  text,
   kecamatan     text,
+  desa_id       text,
+  desa          text,
   alamat_detail text,
   first_seen    timestamptz default now(),
   last_seen     timestamptz default now(),

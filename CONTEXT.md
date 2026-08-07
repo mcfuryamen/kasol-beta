@@ -299,19 +299,21 @@ narasi ramah, fungsi tersembunyi di balik tombol akses** — targetnya pengguna 
 | # | Fitur Standar | Kontrak / Detail |
 |---|---------------|------------------|
 | 1 | **Onboarding 2-langkah tanpa checkbox** | Step1 Nama Usaha → Step2 modal S&K (Batal/Setuju); trial mulai di Step2. Lihat section Smart Gate di atas. |
-| 2 | **Profil tersruktur (region picker)** | 4 field inti: Nama Usaha, Nama Pemilik, No WhatsApp, Alamat. Alamat pakai rantai dropdown **Provinsi → Kota/Kab → Kecamatan** (API emsifa, `js/region.js`) + detail. `id` + `nama` disimpan untuk CRM analitik. |
+| 2 | **Profil tersruktur (region picker)** | 4 field inti: Nama Usaha, Nama Pemilik, No WhatsApp, Alamat. Alamat pakai rantai dropdown **Provinsi → Kota/Kab → Kecamatan → Desa** (API emsifa, `js/region.js`) + detail. `id` + `nama` disimpan untuk CRM analitik. |
 | 3 | **Auto-sync profil (background)** | Tiap simpan profil panggil `ensureSynced()` (di semua handler save). Offline-first tetap — retry saat online. JANGAN tampilkan kartu "Sinkronisasi" di layar (fungsi jalan otomatis). |
 | 4 | **Banner "Lengkapi Profil" (center-large immersive)** | `#profileBanner` `position:fixed;inset:0;z-index:520` + backdrop blur, kartu ~420px. Muncul saat profil belum lengkap (`!namaPemilik || !noWhatsapp || (!kabkota && !alamat)`). CTA → halaman Pengaturan; dismiss "Nanti Saja"/✕/klik backdrop. |
 | 5 | **Kontrak z-index** | `header 100 < bottom-nav 350 < gate #licenseGate 500 < modal-overlay 600 < confirm-overlay 610 < toast 620`. Modal SESUATU berada DI ATAS gate (jangan sampai tertutup). |
 | 6 | **Copy benefit-driven (non-teknis)** | Narasi berfokus KEUNTUNGAN user (bantuan lebih cepat, tips sesuai daerah), bukan teknis (sinkronisasi, statistik, akurasi). Bahasa sederhana, ga pakai jargonya sistem. |
 | 7 | **Akorodion tutorial/Bantuan auto-close** | Halaman Bantuan pakai akordeon yang **hanya satu terbuka** (`toggleTutorial` menutup panel lain). Isi tutorial harus **akurat berdasar kode asli** (bukan karangan/perkiraan visual). |
 | 8 | **Pengaturan ramping** | Jangan penuhi layar pengaturan dengan kartu/fitur. Fungsi tersembunyi di balik **satu tombol akses** — mis. semua urusan lisensi (status/masa coba/kode/aktifkan/beli) cukup lewat **1 tombol "🎫 Kelola Lisensi"**. |
+| 9 | **PWA Install Detection** | Deteksi otomatis kalau PWA sudah terinstal (standalone display-mode, iOS standalone, SW controlling, localStorage flag). Tidak tampilkan banner install jika sudah terpasang. Persist flag ke localStorage, listen `display-mode` change. Notifikasi update SW versi baru. Referensi: `kaki5/js/pwa.js`. |
 
 **Pola kode wajib (dari kaki5):**
 - `settings.js` → `saveOwner/saveWa/saveAlamat/saveNamaWarung` semua akhiri dengan `ensureSynced(); checkProfileNotification();`.
 - `sync.js` → `ensureSynced({force,silent})`; `isSyncConfigured()`.
-- `region.js` → `setupRegionPicker({provSel,kabSel,kecSel,state})`, state membaca `.provinsi_id/.provinsi/...`.
+- `region.js` → `setupRegionPicker({provSel,kabSel,kecSel,desaSel,state})`, state membaca `.provinsi_id/.provinsi/.../.desa_id/.desa`.
 - `index.html` → banner `#profileBanner` + kelas `.prof-banner-*`; halaman Bantuan `#bantuanContent`.
+- `pwa.js` → `checkPWAInstalled()`, `isPWAInstalled`, `setupPWA()` initial check + `matchMedia` listener.
 
 **Template adaptasi per app:** skill `kasol-ecosystem-apps` → `references/smart-gate.md`
 (+ pola banner profil & akordeon bantuan di bagian catatan adaptasi).
@@ -365,7 +367,7 @@ arsitektur: [`CLOUD-ROADMAP.md`](./CLOUD-ROADMAP.md) (Lapisan A).
 ### Tabel `clients` (1 baris per outlet)
 Kunci natural = `unit_id`. Kolom: `unit_id, app_type, device_code, install_id,`
 `nama_warung, nama_pemilik, no_whatsapp,`
-`provinsi_id/provinsi, kabkota_id/kabkota, kecamatan_id/kecamatan, alamat_detail,`
+`provinsi_id/provinsi, kabkota_id/kabkota, kecamatan_id/kecamatan, desa_id/desa, alamat_detail,`
 `first_seen, last_seen, user_id`.
 
 - **Wilayah tersruktur** (`id` + `nama`) — supaya agregasi analitik (per provinsi/kabupaten)

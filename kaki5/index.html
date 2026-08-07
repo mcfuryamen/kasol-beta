@@ -130,6 +130,7 @@
 <div class="report-tab active" data-period="harian" onclick="setReportPeriod('harian')">Harian</div>
 <div class="report-tab" data-period="mingguan" onclick="setReportPeriod('mingguan')">Mingguan</div>
 <div class="report-tab" data-period="bulanan" onclick="setReportPeriod('bulanan')">Bulanan</div>
+<div class="report-tab" data-period="custom" onclick="setReportPeriod('custom')">Custom</div>
 </div>
 <div class="date-nav" id="reportDateNav"></div>
 <div id="reportContent"></div>
@@ -423,6 +424,10 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="form-group">
 <label class="form-label">Kecamatan</label>
 <select class="form-input" id="alamatKecamatan" disabled><option value="">—</option></select>
+</div>
+<div class="form-group">
+<label class="form-label">Desa / Kelurahan</label>
+<select class="form-input" id="alamatDesa" disabled><option value="">—</option></select>
 </div>
 <div class="form-group">
 <label class="form-label">Detail Alamat (jalan, no. rumah) <span style="color:var(--red);font-weight:700">*</span></label>

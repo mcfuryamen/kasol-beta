@@ -20,7 +20,7 @@ import {
 import {
   openExpenseForm, closeExpenseModal, saveExpense
 } from './pengeluaran.js';
-import { loadReport, setReportPeriodUI, navReportDate, toggleExpenseCat } from './laporan.js';
+import { loadReport, setReportPeriodUI, navReportDate, toggleExpenseCat, setCustomDate } from './laporan.js';
 import { showTrxDetail, closeTrxDetail, hapusPenjualan } from './trxdetail.js';
 import { showExpenseDetail } from './expensedetail.js';
 import { loadSettings, openNameModal, closeNameModal, saveNamaWarung, openOwnerModal, closeOwnerModal, saveOwner, openWaModal, closeWaModal, saveWa, openAlamatModal, closeAlamatModal, saveAlamat, checkProfileNotification } from './settings.js';
@@ -65,6 +65,7 @@ window.loadReport         = loadReport;
 window.setReportPeriod    = setReportPeriodUI;
 window.navReportDate      = navReportDate;
 window.toggleExpenseCat   = toggleExpenseCat;
+window.setCustomDate      = setCustomDate;
 window.showTrxDetail      = showTrxDetail;
 window.closeTrxDetail     = closeTrxDetail;
 window.hapusPenjualan     = hapusPenjualan;

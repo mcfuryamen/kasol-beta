@@ -2,6 +2,36 @@
 import { showToast } from './helpers.js';
 
 let deferredPrompt = null;
+let isPWAInstalled = false;
+
+// Check if app is already installed/running as PWA
+function checkPWAInstalled() {
+  // 1. Standalone display mode (Android Chrome, Edge, Firefox, Safari PWA)
+  if (window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: fullscreen)').matches ||
+      window.matchMedia('(display-mode: minimal-ui)').matches) {
+    return true;
+  }
+  
+  // 2. iOS Safari standalone (legacy)
+  if (window.navigator.standalone === true) {
+    return true;
+  }
+  
+  // 3. Check if service worker is controlling this page (strong indicator)
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    return true;
+  }
+  
+  // 4. Check localStorage flag (set after successful install)
+  try {
+    if (localStorage.getItem('kasirsolo:pwa-installed') === 'true') {
+      return true;
+    }
+  } catch {}
+  
+  return false;
+}
 
 // Generate manifest blob URL with icon
 export function setupPWA() {
@@ -12,13 +42,51 @@ export function setupPWA() {
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
       console.log('[SW] Registered, scope:', reg.scope);
+      
+      // Check for SW updates (app already installed, new version available)
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version available, show update toast
+              showToast('🔄 Versi baru tersedia. Refresh untuk update.', 'info', 8000);
+            }
+          });
+        }
+      });
     }).catch(err => {
       console.warn('[SW] Registration failed:', err.message);
     });
   }
+  
+  // Initial check
+  isPWAInstalled = checkPWAInstalled();
+  
+  // Listen for display mode changes (e.g., user installs, then reopens)
+  if (window.matchMedia) {
+    const mq = window.matchMedia('(display-mode: standalone)');
+    const handler = () => {
+      const wasInstalled = isPWAInstalled;
+      isPWAInstalled = checkPWAInstalled();
+      if (!wasInstalled && isPWAInstalled) {
+        // Just got installed! Mark in localStorage
+        try { localStorage.setItem('kasirsolo:pwa-installed', 'true'); } catch {}
+        showToast('🎉 Kasir Solo sudah terpasang!', 'success');
+      }
+    };
+    if (mq.addEventListener) mq.addEventListener('change', handler);
+    else if (mq.addListener) mq.addListener(handler); // Safari legacy
+  }
 }
 
 export function showInstallBanner() {
+  // Jika sudah terinstal (running as PWA), jangan tampilkan banner
+  if (isPWAInstalled || checkPWAInstalled()) {
+    isPWAInstalled = true;
+    return;
+  }
+  
   if (document.getElementById('installBanner')) return;
   const banner = document.createElement('div');
   banner.id = 'installBanner';
@@ -37,7 +105,9 @@ export async function installPWA() {
   deferredPrompt.prompt();
   const result = await deferredPrompt.userChoice;
   if (result.outcome === 'accepted') {
-    showToast('🎉 App berhasil dipasang!');
+    showToast('🎉 App berhasil dipasang!', 'success');
+    isPWAInstalled = true;
+    try { localStorage.setItem('kasirsolo:pwa-installed', 'true'); } catch {}
   }
   deferredPrompt = null;
   const banner = document.getElementById('installBanner');
@@ -46,12 +116,24 @@ export async function installPWA() {
 
 // Module-level global listeners (run once on import)
 window.addEventListener('beforeinstallprompt', (e) => {
+  // Browser already knows app is installable - don't show if already installed
+  if (isPWAInstalled || checkPWAInstalled()) {
+    e.preventDefault(); // Still prevent default to keep control
+    return;
+  }
   e.preventDefault();
   deferredPrompt = e;
   showInstallBanner();
 });
 
 window.addEventListener('appinstalled', () => {
-  showToast('🎉 Kasir Solo sudah terpasang!');
+  showToast('🎉 Kasir Solo sudah terpasang!', 'success');
   deferredPrompt = null;
+  isPWAInstalled = true;
+  try { localStorage.setItem('kasirsolo:pwa-installed', 'true'); } catch {}
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.remove();
 });
+
+// Export for manual checking
+export { isPWAInstalled, checkPWAInstalled };

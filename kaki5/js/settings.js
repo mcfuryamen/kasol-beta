@@ -9,7 +9,8 @@ import { ensureSynced, isSyncConfigured } from './sync.js';
 const region = {
   provinsi_id: '', provinsi: '',
   kabkota_id:  '', kabkota:  '',
-  kecamatan_id:'', kecamatan:''
+  kecamatan_id:'', kecamatan:'',
+  desa_id:     '', desa:     ''
 };
 
 async function regionSummary() {
