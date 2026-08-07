@@ -163,16 +163,34 @@ export async function loadReport() {
     html += '</div>';
   }
 
-  // Transaction list for daily
-  if (reportPeriod === 'harian' && sales.length > 0) {
-    html += '<div class="card"><div class="card-title">📝 Daftar Transaksi</div>';
-    sales.sort((a,b) => b.waktu - a.waktu).forEach(s => {
-      const itemNames = s.items ? s.items.map(i => `${escapeHtml(i.nama)}×${i.qty}`).join(', ') : '';
-      html += `<div class="trx-item" onclick="showTrxDetail(${s.id})">
-        <div class="trx-icon sale">🛒</div>
-        <div class="trx-info"><div class="trx-title">${itemNames}</div><div class="trx-sub">${escapeHtml(formatTime(s.waktu))}</div></div>
-        <div class="trx-amount green">${formatRp(s.totalHarga)}</div>
-      </div>`;
+  // Riwayat transaksi — dipisahkan/di-group per Hari & Tanggal
+  if (sales.length > 0) {
+    // Group by tanggal (YYYY-MM-DD)
+    const byDay = {};
+    sales.forEach(s => {
+      if (!byDay[s.tanggal]) byDay[s.tanggal] = [];
+      byDay[s.tanggal].push(s);
+    });
+    const dates = Object.keys(byDay).sort().reverse(); // terbaru dulu
+
+    html += '<div class="card"><div class="card-title">📝 Riwayat Transaksi</div>';
+    dates.forEach(tgl => {
+      const items = byDay[tgl].sort((a, b) => b.waktu - a.waktu);
+      const daySum = items.reduce((a, s) => a + s.totalHarga, 0);
+      html += `<div style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:var(--orange-bg);border-radius:12px;margin-bottom:6px">
+          <div style="font-weight:800;font-size:14px;color:var(--text)">📅 ${escapeHtml(dayName(tgl))}, ${escapeHtml(formatDate(tgl))}</div>
+          <div style="font-weight:800;font-size:13px;color:var(--primary);text-align:right">${formatRp(daySum)} · ${items.length} trx</div>
+        </div>`;
+      items.forEach(s => {
+        const itemNames = s.items ? s.items.map(i => `${escapeHtml(i.nama)}×${i.qty}`).join(', ') : '';
+        html += `<div class="trx-item" onclick="showTrxDetail(${s.id})">
+          <div class="trx-icon sale">🛒</div>
+          <div class="trx-info"><div class="trx-title">${itemNames}</div><div class="trx-sub">${escapeHtml(formatTime(s.waktu))}</div></div>
+          <div class="trx-amount green">${formatRp(s.totalHarga)}</div>
+        </div>`;
+      });
+      html += '</div>';
     });
     html += '</div>';
   }

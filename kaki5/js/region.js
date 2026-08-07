@@ -1,11 +1,16 @@
 // ==================== REGION PICKER — API Wilayah Indonesia ====================
-// Data: https://www.emsifa.com/api-wilayah-indonesia/ (static JSON, tanpa key).
+// Data: https://github.com/emsifa/api-wilayah-indonesia (static JSON, tanpa key).
+// BUG FIX 2026-08: endpoint lama (emsifa.com/api/...) KO/404 → ganti ke raw GitHub
+// master static/api. Struktur asli:
+//   static/api/provinces.json               (semua provinsi)
+//   static/api/regencies/{provinsiId}.json  (kota/kabupaten per provinsi)
+//   static/api/districts/{kabupatenId}.json (kecamatan per kota/kab)
 // Menyediakan rantai dropdown Provinsi → Kota/Kabupaten → Kecamatan dengan cache
 // agar hemat & cepat. Hasil pilihan disimpan lewat objek `state` (pakai referensi)
 // agar caller tinggal membaca .provinsi_id/.provinsi/.kabkota_id/.kabkota/...
 // Bisa dipakai offline-cache manual oleh caller jika perlu.
 
-const BASE = 'https://www.emsifa.com/api-wilayah-indonesia';
+const BASE = 'https://raw.githubusercontent.com/emsifa/api-wilayah-indonesia/master/static/api';
 const cache = {};
 
 function esc(s) {
@@ -23,9 +28,9 @@ async function getJson(url) {
   return j;
 }
 
-export function getProvinces()  { return getJson(BASE + '/api/provinsi.json'); }
-export function getKabupaten(provId) { return getJson(BASE + '/api/kabupaten/' + provId + '.json'); }
-export function getKecamatan(kabId)  { return getJson(BASE + '/api/kecamatan/' + kabId + '.json'); }
+export function getProvinces()  { return getJson(BASE + '/provinces.json'); }
+export function getKabupaten(provId) { return getJson(BASE + '/regencies/' + provId + '.json'); }
+export function getKecamatan(kabId)  { return getJson(BASE + '/districts/' + kabId + '.json'); }
 
 function fill(sel, items, placeholder, selectedId) {
   sel.innerHTML =

@@ -2,6 +2,39 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-07 (Riwayat Transaksi di-Group per Hari & Tanggal)
+
+Di halaman Laporan, daftar transaksi kini **dipisahkan/di-group per hari & tanggal**:
+- Header per hari: `📅 {Hari}, {Tanggal}` + subtotal hari itu & jumlah transaksi.
+- Transaksi di dalamnya diurutkan terbaru dulu (pakai jam `formatTime`).
+- Kini tampil di **semua periode** (Harian / Mingguan / Bulanan) — sebelumnya cuma di Harian
+  dan flat tanpa grup.
+- Terverifikasi di browser: 3 transaksi lintas 3 tanggal → 3 grup (Rabu 5 Agu, Kamis 6 Agu, Jumat 7 Agu 2026) @ mingguan.
+- SW cache `v20` → `v21`.
+
+## 2026-08-07 (Fix Sync Profil — "sinkronisasi belum dikonfigurasi")
+
+Akar masalah: `js/supabase-config.js` anon key masih **placeholder `'PASTE_ANON_KEY_DISINI'`**,
+sehingga `sync.js` `getClient()` balik `null` → setiap simpan profil memunculkan notif
+"sinkronisasi belum dikonfigurasi (isip anon key)".
+- Embed **anon key asli** (publik, aman di browser) ke `supabase-config.js` (ganti placeholder).
+- Rapikan komentar header (buang instruksi "tempel anon key" yang usang).
+- Terverifikasi di browser: `anonPlaceholder:false`, `anonLen:208`, `supabaseLib:true`
+  → sinkronisasi profil ke Supabase kini aktif.
+- SW cache `v19` → `v20`.
+
+## 2026-08-07 (Fix API Wilayah KO — notif "gagal memuat wilayah")
+
+Akar masalah: endpoint lama `https://www.emsifa.com/api-wilayah-indonesia/api/...`
+mengembalikan **404** (bukan karena internet), sehingga dropdown provinsi gagal →
+notif "Gagal memuat wilayah (cek internet)".
+- Ganti `js/region.js` ke raw GitHub `master/static/api` yang valid:
+  - `provinces.json` (34 provinsi)
+  - `regencies/{provId}.json` (kota/kab)
+  - `districts/{kabId}.json` (kecamatan)
+- Terverifikasi end-to-end (34 provinsi, kabupaten prov-11 = 23, kecamatan kab-1101 = 10).
+- SW cache `v18` → `v19`.
+
 ## 2026-08-07 (Tutorial Disesuaikan dengan Kode Asli)
 
 Semua isi tutorial **ditulis ulang berdasar kode aplikasi yang sebenarnya**
