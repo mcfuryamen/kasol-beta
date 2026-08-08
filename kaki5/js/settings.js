@@ -16,8 +16,10 @@ const region = {
 async function regionSummary() {
   const kab  = await getSetting('kabkota', '');
   const prov = await getSetting('provinsi', '');
+  const kec  = await getSetting('kecamatan', '');
+  const desa = await getSetting('desa', '');
   const detail = await getSetting('alamat', '');
-  const parts = [kab, prov].filter(Boolean).join(', ');
+  const parts = [desa, kec, kab, prov].filter(Boolean).join(', ');
   return parts ? (detail ? detail + ' — ' + parts : parts) : (detail || '—');
 }
 
@@ -119,10 +121,13 @@ export function openAlamatModal() {
     region.kabkota      = await getSetting('kabkota', '');
     region.kecamatan_id = await getSetting('kecamatanId', '');
     region.kecamatan    = await getSetting('kecamatan', '');
+    region.desa_id      = await getSetting('desaId', '');
+    region.desa         = await getSetting('desa', '');
     setupRegionPicker({
       provSel: 'alamatProvinsi',
       kabSel: 'alamatKabkota',
       kecSel: 'alamatKecamatan',
+      desaSel: 'alamatDesa',
       state: region
     });
   })();
@@ -143,6 +148,8 @@ export async function saveAlamat() {
   await setSetting('kabkota', region.kabkota);
   await setSetting('kecamatanId', region.kecamatan_id);
   await setSetting('kecamatan', region.kecamatan);
+  await setSetting('desaId', region.desa_id);
+  await setSetting('desa', region.desa);
   document.getElementById('settingAlamat').textContent = await regionSummary();
   closeAlamatModal();
   showToast('✅ Alamat disimpan!');

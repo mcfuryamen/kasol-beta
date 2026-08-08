@@ -11,6 +11,8 @@ Supabase digunakan sebagai cloud backend untuk:
 - **Admin CRUD** (service_role key)
 - **Landing page** (anon key, read-only)
 - **CRM Klien** (tabel `clients`) — profil outlet dari aplikasi klien (kaki5, rosok, gerobak, retail)
+  - Data masuk via **onboarding** (user baru) & **update profil** (user lama) di app klien
+  - Satu tabel `clients` untuk keduanya (dedupe by `unit_id`)
 - **Sistem Lisensi** — generate & validasi serial HMAC-SHA256 + Base32
 
 ---
@@ -36,7 +38,7 @@ Supabase digunakan sebagai cloud backend untuk:
 - Policy: `public_read_products` (hanya baca `visible=true`), `clients own select/insert/update` (RLS anon)
 
 ### Service Role Key (Private)
-- Digunakan oleh **admin dashboard** (full CRUD products, clients, leads - planned)
+- Digunakan oleh **admin dashboard** (full CRUD products, clients)
 - **JANGAN** di-commit ke GitHub
 - Simpan di `.env.local` (lokal saja)
 - Policy: `service_role_all_products`, `service_role_all_clients` (BYPASS RLS)
@@ -167,10 +169,9 @@ CREATE POLICY "service_role_all_products" ON products
 | `js/env-loader.js` | Load env vars ke `window` (SUPABASE_URL, ANON_KEY, SERVICE_KEY) — **GENERATED at build** |
 | `js/supabase-client.js` | Supabase REST client untuk landing (anon key) |
 | `js/catalog.js` | CRUD products via service_role key |
-| `js/clients.js` | CRM module — baca/tulis `clients` via service_role key, generate lisensi |
+| `js/clients.js` | **CRM Klien** — baca/tulis `clients` via service_role key, generate lisensi. Data dari onboarding + update profil app klien. |
 | `js/license-core.js` | Pure logic HMAC-SHA256 + Base32 (portable ke client apps) |
 | `js/license-ui.js` | UI komponen lisensi (import dari license-core) |
-| `js/leads.js` | **MASIH localStorage** — rencana migrasi ke Supabase |
 | `js/settings.js` | **MASIH localStorage** — rencana migrasi ke Supabase |
 
 ### Client App Files (kaki5, rosok, gerobak, retail)
@@ -178,7 +179,7 @@ CREATE POLICY "service_role_all_products" ON products
 | File | Purpose |
 |------|---------|
 | `js/supabase-config.js` | Embed anon key + URL (public, aman) |
-| `js/sync.js` | `ensureSynced()` — push profil ke `clients` via anonymous auth + RLS |
+| `js/sync.js` | `ensureSynced()` — push profil ke `clients` via anonymous auth + RLS (onboarding + update profil) |
 | `js/region.js` | API wilayah Indonesia (provinsi → kab/kota → kecamatan → desa) |
 | `js/license.js` | Validasi serial lokal (replikasi verifySerial dari license-core) |
 
@@ -249,6 +250,7 @@ Browser (kaki5, rosok, dll)
       └─ UPSERT /rest/v1/clients (onConflict: unit_id)
           └─ Supabase Cloud (RLS: auth.uid() = user_id)
               → Device hanya bisa ubah baris MILIKNYA
+              → Data masuk dari: onboarding (user baru) + update profil (user lama)
 ```
 
 ---
@@ -339,7 +341,6 @@ Admin dashboard di-deploy ke Vercel (URL publik). `js/env-loader.js` meng-inject
 - [x] Update kaki5 `sync.js` (anonymous auth + upsert unit_id)
 - [x] Embed anon key di kaki5 `supabase-config.js`
 - [x] Fix API wilayah Indonesia → raw GitHub (support sampai desa)
-- [ ] **Migrate `leads` ke Supabase** (rencana)
 - [ ] **Migrate `settings` ke Supabase** (rencana)
 - [ ] **Migrate `stats` ke Supabase** (rencana)
 - [ ] **Security Hardening: Auth + RLS / Serverless Proxy** (prioritas tinggi)
@@ -354,9 +355,10 @@ Admin dashboard di-deploy ke Vercel (URL publik). `js/env-loader.js` meng-inject
 | `supabase/migration-clients.sql` | SQL create table `clients` + RLS + trigger |
 | `admin/js/license-core.js` | Pure logic HMAC-SHA256 + Base32 (generate/verify) |
 | `admin/js/clients.js` | CRM module + generate serial di sheet |
-| `kaki5/js/sync.js` | `ensureSynced()` — push profil ke clients |
+| `kaki5/js/sync.js` | `ensureSynced()` — push profil ke clients (onboarding + update profil) |
 | `kaki5/js/supabase-config.js` | Anon key embed (public) |
 | `kaki5/js/region.js` | API wilayah Indonesia (4-level: prov→kab→kec→desa) |
+| `kaki5/js/pwa.js` | PWA install detection |
 
 ---
 

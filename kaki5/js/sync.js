@@ -40,13 +40,14 @@ async function getSyncState() {
 }
 
 async function buildPayload() {
-  const [namaWarung, pemilik, wa, provId, prov, kabId, kab, kecId, kec, alamat] =
+  const [namaWarung, pemilik, wa, provId, prov, kabId, kab, kecId, kec, desaId, desa, alamat] =
     await Promise.all([
       getSetting('namaWarung', ''), getSetting('namaPemilik', ''),
       getSetting('noWhatsapp', ''), getSetting('provinsiId', ''),
       getSetting('provinsi', ''),  getSetting('kabkotaId', ''),
       getSetting('kabkota', ''),   getSetting('kecamatanId', ''),
-      getSetting('kecamatan', ''), getSetting('alamat', '')
+      getSetting('kecamatan', ''), getSetting('desaId', ''),
+      getSetting('desa', ''),      getSetting('alamat', '')
     ]);
   return {
     unit_id:      await getUnitId(),
@@ -59,6 +60,7 @@ async function buildPayload() {
     provinsi_id:  provId,  provinsi:  prov,
     kabkota_id:   kabId,   kabkota:   kab,
     kecamatan_id: kecId,   kecamatan: kec,
+    desa_id:      desaId,  desa:      desa,
     alamat_detail: alamat,
     last_seen:    new Date().toISOString()
   };

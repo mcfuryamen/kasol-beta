@@ -67,9 +67,6 @@
       <button class="sb-link active" data-screen="dashboard" aria-current="page">
         <span class="sb-icon">📊</span><span class="sb-label">Dashboard</span>
       </button>
-      <button class="sb-link" data-screen="leads">
-        <span class="sb-icon">👥</span><span class="sb-label">Leads</span>
-      </button>
       <button class="sb-link" data-screen="catalog">
         <span class="sb-icon">📦</span><span class="sb-label">Katalog</span>
       </button>
@@ -105,52 +102,6 @@
       <div class="card" id="recentActivityCard"></div>
     </section>
 
-    <!-- ============ LEADS ============ -->
-    <section class="screen" id="screen-leads" aria-label="Manajemen Leads">
-      <div class="toolbar">
-        <div class="toolbar-left">
-          <div class="search-wrap">
-            <span class="search-icon">🔍</span>
-            <input type="search" class="search" id="leadsSearch" placeholder="Cari nama, email, telepon..." aria-label="Cari leads">
-          </div>
-        </div>
-        <div class="toolbar-right">
-          <select class="status-select" id="leadsStatusFilter" aria-label="Filter status">
-            <option value="">Semua Status</option>
-            <option value="baru">🆕 Baru</option>
-            <option value="dihubungi">📞 Dihubungi</option>
-            <option value="tertarik">💡 Tertarik</option>
-            <option value="deal">🤝 Deal</option>
-            <option value="batal">❌ Batal</option>
-          </select>
-          <button class="btn btn-primary" onclick="exportLeadsCSV()">📥 Export CSV</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="table-wrap">
-          <table class="table" id="leadsTable">
-            <thead>
-              <tr>
-                <th>Nama / Kontak</th>
-                <th>Aplikasi</th>
-                <th>Sumber</th>
-                <th>Status</th>
-                <th>Tanggal</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="leadsTbody"></tbody>
-          </table>
-        </div>
-        <div class="empty-state" id="leadsEmpty" hidden>
-          <div class="empty-icon">👥</div>
-          <div class="empty-title">Belum ada leads</div>
-          <div class="empty-desc">Leads akan muncul saat ada pengunjung mengisi form di landing page</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ KATALOG ============ -->
     <section class="screen" id="screen-catalog" aria-label="Manajemen Katalog Aplikasi">
       <div class="toolbar">
         <div class="toolbar-left">
@@ -377,7 +328,6 @@
   <nav class="bottomnav" aria-label="Navigasi bawah">
     <div class="bottomnav-inner">
       <div class="nav-item active" data-screen="dashboard" onclick="showScreen('dashboard')"><div class="ic">📊</div><div class="lbl">Dashboard</div></div>
-      <div class="nav-item" data-screen="leads" onclick="showScreen('leads')"><div class="ic">👥</div><div class="lbl">Leads</div></div>
       <div class="nav-item" data-screen="catalog" onclick="showScreen('catalog')"><div class="ic">📦</div><div class="lbl">Katalog</div></div>
       <div class="nav-item" data-screen="license" onclick="showScreen('license')"><div class="ic">🔐</div><div class="lbl">Lisensi</div></div>
       <div class="nav-item" data-screen="klien" onclick="showScreen('klien')"><div class="ic">📇</div><div class="lbl">Klien</div></div>

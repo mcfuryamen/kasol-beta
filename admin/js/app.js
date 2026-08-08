@@ -8,7 +8,6 @@ import { storage } from './storage.js';
 import { initAuth } from './auth.js';
 import { initNavigation } from './navigation.js';
 import { initDashboard } from './dashboard.js';
-import { initLeads } from './leads.js';
 import { initCatalog } from './catalog.js';
 import { initSettings } from './settings.js';
 import { initLicense } from './license-ui.js';
@@ -46,7 +45,6 @@ async function bootstrap() {
 
     // Initialize feature modules
     initDashboard();
-    initLeads();
     initCatalog();
     initSettings();
     initLicense();

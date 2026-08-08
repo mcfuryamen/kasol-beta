@@ -105,7 +105,7 @@ function renderList() {
 
 function cardHtml(c, i) {
   const m = metaFor(c.app_type);
-  const wilayah = [c.kecamatan, c.kabkota, c.provinsi].filter(Boolean).join(', ');
+  const wilayah = [c.desa, c.kecamatan, c.kabkota, c.provinsi].filter(Boolean).join(', ');
   return `
     <div class="client-card" data-open="${i}" role="button" tabindex="0">
       <div class="client-card-head">
@@ -133,7 +133,7 @@ export function openClient(i) {
   currentMeta = metaFor(current.app_type);
   const host = document.getElementById('clientSheetBody');
   if (!host) return;
-  const wilayah = [current.kecamatan, current.kabkota, current.provinsi].filter(Boolean).join(', ');
+  const wilayah = [current.desa, current.kecamatan, current.kabkota, current.provinsi].filter(Boolean).join(', ');
   host.innerHTML = `
     <div class="sheet-handle"></div>
     <div class="sheet-title"><span>${currentMeta.icon} ${escapeHtml(current.nama_warung || 'Klien')}</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetClient')">✕</span></div>
