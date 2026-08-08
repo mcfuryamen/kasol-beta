@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
 <title>Kasir Solo - Retail</title>
-<meta name="description" content="Aplikasi kasir & manajemen toko retail offline â€” Kasir Solo, oleh PT Mesin Kasir Solo.">
+<meta name="description" content="Aplikasi kasir & manajemen toko retail offline — Kasir Solo, oleh PT Mesin Kasir Solo.">
 
 <!-- PWA Meta Tags -->
 <link rel="manifest" href="manifest.json">
@@ -362,8 +362,8 @@ const LOGO_SRC='logo.png';
 
 /* ===== db.js ===== */
 /* ============================================================
-   MiniDB â€” lightweight promise-based IndexedDB wrapper
-   (self-contained, no external library â€” mimics a small subset
+   MiniDB ÃÂ¢Ã¢ÂÂ¬Ã¢ÂÂ lightweight promise-based IndexedDB wrapper
+   (self-contained, no external library ÃÂ¢Ã¢ÂÂ¬Ã¢ÂÂ mimics a small subset
    of a Dexie-style table API so the rest of the app can use
    simple async calls like db.products.add(...) / .toArray())
    ============================================================ */
@@ -496,7 +496,7 @@ function closeModal(overlay){
 }
 function closeAllModals(){ DOM.modalroot.innerHTML=''; }
 
-function confirmDialog({icon='âš ï¸',title,desc,okText='Ya, lanjutkan',okClass='btn-danger-solid',cancelText='Batal'}){
+function confirmDialog({icon='ÃÂ¢ÃÂ¡ÃÂ ÃÂ¯ÃÂ¸ÃÂ',title,desc,okText='Ya, lanjutkan',okClass='btn-danger-solid',cancelText='Batal'}){
   return new Promise((resolve)=>{
     const overlay=document.createElement('div');
     overlay.className='overlay';
@@ -518,9 +518,9 @@ function confirmDialog({icon='âš ï¸',title,desc,okText='Ya, lanjutkan',ok
 }
 
 function emojiForCategory(cat){
-  const map={'Sembako':'ðŸŒ¾','Minuman':'ðŸ¥¤','Makanan':'ðŸª','Rokok':'ðŸš¬','Fashion':'ðŸ‘•','Kebersihan':'ðŸ§¼',
-    'Kesehatan':'ðŸ’Š','ATK':'âœï¸','Elektronik':'ðŸ”Œ','Bumbu':'ðŸ§‚','Susu':'ðŸ¥›','Lainnya':'ðŸ“¦'};
-  return map[cat]||'ðŸ›’';
+  const map={'Sembako':'ÃÂ°ÃÂ¸ÃÂÃÂ¾','Minuman':'ÃÂ°ÃÂ¸ÃÂ¥ÃÂ¤','Makanan':'ÃÂ°ÃÂ¸ÃÂÃÂª','Rokok':'ÃÂ°ÃÂ¸ÃÂ¡ÃÂ¬','Fashion':'ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂ¢','Kebersihan':'ÃÂ°ÃÂ¸ÃÂ§ÃÂ¼',
+    'Kesehatan':'ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ ','ATK':'ÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ','Elektronik':'ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ','Bumbu':'ÃÂ°ÃÂ¸ÃÂ§Ã¢ÂÂ','Susu':'ÃÂ°ÃÂ¸ÃÂ¥Ã¢ÂÂº','Lainnya':'ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¦'};
+  return map[cat]||'ÃÂ°ÃÂ¸Ã¢ÂÂºÃ¢ÂÂ';
 }
 
 function drawBarChart(container,data,opts={}){
@@ -566,8 +566,8 @@ function renderPaginationControls(containerId, pagination, onPageChange) {
     <div class="row between mt-12" style="padding:8px">
       <span class="small muted">${totalItems} item (hal ${currentPage}/${totalPages})</span>
       <div class="row gap-8">
-        <button class="btn btn-sm btn-soft" ${currentPage <= 1 ? 'disabled' : ''} data-page="${currentPage - 1}">â† Prev</button>
-        <button class="btn btn-sm btn-soft" ${currentPage >= totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">Next â†’</button>
+        <button class="btn btn-sm btn-soft" ${currentPage <= 1 ? 'disabled' : ''} data-page="${currentPage - 1}">ÃÂ¢Ã¢ÂÂ ÃÂ Prev</button>
+        <button class="btn btn-sm btn-soft" ${currentPage >= totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">Next ÃÂ¢Ã¢ÂÂ Ã¢ÂÂ</button>
       </div>
     </div>
   `;
@@ -658,25 +658,25 @@ async function seedIfEmpty(){
   for(const c of categories){ await db.categories.add({name:c}); }
 
   const products=[
-    {name:'Beras Premium 5kg',category:'Sembako',sku:'SBK-001',barcode:'8991002100017',unit:'karung',buyPrice:63000,sellPrice:68000,stock:24,minStock:5,image:'ðŸŒ¾'},
-    {name:'Minyak Goreng 1L',category:'Sembako',sku:'SBK-002',barcode:'8991002100024',unit:'pouch',buyPrice:16500,sellPrice:19000,stock:30,minStock:8,image:'ðŸ«—'},
-    {name:'Gula Pasir 1kg',category:'Sembako',sku:'SBK-003',barcode:'8991002100031',unit:'kg',buyPrice:13500,sellPrice:15500,stock:40,minStock:10,image:'ðŸ¬'},
-    {name:'Telur Ayam 1kg',category:'Sembako',sku:'SBK-004',barcode:'8991002100048',unit:'kg',buyPrice:26000,sellPrice:29000,stock:15,minStock:5,image:'ðŸ¥š'},
-    {name:'Tepung Terigu 1kg',category:'Sembako',sku:'SBK-005',barcode:'8991002100055',unit:'kg',buyPrice:11000,sellPrice:13000,stock:20,minStock:5,image:'ðŸŒ¾'},
-    {name:'Aqua Botol 600ml',category:'Minuman',sku:'MNM-001',barcode:'8991002200018',unit:'botol',buyPrice:3000,sellPrice:4000,stock:48,minStock:12,image:'ðŸ’§'},
-    {name:'Teh Botol Kotak',category:'Minuman',sku:'MNM-002',barcode:'8991002200025',unit:'kotak',buyPrice:3800,sellPrice:5000,stock:36,minStock:10,image:'ðŸ§ƒ'},
-    {name:'Kopi Sachet Renceng',category:'Minuman',sku:'MNM-003',barcode:'8991002200032',unit:'renceng',buyPrice:9500,sellPrice:12000,stock:18,minStock:5,image:'â˜•'},
-    {name:'Susu Kental Manis',category:'Minuman',sku:'MNM-004',barcode:'8991002200049',unit:'kaleng',buyPrice:9000,sellPrice:11000,stock:22,minStock:6,image:'ðŸ¥«'},
-    {name:'Mie Instan Goreng',category:'Makanan',sku:'MKN-001',barcode:'8991002300019',unit:'pcs',buyPrice:2800,sellPrice:3500,stock:60,minStock:15,image:'ðŸœ'},
-    {name:'Biskuit Kaleng',category:'Makanan',sku:'MKN-002',barcode:'8991002300026',unit:'kaleng',buyPrice:14000,sellPrice:17500,stock:14,minStock:4,image:'ðŸª'},
-    {name:'Roti Tawar',category:'Makanan',sku:'MKN-003',barcode:'8991002300033',unit:'bungkus',buyPrice:9000,sellPrice:12000,stock:10,minStock:3,image:'ðŸž'},
-    {name:'Kerupuk 1 pack',category:'Makanan',sku:'MKN-004',barcode:'8991002300040',unit:'pack',buyPrice:6000,sellPrice:8000,stock:16,minStock:4,image:'ðŸ˜'},
-    {name:'Rokok Filter 16',category:'Rokok',sku:'RKK-001',barcode:'8991002400010',unit:'bungkus',buyPrice:24000,sellPrice:27000,stock:20,minStock:5,image:'ðŸš¬'},
-    {name:'Sabun Mandi Batang',category:'Kebersihan',sku:'KBR-001',barcode:'8991002500011',unit:'batang',buyPrice:3200,sellPrice:4500,stock:25,minStock:6,image:'ðŸ§¼'},
-    {name:'Deterjen Bubuk 800g',category:'Kebersihan',sku:'KBR-002',barcode:'8991002500028',unit:'bungkus',buyPrice:12500,sellPrice:15000,stock:3,minStock:5,image:'ðŸ§º'},
-    {name:'Pasta Gigi',category:'Kebersihan',sku:'KBR-003',barcode:'8991002500035',unit:'tube',buyPrice:7500,sellPrice:9500,stock:12,minStock:4,image:'ðŸª¥'},
-    {name:'Pulpen Standar',category:'ATK',sku:'ATK-001',barcode:'8991002600012',unit:'pcs',buyPrice:2000,sellPrice:3000,stock:2,minStock:10,image:'âœï¸'},
-    {name:'Buku Tulis 38 lbr',category:'ATK',sku:'ATK-002',barcode:'8991002600029',unit:'pcs',buyPrice:3000,sellPrice:4000,stock:30,minStock:8,image:'ðŸ““'},
+    {name:'Beras Premium 5kg',category:'Sembako',sku:'SBK-001',barcode:'8991002100017',unit:'karung',buyPrice:63000,sellPrice:68000,stock:24,minStock:5,image:'ÃÂ°ÃÂ¸ÃÂÃÂ¾'},
+    {name:'Minyak Goreng 1L',category:'Sembako',sku:'SBK-002',barcode:'8991002100024',unit:'pouch',buyPrice:16500,sellPrice:19000,stock:30,minStock:8,image:'ÃÂ°ÃÂ¸ÃÂ«Ã¢ÂÂ'},
+    {name:'Gula Pasir 1kg',category:'Sembako',sku:'SBK-003',barcode:'8991002100031',unit:'kg',buyPrice:13500,sellPrice:15500,stock:40,minStock:10,image:'ÃÂ°ÃÂ¸ÃÂÃÂ¬'},
+    {name:'Telur Ayam 1kg',category:'Sembako',sku:'SBK-004',barcode:'8991002100048',unit:'kg',buyPrice:26000,sellPrice:29000,stock:15,minStock:5,image:'ÃÂ°ÃÂ¸ÃÂ¥ÃÂ¡'},
+    {name:'Tepung Terigu 1kg',category:'Sembako',sku:'SBK-005',barcode:'8991002100055',unit:'kg',buyPrice:11000,sellPrice:13000,stock:20,minStock:5,image:'ÃÂ°ÃÂ¸ÃÂÃÂ¾'},
+    {name:'Aqua Botol 600ml',category:'Minuman',sku:'MNM-001',barcode:'8991002200018',unit:'botol',buyPrice:3000,sellPrice:4000,stock:48,minStock:12,image:'ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ§'},
+    {name:'Teh Botol Kotak',category:'Minuman',sku:'MNM-002',barcode:'8991002200025',unit:'kotak',buyPrice:3800,sellPrice:5000,stock:36,minStock:10,image:'ÃÂ°ÃÂ¸ÃÂ§ÃÂ'},
+    {name:'Kopi Sachet Renceng',category:'Minuman',sku:'MNM-003',barcode:'8991002200032',unit:'renceng',buyPrice:9500,sellPrice:12000,stock:18,minStock:5,image:'ÃÂ¢ÃÂÃ¢ÂÂ¢'},
+    {name:'Susu Kental Manis',category:'Minuman',sku:'MNM-004',barcode:'8991002200049',unit:'kaleng',buyPrice:9000,sellPrice:11000,stock:22,minStock:6,image:'ÃÂ°ÃÂ¸ÃÂ¥ÃÂ«'},
+    {name:'Mie Instan Goreng',category:'Makanan',sku:'MKN-001',barcode:'8991002300019',unit:'pcs',buyPrice:2800,sellPrice:3500,stock:60,minStock:15,image:'ÃÂ°ÃÂ¸ÃÂÃÂ'},
+    {name:'Biskuit Kaleng',category:'Makanan',sku:'MKN-002',barcode:'8991002300026',unit:'kaleng',buyPrice:14000,sellPrice:17500,stock:14,minStock:4,image:'ÃÂ°ÃÂ¸ÃÂÃÂª'},
+    {name:'Roti Tawar',category:'Makanan',sku:'MKN-003',barcode:'8991002300033',unit:'bungkus',buyPrice:9000,sellPrice:12000,stock:10,minStock:3,image:'ÃÂ°ÃÂ¸ÃÂÃÂ¾'},
+    {name:'Kerupuk 1 pack',category:'Makanan',sku:'MKN-004',barcode:'8991002300040',unit:'pack',buyPrice:6000,sellPrice:8000,stock:16,minStock:4,image:'ÃÂ°ÃÂ¸ÃÂÃÂ'},
+    {name:'Rokok Filter 16',category:'Rokok',sku:'RKK-001',barcode:'8991002400010',unit:'bungkus',buyPrice:24000,sellPrice:27000,stock:20,minStock:5,image:'ÃÂ°ÃÂ¸ÃÂ¡ÃÂ¬'},
+    {name:'Sabun Mandi Batang',category:'Kebersihan',sku:'KBR-001',barcode:'8991002500011',unit:'batang',buyPrice:3200,sellPrice:4500,stock:25,minStock:6,image:'ÃÂ°ÃÂ¸ÃÂ§ÃÂ¼'},
+    {name:'Deterjen Bubuk 800g',category:'Kebersihan',sku:'KBR-002',barcode:'8991002500028',unit:'bungkus',buyPrice:12500,sellPrice:15000,stock:3,minStock:5,image:'ÃÂ°ÃÂ¸ÃÂ§ÃÂº'},
+    {name:'Pasta Gigi',category:'Kebersihan',sku:'KBR-003',barcode:'8991002500035',unit:'tube',buyPrice:7500,sellPrice:9500,stock:12,minStock:4,image:'ÃÂ°ÃÂ¸ÃÂªÃÂ¥'},
+    {name:'Pulpen Standar',category:'ATK',sku:'ATK-001',barcode:'8991002600012',unit:'pcs',buyPrice:2000,sellPrice:3000,stock:2,minStock:10,image:'ÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ'},
+    {name:'Buku Tulis 38 lbr',category:'ATK',sku:'ATK-002',barcode:'8991002600029',unit:'pcs',buyPrice:3000,sellPrice:4000,stock:30,minStock:8,image:'ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂ'},
   ];
   for(const p of products){ await db.products.add({...p,createdAt:nowISO()}); }
 
@@ -708,7 +708,7 @@ function trialInfo(s){
 }
 
 /* Demo-mode license validation.
-   âš ï¸ INTEGRATION POINT â€” replace verifyLicenseRemote() with a real call to
+   ÃÂ¢ÃÂ¡ÃÂ ÃÂ¯ÃÂ¸ÃÂ INTEGRATION POINT ÃÂ¢Ã¢ÂÂ¬Ã¢ÂÂ replace verifyLicenseRemote() with a real call to
    your license server, e.g.:
      POST https://api.kasirsolo.id/v1/license/verify
      body: { code, deviceId }
@@ -737,17 +737,17 @@ async function verifyLicenseRemote(code, deviceId){
    Shell / Router
    ============================================================ */
 const NAV=[
-  {id:'dashboard',ic:'ðŸ ',label:'Dashboard'},
-  {id:'pos',ic:'ðŸ§¾',label:'Kasir'},
-  {id:'products',ic:'ðŸ“¦',label:'Produk'},
-  {id:'purchases',ic:'ðŸšš',label:'Pembelian'},
-  {id:'returns',ic:'â†©ï¸',label:'Retur'},
-  {id:'stock',ic:'ðŸ“Š',label:'Stok'},
-  {id:'contacts',ic:'ðŸ‘¥',label:'Pelanggan & Supplier'},
-  {id:'debts',ic:'ðŸ’³',label:'Hutang & Piutang'},
-  {id:'cashiers',ic:'ðŸ§‘\u200dðŸ’¼',label:'Kasir & Shift'},
-  {id:'reports',ic:'ðŸ“ˆ',label:'Laporan'},
-  {id:'settings',ic:'âš™ï¸',label:'Pengaturan'},
+  {id:'dashboard',ic:'ÃÂ°ÃÂ¸ÃÂÃÂ ',label:'Dashboard'},
+  {id:'pos',ic:'ÃÂ°ÃÂ¸ÃÂ§ÃÂ¾',label:'Kasir'},
+  {id:'products',ic:'ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¦',label:'Produk'},
+  {id:'purchases',ic:'ÃÂ°ÃÂ¸ÃÂ¡ÃÂ¡',label:'Pembelian'},
+  {id:'returns',ic:'ÃÂ¢Ã¢ÂÂ ÃÂ©ÃÂ¯ÃÂ¸ÃÂ',label:'Retur'},
+  {id:'stock',ic:'ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ ',label:'Stok'},
+  {id:'contacts',ic:'ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¥',label:'Pelanggan & Supplier'},
+  {id:'debts',ic:'ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ³',label:'Hutang & Piutang'},
+  {id:'cashiers',ic:'ÃÂ°ÃÂ¸ÃÂ§Ã¢ÂÂ\u200dÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¼',label:'Kasir & Shift'},
+  {id:'reports',ic:'ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ',label:'Laporan'},
+  {id:'settings',ic:'ÃÂ¢ÃÂ¡Ã¢ÂÂ¢ÃÂ¯ÃÂ¸ÃÂ',label:'Pengaturan'},
 ];
 const MOBILE_NAV=['dashboard','pos','products','debts'];
 
@@ -768,7 +768,7 @@ function renderShell(){
   document.getElementById('bottomnav').innerHTML=
     MOBILE_NAV.map(id=>{ const n=NAV.find(x=>x.id===id);
       return `<button data-nav="${id}"><span class="ic">${n.ic}</span>${esc(n.label)}</button>`; }).join('')+
-    `<button data-nav="__more"><span class="ic">â‹¯</span>Lainnya</button>`;
+    `<button data-nav="__more"><span class="ic">ÃÂ¢Ã¢ÂÂ¹ÃÂ¯</span>Lainnya</button>`;
 
   qsa('[data-nav]').forEach(btn=>btn.addEventListener('click',()=>{
     if(btn.dataset.nav==='__more'){ openMoreSheet(); return; }
@@ -781,7 +781,7 @@ function qsa(sel,root=document){ return Array.from(root.querySelectorAll(sel)); 
 function openMoreSheet(){
   const rest=NAV.filter(n=>!MOBILE_NAV.includes(n.id));
   const overlay=openModal(`
-    <div class="sheet-head"><h3>Menu Lainnya</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>Menu Lainnya</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       ${rest.map(n=>`<button class="navitem wfull" data-nav2="${n.id}" style="font-size:15px;padding:14px"><span class="ic">${n.ic}</span>${esc(n.label)}</button>`).join('')}
     </div>`);
@@ -793,13 +793,13 @@ function openMoreSheet(){
 function updateTopbar(){
   const info=trialInfo(State.settings);
   const trialBadge=State.settings.licenseActivated
-    ? `<span class="badge-trial" style="background:var(--green-bg);color:var(--green)">âœ… Aktif</span>`
-    : `<span class="badge-trial">â³ Trial ${info.daysLeft} hari</span>`;
+    ? `<span class="badge-trial" style="background:var(--green-bg);color:var(--green)">ÃÂ¢ÃÂÃ¢ÂÂ¦ Aktif</span>`
+    : `<span class="badge-trial">ÃÂ¢ÃÂÃÂ³ Trial ${info.daysLeft} hari</span>`;
   const cashier=State.cashiersCache?.find(c=>c.id===State.activeCashierId);
   document.getElementById('topbar').innerHTML=`
     <div class="topbar-logo-mobile"><img src="${LOGO_SRC}"><b style="font-family:var(--font-display)">Kasir Solo</b></div>
     <div class="title hide-mobile">${NAV.find(n=>n.id===State.view)?.label||''}</div>
-    <button class="badge-cashier" id="btn-switch-cashier">ðŸ§‘ ${esc(cashier?cashier.name:'Pilih Kasir')}</button>
+    <button class="badge-cashier" id="btn-switch-cashier">ÃÂ°ÃÂ¸ÃÂ§Ã¢ÂÂ ${esc(cashier?cashier.name:'Pilih Kasir')}</button>
     ${trialBadge}`;
   qs('#btn-switch-cashier').onclick=openCashierPicker;
 }
@@ -810,7 +810,7 @@ async function navigate(view){
   qsa('.bottomnav button[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===view));
   updateTopbar();
   const root=document.getElementById('viewroot');
-  root.innerHTML=`<div class="center muted" style="padding:60px 0">Memuatâ€¦</div>`;
+  root.innerHTML=`<div class="center muted" style="padding:60px 0">MemuatÃÂ¢Ã¢ÂÂ¬ÃÂ¦</div>`;
   const renderers={
     dashboard:ViewDashboard, pos:ViewPOS, products:ViewProducts, purchases:ViewPurchases,
     returns:ViewReturns, stock:ViewStock, contacts:ViewContacts, debts:ViewDebts,
@@ -822,7 +822,7 @@ async function navigate(view){
     fn.after && fn.after();
   }catch(err){
     console.error(err);
-    root.innerHTML=`<div class="emptystate"><div class="ic">ðŸ˜µ</div><div>Terjadi kesalahan memuat halaman.</div></div>`;
+    root.innerHTML=`<div class="emptystate"><div class="ic">ÃÂ°ÃÂ¸ÃÂÃÂµ</div><div>Terjadi kesalahan memuat halaman.</div></div>`;
   }
   window.scrollTo(0,0);
 }
@@ -831,11 +831,11 @@ async function openCashierPicker(force){
   const cashiers=await db.cashiers.toArray();
   State.cashiersCache=cashiers;
   const overlay=openModal(`
-    <div class="sheet-head"><h3>Pilih Kasir Aktif</h3>${force?'':'<button class="close-x" onclick="closeModal()">âœ•</button>'}</div>
+    <div class="sheet-head"><h3>Pilih Kasir Aktif</h3>${force?'':'<button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button>'}</div>
     <div class="sheet-body">
       <p class="small muted">Pilih nama kasir yang sedang bertugas untuk mencatat transaksi shift ini.</p>
       <div class="cashier-pick mt-12">
-        ${cashiers.map(c=>`<button data-cid="${c.id}" class="${c.id===State.activeCashierId?'selected':''}">ðŸ§‘â€ðŸ’¼<br>${esc(c.name)}</button>`).join('')}
+        ${cashiers.map(c=>`<button data-cid="${c.id}" class="${c.id===State.activeCashierId?'selected':''}">ÃÂ°ÃÂ¸ÃÂ§Ã¢ÂÂÃÂ¢Ã¢ÂÂ¬ÃÂÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¼<br>${esc(c.name)}</button>`).join('')}
       </div>
       <button class="btn btn-soft btn-block mt-16" id="btn-manage-cashiers-inline">+ Kelola Daftar Kasir</button>
     </div>`,{persistent:!!force});
@@ -873,10 +873,10 @@ const ViewDashboard={
     return `
       <div class="section-title"><h3>Ringkasan Hari Ini</h3><span class="small muted">${fmtDate(nowISO())}</span></div>
       <div class="dash-grid">
-        <div class="stat-card"><div class="lbl">ðŸ’° Omzet</div><div class="val">${fmtRp(omzetToday)}</div></div>
-        <div class="stat-card"><div class="lbl">ðŸ“ˆ Laba Kotor</div><div class="val" style="color:var(--green)">${fmtRp(labaToday)}</div></div>
-        <div class="stat-card"><div class="lbl">ðŸ§¾ Transaksi</div><div class="val">${trxToday}</div></div>
-        <div class="stat-card"><div class="lbl">âš ï¸ Stok Menipis</div><div class="val" style="color:${lowStock.length?'var(--red)':'var(--ink)'}">${lowStock.length}</div></div>
+        <div class="stat-card"><div class="lbl">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ° Omzet</div><div class="val">${fmtRp(omzetToday)}</div></div>
+        <div class="stat-card"><div class="lbl">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ Laba Kotor</div><div class="val" style="color:var(--green)">${fmtRp(labaToday)}</div></div>
+        <div class="stat-card"><div class="lbl">ÃÂ°ÃÂ¸ÃÂ§ÃÂ¾ Transaksi</div><div class="val">${trxToday}</div></div>
+        <div class="stat-card"><div class="lbl">ÃÂ¢ÃÂ¡ÃÂ ÃÂ¯ÃÂ¸ÃÂ Stok Menipis</div><div class="val" style="color:${lowStock.length?'var(--red)':'var(--ink)'}">${lowStock.length}</div></div>
       </div>
 
       <div class="split-desktop mt-20">
@@ -896,19 +896,19 @@ const ViewDashboard={
           <div class="card" style="max-height:340px;overflow-y:auto">
             ${lowStock.length? lowStock.map(p=>`
               <div class="list-row">
-                <div class="avatar">${p.image||'ðŸ“¦'}</div>
+                <div class="avatar">${p.image||'ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¦'}</div>
                 <div style="flex:1">
                   <div class="bold small">${esc(p.name)}</div>
-                  <div class="tiny muted">Sisa ${p.stock} ${esc(p.unit)} Â· min ${p.minStock}</div>
+                  <div class="tiny muted">Sisa ${p.stock} ${esc(p.unit)} ÃÂÃÂ· min ${p.minStock}</div>
                 </div>
                 <span class="badge ${p.stock<=0?'badge-red':'badge-amber'}">${p.stock<=0?'Habis':'Menipis'}</span>
-              </div>`).join('') : `<div class="emptystate"><div class="ic">âœ…</div>Semua stok aman</div>`}
+              </div>`).join('') : `<div class="emptystate"><div class="ic">ÃÂ¢ÃÂÃ¢ÂÂ¦</div>Semua stok aman</div>`}
           </div>
 
           <div class="section-title"><h3>Aksi Cepat</h3></div>
           <div class="grid grid-2">
-            <button class="btn btn-primary" data-nav="pos">ðŸ§¾ Kasir Baru</button>
-            <button class="btn btn-soft" data-nav="products">ðŸ“¦ Tambah Produk</button>
+            <button class="btn btn-primary" data-nav="pos">ÃÂ°ÃÂ¸ÃÂ§ÃÂ¾ Kasir Baru</button>
+            <button class="btn btn-soft" data-nav="products">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¦ Tambah Produk</button>
           </div>
         </div>
       </div>`;
@@ -958,20 +958,20 @@ const ViewPOS={
     <div class="pos-wrap">
       <div class="pos-left">
         <div class="searchbar">
-          <span class="ic">ðŸ”Ž</span>
-          <input class="input" id="pos-search" placeholder="Cari produk, SKU, atau barcodeâ€¦ (F2)" value="${esc(State.posSearch)}">
+          <span class="ic">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ½</span>
+          <input class="input" id="pos-search" placeholder="Cari produk, SKU, atau barcodeÃÂ¢Ã¢ÂÂ¬ÃÂ¦ (F2)" value="${esc(State.posSearch)}">
         </div>
         <div class="pos-cats" id="pos-cats">
           ${cats.map(c=>`<button class="chip ${c===State.posCategory?'active':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
-          <button class="chip" id="pos-scan-btn">ðŸ“· Scan</button>
+          <button class="chip" id="pos-scan-btn">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ· Scan</button>
         </div>
         <div class="prod-grid" id="pos-grid"></div>
       </div>
       <div class="pos-cart hide-mobile-cart" id="pos-cart-desktop">${cartInnerHTML()}</div>
     </div>
     <button class="pos-mobile-cartbar" id="pos-mobile-bar">
-      <span>ðŸ›’ ${State.cart.reduce((a,i)=>a+i.qty,0)} item</span>
-      <span>${fmtRp(cartGrandTotal())} â€º</span>
+      <span>ÃÂ°ÃÂ¸Ã¢ÂÂºÃ¢ÂÂ ${State.cart.reduce((a,i)=>a+i.qty,0)} item</span>
+      <span>${fmtRp(cartGrandTotal())} ÃÂ¢Ã¢ÂÂ¬ÃÂº</span>
     </button>`;
   },
   after(){
@@ -993,7 +993,7 @@ function renderPosGrid(){
     if(!q) return true;
     return p.name.toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q) || (p.barcode||'').includes(q);
   });
-  if(!list.length){ grid.innerHTML=`<div class="emptystate" style="grid-column:1/-1"><div class="ic">ðŸ”</div>Produk tidak ditemukan</div>`; return; }
+  if(!list.length){ grid.innerHTML=`<div class="emptystate" style="grid-column:1/-1"><div class="ic">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ</div>Produk tidak ditemukan</div>`; return; }
   grid.innerHTML=list.map(p=>`
     <button class="prod-card" data-pid="${p.id}" ${p.stock<=0?'disabled':''}>
       <div class="emoji">${p.image||emojiForCategory(p.category)}</div>
@@ -1028,7 +1028,7 @@ function removeCartItem(pid){ State.cart=State.cart.filter(i=>i.productId!==pid)
 
 function cartInnerHTML(){
   if(!State.cart.length){
-    return `<div class="emptystate" style="padding:50px 20px"><div class="ic">ðŸ›’</div>Keranjang masih kosong<br><span class="tiny">Ketuk produk untuk menambah</span></div>`;
+    return `<div class="emptystate" style="padding:50px 20px"><div class="ic">ÃÂ°ÃÂ¸Ã¢ÂÂºÃ¢ÂÂ</div>Keranjang masih kosong<br><span class="tiny">Ketuk produk untuk menambah</span></div>`;
   }
   const sub=cartSubtotal(), disc=cartDiscountAmt(), tax=cartTaxAmt(sub-disc), total=cartGrandTotal();
   return `
@@ -1037,15 +1037,15 @@ function cartInnerHTML(){
         <div class="cart-row">
           <div style="flex:1;min-width:0">
             <div class="ci-name">${esc(i.name)}</div>
-            <div class="ci-sub">${fmtRp(i.price)} / ${esc(i.unit)} ${i.discount?`Â· diskon ${fmtRp(i.discount)}`:''}</div>
+            <div class="ci-sub">${fmtRp(i.price)} / ${esc(i.unit)} ${i.discount?`ÃÂÃÂ· diskon ${fmtRp(i.discount)}`:''}</div>
           </div>
           <div class="qtybox">
-            <button data-qminus="${i.productId}">âˆ’</button>
+            <button data-qminus="${i.productId}">ÃÂ¢ÃÂÃ¢ÂÂ</button>
             <input value="${i.qty}" data-qinput="${i.productId}" inputmode="numeric">
             <button data-qplus="${i.productId}">+</button>
           </div>
-          <button class="btn-icon btn-soft" data-idisc="${i.productId}" title="Diskon item">ðŸ·ï¸</button>
-          <button class="btn-icon btn-danger" data-iremove="${i.productId}">âœ•</button>
+          <button class="btn-icon btn-soft" data-idisc="${i.productId}" title="Diskon item">ÃÂ°ÃÂ¸ÃÂÃÂ·ÃÂ¯ÃÂ¸ÃÂ</button>
+          <button class="btn-icon btn-danger" data-iremove="${i.productId}">ÃÂ¢ÃÂÃ¢ÂÂ¢</button>
         </div>`).join('')}
     </div>
     <div class="cart-foot">
@@ -1068,8 +1068,8 @@ function cartInnerHTML(){
       ${tax?`<div class="cart-total-row"><span>PPN</span><span>${fmtRp(tax)}</span></div>`:''}
       <div class="cart-total-row grand"><span>Total</span><span>${fmtRp(total)}</span></div>
       <div class="grid grid-2 gap-8">
-        <button class="btn btn-outline" id="cart-clear">ðŸ—‘ï¸ Kosongkan</button>
-        <button class="btn btn-primary" id="cart-pay" ${!State.cart.length?'disabled':''}>ðŸ’³ Bayar (F4)</button>
+        <button class="btn btn-outline" id="cart-clear">ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂÃÂ¯ÃÂ¸ÃÂ Kosongkan</button>
+        <button class="btn btn-primary" id="cart-pay" ${!State.cart.length?'disabled':''}>ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ³ Bayar (F4)</button>
       </div>
     </div>`;
 }
@@ -1078,7 +1078,7 @@ function refreshCartUI(){
   const desk=qs('#pos-cart-desktop');
   if(desk){ desk.innerHTML=cartInnerHTML(); bindCartEvents(desk); }
   const bar=qs('#pos-mobile-bar');
-  if(bar) bar.innerHTML=`<span>ðŸ›’ ${State.cart.reduce((a,i)=>a+i.qty,0)} item</span><span>${fmtRp(cartGrandTotal())} â€º</span>`;
+  if(bar) bar.innerHTML=`<span>ÃÂ°ÃÂ¸Ã¢ÂÂºÃ¢ÂÂ ${State.cart.reduce((a,i)=>a+i.qty,0)} item</span><span>${fmtRp(cartGrandTotal())} ÃÂ¢Ã¢ÂÂ¬ÃÂº</span>`;
   const sheetCart=qs('#cart-sheet-body');
   if(sheetCart){ sheetCart.innerHTML=cartInnerHTML(); bindCartEvents(sheetCart); }
 }
@@ -1096,14 +1096,14 @@ function bindCartEvents(root){
   const tt=qs('#cart-tax-toggle',root);
   if(tt) tt.onchange=()=>{ State.cartTaxOn=tt.checked; refreshCartUI(); };
   const clearBtn=qs('#cart-clear',root);
-  if(clearBtn) clearBtn.onclick=async()=>{ if(await confirmDialog({icon:'ðŸ—‘ï¸',title:'Kosongkan keranjang?',okText:'Ya, kosongkan'})){ State.cart=[]; State.cartDiscount={type:'nominal',value:0}; refreshCartUI(); } };
+  if(clearBtn) clearBtn.onclick=async()=>{ if(await confirmDialog({icon:'ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂÃÂ¯ÃÂ¸ÃÂ',title:'Kosongkan keranjang?',okText:'Ya, kosongkan'})){ State.cart=[]; State.cartDiscount={type:'nominal',value:0}; refreshCartUI(); } };
   const payBtn=qs('#cart-pay',root);
   if(payBtn) payBtn.onclick=openPaymentModal;
 }
 
 function openCartSheet(){
   const overlay=openModal(`
-    <div class="sheet-head"><h3>ðŸ›’ Keranjang</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂºÃ¢ÂÂ Keranjang</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div id="cart-sheet-body">${cartInnerHTML()}</div>`);
   bindCartEvents(qs('#cart-sheet-body',overlay));
 }
@@ -1111,7 +1111,7 @@ function openCartSheet(){
 function openItemDiscount(pid){
   const item=State.cart.find(i=>i.productId===pid); if(!item) return;
   const overlay=openModal(`
-    <div class="sheet-head"><h3>Diskon: ${esc(item.name)}</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>Diskon: ${esc(item.name)}</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="field"><label>Diskon untuk item ini (Rp, total baris)</label>
         <input class="input" id="idisc-input" inputmode="numeric" value="${item.discount||''}" placeholder="0"></div>
@@ -1125,7 +1125,7 @@ function openItemDiscount(pid){
 
 async function openBarcodeScanner(){
   const overlay=openModal(`
-    <div class="sheet-head"><h3>ðŸ“· Scan Barcode</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ· Scan Barcode</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       ${'BarcodeDetector' in window ? `
         <video id="scan-video" style="width:100%;border-radius:12px;background:#000" playsinline autoplay></video>
@@ -1186,13 +1186,13 @@ async function openPaymentModal(){
   const total=cartGrandTotal();
   const customers=await db.customers.toArray();
   const overlay=openModal(`
-    <div class="sheet-head"><h3>ðŸ’³ Pembayaran</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ³ Pembayaran</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="cash-display"><div class="lbl">Total Tagihan</div><div class="amt">${fmtRp(total)}</div></div>
 
       <div class="field mt-16"><label>Pelanggan (opsional)</label>
         <select class="input" id="pay-customer">
-          <option value="">â€” Tanpa nama â€”</option>
+          <option value="">ÃÂ¢Ã¢ÂÂ¬Ã¢ÂÂ Tanpa nama ÃÂ¢Ã¢ÂÂ¬Ã¢ÂÂ</option>
           ${customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}
         </select>
       </div>
@@ -1207,9 +1207,9 @@ async function openPaymentModal(){
       <div id="pay-tunai-area">
         <div class="field mt-12"><label>Metode</label>
           <div class="tabbar" id="pay-method">
-            <button data-method="Tunai" class="active">ðŸ’µ Tunai</button>
-            <button data-method="Transfer/QRIS">ðŸ“± QRIS/TF</button>
-            <button data-method="Kartu">ðŸ’³ Kartu</button>
+            <button data-method="Tunai" class="active">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂµ Tunai</button>
+            <button data-method="Transfer/QRIS">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ± QRIS/TF</button>
+            <button data-method="Kartu">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ³ Kartu</button>
           </div>
         </div>
         <div class="field mt-12"><label>Uang Diterima</label>
@@ -1225,7 +1225,7 @@ async function openPaymentModal(){
         <p class="small muted">Sisa tagihan akan tercatat sebagai piutang pelanggan di menu Hutang &amp; Piutang.</p>
       </div>
 
-      <button class="btn btn-primary btn-block btn-lg mt-20" id="pay-confirm">âœ… Konfirmasi &amp; Cetak Nota</button>
+      <button class="btn btn-primary btn-block btn-lg mt-20" id="pay-confirm">ÃÂ¢ÃÂÃ¢ÂÂ¦ Konfirmasi &amp; Cetak Nota</button>
     </div>`,{wide:false});
 
   const modeBtns=qsa('#pay-mode button',overlay);
@@ -1250,7 +1250,7 @@ async function openPaymentModal(){
     const received = mode==='tunai' ? (Number(recv.value)||0) : dp;
     const btn=qs('#pay-confirm',overlay); 
     btn.disabled=true; 
-    btn.textContent='Menyimpanâ€¦';
+    btn.textContent='MenyimpanÃÂ¢Ã¢ÂÂ¬ÃÂ¦';
     showLoading('Menyimpan transaksi...');
     try{
       const sale=await finalizeSale({mode,method:mode==='tunai'?method:'Tempo',customerId,total,received});
@@ -1262,7 +1262,7 @@ async function openPaymentModal(){
       console.error(err); 
       toast('Gagal menyimpan transaksi','error'); 
       btn.disabled=false; 
-      btn.textContent='âœ… Konfirmasi & Cetak Nota'; 
+      btn.textContent='ÃÂ¢ÃÂÃ¢ÂÂ¦ Konfirmasi & Cetak Nota'; 
     }
   };
 }
@@ -1336,17 +1336,17 @@ function showReceipt(sale){
       ${sale.paymentStatus==='tempo'?`<div class="rline" style="color:#c00"><span>Sisa (Tempo)</span><span>${fmtRp(sale.total-sale.paidAmount)}</span></div>`:
         `<div class="rline"><span>Kembali</span><span>${fmtRp(sale.changeAmount)}</span></div>`}
       <hr>
-      <div class="center">Terima kasih ðŸ™<br><span style="font-size:10px">${esc(s.storeName||'')} Â· powered by Kasir Solo</span></div>
+      <div class="center">Terima kasih ÃÂ°ÃÂ¸Ã¢ÂÂ¢ÃÂ<br><span style="font-size:10px">${esc(s.storeName||'')} ÃÂÃÂ· powered by Kasir Solo</span></div>
     </div>`;
   const overlay=openModal(`
-    <div class="sheet-head"><h3>âœ… Transaksi Berhasil</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>ÃÂ¢ÃÂÃ¢ÂÂ¦ Transaksi Berhasil</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       ${receiptHtml}
       <div class="grid grid-2 gap-8 mt-16">
-        <button class="btn btn-soft" id="btn-print-receipt">ðŸ–¨ï¸ Cetak</button>
-        <button class="btn btn-green" id="btn-wa-receipt">ðŸ“¤ Kirim WA</button>
+        <button class="btn btn-soft" id="btn-print-receipt">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¨ÃÂ¯ÃÂ¸ÃÂ Cetak</button>
+        <button class="btn btn-green" id="btn-wa-receipt">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¤ Kirim WA</button>
       </div>
-      <button class="btn btn-primary btn-block mt-8" id="btn-new-trx">ðŸ§¾ Transaksi Baru</button>
+      <button class="btn btn-primary btn-block mt-8" id="btn-new-trx">ÃÂ°ÃÂ¸ÃÂ§ÃÂ¾ Transaksi Baru</button>
     </div>`,{persistent:true});
   qs('#btn-print-receipt',overlay).onclick=()=>window.print();
   qs('#btn-wa-receipt',overlay).onclick=()=>{
@@ -1377,10 +1377,10 @@ const ViewProducts={
     return `
       <div class="row between gap-10">
         <div class="searchbar" style="flex:1">
-          <span class="ic">ðŸ”Ž</span><input class="input" id="prod-search" placeholder="Cari produk / SKU / barcode">
+          <span class="ic">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ½</span><input class="input" id="prod-search" placeholder="Cari produk / SKU / barcode">
         </div>
-        <button class="btn btn-soft" id="btn-manage-cat">ðŸ·ï¸ Kategori</button>
-        <button class="fab" id="btn-add-product">âž•<span class="hide-mobile-inline"> Tambah</span></button>
+        <button class="btn btn-soft" id="btn-manage-cat">ÃÂ°ÃÂ¸ÃÂÃÂ·ÃÂ¯ÃÂ¸ÃÂ Kategori</button>
+        <button class="fab" id="btn-add-product">ÃÂ¢ÃÂ¾Ã¢ÂÂ¢<span class="hide-mobile-inline"> Tambah</span></button>
       </div>
       <div class="table-wrap card mt-16" style="padding:0">
         <table id="prod-table">
@@ -1409,7 +1409,7 @@ function renderProdTable(){
   const pagination = paginateArray(list, State.pagination.products.page, State.pagination.products.perPage);
   
   if(!pagination.data.length && pagination.currentPage === 1){ 
-    tbody.innerHTML=`<tr><td colspan="6"><div class="emptystate"><div class="ic">ðŸ“¦</div>Belum ada produk</div></td></tr>`; 
+    tbody.innerHTML=`<tr><td colspan="6"><div class="emptystate"><div class="ic">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¦</div>Belum ada produk</div></td></tr>`; 
     return; 
   }
   
@@ -1448,7 +1448,7 @@ async function openProductForm(id){
   const p=id? await db.products.get(id) : {name:'',category:State.categoriesCache[0]?.name||'',sku:'',barcode:'',unit:'pcs',buyPrice:0,sellPrice:0,stock:0,minStock:5,image:''};
   const cats=State.categoriesCache.length? State.categoriesCache : await db.categories.toArray();
   const overlay=openModal(`
-    <div class="sheet-head"><h3>${id?'âœï¸ Edit':'âž• Tambah'} Produk</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>${id?'ÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ Edit':'ÃÂ¢ÃÂ¾Ã¢ÂÂ¢ Tambah'} Produk</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="grid grid-2">
         <div class="field" style="grid-column:1/-1"><label>Nama Produk</label><input class="input" id="pf-name" value="${esc(p.name)}"></div>
@@ -1461,11 +1461,11 @@ async function openProductForm(id){
         <div class="field"><label>Harga Jual</label><input class="input" id="pf-sell" inputmode="numeric" value="${p.sellPrice}"></div>
         <div class="field"><label>Stok Saat Ini</label><input class="input" id="pf-stock" inputmode="numeric" value="${p.stock}" ${id?'':''}></div>
         <div class="field"><label>Stok Minimum</label><input class="input" id="pf-minstock" inputmode="numeric" value="${p.minStock}"></div>
-        <div class="field" style="grid-column:1/-1"><label>Emoji/Ikon (opsional)</label><input class="input" id="pf-image" value="${esc(p.image||'')}" placeholder="ðŸš"></div>
+        <div class="field" style="grid-column:1/-1"><label>Emoji/Ikon (opsional)</label><input class="input" id="pf-image" value="${esc(p.image||'')}" placeholder="ÃÂ°ÃÂ¸ÃÂÃÂ¡"></div>
       </div>
       <div class="row gap-8 mt-16">
-        ${id?`<button class="btn btn-danger" id="pf-delete">ðŸ—‘ï¸ Hapus</button>`:''}
-        <button class="btn btn-primary btn-block" id="pf-save">ðŸ’¾ Simpan</button>
+        ${id?`<button class="btn btn-danger" id="pf-delete">ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂÃÂ¯ÃÂ¸ÃÂ Hapus</button>`:''}
+        <button class="btn btn-primary btn-block" id="pf-save">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¾ Simpan</button>
       </div>
     </div>`,{wide:true});
   qs('#pf-save',overlay).onclick=async()=>{
@@ -1484,7 +1484,7 @@ async function openProductForm(id){
   };
   if(id){
     qs('#pf-delete',overlay).onclick=async()=>{
-      if(await confirmDialog({icon:'ðŸ—‘ï¸',title:'Hapus produk ini?',desc:name_or(p.name)+' akan dihapus permanen.',okText:'Hapus'})){
+      if(await confirmDialog({icon:'ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂÃÂ¯ÃÂ¸ÃÂ',title:'Hapus produk ini?',desc:name_or(p.name)+' akan dihapus permanen.',okText:'Hapus'})){
         await db.products.delete(id); closeModal(overlay); toast('Produk dihapus'); navigate('products');
       }
     };
@@ -1495,7 +1495,7 @@ function name_or(n){ return n||'Produk'; }
 async function openCategoryManager(){
   const cats=await db.categories.toArray();
   const overlay=openModal(`
-    <div class="sheet-head"><h3>ðŸ·ï¸ Kategori Produk</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>ÃÂ°ÃÂ¸ÃÂÃÂ·ÃÂ¯ÃÂ¸ÃÂ Kategori Produk</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="row gap-8">
         <input class="input" id="cat-new" placeholder="Nama kategori baru">
@@ -1509,7 +1509,7 @@ async function openCategoryManager(){
       <div class="list-row"><div style="flex:1">${esc(c.name)}</div><button class="btn btn-sm btn-danger" data-delcat="${c.id}">Hapus</button></div>`).join('')
       || `<div class="emptystate small">Belum ada kategori</div>`;
     qsa('[data-delcat]',overlay).forEach(b=>b.onclick=async()=>{
-      if(await confirmDialog({icon:'ðŸ—‘ï¸',title:'Hapus kategori?'})){ await db.categories.delete(Number(b.dataset.delcat)); renderList(); }
+      if(await confirmDialog({icon:'ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂÃÂ¯ÃÂ¸ÃÂ',title:'Hapus kategori?'})){ await db.categories.delete(Number(b.dataset.delcat)); renderList(); }
     });
   };
   qs('#cat-add',overlay).onclick=async()=>{
@@ -1532,21 +1532,21 @@ const ViewPurchases={
     return `
       <div class="row between">
         <h3 style="font-size:16px">Riwayat Pembelian</h3>
-        <button class="fab" id="btn-add-purchase">âž• Pembelian Baru</button>
+        <button class="fab" id="btn-add-purchase">ÃÂ¢ÃÂ¾Ã¢ÂÂ¢ Pembelian Baru</button>
       </div>
       <div class="card mt-16" style="padding:0">
         ${purchases.length? purchases.map(p=>`
           <div class="list-row" style="padding:12px 14px">
-            <div class="avatar">ðŸšš</div>
+            <div class="avatar">ÃÂ°ÃÂ¸ÃÂ¡ÃÂ¡</div>
             <div style="flex:1">
-              <div class="bold small">${esc(p.code)} Â· ${esc(supName(p.supplierId))}</div>
-              <div class="tiny muted">${fmtDateTime(p.date)} Â· ${p.items.length} item</div>
+              <div class="bold small">${esc(p.code)} ÃÂÃÂ· ${esc(supName(p.supplierId))}</div>
+              <div class="tiny muted">${fmtDateTime(p.date)} ÃÂÃÂ· ${p.items.length} item</div>
             </div>
             <div style="text-align:right">
               <div class="bold small">${fmtRp(p.total)}</div>
               <span class="badge ${p.paymentStatus==='lunas'?'badge-green':'badge-amber'}">${p.paymentStatus==='lunas'?'Lunas':'Tempo'}</span>
             </div>
-          </div>`).join('') : `<div class="emptystate"><div class="ic">ðŸšš</div>Belum ada pembelian</div>`}
+          </div>`).join('') : `<div class="emptystate"><div class="ic">ÃÂ°ÃÂ¸ÃÂ¡ÃÂ¡</div>Belum ada pembelian</div>`}
       </div>`;
   },
   after(){ qs('#btn-add-purchase').onclick=openPurchaseForm; }
@@ -1558,7 +1558,7 @@ async function openPurchaseForm(){
   if(!suppliers.length){ toast('Tambahkan supplier terlebih dahulu di menu Pelanggan & Supplier','error'); return; }
   let items=[]; // {productId,name,qty,buyPrice}
   const overlay=openModal(`
-    <div class="sheet-head"><h3>ðŸšš Pembelian Baru</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>ÃÂ°ÃÂ¸ÃÂ¡ÃÂ¡ Pembelian Baru</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="field"><label>Supplier</label>
         <select class="input" id="pu-supplier">${suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></div>
@@ -1574,7 +1574,7 @@ async function openPurchaseForm(){
       <div class="field mt-12"><label>Pembayaran</label>
         <div class="tabbar" id="pu-mode"><button data-mode="lunas" class="active">Tunai/Lunas</button><button data-mode="tempo">Tempo (Hutang)</button></div></div>
       <div class="field mt-12" id="pu-dp-wrap"><label>Uang Muka (jika tempo)</label><input class="input" id="pu-dp" inputmode="numeric" value="0"></div>
-      <button class="btn btn-primary btn-block btn-lg mt-16" id="pu-save">ðŸ’¾ Simpan Pembelian</button>
+      <button class="btn btn-primary btn-block btn-lg mt-16" id="pu-save">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¾ Simpan Pembelian</button>
     </div>`,{wide:true});
 
   const prodSel=qs('#pu-product',overlay);
@@ -1585,7 +1585,7 @@ async function openPurchaseForm(){
     qs('#pu-items',overlay).innerHTML= items.length? items.map((it,idx)=>`
       <div class="cart-row"><div style="flex:1" class="small">${esc(it.name)}<div class="tiny muted">${it.qty} x ${fmtRp(it.buyPrice)}</div></div>
       <div class="bold small">${fmtRp(it.qty*it.buyPrice)}</div>
-      <button class="btn-icon btn-danger" data-rm="${idx}">âœ•</button></div>`).join('') : `<div class="tiny muted">Belum ada item</div>`;
+      <button class="btn-icon btn-danger" data-rm="${idx}">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>`).join('') : `<div class="tiny muted">Belum ada item</div>`;
     qs('#pu-total',overlay).textContent=fmtRp(items.reduce((a,i)=>a+i.qty*i.buyPrice,0));
     qsa('[data-rm]',overlay).forEach(b=>b.onclick=()=>{ items.splice(Number(b.dataset.rm),1); renderItems(); });
   };
@@ -1638,7 +1638,7 @@ const ViewReturns={
           <button data-t="sale" class="${State.returnTab==='sale'?'active':''}">Retur Penjualan</button>
           <button data-t="purchase" class="${State.returnTab==='purchase'?'active':''}">Retur Pembelian</button>
         </div>
-        <button class="fab" id="btn-new-return">âž• Retur Baru</button>
+        <button class="fab" id="btn-new-return">ÃÂ¢ÃÂ¾Ã¢ÂÂ¢ Retur Baru</button>
       </div>
       <div class="card mt-16" style="padding:0" id="ret-list"></div>`;
   },
@@ -1652,27 +1652,27 @@ async function renderReturnList(){
   const all=(await db.returns.toArray()).filter(r=>r.type===State.returnTab).sort((a,b)=>new Date(b.date)-new Date(a.date));
   qs('#ret-list').innerHTML= all.length? all.map(r=>`
     <div class="list-row" style="padding:12px 14px">
-      <div class="avatar">â†©ï¸</div>
-      <div style="flex:1"><div class="bold small">Ref: ${esc(r.refCode)}</div><div class="tiny muted">${fmtDateTime(r.date)} Â· ${esc(r.reason||'-')}</div></div>
+      <div class="avatar">ÃÂ¢Ã¢ÂÂ ÃÂ©ÃÂ¯ÃÂ¸ÃÂ</div>
+      <div style="flex:1"><div class="bold small">Ref: ${esc(r.refCode)}</div><div class="tiny muted">${fmtDateTime(r.date)} ÃÂÃÂ· ${esc(r.reason||'-')}</div></div>
       <div class="bold small">${fmtRp(r.total)}</div>
-    </div>`).join('') : `<div class="emptystate"><div class="ic">â†©ï¸</div>Belum ada retur</div>`;
+    </div>`).join('') : `<div class="emptystate"><div class="ic">ÃÂ¢Ã¢ÂÂ ÃÂ©ÃÂ¯ÃÂ¸ÃÂ</div>Belum ada retur</div>`;
 }
 
 async function openReturnForm(type){
   const isSale=type==='sale';
   const source=isSale? (await db.sales.toArray()) : (await db.purchases.toArray());
   const overlay=openModal(`
-    <div class="sheet-head"><h3>â†©ï¸ Retur ${isSale?'Penjualan':'Pembelian'}</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>ÃÂ¢Ã¢ÂÂ ÃÂ©ÃÂ¯ÃÂ¸ÃÂ Retur ${isSale?'Penjualan':'Pembelian'}</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="field"><label>Cari No. Transaksi</label>
         <select class="input" id="ret-ref">
-          <option value="">â€” Pilih transaksi â€”</option>
-          ${source.slice().reverse().slice(0,100).map(s=>`<option value="${s.id}">${esc(s.code)} Â· ${fmtRp(s.total)} Â· ${fmtDate(s.date)}</option>`).join('')}
+          <option value="">ÃÂ¢Ã¢ÂÂ¬Ã¢ÂÂ Pilih transaksi ÃÂ¢Ã¢ÂÂ¬Ã¢ÂÂ</option>
+          ${source.slice().reverse().slice(0,100).map(s=>`<option value="${s.id}">${esc(s.code)} ÃÂÃÂ· ${fmtRp(s.total)} ÃÂÃÂ· ${fmtDate(s.date)}</option>`).join('')}
         </select></div>
       <div id="ret-items-area" class="mt-12"></div>
       <div class="field mt-12"><label>Alasan Retur</label><textarea class="input" id="ret-reason" placeholder="Barang rusak, salah kirim, dll"></textarea></div>
       <div class="row between mt-8"><span class="bold">Total Retur</span><span class="bold" id="ret-total">Rp0</span></div>
-      <button class="btn btn-primary btn-block btn-lg mt-16" id="ret-save">ðŸ’¾ Simpan Retur</button>
+      <button class="btn btn-primary btn-block btn-lg mt-16" id="ret-save">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¾ Simpan Retur</button>
     </div>`,{wide:true});
 
   let refDoc=null, qtyMap={};
@@ -1747,11 +1747,11 @@ const ViewStock={
     return `
       <div class="row between">
         <h3 style="font-size:16px">Manajemen Stok</h3>
-        <button class="fab" id="btn-opname">ðŸ“ Koreksi Stok</button>
+        <button class="fab" id="btn-opname">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ Koreksi Stok</button>
       </div>
       <div class="section-title"><h3>Filter Produk</h3></div>
       <select class="input" id="stock-filter-product" style="max-width:320px">
-        <option value="">â€” Semua Produk â€”</option>
+        <option value="">ÃÂ¢Ã¢ÂÂ¬Ã¢ÂÂ Semua Produk ÃÂ¢Ã¢ÂÂ¬Ã¢ÂÂ</option>
         ${products.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}
       </select>
       <div class="section-title"><h3>Riwayat Mutasi Stok</h3></div>
@@ -1782,14 +1782,14 @@ async function renderStockMoves(){
 async function openOpnameForm(){
   const products=State.productsCache.length?State.productsCache:await db.products.toArray();
   const overlay=openModal(`
-    <div class="sheet-head"><h3>ðŸ“ Koreksi Stok (Stock Opname)</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ Koreksi Stok (Stock Opname)</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="field"><label>Produk</label>
         <select class="input" id="op-product">${products.map(p=>`<option value="${p.id}" data-stock="${p.stock}">${esc(p.name)} (sistem: ${p.stock})</option>`).join('')}</select></div>
       <div class="field mt-12"><label>Stok Fisik Sebenarnya</label><input class="input" id="op-actual" inputmode="numeric"></div>
       <div class="row between mt-8"><span class="small">Selisih</span><span class="bold" id="op-diff">0</span></div>
       <div class="field mt-12"><label>Alasan / Catatan</label><textarea class="input" id="op-reason" placeholder="Rusak, hilang, salah hitung, dll"></textarea></div>
-      <button class="btn btn-primary btn-block btn-lg mt-16" id="op-save">ðŸ’¾ Simpan Koreksi</button>
+      <button class="btn btn-primary btn-block btn-lg mt-16" id="op-save">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¾ Simpan Koreksi</button>
     </div>`);
   const sel=qs('#op-product',overlay), act=qs('#op-actual',overlay);
   const upd=()=>{ const sys=Number(sel.selectedOptions[0].dataset.stock); const diff=(Number(act.value)||0)-sys;
@@ -1820,7 +1820,7 @@ const ViewContacts={
           <button data-t="customer" class="${State.contactTab==='customer'?'active':''}">Pelanggan</button>
           <button data-t="supplier" class="${State.contactTab==='supplier'?'active':''}">Supplier</button>
         </div>
-        <button class="fab" id="btn-add-contact">âž• Tambah</button>
+        <button class="fab" id="btn-add-contact">ÃÂ¢ÃÂ¾Ã¢ÂÂ¢ Tambah</button>
       </div>
       <div class="card mt-16" style="padding:0" id="ct-list"></div>`;
   },
@@ -1842,7 +1842,7 @@ async function renderContactList(){
         <div class="tiny muted">${isCust?'Piutang':'Utang'}</div>
         <div class="bold small" style="color:${c.balance>0?'var(--red)':'var(--green)'}">${fmtRp(c.balance||0)}</div>
       </div>
-    </div>`).join('') : `<div class="emptystate"><div class="ic">ðŸ‘¥</div>Belum ada data</div>`;
+    </div>`).join('') : `<div class="emptystate"><div class="ic">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¥</div>Belum ada data</div>`;
   qsa('[data-open]').forEach(row=>row.onclick=()=>openContactDetail(Number(row.dataset.open)));
 }
 
@@ -1850,14 +1850,14 @@ async function openContactForm(id){
   const isCust=State.contactTab==='customer';
   const c=id? await contactTable().get(id) : {name:'',phone:'',address:'',balance:0};
   const overlay=openModal(`
-    <div class="sheet-head"><h3>${id?'âœï¸ Edit':'âž• Tambah'} ${isCust?'Pelanggan':'Supplier'}</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>${id?'ÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ Edit':'ÃÂ¢ÃÂ¾Ã¢ÂÂ¢ Tambah'} ${isCust?'Pelanggan':'Supplier'}</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="field"><label>Nama</label><input class="input" id="cf-name" value="${esc(c.name)}"></div>
       <div class="field mt-12"><label>No. Telepon</label><input class="input" id="cf-phone" value="${esc(c.phone||'')}"></div>
       <div class="field mt-12"><label>Alamat (opsional)</label><textarea class="input" id="cf-address">${esc(c.address||'')}</textarea></div>
       <div class="row gap-8 mt-16">
-        ${id?`<button class="btn btn-danger" id="cf-delete">ðŸ—‘ï¸ Hapus</button>`:''}
-        <button class="btn btn-primary btn-block" id="cf-save">ðŸ’¾ Simpan</button>
+        ${id?`<button class="btn btn-danger" id="cf-delete">ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂÃÂ¯ÃÂ¸ÃÂ Hapus</button>`:''}
+        <button class="btn btn-primary btn-block" id="cf-save">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¾ Simpan</button>
       </div>
     </div>`);
   qs('#cf-save',overlay).onclick=async()=>{
@@ -1869,7 +1869,7 @@ async function openContactForm(id){
   };
   if(id) qs('#cf-delete',overlay).onclick=async()=>{
     if(c.balance){ toast('Tidak bisa hapus, masih ada saldo hutang/piutang','error'); return; }
-    if(await confirmDialog({icon:'ðŸ—‘ï¸',title:'Hapus data ini?'})){ await contactTable().delete(id); closeModal(overlay); navigate('contacts'); }
+    if(await confirmDialog({icon:'ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂÃÂ¯ÃÂ¸ÃÂ',title:'Hapus data ini?'})){ await contactTable().delete(id); closeModal(overlay); navigate('contacts'); }
   };
 }
 
@@ -1880,13 +1880,13 @@ async function openContactDetail(id){
   const trx=trxAll.filter(t=> isCust? t.customerId===id : t.supplierId===id).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const payments=(await db.payments.toArray()).filter(p=>p.contactId===id).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const overlay=openModal(`
-    <div class="sheet-head"><h3>${esc(c.name)}</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>${esc(c.name)}</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="card row between">
         <div><div class="tiny muted">${isCust?'Piutang':'Utang'} Saat Ini</div><div class="bold" style="font-size:20px;color:${c.balance>0?'var(--red)':'var(--green)'}">${fmtRp(c.balance||0)}</div></div>
         <div class="row gap-8">
-          <button class="btn btn-soft btn-sm" id="cd-edit">âœï¸ Edit</button>
-          ${c.balance>0?`<button class="btn btn-primary btn-sm" id="cd-pay">ðŸ’° Bayar</button>`:''}
+          <button class="btn btn-soft btn-sm" id="cd-edit">ÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ Edit</button>
+          ${c.balance>0?`<button class="btn btn-primary btn-sm" id="cd-pay">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ° Bayar</button>`:''}
         </div>
       </div>
       <div class="section-title"><h3>Riwayat Transaksi</h3></div>
@@ -1929,7 +1929,7 @@ async function renderDebtList(){
         <div style="flex:1"><div class="bold small">${esc(c.name)}</div><div class="tiny muted">${esc(c.phone||'-')}</div></div>
         <div class="bold small" style="color:var(--red)">${fmtRp(c.balance)}</div>
         <button class="btn btn-sm btn-primary" data-settle="${c.id}">Bayar</button>
-      </div>`).join('') : `<div class="emptystate"><div class="ic">ðŸŽ‰</div>Tidak ada ${isPiutang?'piutang':'utang'} tersisa</div>`}`;
+      </div>`).join('') : `<div class="emptystate"><div class="ic">ÃÂ°ÃÂ¸ÃÂ½Ã¢ÂÂ°</div>Tidak ada ${isPiutang?'piutang':'utang'} tersisa</div>`}`;
   qsa('[data-settle]').forEach(b=>b.onclick=()=>openPaymentSettle(Number(b.dataset.settle),isPiutang?'piutang':'utang'));
 }
 
@@ -1937,12 +1937,12 @@ async function openPaymentSettle(contactId,type){
   const table= type==='piutang'? db.customers : db.suppliers;
   const c=await table.get(contactId);
   const overlay=openModal(`
-    <div class="sheet-head"><h3>ðŸ’° Pelunasan: ${esc(c.name)}</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ° Pelunasan: ${esc(c.name)}</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="cash-display"><div class="lbl">Sisa ${type==='piutang'?'Piutang':'Utang'}</div><div class="amt">${fmtRp(c.balance)}</div></div>
       <div class="field mt-16"><label>Jumlah Bayar</label><input class="input" id="ps-amount" inputmode="numeric" value="${c.balance}"></div>
       <div class="field mt-12"><label>Catatan (opsional)</label><input class="input" id="ps-note" placeholder="Pelunasan tunai / transfer"></div>
-      <button class="btn btn-primary btn-block btn-lg mt-16" id="ps-save">âœ… Simpan Pelunasan</button>
+      <button class="btn btn-primary btn-block btn-lg mt-16" id="ps-save">ÃÂ¢ÃÂÃ¢ÂÂ¦ Simpan Pelunasan</button>
     </div>`);
   qs('#ps-save',overlay).onclick=async()=>{
     let amt=Number(qs('#ps-amount',overlay).value)||0;
@@ -1969,16 +1969,16 @@ const ViewCashiers={
     return `
       <div class="row between">
         <h3 style="font-size:16px">Daftar Kasir</h3>
-        <button class="fab" id="btn-add-cashier">âž• Tambah Kasir</button>
+        <button class="fab" id="btn-add-cashier">ÃÂ¢ÃÂ¾Ã¢ÂÂ¢ Tambah Kasir</button>
       </div>
       <div class="card mt-16" style="padding:0">
         ${cashiers.map(c=>{
           const todaySales=sales.filter(s=>s.cashierId===c.id && s.date.slice(0,10)===today);
           const omzet=todaySales.reduce((a,s)=>a+s.total,0);
           return `<div class="list-row" style="padding:12px 14px">
-            <div class="avatar">ðŸ§‘â€ðŸ’¼</div>
+            <div class="avatar">ÃÂ°ÃÂ¸ÃÂ§Ã¢ÂÂÃÂ¢Ã¢ÂÂ¬ÃÂÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¼</div>
             <div style="flex:1"><div class="bold small">${esc(c.name)} ${c.id===State.activeCashierId?'<span class=\"badge badge-green\">Aktif</span>':''}</div>
-            <div class="tiny muted">Omzet hari ini: ${fmtRp(omzet)} Â· ${todaySales.length} transaksi</div></div>
+            <div class="tiny muted">Omzet hari ini: ${fmtRp(omzet)} ÃÂÃÂ· ${todaySales.length} transaksi</div></div>
             <button class="btn btn-sm btn-soft" data-editc="${c.id}">Edit</button>
           </div>`;
         }).join('')}
@@ -2001,12 +2001,12 @@ const ViewCashiers={
 async function openCashierForm(id){
   const c=id? await db.cashiers.get(id) : {name:''};
   const overlay=openModal(`
-    <div class="sheet-head"><h3>${id?'âœï¸ Edit':'âž• Tambah'} Kasir</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>${id?'ÃÂ¢ÃÂÃÂÃÂ¯ÃÂ¸ÃÂ Edit':'ÃÂ¢ÃÂ¾Ã¢ÂÂ¢ Tambah'} Kasir</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="field"><label>Nama Kasir</label><input class="input" id="csf-name" value="${esc(c.name)}"></div>
       <div class="row gap-8 mt-16">
-        ${id?`<button class="btn btn-danger" id="csf-delete">ðŸ—‘ï¸ Hapus</button>`:''}
-        <button class="btn btn-primary btn-block" id="csf-save">ðŸ’¾ Simpan</button>
+        ${id?`<button class="btn btn-danger" id="csf-delete">ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂÃÂ¯ÃÂ¸ÃÂ Hapus</button>`:''}
+        <button class="btn btn-primary btn-block" id="csf-save">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¾ Simpan</button>
       </div>
     </div>`);
   qs('#csf-save',overlay).onclick=async()=>{
@@ -2015,7 +2015,7 @@ async function openCashierForm(id){
     closeModal(overlay); toast('Tersimpan','success'); navigate('cashiers');
   };
   if(id) qs('#csf-delete',overlay).onclick=async()=>{
-    if(await confirmDialog({icon:'ðŸ—‘ï¸',title:'Hapus kasir ini?'})){
+    if(await confirmDialog({icon:'ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂÃÂ¯ÃÂ¸ÃÂ',title:'Hapus kasir ini?'})){
       await db.cashiers.delete(id);
       if(State.activeCashierId===id) State.activeCashierId=null;
       closeModal(overlay); navigate('cashiers');
@@ -2044,7 +2044,7 @@ const ViewReports={
           <input type="date" class="input" id="rp-from" value="${State.reportCustom.from}">
           <input type="date" class="input" id="rp-to" value="${State.reportCustom.to}">
         </div>
-        <button class="btn btn-soft btn-sm" id="btn-export-csv">â¬‡ï¸ Ekspor Ringkasan</button>
+        <button class="btn btn-soft btn-sm" id="btn-export-csv">ÃÂ¢ÃÂ¬Ã¢ÂÂ¡ÃÂ¯ÃÂ¸ÃÂ Ekspor Ringkasan</button>
       </div>
       <div id="rp-content" class="mt-16"></div>`;
   },
@@ -2093,36 +2093,36 @@ async function renderReportContent(){
 
   qs('#rp-content').innerHTML=`
     <div class="dash-grid">
-      <div class="stat-card"><div class="lbl">ðŸ’° Omzet</div><div class="val">${fmtRp(omzet)}</div></div>
-      <div class="stat-card"><div class="lbl">ðŸ“ˆ Laba Kotor</div><div class="val" style="color:var(--green)">${fmtRp(laba)}</div></div>
-      <div class="stat-card"><div class="lbl">ðŸ§¾ Transaksi</div><div class="val">${salesR.length}</div></div>
-      <div class="stat-card"><div class="lbl">ðŸ›ï¸ Rata2/Transaksi</div><div class="val">${fmtRp(salesR.length?omzet/salesR.length:0)}</div></div>
+      <div class="stat-card"><div class="lbl">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ° Omzet</div><div class="val">${fmtRp(omzet)}</div></div>
+      <div class="stat-card"><div class="lbl">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ Laba Kotor</div><div class="val" style="color:var(--green)">${fmtRp(laba)}</div></div>
+      <div class="stat-card"><div class="lbl">ÃÂ°ÃÂ¸ÃÂ§ÃÂ¾ Transaksi</div><div class="val">${salesR.length}</div></div>
+      <div class="stat-card"><div class="lbl">ÃÂ°ÃÂ¸Ã¢ÂÂºÃÂÃÂ¯ÃÂ¸ÃÂ Rata2/Transaksi</div><div class="val">${fmtRp(salesR.length?omzet/salesR.length:0)}</div></div>
     </div>
 
     <div class="split-desktop mt-20">
       <div>
-        <div class="section-title"><h3>ðŸ† Produk Terlaris</h3></div>
+        <div class="section-title"><h3>ÃÂ°ÃÂ¸ÃÂÃ¢ÂÂ  Produk Terlaris</h3></div>
         <div class="card">${top5.filter(x=>x.qty>0).length? top5.map((p,i)=>`<div class="list-row"><b style="width:20px">${i+1}.</b><div style="flex:1" class="small">${esc(p.name)}</div><span class="badge badge-green">${p.qty} terjual</span></div>`).join('') : `<div class="tiny muted">Belum ada penjualan pada periode ini</div>`}</div>
 
-        <div class="section-title"><h3>ðŸ¢ Paling Lambat Terjual</h3></div>
+        <div class="section-title"><h3>ÃÂ°ÃÂ¸ÃÂÃÂ¢ Paling Lambat Terjual</h3></div>
         <div class="card">${bottom5.map((p,i)=>`<div class="list-row"><div style="flex:1" class="small">${esc(p.name)}</div><span class="badge badge-gray">${p.qty} terjual</span></div>`).join('')}</div>
 
-        <div class="section-title"><h3>ðŸ“¦ Laporan Stok</h3></div>
+        <div class="section-title"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¦ Laporan Stok</h3></div>
         <div class="card row between"><span class="small">Produk stok menipis/habis</span><span class="bold" style="color:var(--red)">${lowStock.length}</span></div>
       </div>
       <div>
-        <div class="section-title"><h3>ðŸ’³ Hutang & Piutang</h3></div>
+        <div class="section-title"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ³ Hutang & Piutang</h3></div>
         <div class="card">
           <div class="row between"><span class="small">Total Piutang</span><span class="bold" style="color:var(--red)">${fmtRp(totalPiutang)}</span></div>
           <div class="row between mt-8"><span class="small">Total Utang</span><span class="bold" style="color:var(--amber)">${fmtRp(totalUtang)}</span></div>
         </div>
 
-        <div class="section-title"><h3>ðŸ“’ Buku Kas</h3></div>
+        <div class="section-title"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂ Buku Kas</h3></div>
         <div class="card">
           <div class="row between"><span class="small">Kas Masuk</span><span class="bold" style="color:var(--green)">${fmtRp(kasMasuk)}</span></div>
           <div class="row between mt-8"><span class="small">Kas Keluar</span><span class="bold" style="color:var(--red)">${fmtRp(kasKeluar)}</span></div>
           <div class="row between mt-8"><span class="bold">Saldo Periode</span><span class="bold">${fmtRp(kasMasuk-kasKeluar)}</span></div>
-          <button class="btn btn-soft btn-block mt-12" id="btn-add-cash">âž• Catat Kas Masuk/Keluar Manual</button>
+          <button class="btn btn-soft btn-block mt-12" id="btn-add-cash">ÃÂ¢ÃÂ¾Ã¢ÂÂ¢ Catat Kas Masuk/Keluar Manual</button>
         </div>
         <div class="table-wrap card mt-12" style="max-height:260px;overflow-y:auto">
           <table><thead><tr><th>Tgl</th><th>Kategori</th><th>Jml</th></tr></thead>
@@ -2136,13 +2136,13 @@ async function renderReportContent(){
 
 async function openCashEntryForm(){
   const overlay=openModal(`
-    <div class="sheet-head"><h3>ðŸ“’ Catat Kas</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂ Catat Kas</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="tabbar" id="ce-type"><button data-ty="in" class="active">Kas Masuk</button><button data-ty="out">Kas Keluar</button></div>
       <div class="field mt-12"><label>Jumlah</label><input class="input" id="ce-amount" inputmode="numeric"></div>
       <div class="field mt-12"><label>Kategori</label><input class="input" id="ce-category" placeholder="Operasional, Listrik, dll"></div>
       <div class="field mt-12"><label>Catatan</label><input class="input" id="ce-note"></div>
-      <button class="btn btn-primary btn-block btn-lg mt-16" id="ce-save">ðŸ’¾ Simpan</button>
+      <button class="btn btn-primary btn-block btn-lg mt-16" id="ce-save">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¾ Simpan</button>
     </div>`);
   let ty='in';
   qsa('#ce-type button',overlay).forEach(b=>b.onclick=()=>{ ty=b.dataset.ty; qsa('#ce-type button',overlay).forEach(x=>x.classList.toggle('active',x===b)); });
@@ -2173,52 +2173,52 @@ const ViewSettings={
     const s=await getSettings(); State.settings=s;
     const info=trialInfo(s);
     return `
-      <div class="section-title"><h3>ðŸª Identitas Toko</h3></div>
+      <div class="section-title"><h3>ÃÂ°ÃÂ¸ÃÂÃÂª Identitas Toko</h3></div>
       <div class="card">
         <div class="field"><label>Nama Toko</label><input class="input" id="st-name" value="${esc(s.storeName)}"></div>
         <div class="field mt-12"><label>Alamat</label><textarea class="input" id="st-address">${esc(s.storeAddress)}</textarea></div>
         <div class="field mt-12"><label>No. Telepon Toko</label><input class="input" id="st-phone" value="${esc(s.storePhone)}"></div>
-        <button class="btn btn-primary mt-12" id="btn-save-identity">ðŸ’¾ Simpan</button>
+        <button class="btn btn-primary mt-12" id="btn-save-identity">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¾ Simpan</button>
       </div>
 
-      <div class="section-title"><h3>ðŸ·ï¸ Kategori Produk</h3></div>
+      <div class="section-title"><h3>ÃÂ°ÃÂ¸ÃÂÃÂ·ÃÂ¯ÃÂ¸ÃÂ Kategori Produk</h3></div>
       <div class="card row between"><span class="small">Kelola daftar kategori produk</span><button class="btn btn-soft btn-sm" id="btn-open-cat">Buka</button></div>
 
-      <div class="section-title"><h3>ðŸ§¾ Pajak / PPN</h3></div>
+      <div class="section-title"><h3>ÃÂ°ÃÂ¸ÃÂ§ÃÂ¾ Pajak / PPN</h3></div>
       <div class="card">
         <label class="row between" style="cursor:pointer"><span class="small">Aktifkan PPN pada transaksi</span><input type="checkbox" id="st-tax-on" ${s.taxEnabled?'checked':''}></label>
         <div class="field mt-12"><label>Persentase PPN (%)</label><input class="input" id="st-tax-pct" inputmode="numeric" value="${s.taxPercent}"></div>
-        <button class="btn btn-primary mt-12" id="btn-save-tax">ðŸ’¾ Simpan</button>
+        <button class="btn btn-primary mt-12" id="btn-save-tax">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¾ Simpan</button>
       </div>
 
-      <div class="section-title"><h3>ðŸ’¾ Backup &amp; Restore Data</h3></div>
+      <div class="section-title"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¾ Backup &amp; Restore Data</h3></div>
       <div class="card row gap-8" style="flex-wrap:wrap">
-        <button class="btn btn-soft" id="btn-backup">â¬‡ï¸ Ekspor Backup (.json)</button>
-        <button class="btn btn-outline" id="btn-restore">â¬†ï¸ Impor Backup</button>
+        <button class="btn btn-soft" id="btn-backup">ÃÂ¢ÃÂ¬Ã¢ÂÂ¡ÃÂ¯ÃÂ¸ÃÂ Ekspor Backup (.json)</button>
+        <button class="btn btn-outline" id="btn-restore">ÃÂ¢ÃÂ¬Ã¢ÂÂ ÃÂ¯ÃÂ¸ÃÂ Impor Backup</button>
         <input type="file" id="restore-file" accept=".json" class="hide">
       </div>
 
-      <div class="section-title"><h3>ðŸ”‘ Lisensi Aplikasi</h3></div>
+      <div class="section-title"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂ Lisensi Aplikasi</h3></div>
       <div class="card">
-        ${s.licenseActivated? `<div class="badge badge-green">âœ… Lisensi Aktif</div>` :
-          `<div class="row between"><span class="small">Status</span><span class="badge badge-amber">Trial â€” ${info.daysLeft} hari tersisa</span></div>
+        ${s.licenseActivated? `<div class="badge badge-green">ÃÂ¢ÃÂÃ¢ÂÂ¦ Lisensi Aktif</div>` :
+          `<div class="row between"><span class="small">Status</span><span class="badge badge-amber">Trial ÃÂ¢Ã¢ÂÂ¬Ã¢ÂÂ ${info.daysLeft} hari tersisa</span></div>
            <div class="small muted mt-8">Bagikan info aplikasi untuk mendapat tambahan trial (+1 hari/share, maks 20x). Sudah digunakan: ${s.trialShareCount||0}/20</div>
            <div class="row gap-8 mt-12">
-             <button class="btn btn-soft" id="btn-share-trial" ${((s.trialShareCount||0)>=20)?'disabled':''}>ðŸ“¤ Bagikan +1 Hari</button>
-             <button class="btn btn-primary" id="btn-activate-license">ðŸ”‘ Aktivasi Lisensi</button>
+             <button class="btn btn-soft" id="btn-share-trial" ${((s.trialShareCount||0)>=20)?'disabled':''}>ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¤ Bagikan +1 Hari</button>
+             <button class="btn btn-primary" id="btn-activate-license">ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂ Aktivasi Lisensi</button>
            </div>`}
       </div>
 
-      <div class="section-title"><h3>â˜Žï¸ Bantuan</h3></div>
+      <div class="section-title"><h3>ÃÂ¢ÃÂÃÂ½ÃÂ¯ÃÂ¸ÃÂ Bantuan</h3></div>
       <div class="card row gap-8" style="flex-wrap:wrap">
-        <a class="btn btn-soft" href="https://wa.me/6288816566935" target="_blank">ðŸ’¬ WhatsApp Dev</a>
-        <a class="btn btn-soft" href="mailto:owner.kasirsolo@gmail.com" target="_blank">âœ‰ï¸ Email Dev</a>
+        <a class="btn btn-soft" href="https://wa.me/6288816566935" target="_blank">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¬ WhatsApp Dev</a>
+        <a class="btn btn-soft" href="mailto:owner.kasirsolo@gmail.com" target="_blank">ÃÂ¢ÃÂÃ¢ÂÂ°ÃÂ¯ÃÂ¸ÃÂ Email Dev</a>
       </div>
-      <p class="tiny muted mt-8">Kasir Solo - Retail Â· dikembangkan oleh PT Mesin Kasir Solo</p>
+      <p class="tiny muted mt-8">Kasir Solo - Retail ÃÂÃÂ· dikembangkan oleh PT Mesin Kasir Solo</p>
 
-      <div class="section-title"><h3 style="color:var(--red)">âš ï¸ Zona Berbahaya</h3></div>
+      <div class="section-title"><h3 style="color:var(--red)">ÃÂ¢ÃÂ¡ÃÂ ÃÂ¯ÃÂ¸ÃÂ Zona Berbahaya</h3></div>
       <div class="card">
-        <button class="btn btn-danger btn-block" id="btn-reset-data">ðŸ—‘ï¸ Reset Semua Data</button>
+        <button class="btn btn-danger btn-block" id="btn-reset-data">ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂÃÂ¯ÃÂ¸ÃÂ Reset Semua Data</button>
       </div>`;
   },
   after(){
@@ -2257,7 +2257,7 @@ async function doBackup(){
 }
 async function doRestore(e){
   const file=e.target.files[0]; if(!file) return;
-  const ok=await confirmDialog({icon:'âš ï¸',title:'Timpa semua data saat ini?',desc:'Data yang ada akan diganti dengan isi file backup. Tindakan ini tidak bisa dibatalkan.',okText:'Ya, impor'});
+  const ok=await confirmDialog({icon:'ÃÂ¢ÃÂ¡ÃÂ ÃÂ¯ÃÂ¸ÃÂ',title:'Timpa semua data saat ini?',desc:'Data yang ada akan diganti dengan isi file backup. Tindakan ini tidak bisa dibatalkan.',okText:'Ya, impor'});
   if(!ok){ e.target.value=''; return; }
   
   showLoading('Mengimpor data...');
@@ -2287,14 +2287,14 @@ async function doShareTrial(){
   if(shared){
     const newCount=(s.trialShareCount||0)+1;
     await setSettings({trialShareCount:newCount,trialBonusDays:Math.min(TRIAL_MAX_BONUS,newCount)});
-    toast('+1 hari trial ditambahkan! ðŸŽ‰','success');
+    toast('+1 hari trial ditambahkan! ÃÂ°ÃÂ¸ÃÂ½Ã¢ÂÂ°','success');
     navigate('settings'); updateTopbar();
   }
 }
 
 function openActivateLicense(){
   const overlay=openModal(`
-    <div class="sheet-head"><h3>ðŸ”‘ Aktivasi Lisensi</h3><button class="close-x" onclick="closeModal()">âœ•</button></div>
+    <div class="sheet-head"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂ Aktivasi Lisensi</h3><button class="close-x" onclick="closeModal()">ÃÂ¢ÃÂÃ¢ÂÂ¢</button></div>
     <div class="sheet-body">
       <div class="field"><label>Kode Lisensi</label><input class="input" id="lic-code" placeholder="KSSOLO-XXXX-XXXX" style="text-transform:uppercase"></div>
       <p class="tiny muted mt-8">Belum punya lisensi? Hubungi <a href="https://wa.me/6288816566935" target="_blank">WhatsApp 0881-6566-935</a></p>
@@ -2304,12 +2304,12 @@ function openActivateLicense(){
   qs('#lic-submit',overlay).onclick=async()=>{
     const code=qs('#lic-code',overlay).value.trim();
     if(!code){ toast('Masukkan kode lisensi','error'); return; }
-    const btn=qs('#lic-submit',overlay); btn.disabled=true; btn.textContent='Memeriksaâ€¦';
+    const btn=qs('#lic-submit',overlay); btn.disabled=true; btn.textContent='MemeriksaÃÂ¢Ã¢ÂÂ¬ÃÂ¦';
     const result=await verifyLicenseRemote(code,State.settings.deviceId||getDeviceId());
     btn.disabled=false; btn.textContent='Aktivasi';
     if(result.valid){
       await setSettings({licenseActivated:true,licenseCode:code});
-      toast('Lisensi berhasil diaktifkan! ðŸŽ‰','success');
+      toast('Lisensi berhasil diaktifkan! ÃÂ°ÃÂ¸ÃÂ½Ã¢ÂÂ°','success');
       closeModal(overlay); closeAllModals(); navigate('settings'); updateTopbar();
     } else {
       qs('#lic-msg',overlay).innerHTML=`<span style="color:var(--red)">${esc(result.message)}</span>`;
@@ -2318,9 +2318,9 @@ function openActivateLicense(){
 }
 
 async function doResetData(){
-  const step1=await confirmDialog({icon:'âš ï¸',title:'Reset semua data toko?',desc:'Semua produk, transaksi, dan pengaturan akan dihapus permanen.',okText:'Lanjutkan'});
+  const step1=await confirmDialog({icon:'ÃÂ¢ÃÂ¡ÃÂ ÃÂ¯ÃÂ¸ÃÂ',title:'Reset semua data toko?',desc:'Semua produk, transaksi, dan pengaturan akan dihapus permanen.',okText:'Lanjutkan'});
   if(!step1) return;
-  const step2=await confirmDialog({icon:'ðŸ›‘',title:'Anda yakin sekali?',desc:'Tindakan ini TIDAK BISA DIBATALKAN. Pastikan Anda sudah backup data.',okText:'Ya, Hapus Semua Data'});
+  const step2=await confirmDialog({icon:'ÃÂ°ÃÂ¸Ã¢ÂÂºÃ¢ÂÂ',title:'Anda yakin sekali?',desc:'Tindakan ini TIDAK BISA DIBATALKAN. Pastikan Anda sudah backup data.',okText:'Ya, Hapus Semua Data'});
   if(!step2) return;
 for(const t of db.tables){ await t.clear(); }
   toast('Data berhasil direset');
@@ -2346,17 +2346,17 @@ function renderLicenseOverlay(){
         <p class="small muted mt-8">Trial gratis 7 hari untuk <b>Kasir Solo - Retail</b> di perangkat ini sudah habis. Aktivasi lisensi untuk terus menggunakan aplikasi.</p>
       </div>
       <div class="field mt-16"><label>Kode Lisensi</label><input class="input" id="lo-code" placeholder="KSSOLO-XXXX-XXXX"></div>
-      <button class="btn btn-primary btn-block btn-lg mt-12" id="lo-activate">ðŸ”‘ Aktivasi Sekarang</button>
+      <button class="btn btn-primary btn-block btn-lg mt-12" id="lo-activate">ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂ Aktivasi Sekarang</button>
       <div id="lo-msg" class="small center mt-8"></div>
 
       <div class="mt-16" style="border-top:1px solid var(--line);padding-top:16px">
         <p class="small muted center">Belum punya lisensi? Dapatkan tambahan waktu trial dengan membagikan aplikasi ini (maks 20x, +1 hari/share). Terpakai: ${s.trialShareCount||0}/20</p>
-        <button class="btn btn-soft btn-block mt-8" id="lo-share" ${((s.trialShareCount||0)>=20)?'disabled':''}>ðŸ“¤ Bagikan &amp; Dapatkan +1 Hari</button>
+        <button class="btn btn-soft btn-block mt-8" id="lo-share" ${((s.trialShareCount||0)>=20)?'disabled':''}>ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¤ Bagikan &amp; Dapatkan +1 Hari</button>
       </div>
 
       <div class="mt-16 row gap-8" style="flex-wrap:wrap;justify-content:center">
-        <a class="btn btn-soft btn-sm" href="https://wa.me/6288816566935" target="_blank">ðŸ’¬ WhatsApp 0881-6566-935</a>
-        <a class="btn btn-soft btn-sm" href="mailto:owner.kasirsolo@gmail.com" target="_blank">âœ‰ï¸ owner.kasirsolo@gmail.com</a>
+        <a class="btn btn-soft btn-sm" href="https://wa.me/6288816566935" target="_blank">ÃÂ°ÃÂ¸Ã¢ÂÂÃÂ¬ WhatsApp 0881-6566-935</a>
+        <a class="btn btn-soft btn-sm" href="mailto:owner.kasirsolo@gmail.com" target="_blank">ÃÂ¢ÃÂÃ¢ÂÂ°ÃÂ¯ÃÂ¸ÃÂ owner.kasirsolo@gmail.com</a>
       </div>
       <p class="tiny muted center mt-12">PT Mesin Kasir Solo</p>
     </div>`;
@@ -2365,12 +2365,12 @@ function renderLicenseOverlay(){
   qs('#lo-activate',el).onclick=async()=>{
     const code=qs('#lo-code',el).value.trim();
     if(!code){ toast('Masukkan kode lisensi','error'); return; }
-    const btn=qs('#lo-activate',el); btn.disabled=true; btn.textContent='Memeriksaâ€¦';
+    const btn=qs('#lo-activate',el); btn.disabled=true; btn.textContent='MemeriksaÃÂ¢Ã¢ÂÂ¬ÃÂ¦';
     const result=await verifyLicenseRemote(code,State.settings.deviceId||getDeviceId());
-    btn.disabled=false; btn.textContent='ðŸ”‘ Aktivasi Sekarang';
+    btn.disabled=false; btn.textContent='ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂ Aktivasi Sekarang';
     if(result.valid){
       await setSettings({licenseActivated:true,licenseCode:code});
-      toast('Lisensi aktif! Selamat menggunakan Kasir Solo ðŸŽ‰','success');
+      toast('Lisensi aktif! Selamat menggunakan Kasir Solo ÃÂ°ÃÂ¸ÃÂ½Ã¢ÂÂ°','success');
       el.remove(); bootApp();
     } else {
       qs('#lo-msg',el).innerHTML=`<span style="color:#ffb4b4">${esc(result.message)}</span>`;
@@ -2385,7 +2385,7 @@ function renderLicenseOverlay(){
       const newCount=(s.trialShareCount||0)+1;
       await setSettings({trialShareCount:newCount,trialBonusDays:Math.min(TRIAL_MAX_BONUS,newCount)});
       const newInfo=trialInfo(State.settings);
-      if(newInfo.daysLeft>0){ toast('+1 hari trial! Selamat menggunakan kembali ðŸŽ‰','success'); el.remove(); bootApp(); }
+      if(newInfo.daysLeft>0){ toast('+1 hari trial! Selamat menggunakan kembali ÃÂ°ÃÂ¸ÃÂ½Ã¢ÂÂ°','success'); el.remove(); bootApp(); }
       else{ el.remove(); renderLicenseOverlay(); toast('+1 hari trial ditambahkan'); }
     }
   };
@@ -2413,13 +2413,13 @@ async function firstRunWizardIfNeeded(){
   if(s.storeName && s.storeName!=='Toko Saya') return;
   return new Promise((resolve)=>{
     const overlay=openModal(`
-      <div class="sheet-head"><h3>ðŸ‘‹ Selamat Datang di Kasir Solo</h3></div>
+      <div class="sheet-head"><h3>ÃÂ°ÃÂ¸Ã¢ÂÂÃ¢ÂÂ¹ Selamat Datang di Kasir Solo</h3></div>
       <div class="sheet-body">
         <p class="small muted">Yuk lengkapi identitas toko Anda dulu, ini akan tampil di nota transaksi.</p>
         <div class="field mt-12"><label>Nama Toko</label><input class="input" id="fw-name" placeholder="Toko Berkah Jaya"></div>
         <div class="field mt-12"><label>Alamat (opsional)</label><input class="input" id="fw-address" placeholder="Jl. Contoh No. 1"></div>
         <div class="field mt-12"><label>No. Telepon (opsional)</label><input class="input" id="fw-phone" placeholder="08xxxxxxxxxx"></div>
-        <button class="btn btn-primary btn-block btn-lg mt-16" id="fw-save">Mulai Gunakan Aplikasi ðŸš€</button>
+        <button class="btn btn-primary btn-block btn-lg mt-16" id="fw-save">Mulai Gunakan Aplikasi ÃÂ°ÃÂ¸ÃÂ¡Ã¢ÂÂ¬</button>
       </div>`,{persistent:true});
     qs('#fw-save',overlay).onclick=async()=>{
       const name=qs('#fw-name',overlay).value.trim()||'Toko Saya';
