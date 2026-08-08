@@ -1,10 +1,10 @@
 /**
- * Admin Marketing KASIRSOLO — Leads Module
+ * Admin Marketing KASIRSOLO — Leads Module (Supabase)
  * Leads table, search, filter, status update, delete, export CSV
+ * Data disimpan di Supabase tabel `leads` — service_role key (BYPASS RLS)
  */
 
 import { STATE, subscribe, setState } from './app-state.js';
-import { storage } from './storage.js';
 import { formatDate, escapeHtml } from './utils.js';
 import { showToast } from './toast.js';
 
@@ -14,10 +14,14 @@ let leadsTbody = null;
 let leadsEmpty = null;
 let exportCsvBtn = null;
 
-/**
- * Initialize leads module
- */
-export function initLeads() {
+// Supabase config — read from window at call time
+const getSupabaseConfig = () => ({
+  url: window.SUPABASE_URL || 'https://hhywrvedlwljawgxzpkq.supabase.co',
+  key: window.SUPABASE_SERVICE_KEY || ''
+});
+
+/** Initialize leads module */
+export async function initLeads() {
   leadSearch = document.getElementById('leadsSearch');
   leadStatusFilter = document.getElementById('leadsStatusFilter');
   leadsTbody = document.getElementById('leadsTbody');
@@ -31,16 +35,11 @@ export function initLeads() {
   leadStatusFilter?.addEventListener('change', renderLeads);
   exportCsvBtn?.addEventListener('click', exportCSV);
 
-  // Subscribe to leads changes
-  subscribe('leads', renderLeads);
-
-  // Initial render
-  renderLeads();
+  // Initial load from Supabase
+  await loadLeads();
 }
 
-/**
- * Debounce helper
- */
+/** Debounce helper */
 function debounce(fn, ms) {
   let timeoutId;
   return (...args) => {
@@ -49,9 +48,23 @@ function debounce(fn, ms) {
   };
 }
 
-/**
- * Render leads table
- */
+/** Load all leads from Supabase */
+async function loadLeads() {
+  const { url, key } = getSupabaseConfig();
+  try {
+    const r = await fetch(`${url}/rest/v1/leads?order=created_at.desc`, {
+      headers: { apikey: key, Authorization: 'Bearer ' + key }
+    });
+    STATE.leads = r.ok ? await r.json() : [];
+  } catch (e) {
+    STATE.leads = [];
+    console.error('load leads', e);
+    showToast('Gagal memuat leads dari Supabase', 2000, 'error');
+  }
+  renderLeads();
+}
+
+/** Render leads table */
 export function renderLeads() {
   if (!leadsTbody || !leadSearch || !leadStatusFilter) return;
 
@@ -63,7 +76,8 @@ export function renderLeads() {
       (l.name || '').toLowerCase().includes(search) ||
       (l.wa || '').toLowerCase().includes(search) ||
       (l.address || '').toLowerCase().includes(search) ||
-      (l.app || '').toLowerCase().includes(search);
+      (l.app_type || '').toLowerCase().includes(search) ||
+      (l.email || '').toLowerCase().includes(search);
     const matchStatus = !statusFilter || l.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -79,11 +93,13 @@ export function renderLeads() {
       <td class="lead-contact">
         <b class="lead-name">${escapeHtml(lead.name || '-')}</b>
         <span class="lead-addr">${escapeHtml(lead.address || '-')}</span>
+        ${lead.email ? `<span class="lead-email">${escapeHtml(lead.email)}</span>` : ''}
         <a class="wa-link" href="https://wa.me/${escapeHtml((lead.wa || '').replace(/[^0-9]/g, ''))}" target="_blank" rel="noopener">
           ${escapeHtml(lead.wa || '-')}
         </a>
       </td>
-      <td class="lead-app">${escapeHtml(lead.app || '-')}</td>
+      <td class="lead-app">${escapeHtml(lead.app_type || '-')}</td>
+      <td class="lead-source">${escapeHtml(lead.source || '-')}</td>
       <td>
         <select class="status-select" data-id="${escapeHtml(lead.id)}">
           ${['baru', 'dihubungi', 'tertarik', 'deal', 'batal'].map(s =>
@@ -91,7 +107,7 @@ export function renderLeads() {
           ).join('')}
         </select>
       </td>
-      <td class="lead-date">${formatDate(lead.createdAt)}</td>
+      <td class="lead-date">${formatDate(lead.created_at)}</td>
       <td>
         <button class="btn btn-sm btn-danger" data-del="${escapeHtml(lead.id)}">Hapus</button>
       </td>
@@ -102,9 +118,7 @@ export function renderLeads() {
   bindRowEvents();
 }
 
-/**
- * Bind events for status selects and delete buttons
- */
+/** Bind events for status selects and delete buttons */
 function bindRowEvents() {
   if (!leadsTbody) return;
 
@@ -114,12 +128,11 @@ function bindRowEvents() {
       const lead = (STATE.leads || []).find(l => l.id === sel.dataset.id);
       if (lead) {
         lead.status = sel.value;
-        const success = await storage.set('leads', STATE.leads);
+        const success = await updateLeadStatus(lead.id, sel.value);
         if (success) {
-          setState('leads', STATE.leads);
           showToast('Status lead diperbarui', 2000, 'success');
         } else {
-          showToast('Gagal menyimpan', 2000, 'error');
+          showToast('Gagal menyimpan ke Supabase', 2000, 'error');
           renderLeads(); // Revert
         }
       }
@@ -131,36 +144,71 @@ function bindRowEvents() {
     btn.addEventListener('click', async () => {
       if (!confirm('Hapus lead ini?')) return;
       const id = btn.dataset.del;
-      STATE.leads = (STATE.leads || []).filter(l => l.id !== id);
-      const success = await storage.set('leads', STATE.leads);
+      const success = await deleteLead(id);
       if (success) {
-        setState('leads', STATE.leads);
+        STATE.leads = (STATE.leads || []).filter(l => l.id !== id);
+        renderLeads();
         showToast('Lead dihapus', 2000, 'success');
       } else {
-        showToast('Gagal menghapus', 2000, 'error');
-        renderLeads(); // Revert
+        showToast('Gagal menghapus dari Supabase', 2000, 'error');
       }
     });
   });
 }
 
-/**
- * Export leads to CSV
- */
+/** Update lead status in Supabase */
+async function updateLeadStatus(id, status) {
+  const { url, key } = getSupabaseConfig();
+  try {
+    const r = await fetch(`${url}/rest/v1/leads?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: {
+        apikey: key,
+        Authorization: 'Bearer ' + key,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({ status, updated_at: new Date().toISOString() })
+    });
+    return r.ok;
+  } catch (e) {
+    console.error('update lead status', e);
+    return false;
+  }
+}
+
+/** Delete lead from Supabase */
+async function deleteLead(id) {
+  const { url, key } = getSupabaseConfig();
+  try {
+    const r = await fetch(`${url}/rest/v1/leads?id=eq.${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { apikey: key, Authorization: 'Bearer ' + key }
+    });
+    return r.ok || r.status === 204;
+  } catch (e) {
+    console.error('delete lead', e);
+    return false;
+  }
+}
+
+/** Export leads to CSV */
 function exportCSV() {
   if (!STATE.leads?.length) {
     showToast('Belum ada leads untuk diekspor', 2000, 'warning');
     return;
   }
 
-  const header = ['Nama', 'Alamat', 'WhatsApp', 'Aplikasi', 'Status', 'Tanggal Daftar'];
+  const header = ['Nama', 'Alamat', 'WhatsApp', 'Email', 'Aplikasi', 'Sumber', 'Status', 'Tanggal Daftar'];
   const rows = STATE.leads.map(l => [
     l.name || '',
     l.address || '',
     l.wa || '',
-    l.app || '',
+    l.email || '',
+    l.app_type || '',
+    l.source || '',
     l.status || '',
-    l.createdAt || ''
+    l.created_at || ''
   ]);
 
   const csv = [header, ...rows].map(r =>
@@ -178,9 +226,7 @@ function exportCSV() {
   showToast('CSV berhasil diunduh', 2000, 'success');
 }
 
-/**
- * Get status label for display
- */
+/** Get status label for display */
 function getStatusLabel(status) {
   const labels = {
     'baru': '🆕 Baru',
@@ -192,9 +238,7 @@ function getStatusLabel(status) {
   return labels[status] || status;
 }
 
-/**
- * Open lead detail sheet (dipanggil dari recent activity di dashboard)
- */
+/** Open lead detail sheet (dipanggil dari recent activity di dashboard) */
 export function openLeadDetail(id) {
   const overlay = document.getElementById('sheetLeadDetail');
   const body = document.getElementById('leadDetailBody');
@@ -209,9 +253,12 @@ export function openLeadDetail(id) {
       <div class="field"><label class="field-label">Nama / Bisnis</label><input class="input-mono" readonly value="${escapeHtml(lead.name || '')}"></div>
       <div class="field"><label class="field-label">Alamat</label><input class="input-mono" readonly value="${escapeHtml(lead.address || '-')}"></div>
       <div class="field"><label class="field-label">WhatsApp</label><input class="input-mono" readonly value="${escapeHtml(lead.wa || '-')}"></div>
-      <div class="field"><label class="field-label">Aplikasi</label><input class="input-mono" readonly value="${escapeHtml(lead.app || '-')}"></div>
+      <div class="field"><label class="field-label">Email</label><input class="input-mono" readonly value="${escapeHtml(lead.email || '-')}"></div>
+      <div class="field"><label class="field-label">Aplikasi</label><input class="input-mono" readonly value="${escapeHtml(lead.app_type || '-')}"></div>
+      <div class="field"><label class="field-label">Sumber</label><input class="input-mono" readonly value="${escapeHtml(lead.source || '-')}"></div>
       <div class="field"><label class="field-label">Status</label><input class="input-mono" readonly value="${escapeHtml(getStatusLabel(lead.status) || lead.status)}"></div>
-      <div class="field"><label class="field-label">Tanggal Daftar</label><input class="input-mono" readonly value="${escapeHtml(lead.createdAt || '-')}"></div>
+      <div class="field"><label class="field-label">Tanggal Daftar</label><input class="input-mono" readonly value="${escapeHtml(formatDate(lead.created_at || '-'))}"></div>
+      ${lead.notes ? `<div class="field field-span-2"><label class="field-label">Catatan</label><input class="input-mono" readonly value="${escapeHtml(lead.notes)}"></div>` : ''}
     `;
   }
   overlay.classList.add('open');
