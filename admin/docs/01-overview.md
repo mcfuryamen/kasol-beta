@@ -30,7 +30,7 @@ Dashboard internal untuk mengelola seluruh ekosistem KASIRSOLO — leads, katalo
 Admin dashboard berfungsi sebagai **pusat kontrol** untuk owner dan tim KASIRSOLO:
 
 1. **Melihat statistik** — 6 KPI: Total Leads 👥, Deal 🤝, Aplikasi Aktif 📦, Potensial Revenue 💰, Lead Baru 🆕, Konversi 📈
-2. **Mengelola leads** — memantau pendaftar trial dari landing page (tabel 5 kolom, search, filter, export CSV)
+2. **Mengelola Klien (CRM)** — profil outlet dari aplikasi klien (onboarding + update profil) di tabel `clients` Supabase, search/filter, generate lisensi per klien
 3. **Mengelola katalog** — CRUD aplikasi yang tampil di landing (card actions: Edit/Hapus, sheet form `.field-grid`)
 4. **Generate lisensi** — membuat serial aktivasi untuk klien (HMAC-SHA256, product registry, generate/verify)
 5. **Mengatur pengaturan** — info usaha (field-grid 2 kolom tablet/desktop), landing config, backup/restore
@@ -84,13 +84,16 @@ Menampilkan ringkasan data bisnis (6 KPI gradient cards):
 - **Bar Charts**: Leads per Aplikasi + Leads per Status (horizontal, proportional)
 - **Empty states**: pakai `hidden` attribute (bukan inline style)
 
-### 2. Leads Management
+### 2. Klien (CRM) Management
 
-Tabel interaktif 5 kolom untuk mengelola pendaftar trial:
-- **Kolom**: Nama/Bisnis, WhatsApp (link wa.me), Aplikasi, Tanggal Daftar, Status (dropdown)
-- **Toolbar**: Search real-time (nama/WA/alamat) + Filter status dropdown
-- **Actions**: Ubah status (auto-save), Hapus (konfirmasi), Export CSV
-- **Empty state**: `hidden` attribute + semantic classes (`.empty-icon`, `.empty-title`, `.empty-desc`)
+Tabel interaktif untuk mengelola profil outlet dari aplikasi klien (onboarding + update profil):
+- **Kolom**: Nama Warung, Device Code, Aplikasi, Nama Pemilik, No. WhatsApp, Wilayah, Status Aktif
+- **Toolbar**: Search real-time (nama/device/WA/wilayah) + Filter aplikasi dropdown
+- **Actions**: Generate lisensi per klien (device code auto-fill), Edit profil, Hapus (konfirmasi)
+- **Stats**: Total Outlet, Aktif 30 hari, Per Aplikasi, Sebaran Wilayah
+- **Empty state**: `hidden` attribute + semantic classes
+
+*Catatan: Leads dari landing page sekarang di-handle via onboarding & update profil di aplikasi klien → satu tabel `clients` di Supabase.*
 
 ### 3. Katalog Management
 
@@ -134,7 +137,6 @@ Form untuk mengontrol konten landing page + admin backup:
 |-----|--------|---------|---------|
 | `kasirsolo:catalog` | Admin → Landing | Admin | Landing page |
 | `kasirsolo:settings` | Admin → Landing | Admin | Landing page |
-| `kasirsolo:leads` | Landing → Admin | Landing (form) | Admin |
 | `kasirsolo:stats` | Landing → Admin | Landing (visit) | Admin |
 | `kasirsolo_license_products_v3` | Admin only | Admin | Admin |
 
@@ -144,7 +146,7 @@ Form untuk mengontrol konten landing page + admin backup:
 |-------|--------|
 | `users` | Multi-user dengan RLS (owner & tim) |
 | `businesses` | Data bisnis klien / unit |
-| `leads` | Pendaftar trial (terintegrasi dengan users) |
+| `clients` | Profil outlet (onboarding + update profil app klien) — **dedupe by unit_id** |
 | `products` | Katalog aplikasi |
 | `settings` | Pengaturan landing page |
 | `licenses` | Serial, device code, HMAC, expiry, **status (active/expired/revoked)** — generate & validasi |
@@ -171,38 +173,7 @@ Form untuk mengontrol konten landing page + admin backup:
 
 ## 📁 Struktur File (Updated)
 
-```
-admin/
-├── docs/
-│   ├── 00-ekosistem.md
-│   ├── 01-overview.md          # (file ini)
-│   ├── 02-architecture.md
-│   ├── 03-data-schema.md
-│   ├── 04-license-system.md
-│   ├── 05-design-system.md
-│   ├── 06-product-features.md
-│   └── 07-setup-deploy.md
-├── index.html                  # Entry point, no inline styles
-├── style.css                   # Design system, 4-tier responsive
-├── js/
-│   ├── app.js                  # Entry: boot + routing
-│   ├── app-state.js            # State management
-│   ├── storage.js              # Storage abstraction
-│   ├── utils.js                # Utilities
-│   ├── toast.js                # Toast system
-│   ├── auth.js                 # Auth gate
-│   ├── navigation.js           # Screen switching
-│   ├── dashboard.js            # Dashboard module
-│   ├── leads.js                # Leads module
-│   ├── catalog.js              # Catalog module
-│   ├── license-ui.js           # License UI module
-│   ├── license-core.js         # Pure HMAC core
-│   └── settings.js             # Settings module
-├── vercel.json
-├── manifest.json
-├── sw.js
-└── .vercelignore
-```
+```\nadmin/\n├── docs/\n│   ├── 00-ekosistem.md\n│   ├── 01-overview.md          # (file ini)\n│   ├── 02-architecture.md\n│   ├── 03-data-schema.md\n│   ├── 04-license-system.md\n│   ├── 05-design-system.md\n│   ├── 06-product-features.md\n│   └── 07-setup-deploy.md\n├── index.html                  # Entry point, no inline styles\n├── style.css                   # Design system, 4-tier responsive\n├── js/\n│   ├── app.js                  # Entry: boot + routing\n│   ├── app-state.js            # State management\n│   ├── storage.js              # Storage abstraction\n│   ├── utils.js                # Utilities\n│   ├── toast.js                # Toast system\n│   ├── auth.js                 # Auth gate\n│   ├── navigation.js           # Screen switching\n│   ├── dashboard.js            # Dashboard module\n│   ├── clients.js              # Klien (CRM) module\n│   ├── catalog.js              # Catalog module\n│   ├── license-ui.js           # License UI module\n│   ├── license-core.js         # Pure HMAC core\n│   └── settings.js             # Settings module\n├── vercel.json\n├── manifest.json\n├── sw.js\n└── .vercelignore\n```
 
 ---
 
@@ -218,11 +189,24 @@ python3 -m http.server 8083
 
 # 3. Navigasi menggunakan bottom nav (HP) atau sidebar (Desktop)
 #    - Dashboard: 6 KPI + bar charts
-#    - Leads: kelola pendaftar trial
 #    - Katalog: kelola aplikasi landing page
 #    - Lisensi: generate/verifikasi serial
+#    - Klien: Outlet (CRM) + tab Leads (pendaftar trial)
 #    - Pengaturan: atur info usaha, landing, backup
 ```
+
+---
+
+## 🔄 Perubahan Terbaru (2026-08-08)
+
+- **Merge Leads → Klien (CRM)**: screen & menu **Leads terpisah dihapus**; leads kini **tab "Leads"** di dalam satu layar **Klien** (`screen-klien`, `.tab-btn` Outlet/Leads) — `js/clients.js` menangani keduanya (`loadClients` + `loadLeads` → `STATE.leads`), `js/leads.js` dihapus
+- **Fix clients.js bugs**: 3 header `apikey: *** Authorization` → `apikey: key, Authorization: 'Bearer ' + key`
+- **Sync 4-level wilayah (desa)**: `sync.js`, `settings.js`, `clients.js` include `desa_id`, `desa`
+- **Smart Gate 2-langkah onboarding**: Step 1 nama usaha → Step 2 S&K (Batal/Setuju)
+- **PWA Install Detection**: `pwa.js` auto-detect installed PWA, no banner jika sudah terpasang
+- **Custom Period Laporan**: Tab "Custom" dengan date picker mulai-selesai
+- **Supabase Access Token (Hermes Env)**: Migration otomatis via Management API
+- **Update dokumentasi**: CONTEXT.md, 08-supabase-integration.md, 01-overview.md, 00-ekosistem.md, kaki5 README.md, kaki5 DEVELOPER.md
 
 ---
 

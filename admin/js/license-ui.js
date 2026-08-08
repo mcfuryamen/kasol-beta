@@ -612,4 +612,9 @@ window.downloadSerial = downloadSerial;
 window.verifySerial = handleVerify;
 window.openLicenseSheet = openLicenseSheet;
 window.exportLicenseBackup = exportLicenseBackup;
+
+// Aksesibilitas: chip Status Lisensi fokusable keyboard (role=button di HTML)
+document.getElementById('licenseChip')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLicenseSheet(); }
+});
 window.importLicenseBackup = importLicenseBackup;

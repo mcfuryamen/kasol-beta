@@ -155,16 +155,16 @@ Nama database: **`KasirSoloKakiLima`**.
 - **Catat pengeluaran** langsung dari halaman laporan (navigasi tanggal, kategori dropdown).
 
 ### 5. ⚙️ Pengaturan (Profil)
-Onboarding **single-step**: isi **Nama Usaha** + setujui **Syarat & Ketentuan**
-→ "Mulai Masa Percobaan". Setelah masuk, bila profil belum lengkap
-muncul **banner "📝 Lengkapi profil usahamu"** di beranda dengan tombol menuju
-Pengaturan. Halaman pengaturan menampilkan kartu **"📋 Info Usaha"** dengan field:
+Onboarding **2-langkah (smart gate)**: 
+1. **Step 1** — Input Nama Usaha → tombol "Lanjutkan"
+2. **Step 2** — Modal **Syarat & Ketentuan** (Batal/Setuju) → "Mulai Masa Percobaan"
+
+Setelah masuk, bila profil belum lengkap muncul **banner "📝 Lengkapi profil usahamu"** di beranda dengan tombol menuju Pengaturan. Halaman pengaturan menampilkan kartu **"📋 Info Usaha"** dengan field:
 - **Nama Usaha** (diisi saat onboarding, boleh diubah)
 - **Nama Pemilik** (diisi di sini → didorong ke Supabase per unitId untuk CRM)
 - **Nomor WhatsApp** (diisi di sini → untuk kontak/push)
-- **Alamat** (region picker: Provinsi → Kota/Kab → Kecamatan + detail — cloud sync ke lapisan CRM)
-- Kartu **☁️ Sinkronisasi** + tombol "Sinkron Sekarang".
-Setiap perubahan profil otomatis **menyinkronkan ulang ke Supabase** (`js/sync.js`).
+- **Alamat** (region picker 4-level: Provinsi → Kota/Kab → Kecamatan → Desa/Kelurahan + detail — cloud sync ke lapisan CRM)
+- Setiap perubahan profil otomatis **menyinkronkan ulang ke Supabase** (`js/sync.js`).
 
 Fitur lain:
 - **Simpan cadangan (export JSON)** & **Pulihkan data (import JSON)** dengan **validasi struktur ketat**.

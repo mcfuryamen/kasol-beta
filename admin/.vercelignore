@@ -8,3 +8,9 @@ docs/
 # Migrasi/Sensitiv — jangan deploy file helper yang memuat utility kredensial
 migrate-catalog-to-supabase.html
 run-migration.html
+# Prototipe & backup — jangan deploy (outputDirectory = akar, jadi harus dikecualikan)
+proto/
+proto2/
+.pre-proto2-backup/
+prototype-redesign.html
+*.backup*

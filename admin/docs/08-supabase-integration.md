@@ -282,6 +282,36 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...4x50
 
 ---
 
+## 🔐 Supabase Access Token (Hermes Env)
+
+**Access Token Supabase sudah disimpan di Hermes environment** (`C:\Users\Admin\AppData\Local\hermes\.env`):
+
+```bash
+SUPABASE_PROJECT_REF=hhywrvedlwljawgxzpkq
+SUPABASE_ACCESS_TOKEN=sbp_xxx...  # Personal Access Token dengan scope admin
+```
+
+### Kegunaan
+Agent/assistant (Hermes) **bisa eksekusi migration SQL langsung** via Supabase Management API tanpa manual ke dashboard:
+
+```bash
+# Contoh: Jalankan migration via Management API
+curl -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
+  -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "CREATE TABLE ..."}'
+```
+
+### Workflow Migration (Otomatis)
+1. **Agent baca file SQL** dari `supabase/migration-*.sql`
+2. **Agent POST ke Management API** pakai `SUPABASE_ACCESS_TOKEN`
+3. **Supabase eksekusi query** → return hasil
+4. **Agent verifikasi** → update checklist/docs
+
+> **Tidak perlu manual** buka Supabase Dashboard → SQL Editor → paste query. Agent handle end-to-end.
+
+---
+
 ## 🚀 Seed Data (products)
 
 11 produk default sudah di-insert ke Supabase:
@@ -345,6 +375,8 @@ Admin dashboard di-deploy ke Vercel (URL publik). `js/env-loader.js` meng-inject
 - [ ] **Migrate `stats` ke Supabase** (rencana)
 - [ ] **Security Hardening: Auth + RLS / Serverless Proxy** (prioritas tinggi)
 - [ ] **License validation endpoint di Supabase Edge Function** (untuk verifikasi online)
+
+> **Catatan**: Migration sekarang bisa dijalankan otomatis oleh Agent via Supabase Management API menggunakan `SUPABASE_ACCESS_TOKEN` di Hermes env. Tidak perlu manual ke dashboard.
 
 ---
 

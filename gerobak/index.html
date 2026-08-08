@@ -696,9 +696,14 @@ function generateDeviceId(){
   return "DID-" + toBase36_4(h1) + toBase36_4(h2);
 }
 
-function validateSerialWithDevice(serial, deviceId){
+async function validateSerialWithDevice(serial, deviceId){
   if(!serial || !deviceId) return false;
   const s = (serial || "").trim().toUpperCase();
+  // GBK HMAC-V2 dulu, lalu fallback ke legacy KSG.
+  if(s.indexOf("GBK-") === 0){
+    const res = await validateGBKSerial(serial, deviceId);
+    return res ? res.valid === true : false;
+  }
   // Format: KSG-AAAA-BBBB-CCCC-DDDD-<deviceId>. deviceId sendiri mengandung "-"
   // (contoh DID-AB12CD34), jadi segmen terakhir ditangkap utuh.
   const re = new RegExp("^" + LICENSE_PREFIX + "-([0-9A-Z]{4})-([0-9A-Z]{4})-([0-9A-Z]{4})-([0-9A-Z]{4})-(.+)$");
@@ -708,6 +713,26 @@ function validateSerialWithDevice(serial, deviceId){
   if(did !== normalizeDeviceId(deviceId)) return false;
   // Checksum dihitung dari body + deviceId: memalsukan deviceId membatalkan checksum.
   return computeDeviceChecksum(m[1] + m[2], did) === (m[3] + m[4]);
+}
+
+// ===== GBK HMAC-V2 (serial dari dashboard admin) =====
+const GBK_PREFIX='GBK';
+const GBK_SALT='KASIRSOLO-GEROBAK-HMAC-V2';
+const GBK_B32='23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+function gbkNormalizeDevice(id){return String(id||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8).padEnd(8,'X');}
+function gbkB32(bytes,len){let bits=0,val=0,out='';for(let i=0;i<bytes.length;i++){val=(val<<8)|bytes[i];bits+=8;while(bits>=5){out+=GBK_B32[(val>>>(bits-5))&31];bits-=5;}}if(bits>0)out+=GBK_B32[(val<<(5-bits))&31];return len?(out.slice(0,len)):out;}
+async function gbkHmac(data){const enc=new TextEncoder();const key=await crypto.subtle.importKey('raw',enc.encode(GBK_SALT),{name:'HMAC',hash:'SHA-256'},false,['sign']);const sig=await crypto.subtle.sign('HMAC',key,enc.encode(GBK_SALT+data));return gbkB32(new Uint8Array(sig),6);}
+function gbkExpired(exp){if(exp==='99')return false;const months=parseInt(exp);if(isNaN(months))return false;const d=new Date();d.setMonth(d.getMonth()+months);return new Date()>d;}
+async function validateGBKSerial(serial, deviceId){
+  const clean=(serial||'').trim().toUpperCase().replace(/\s+/g,'');
+  const re=/^GBK-([A-Z0-9]{4})-([A-Z0-9]{4})-([A-Z0-9]{2})-([A-Z0-9]{6})$/;
+  const m=clean.match(re); if(!m)return null;
+  const d1=m[1],d2=m[2],exp=m[3],sig=m[4];
+  if((d1+d2)!==gbkNormalizeDevice(deviceId))return {valid:false,reason:'device'};
+  const expected=await gbkHmac(d1+d2+exp);
+  if(sig!==expected)return {valid:false,reason:'hmac'};
+  if(gbkExpired(exp))return {valid:false,reason:'expired'};
+  return {valid:true,expCode:exp};
 }
 
 /* ---------------------------------------------------------------------
@@ -2953,7 +2978,7 @@ async function activateWithSerial(serial, deviceId, onSuccess){
     toast("Nomor serial belum diisi","error");
     return false;
   }
-  if(!validateSerialWithDevice(s, deviceId)){
+  if(!(await validateSerialWithDevice(s, deviceId))){
     toast("Nomor serial tidak valid untuk perangkat ini. Kirim ID Perangkat Anda ke support.","error");
     return false;
   }
@@ -3024,7 +3049,7 @@ async function isLicenseActive(){
   if(!activated) return false;
   const key = await getSetting("licenseKey", null);
   const deviceId = await getSetting("deviceId", null);
-  if(key && deviceId && validateSerialWithDevice(key, deviceId)) return true;
+  if(key && deviceId && await validateSerialWithDevice(key, deviceId)) return true;
   await setSetting("licenseActivated", false);
   return false;
 }

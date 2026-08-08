@@ -1,7 +1,7 @@
 // Service Worker for Admin Marketing KASIRSOLO
 // Version: v1.0.0 - Update this when changing cached assets
 
-const CACHE_NAME = 'kasir-admin-v2';
+const CACHE_NAME = 'kasir-admin-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -15,8 +15,10 @@ const STATIC_ASSETS = [
   '/js/auth.js',
   '/js/navigation.js',
   '/js/dashboard.js',
-  '/js/leads.js',
   '/js/catalog.js',
+  '/js/clients.js',
+  '/js/emoji-picker.js',
+  '/js/overlay-a11y.js',
   '/js/settings.js',
   '/js/license-core.js',
   '/js/license-ui.js'

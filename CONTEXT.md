@@ -57,46 +57,6 @@ Sebelum jalanin preview/dev server, SELALU pakai port dari tabel ini. **Jangan n
 
 ---
 
-## 📦 Referensi Arsitektur Aplikasi Klien
-
-### RUJUKAN UTAMA: `rosok.zip`
-
-File `rosok.zip` adalah **versi single-HTML final** dari aplikasi Rosok yang sudah berjalan di produksi.
-File ini menjadi **standar referensi** untuk:
-- **Fitur** yang harus ada di setiap aplikasi klien
-- **Layout & navigasi** (topbar + bottom nav)
-- **Color palette & design system**
-- **Sheet/overlay pattern** untuk form & modals
-- **Database schema** Dexie
-- **License validation** flow
-- **Service Worker** pattern
-- **PWA manifest**
-
-> **Catatan:** Folder `rosok/` yang modular sedang dalam proses refactor. **Jangan gunakan sebagai referensi** — gunakan `rosok.zip` saja.
-
-### Pola Development
-
-```
-  TINGKAT 1: Single HTML (sekarang)
-  └─ Satu file index.html (~276KB)
-  └─ Dexie.js di-embed inline di <script>
-  └─ Semua CSS inline di <style>
-  └─ Semua JS inline di <script>
-  └─ Gambar eksternal (assets/)
-  
-  TINGKAT 2: Modular (rencana ke depan)
-  └─ index.html (HTML shell)
-  └─ style.css (eksternal)
-  └─ js/app.js (entry point)
-  └─ js/db.js (Dexie)
-  └─ js/license.js, js/onboard.js, dll
-```
-
-**Aplikasi baru dibangun dengan pola Single HTML (Tingkat 1),**
-kemudian bisa di-refactor ke modular nanti.
-
----
-
 ## 🎨 Design System (Dari Rosok.zip)
 
 ### Color Palette
@@ -393,11 +353,43 @@ Kunci natural = `unit_id`. Kolom: `unit_id, app_type, device_code, install_id,`
 ### Catatan lisensi
 - Prefix produk kaki5 = **`KK5`** (bukan `K5`) — admin product registry wajib
   `KK5` agar serial yang digenerate diterima app. (`KSR/GBK/RTL` sesuai app.)
+- **Status (2026-08-08):** ke-4 app klien memakai skema **HMAC-V2** dan
+  memvalidasi serial yang di-generate admin — prefix `KSR`(rosok),
+  `KK5`(kaki5), `GBK`(gerobak), `RTL`(retail), salt masing-masing
+  `KASIRSOLO-{APP}-HMAC-V2`. Device-match memakai `normalizeDeviceCode(deviceId)`
+  (uppercase, buang non-alfanumerik, 8 karakter pertama, pad `X`).
 
 **Kredensial Supabase** disimpan di env hermes (`C:\Users\Admin\AppData\Local\hermes\.env`):
 `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`,
-`SUPABASE_URL`, `SUPABASE_ANON_KEY`. Gunakan access token untuk eksekusi SQL via
-Management API `POST /v1/projects/{ref}/database/query`.
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`. 
+
+### Supabase Access Token (Hermes Env)
+
+**Access Token Supabase sudah disimpan di Hermes environment** (`C:\Users\Admin\AppData\Local\hermes\.env`):
+
+```bash
+SUPABASE_PROJECT_REF=hhywrvedlwljawgxzpkq
+SUPABASE_ACCESS_TOKEN=sbp_xxx...  # Personal Access Token dengan scope admin
+```
+
+### Kegunaan
+Agent/assistant (Hermes) **bisa eksekusi migration SQL langsung** via Supabase Management API tanpa manual ke dashboard:
+
+```bash
+# Contoh: Jalankan migration via Management API
+curl -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
+  -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "CREATE TABLE ..."}'
+```
+
+### Workflow Migration (Otomatis)
+1. **Agent baca file SQL** dari `supabase/migration-*.sql`
+2. **Agent POST ke Management API** pakai `SUPABASE_ACCESS_TOKEN`
+3. **Supabase eksekusi query** → return hasil
+4. **Agent verifikasi** → update checklist/docs
+
+> **Tidak perlu manual** buka Supabase Dashboard → SQL Editor → paste query. Agent handle end-to-end.
 
 ## 🌐 PWA
 
@@ -480,7 +472,7 @@ Env var per project (mis. `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE
 | Folder | lowercase, tanpa spasi | `rosok/`, `konveksi/` |
 | Database Dexie | PascalCase + "DB" | `KasirSoloRosokDB` |
 | Product Prefix | 3-5 huruf kapital UNIK | `KSR`, `KKN`, `KSL` |
-| Product Salt | `KASIRSOLO-{PREFIX}-{YEAR}-{RANDOM}` | `KASIRSOLO-KONVEKSI-2026-abc123` |
+| Product Salt | `KASIRSOLO-{APP}-HMAC-V2` | `KASIRSOLO-GEROBAK-HMAC-V2` |
 | Vercel project | `kasir-nama-aplikasi` | `kasir-konveksi` |
 
 ---

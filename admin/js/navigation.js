@@ -16,7 +16,7 @@ let hamburger = null;
 export function initNavigation() {
   sidebar = document.querySelector('.sidebar');
   sidebarOverlay = document.getElementById('sidebarOverlay');
-  navItems = document.querySelectorAll('.nav-item, .sb-link');
+  navItems = document.querySelectorAll('.nav-link, .nav-item, .sb-link');
 
   // Hamburger is already in HTML (topbar-right)
   hamburger = document.querySelector('.hamburger');
@@ -57,12 +57,14 @@ export function initNavigation() {
  */
 export function switchScreen(screen) {
   // Update sidebar links
-  document.querySelectorAll('.sb-link').forEach(link => {
+  document.querySelectorAll('.nav-link, .sb-link').forEach(link => {
     link.classList.toggle('active', link.dataset.screen === screen);
+    if (link.dataset.screen === screen) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
   });
 
   // Update bottom nav
-  document.querySelectorAll('.nav-item').forEach(item => {
+  document.querySelectorAll('.nav-item, .nav-link').forEach(item => {
     item.classList.toggle('active', item.dataset.screen === screen);
   });
 
@@ -89,10 +91,12 @@ export function switchScreen(screen) {
  * @param {string} screen
  */
 export function updateActiveScreen(screen) {
-  document.querySelectorAll('.sb-link').forEach(link => {
+  document.querySelectorAll('.nav-link, .sb-link').forEach(link => {
     link.classList.toggle('active', link.dataset.screen === screen);
+    if (link.dataset.screen === screen) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
   });
-  document.querySelectorAll('.nav-item').forEach(item => {
+  document.querySelectorAll('.nav-item, .nav-link').forEach(item => {
     item.classList.toggle('active', item.dataset.screen === screen);
   });
   document.querySelectorAll('.screen').forEach(s => {
@@ -126,7 +130,7 @@ function closeSidebar() {
  * @returns {string}
  */
 export function getCurrentScreen() {
-  const activeLink = document.querySelector('.sb-link.active, .nav-item.active');
+  const activeLink = document.querySelector('.nav-link.active, .sb-link.active, .nav-item.active');
   return activeLink?.dataset.screen || 'dashboard';
 }
 

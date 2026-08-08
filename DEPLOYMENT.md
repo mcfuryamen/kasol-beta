@@ -71,10 +71,10 @@ Tidak ada secrets GitHub Actions lagi (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_
 ```bash
 # Edit file di folder aplikasi (produksi: C:\Users\Admin\Documents\kasol\<app>)
 # Sync → mirror: jalankan script sync (sync-to-mirror.sh, whitelist)
-# Commit & push dari mirror:
+# Commit ke mirror (manual, di folder mirror):
 git add <app>/
 git commit -m "feat: ..."
-git push            # → Vercel auto-deploy project yang berubah
+# Push ke GitHub (manual, dilakukan oleh pengguna):
 ```
 
 Tidak ada path-filter per-app di CI — **Vercel git integration** yang menangani per-app secara otomatis via Root Directory.

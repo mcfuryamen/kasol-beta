@@ -167,7 +167,17 @@ Setiap produk (aplikasi) punya pasangan **prefix + salt** yang unik.
 | Panjang | 3-5 huruf kapital |
 | Unik | Tidak boleh sama dengan produk lain |
 | Konsisten | Harus sama di semua aplikasi klien |
-| Contoh | `KSR` (Rosok), `KRT` (Retail), `KSL` (Laundry) |
+| Contoh | `KSR` (Rosok), `KK5` (Kaki5), `GBK` (Gerobak), `RTL` (Retail) |
+
+> **Produk aktif saat ini (2026-08-08):**
+> | Prefix | App | Salt (HMAC-V2) |
+> |--------|-----|----------------|
+> | `KSR` | rosok | `KASIRSOLO-ROSOK-HMAC-V2` |
+> | `KK5` | kaki5 | `KASIRSOLO-KAKI5-HMAC-V2` |
+> | `GBK` | gerobak | `KASIRSOLO-GEROBAK-HMAC-V2` |
+> | `RTL` | retail | `KASIRSOLO-RETAIL-HMAC-V2` |
+>
+> Ke-4 app ini memvalidasi serial yang di-generate admin (diverifikasi end-to-end).
 
 ### Salt Rules
 
@@ -176,7 +186,7 @@ Setiap produk (aplikasi) punya pasangan **prefix + salt** yang unik.
 | Panjang | Minimal 10 karakter |
 | Rahasia | Simpan dengan aman — jika bocor, serial bisa dipalsukan |
 | Unik | Berbeda untuk setiap produk |
-| Format | Disarankan: `KASIRSOLO-{PREFIX}-{RANDOM}` |
+| Format | `KASIRSOLO-{APP}-HMAC-V2` (mis. `KASIRSOLO-GEROBAK-HMAC-V2`) |
 
 ---
 

@@ -86,9 +86,17 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
   }
 
   try {
-    const { data: anon, error: auErr } = await sb.auth.signInAnonymously();
-    if (auErr) throw auErr;
-    const userId = anon?.user?.id;
+    // Pakai session yang sudah ada kalau ada (persistSession=true di client config),
+    // jangan signIn baru tiap kali — itu bikin user anonim baru & RLS auth.uid() mismatch.
+    let userId = null;
+    const { data: sessData } = await sb.auth.getSession();
+    if (sessData?.session?.user?.id) {
+      userId = sessData.session.user.id;
+    } else {
+      const { data: anon, error: auErr } = await sb.auth.signInAnonymously();
+      if (auErr) throw auErr;
+      userId = anon?.user?.id;
+    }
     const payload = await buildPayload();
     const { error: upErr } = await sb
       .from('clients')

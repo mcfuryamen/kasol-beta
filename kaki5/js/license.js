@@ -232,7 +232,6 @@ export function closeOverlay(id) {
   if (el) el.classList.remove('show');
 }
 function closeSheet(id) { closeOverlay(id); }
-window._ksr_closeSheet = closeSheet;
 export { closeSheet };
 
 export async function checkLicenseGate() {
@@ -401,8 +400,5 @@ export async function activateLicense(inputId) {
   }
 }
 
-// Global handlers for onclick
-window._ksr_activateLicense = activateLicense;
-window._ksr_openExtendFlow = openExtendFlow;
-window._ksr_contactViaWA = contactViaWA;
-window._ksr_openLicenseSheet = openLicenseSheet;
+// Window wiring terpusat di app.js (lihat app.js:114-117).
+// (Audit 2026-08-09: hapus self-wire dari license.js — duplikat dgn app.js)

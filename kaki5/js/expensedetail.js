@@ -58,5 +58,6 @@ export async function showExpenseDetail(id) {
   }
 }
 
-// Export ke window untuk onclick handler
-window.showExpenseDetail = showExpenseDetail;
+// Export ke window hanya untuk yang dipanggil via inline HTML onclick attribute
+// di tempat yang BUKAN lewat showPage dispatch. Lihat app.js untuk wiring terpusat.
+// (Audit 2026-08-09: hapus self-wire untuk showExpenseDetail — duplikat dgn app.js:72)

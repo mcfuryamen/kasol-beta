@@ -25,7 +25,7 @@ Modular Vanilla ESM SPA architecture dengan 5 tab navigasi, integrasi sistem lis
 │  │      │   └── .sb-foot (refresh + logout buttons)               │   │
 │  │      ├── .main (content area, margin-left: 250px desktop)      │   │
 │  │      │   ├── #screen-dashboard (6 KPI + charts)                │   │
-│  │      │   ├── #screen-leads (table + search + filter)           │   │
+│  │      │   ├── #screen-klien (tab Outlet / Leads)                │   │
 │  │      │   ├── #screen-catalog (card grid + actions + sheet)     │   │
 │  │      │   ├── #screen-license (registry + generate/verify)      │   │
 │  │      │   └── #screen-settings (forms + backup)                 │   │
@@ -319,14 +319,14 @@ window.showScreen = function(screenId) {
 };
 ```
 
-5 Screen:
-| Screen | data-screen / data-view | ID Element |
-|--------|------------------------|------------|
-| Dashboard | `dashboard` | `screen-dashboard` |
-| Leads | `leads` | `screen-leads` |
-| Katalog | `catalog` | `screen-catalog` |
-| Lisensi | `license` | `screen-license` |
-| Pengaturan | `settings` | `screen-settings` |
+5 Screen (Nav — setara 5 menu sidebar):
+| Screen | data-screen | ID Element | Catatan |
+|--------|-------------|------------|---------|
+| Dashboard | `dashboard` | `screen-dashboard` | |
+| Katalog | `catalog` | `screen-catalog` | |
+| Lisensi | `license` | `screen-license` | |
+| Klien | `klien` | `screen-klien` | 2 tab `.tab-btn`: **Outlet** (klien) & **Leads** (`leadsTbody`, `leadsSearch`, `leadsStatusFilter`, `exportCsvBtn`) |
+| Pengaturan | `settings` | `screen-settings` | |
 
 ---
 

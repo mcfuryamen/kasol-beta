@@ -32,31 +32,31 @@ const EMOJI_PICKER_LIST = [
   '💰','💵','💴','💶','💷','🪙','💳','🛒','🏷️'
 ];
 
-let emojiPickerBuilt = false;
+let emojiListenersBound = false;
 
 /**
  * Build emoji picker grid
  * @param {HTMLElement} inputElement - The input element that triggered the picker
  */
 function buildEmojiPicker(inputElement) {
-  if (emojiPickerBuilt) return;
-  
   const grid = document.getElementById('emojiPickerGrid');
-  if (!grid) return;
-  
-  grid.innerHTML = EMOJI_PICKER_LIST.map((e, i) => 
-    `<button type="button" 
-              class="emoji-btn" 
-              data-emoji="${e}" 
-              aria-label="Pilih emoji ${e}"
-              onclick="window.pickEmoji(this, '${inputElement.id}')">${e}</button>`
+  if (!grid || !inputElement) return;
+
+  // Selalu rebuild: grid dibuat ulang tiap modal dibuka (sheet dinamis)
+  grid.innerHTML = EMOJI_PICKER_LIST.map((e, i) =>
+    `<button type="button"
+             class="emoji-btn"
+             data-emoji="${e}"
+             aria-label="Pilih emoji ${e}"
+             onclick="window.pickEmoji(this, '${inputElement.id}')">${e}</button>`
   ).join('');
-  
-  emojiPickerBuilt = true;
-  
+
+  if (emojiListenersBound) return;
+  emojiListenersBound = true;
+
   // Close picker when clicking outside
   document.addEventListener('click', handleOutsideClick);
-  
+
   // Close picker when pressing Escape
   document.addEventListener('keydown', handleKeyDown);
 }

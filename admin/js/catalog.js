@@ -164,7 +164,7 @@ window.openCatalogSheet = function(idx = null) {
     orderIndex: (STATE.catalog || []).length
   };
 
-  const overlay = document.getElementById('catalogSheetOverlay');
+  const overlay = document.getElementById('sheetCatalog');
   const sheet = document.getElementById('catalogSheet');
 
   if (!overlay || !sheet) return;
@@ -223,7 +223,7 @@ window.openCatalogSheet = function(idx = null) {
     </div>
   `;
 
-  overlay.classList.add('show');
+  overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 
   // Focus first input
@@ -234,9 +234,9 @@ window.openCatalogSheet = function(idx = null) {
  * Close catalog sheet
  */
 window.closeCatalogSheet = function() {
-  const overlay = document.getElementById('catalogSheetOverlay');
+  const overlay = document.getElementById('sheetCatalog');
   if (overlay) {
-    overlay.classList.remove('show');
+    overlay.classList.remove('open');
     document.body.style.overflow = '';
   }
 };

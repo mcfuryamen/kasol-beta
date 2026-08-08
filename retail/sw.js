@@ -1,7 +1,7 @@
 /* Kasir Solo - Retail — Service Worker
    Strategi: network-first untuk dokumen HTML (biar update langsung kepakai),
    cache-first untuk aset statis lain. Naikkan CACHE_VERSION setiap rilis. */
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v4";
 const CACHE_NAME = "kasir-solo-retail-" + CACHE_VERSION;
 const CORE_ASSETS = [
   "./",

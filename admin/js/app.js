@@ -14,6 +14,8 @@ import { initLicense } from './license-ui.js';
 import { initClients } from './clients.js';
 import { initToast } from './toast.js';
 import { showToast } from './toast.js';
+import './emoji-picker.js'; // side-effect: men-wire window.showEmojiPicker/hideEmojiPicker/pickEmoji
+import './overlay-a11y.js'; // side-effect: fokus trap + Esc + restorasi fokus utk SEMUA sheet
 
 // Global error handling
 window.addEventListener('error', (e) => {

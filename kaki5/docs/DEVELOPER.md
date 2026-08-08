@@ -369,38 +369,78 @@ KK5-A1B2-C3D4-99-X7K9M2
 ## 8. Onboarding & Settings (Profil Pengguna)
 
 ### Onboarding (`js/onboarding.js`)
-Ditampilkan sekali saja saat first run (jika `namaWarung` belum ada di settings):
+**Smart Gate 2-langkah** (tanpa checkbox, target user gaptek):
+
+**Step 1 — Input Nama Usaha**
+- Modal tampil input nama usaha + tombol "Lanjutkan"
+- Validasi: tidak boleh kosong
+
+**Step 2 — Syarat & Ketentuan (S&K)**
+- Modal S&K (6 pasal + "Terakhir diperbarui: 7 Agustus 2026 · v1.1")
+- Tombol "Batal" → kembali ke Step 1
+- Tombol "Setuju & Mulai" → `startTrial()` + `ensureUnitId()` → close modal → `loadBeranda()`
 
 ```js
 export async function checkOnboarding()    // Cek & tampilkan modal jika baru
-export async function finishOnboarding()   // Simpan nama/owner/WA → bulkAdd sample menu
+export async function finishOnboarding()   // Step 1: simpan nama usaha
 ```
 
-**Flow:**
-1. Show modal (gambar, tagline, 3 input fields)
-2. User isi:
-   - Nama Usaha (required)
-   - Nama Pemilik (required for CRM)
-   - Nomor WhatsApp (required for contact)
-3. Klik "Mulai Pakai!" → simpan settings → add 8 sample menu items → close modal → load beranda
-
-**Sample Menu (auto-added):**
+**Sample Menu (auto-added setelah Step 2):**
 - Nasi Goreng, Mie Goreng, Bakso, Sate Ayam (Makanan)
 - Gorengan (Snack)
 - Es Teh, Es Jeruk, Kopi (Minuman)
 
 ### Settings / Profil (`js/settings.js`)
-Halaman pengaturan menampilkan kartu "📋 Profil Pengguna" dengan 4 editable fields:
+Halaman pengaturan menampilkan kartu **"📋 Info Usaha"** dengan 4 editable fields:
 
 | Field | Setting Key | Modal | Validasi | Tujuan |
 |---|---|---|---|---|
 | Nama Usaha | `namaWarung` | nameModal | Not empty | Display di beranda header |
 | Nama Pemilik | `namaPemilik` | ownerModal | Not empty | Push ke Supabase CRM |
 | No. WhatsApp | `noWhatsapp` | waModal | Not empty | Contact number |
-| Alamat | `alamat` | alamatModal | Not empty | Lokasi unit (cloud sync) |
+| Alamat | `alamat` | alamatModal | Not empty | Lokasi unit (cloud sync 4-level: Prov→Kab→Kec→Desa) |
 
 Setiap field punya:
 - Tombol edit (buka modal) → input value → simpan (setSetting) → close modal → refresh tampilan
+- **Setiap simpan otomatis panggil `ensureSynced()`** → push ke Supabase `clients` (onboarding baru + update profil lama)
+
+---
+
+## 9. Sinkronisasi Profil ke Supabase (CRM) — `js/sync.js`
+
+Modul `sync.js` handle push profil outlet ke tabel `clients` Supabase:
+
+```js
+export async function ensureSynced({ force = false, silent = false } = {})
+export function isSyncConfigured()
+```
+
+**Dua skenario sync:**
+1. **User BARU** → dipanggil setelah selesai onboarding Step 2 (S&K disetujui) → `ensureSynced({silent:true})`
+2. **User LAMA** (data cuma lokal, belum pernah sync) → di boot otomatis di-push **SEKALI** lewat flag lokal `sync` (`none` → `synced` / `pending`). Ini "backfill".
+
+**Keamanan:**
+- Pakai Supabase **Anonymous Sign-In** → `auth.uid()` = anonymous user ID
+- RLS: `auth.uid() = user_id` → tiap device cuma bisa baca/insert/update **barisnya sendiri**
+- Dedupe: `ON CONFLICT (unit_id) DO UPDATE` → sync ulang = update, bukan duplikat
+- Offline-first: gagal → status `pending` → retry saat online berikutnya
+
+**Payload yang dikirim:**
+```js
+{
+  unit_id:      await getUnitId(),        // K5-XXXX
+  app_type:     'kaki5',
+  device_code:  await getDeviceCode(),    // XXXX-XXXX
+  install_id:   await getInstallId(),
+  nama_warung, nama_pemilik, no_whatsapp,
+  provinsi_id, provinsi,
+  kabkota_id,  kabkota,
+  kecamatan_id, kecamatan,
+  desa_id,     desa,          // NEW: 4-level wilayah
+  alamat_detail,
+  last_seen:    new Date().toISOString()
+}
+```
 
 ---
 
@@ -529,3 +569,43 @@ npx http-server -p 8123
 
 *Dokumentasi terbaru: Scan kode ESM modular (20260805), License system + Onboarding integrated.*
 *Untuk pertanyaan/kontribusi: lihat README.md (kontak developer).*
+## 📦 Referensi Arsitektur Aplikasi Klien
+
+### RUJUKAN UTAMA: `rosok.zip`
+
+File `rosok.zip` adalah **versi single-HTML final** dari aplikasi Rosok yang sudah berjalan di produksi.
+File ini menjadi **standar referensi** untuk:
+- **Fitur** yang harus ada di setiap aplikasi klien
+- **Layout & navigasi** (topbar + bottom nav)
+- **Color palette & design system**
+- **Sheet/overlay pattern** untuk form & modals
+- **Database schema** Dexie
+- **License validation** flow
+- **Service Worker** pattern
+- **PWA manifest**
+
+> **Catatan:** Folder `rosok/` yang modular sedang dalam proses refactor. **Jangan gunakan sebagai referensi** — gunakan `rosok.zip` saja.
+
+### Pola Development
+
+```
+  TINGKAT 1: Single HTML (sekarang)
+  └─ Satu file index.html (~276KB)
+  └─ Dexie.js di-embed inline di <script>
+  └─ Semua CSS inline di <style>
+  └─ Semua JS inline di <script>
+  └─ Gambar eksternal (assets/)
+  
+  TINGKAT 2: Modular (rencana ke depan)
+  └─ index.html (HTML shell)
+  └─ style.css (eksternal)
+  └─ js/app.js (entry point)
+  └─ js/db.js (Dexie)
+  └─ js/license.js, js/onboard.js, dll
+```
+
+**Aplikasi baru dibangun dengan pola Single HTML (Tingkat 1),**
+kemudian bisa di-refactor ke modular nanti.
+
+---
+

@@ -24,7 +24,7 @@ export function showToast(message, duration = 2400, type = 'info') {
   if (!toastEl) return;
 
   // Clear existing timeout
-  if (toastTimeout) clearTimeout(toastTimeout);
+  if (toastTimeout) { clearTimeout(toastTimeout); toastTimeout = null; }
 
   // Set icon based on type
   const icons = {
@@ -34,11 +34,13 @@ export function showToast(message, duration = 2400, type = 'info') {
     warning: '⚠️'
   };
 
-  toastEl.innerHTML = `<span>${icons[type] || icons.info}</span><span>${message}</span>`;
-  toastEl.classList.add('show');
+  // Render SATU elemen .toast di dalam .toast-host (CSS aktif lewat .toast/.toast.show)
+  toastEl.innerHTML = `<div class="toast ${type} show"><span>${icons[type] || icons.info}</span><span>${message}</span></div>`;
 
   toastTimeout = setTimeout(() => {
-    toastEl.classList.remove('show');
+    const t = toastEl.querySelector('.toast');
+    if (t) t.classList.remove('show');
+    toastTimeout = null;
   }, duration);
 }
 
@@ -46,6 +48,9 @@ export function showToast(message, duration = 2400, type = 'info') {
  * Hide toast
  */
 export function hideToast() {
-  if (toastEl) toastEl.classList.remove('show');
-  if (toastTimeout) clearTimeout(toastTimeout);
+  if (toastEl) {
+    const t = toastEl.querySelector('.toast');
+    if (t) t.classList.remove('show');
+  }
+  if (toastTimeout) { clearTimeout(toastTimeout); toastTimeout = null; }
 }

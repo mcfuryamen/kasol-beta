@@ -48,24 +48,41 @@ export async function renderMenuList() {
   box.innerHTML = html;
 }
 
+// Serialize modal open: tutup dulu kalau sedang terbuka agar tidak race
+// dengan async DB.menu.get() di openMenuForm (audit 2026-08-09).
+let _menuFormInFlight = false;
+
 export async function openMenuForm(id) {
-  document.getElementById('editMenuId').value = id || '';
-  if (id) {
-    const m = await DB.menu.get(id);
-    if (!m) return;
-    document.getElementById('menuModalTitle').textContent = '✏️ Edit Menu';
-    document.getElementById('menuNama').value = m.nama;
-    document.getElementById('menuKategori').value = m.kategori;
-    document.getElementById('menuHargaJual').value = m.hargaJual;
-    document.getElementById('menuHargaModal').value = m.hargaModal;
-  } else {
-    document.getElementById('menuModalTitle').textContent = '🍽️ Tambah Menu';
-    document.getElementById('menuNama').value = '';
-    document.getElementById('menuKategori').value = 'Makanan';
-    document.getElementById('menuHargaJual').value = '';
-    document.getElementById('menuHargaModal').value = '';
+  // Tunggu form sebelumnya selesai di-render sebelum mulai yang baru.
+  // Loop dengan jeda pendek, max ~3 detik biar tidak hang kalau ada error.
+  for (let i = 0; i < 100 && _menuFormInFlight; i++) {
+    await new Promise(r => setTimeout(r, 30));
   }
-  document.getElementById('menuModal').classList.add('show');
+  _menuFormInFlight = true;
+  try {
+    if (id) {
+      const m = await DB.menu.get(id);
+      if (!m) return;
+      // Re-check: kalau ada click lagi saat kita await, abort
+      if (!_menuFormInFlight) return;
+      document.getElementById('editMenuId').value = id;
+      document.getElementById('menuModalTitle').textContent = '✏️ Edit Menu';
+      document.getElementById('menuNama').value = m.nama;
+      document.getElementById('menuKategori').value = m.kategori;
+      document.getElementById('menuHargaJual').value = m.hargaJual;
+      document.getElementById('menuHargaModal').value = m.hargaModal;
+    } else {
+      document.getElementById('editMenuId').value = '';
+      document.getElementById('menuModalTitle').textContent = '🍽️ Tambah Menu';
+      document.getElementById('menuNama').value = '';
+      document.getElementById('menuKategori').value = 'Makanan';
+      document.getElementById('menuHargaJual').value = '';
+      document.getElementById('menuHargaModal').value = '';
+    }
+    document.getElementById('menuModal').classList.add('show');
+  } finally {
+    _menuFormInFlight = false;
+  }
 }
 
 export function closeMenuModal() {
