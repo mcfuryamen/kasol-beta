@@ -212,6 +212,7 @@ let _checkLicenseGate = null;
 let _openExtendFlow = null;
 let _grantExtension = null;
 let _openLicenseSheet = null;
+let _openPurchaseSheet = null;
 
 export function setLicenseRefs(refs) {
   _updateTrialChip = refs.updateTrialChip;
@@ -220,6 +221,7 @@ export function setLicenseRefs(refs) {
   _openExtendFlow = refs.openExtendFlow;
   _grantExtension = refs.grantExtension;
   _openLicenseSheet = refs.openLicenseSheet;
+  _openPurchaseSheet = refs.openPurchaseSheet;
 }
 
 // ── Trial / License UI ─────────────────────────────────────────────────
@@ -301,7 +303,8 @@ export function licenseStatusHtml(left, extUsed, inputId) {
     </div>
     <div class="field mt12"><label class="field-label">Kode Lisensi</label><input type="text" id="${inputId}" placeholder="KK5-XXXX-XXXX-XX-XXXXXX" class="form-input uppercase"></div>
     <div class="license-actions">
-      <button class="btn-buy-wa" onclick="window._ksr_contactViaWA()">💬 Beli Lisensi</button>
+      <button class="btn-buy-wa" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
+      <button class="btn btn-outline" onclick="window._ksr_contactViaWA()">💬 WA Admin</button>
       <button class="btn btn-primary" onclick="window._ksr_activateLicense('${inputId}')">🔓 Aktifkan</button>
     </div>
   `;

@@ -12,6 +12,7 @@ import { initCatalog } from './catalog.js';
 import { initSettings } from './settings.js';
 import { initLicense } from './license-ui.js';
 import { initClients } from './clients.js';
+import { initPembelian } from './pembelian.js';
 import { initToast } from './toast.js';
 import { showToast } from './toast.js';
 import './emoji-picker.js'; // side-effect: men-wire window.showEmojiPicker/hideEmojiPicker/pickEmoji
@@ -51,6 +52,7 @@ async function bootstrap() {
     initSettings();
     initLicense();
     initClients();
+    initPembelian();
 
     // Listen for screen changes to trigger specific renders if needed
     window.addEventListener('screen:change', (e) => {

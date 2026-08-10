@@ -7,39 +7,26 @@
 import { STATE, subscribe, setState } from './app-state.js';
 import { formatRupiah, escapeHtml } from './utils.js';
 import { showToast } from './toast.js';
+import { supabaseFetch } from './api.js';
+import { updateSidebarBadges } from './navigation.js';
 
 let catalogGrid = null;
 let catalogEmpty = null;
 let addAppBtn = null;
-
-// Supabase config — read from window at fetch time (not module eval time)
-const getSupabaseConfig = () => ({
-  url: window.SUPABASE_URL || 'https://hhywrvedlwljawgxzpkq.supabase.co',
-  key: window.SUPABASE_SERVICE_KEY || ''
-});
 
 /**
  * Fetch products from Supabase
  */
 async function fetchProductsFromSupabase() {
   try {
-    const { url, key } = getSupabaseConfig();
-    const response = await fetch(`${url}/rest/v1/products?order=order_index.asc`, {
-      method: 'GET',
-      headers: {
-        'apikey': key,
-        'Authorization': `Bearer ${key}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      console.error('Supabase fetch failed:', response.status);
+    const res = await supabaseFetch('/rest/v1/products?order=order_index.asc');
+    if (!res.ok) {
+      console.error('Supabase fetch failed:', res.status, res.text);
       return [];
     }
 
-    const products = await response.json();
-    
+    const products = res.data || [];
+
     // Transform Supabase products → admin catalog format
     return products.map(p => ({
       id: p.id,
@@ -51,8 +38,10 @@ async function fetchProductsFromSupabase() {
       category: getCategoryFromAppType(p.app_type),
       hot: p.order_index === 0,
       orderIndex: p.order_index,
-      visible: p.visible
-    }));
+          visible: p.visible,
+          storeUrl: p.store_url || '',
+          vercelUrl: p.vercel_url || ''
+        }));
   } catch (error) {
     console.error('Error fetching products from Supabase:', error);
     return [];
@@ -86,6 +75,9 @@ export async function initCatalog() {
   const products = await fetchProductsFromSupabase();
   setState('catalog', products);
 
+    // Update sidebar badge count
+    updateSidebarBadges({ catalog: products.length });
+
   // Subscribe to catalog changes
   subscribe('catalog', renderCatalog);
 
@@ -118,7 +110,11 @@ export function renderCatalog() {
       <div class="catalog-card-desc">${escapeHtml(app.desc || '')}</div>
       <div class="catalog-card-meta">${formatRupiah(app.price || 0)}</div>
       <div class="catalog-card-category">${getCategoryLabel(app.category)}</div>
-      ${app.hot ? '<span class="catalog-card-hot">🔥 Hot</span>' : ''}
+            <div class="catalog-card-domain">
+              ${app.storeUrl ? `<a href="${escapeHtml(app.storeUrl)}" target="_blank" rel="noopener" class="domain-chip domain-live">🌐 Live</a>` : '<span class="domain-chip domain-none">⚙️ Development</span>'}
+              ${app.vercelUrl ? `<a href="${escapeHtml(app.vercelUrl)}" target="_blank" rel="noopener" class="domain-chip domain-vercel">▲ Vercel</a>` : ''}
+            </div>
+            ${app.hot ? '<span class="catalog-card-hot">🔥 Hot</span>' : ''}
       <div class="catalog-card-actions">
         <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); openCatalogSheet(${idx})">✏️ Edit</button>
         <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteCatalogApp(${idx})">🗑️ Hapus</button>
@@ -161,6 +157,8 @@ window.openCatalogSheet = function(idx = null) {
     category: 'bisnis',
     hot: false,
     appType: '',
+    storeUrl: '',
+    vercelUrl: '',
     orderIndex: (STATE.catalog || []).length
   };
 
@@ -216,7 +214,17 @@ window.openCatalogSheet = function(idx = null) {
         <label class="field-label">Order Index</label>
         <input type="number" id="catOrderIndex" value="${app.orderIndex || 0}" min="0" step="1">
       </div>
-    </div>
+            <div class="field field-span-2">
+              <label class="field-label">Domain Live (store_url)</label>
+              <input type="url" id="catStoreUrl" value="${escapeHtml(app.storeUrl || '')}" placeholder="https://retail.kasirsolo.com">
+              <small class="field-hint">Domain resmi aplikasi. Jika kosong → landing menampilkan status "DEVELOPMENT".</small>
+            </div>
+            <div class="field field-span-2">
+              <label class="field-label">Domain Vercel (vercel_url)</label>
+              <input type="url" id="catVercelUrl" value="${escapeHtml(app.vercelUrl || '')}" placeholder="https://kasirsolo-retail.vercel.app">
+              <small class="field-hint">Domain preview/vercel aplikasi (opsional, untuk akses staging).</small>
+            </div>
+          </div>
     <div class="btn-block-row mt12">
       <button class="btn btn-outline" onclick="closeCatalogSheet()">Batal</button>
       <button class="btn btn-primary" onclick="saveCatalogApp(${idx})">${isEdit ? 'Simpan Perubahan' : 'Tambah Aplikasi'}</button>
@@ -253,6 +261,8 @@ window.saveCatalogApp = async function(idx = null) {
   const price = parseInt(document.getElementById('catPrice')?.value) || 0;
   const hot = document.getElementById('catHot')?.checked || false;
   const orderIndex = parseInt(document.getElementById('catOrderIndex')?.value) || 0;
+  const storeUrl = document.getElementById('catStoreUrl')?.value.trim() || '';
+  const vercelUrl = document.getElementById('catVercelUrl')?.value.trim() || '';
 
   const isEdit = idx !== null;
 
@@ -271,55 +281,45 @@ window.saveCatalogApp = async function(idx = null) {
     icon: icon,
     color: '#F5821F',
     order_index: orderIndex,
-    visible: true
+    visible: true,
+    store_url: storeUrl || null,
+    vercel_url: vercelUrl || null
   };
 
   try {
-    const { url, key } = getSupabaseConfig();
-    let response;
-    if (isEdit) {
-      // UPDATE
-      const app = (STATE.catalog || [])[idx];
-      if (!app || !app.id) {
-        showToast('Produk tidak ditemukan', 2000, 'error');
-        return;
+      let res;
+      if (isEdit) {
+        // UPDATE
+        const app = (STATE.catalog || [])[idx];
+        if (!app || !app.id) {
+          showToast('Produk tidak ditemukan', 2000, 'error');
+          return;
+        }
+
+        res = await supabaseFetch(`/rest/v1/products?id=eq.${app.id}`, {
+          method: 'PATCH',
+          data: payload,
+          headers: { 'Prefer': 'return=representation' }
+        });
+      } else {
+        // CREATE
+        res = await supabaseFetch('/rest/v1/products', {
+          method: 'POST',
+          data: payload,
+          headers: { 'Prefer': 'return=representation' }
+        });
       }
 
-      response = await fetch(`${url}/rest/v1/products?id=eq.${app.id}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': key,
-          'Authorization': `Bearer ${key}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(payload)
-      });
-    } else {
-      // CREATE
-      response = await fetch(`${url}/rest/v1/products`, {
-        method: 'POST',
-        headers: {
-          'apikey': key,
-          'Authorization': `Bearer ${key}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(payload)
-      });
-    }
-
-    if (response.ok) {
-      // Refresh catalog from Supabase
-      const products = await fetchProductsFromSupabase();
-      setState('catalog', products);
-      showToast(isEdit ? 'Aplikasi diperbarui' : 'Aplikasi ditambahkan', 2000, 'success');
-      closeCatalogSheet();
-    } else {
-      const error = await response.text();
-      console.error('Supabase save failed:', error);
-      showToast('Gagal menyimpan ke Supabase', 2000, 'error');
-    }
+      if (res.ok) {
+        // Refresh catalog from Supabase
+        const products = await fetchProductsFromSupabase();
+        setState('catalog', products);
+        showToast(isEdit ? 'Aplikasi diperbarui' : 'Aplikasi ditambahkan', 2000, 'success');
+        closeCatalogSheet();
+      } else {
+        console.error('Supabase save failed:', res.status, res.text);
+        showToast('Gagal menyimpan ke Supabase', 2000, 'error');
+      }
   } catch (error) {
     console.error('Error saving to Supabase:', error);
     showToast('Error: ' + error.message, 2000, 'error');
@@ -339,24 +339,16 @@ window.deleteCatalogApp = async function(idx) {
   const name = app.name;
 
   try {
-    const { url, key } = getSupabaseConfig();
-    const response = await fetch(`${url}/rest/v1/products?id=eq.${app.id}`, {
-      method: 'DELETE',
-      headers: {
-        'apikey': key,
-        'Authorization': `Bearer ${key}`
-      }
-    });
+      const res = await supabaseFetch(`/rest/v1/products?id=eq.${app.id}`, { method: 'DELETE' });
 
-    if (response.ok || response.status === 204) {
-      // Refresh catalog from Supabase
-      const products = await fetchProductsFromSupabase();
-      setState('catalog', products);
-      showToast(`${name} dihapus`, 2000, 'success');
-    } else {
-      const error = await response.text();
-      console.error('Supabase delete failed:', error);
-      showToast('Gagal menghapus dari Supabase', 2000, 'error');
+      if (res.ok || res.status === 204) {
+        // Refresh catalog from Supabase
+        const products = await fetchProductsFromSupabase();
+        setState('catalog', products);
+        showToast(`${name} dihapus`, 2000, 'success');
+      } else {
+        console.error('Supabase delete failed:', res.status, res.text);
+        showToast('Gagal menghapus dari Supabase', 2000, 'error');
     }
   } catch (error) {
     console.error('Error deleting from Supabase:', error);

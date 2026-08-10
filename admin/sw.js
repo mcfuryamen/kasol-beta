@@ -1,7 +1,8 @@
 // Service Worker for Admin Marketing KASIRSOLO
 // Version: v1.0.0 - Update this when changing cached assets
+// v7: Removed license card from settings page, added skipWaiting + claim
 
-const CACHE_NAME = 'kasir-admin-v6';
+const CACHE_NAME = 'kasir-admin-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

@@ -1,47 +1,60 @@
 #!/usr/bin/env bash
 # =========================================================================
-#  push-to-github.sh — Commit + push monorepo kasol ke GitHub cloud.
+#  push-to-github.sh — Commit dan push seluruh perubahan di mirror ke GitHub.
 #
-#  JALANKAN DARI ROOT MONOREPO KASOL:
-#     cd C:\Users\Admin\Documents\GitHub\kasol
+#  JALANKAN DARI ROOT MONOPOLI KASOL:
+#     cd C:\Users\Admin\Documents\kasol
 #     bash push-to-github.sh
 #
 #  Yang dilakukan:
-#    1. Menampilkan perubahan yang siap di-commit (biar kamu bisa cek).
-#    2. git add -A (monorepo: menangkap rosok + subrepo lain).
-#    3. Commit dengan pesan otomatis berisi timestamp.
-#    4. Push ke origin/main.
+#    1. Menambahkan semua perubahan di mirror (git add -A).
+#    2. Commit dengan pesan standar atau yang dapat diinput pengguna.
+#    3. Push ke origin/main.
 #
-#  Vercel auto-deploy setelah push.
-#  Gantikan GitHub Desktop: jalankan skrip ini untuk push ke cloud.
+#  Catatan:
+#    - Tidak ada auto-commit; user harus memberikan persetujuan secara eksplisit.
+#    - Push ke GitHub akan memicu Vercel untuk auto-deploy masing-masing aplikasi
+#      karena masing-masing aplikasi terkonfigurasi sebagai project terpisah di Vercel
+#      dengan Root Directory = folder aplikasi (mis. retail/).
 # =========================================================================
 set -euo pipefail
 
-cd "$(dirname "$0")"   # pastikan berada di root monorepo kasol
-ROOT_REPO="$(pwd)"
+# Lokasi root monorepo
+ROOT_REPO="$(cd "$(dirname "$0")" && pwd)"
+echo "���▸ Root monorepo: $ROOT_REPO"
 
-echo "▸ Root monorepo: $ROOT_REPO"
-[ -d ".git" ] || { echo "✗ Bukan repo git: $ROOT_REPO"; exit 1; }
+# Pastikan kita berada di dalam repo git
+[ -d "$ROOT_REPO/.git" ] || { echo "������✗ Bukan direktori Git: $ROOT_REPO"; exit 1; }
 
-# --- 1. Tampilkan ringkasan perubahan --------------------------------------
+# Tampilkan status singkat
+echo "���▸ Status git sebelum add:"
+git status --porcelain | head -20
 echo ""
-echo "▸ Perubahan yang akan di-commit:"
-git status --short
+
+# Tambahkan semua perubahan
+echo "���▸ Menambahkan semua perubahan di mirror..."
+git add -A
+
+# Tampilkan apa yang akan di-commit
+echo "���▸ File yang akan di-commit:"
+git diff --cached --name-only | head -20
 echo ""
 
-# --- 2. Commit + push -------------------------------------------------------
-STAMP="$(date '+%Y-%m-%d %H:%M')"
-
-if [ -z "$(git status --porcelain)" ]; then
-  echo "▸ Tidak ada perubahan untuk di-commit."
-  exit 0
+# Mintakan pesan commit
+echo "���▸ Masukkan pesan commit (atau tekan Enter untuk default):"
+read -r commit_msg
+if [ -z "$commit_msg" ]; then
+    commit_msg="chore: update retail mirror $(date +'%Y-%m-%d %H:%M')"
 fi
 
-git add -A
-git commit -m "update: sinkronisasi produksi $STAMP"
-echo "▸ Push ke origin/main..."
+echo ""
+echo "���▸ Commit: $commit_msg"
+git commit -m "$commit_msg"
+
+# Push ke origin/main
+echo "���▸ Push ke origin/main..."
 git push origin main
 
 echo ""
-echo "✓ Push selesai. Vercel akan auto-deploy."
-echo "  Cek progres: https://console.vercel.com — project kasir-rosok"
+echo "������✓ Push selesai. Vercel akan otomatis mendeploy perubahan."
+echo "  Untuk monitoring deployment, buka dashboard Vercel."

@@ -1,1 +1,23 @@
+# Landing — KASIRSOLO
+# =============================================================================
+# Keamanan: file env TIDAK PERNAH di-commit (isu Phase A).
+# Landing tidak punya build step (buildCommand: null) jadi .env.local pun tak
+# dipakai — tapi tetap kita exclude semua .env* sebagai jaring pengaman.
+
+# Environment / secrets
+.env
 .env.local
+.env.*.local
+.env.production
+.env.development
+!.env.example
+
+# Vercel
+.vercel
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

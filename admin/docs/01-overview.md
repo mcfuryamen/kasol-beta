@@ -161,7 +161,7 @@ Form untuk mengontrol konten landing page + admin backup:
 
 | Aspek | Saat Ini | Rencana |
 |-------|----------|---------|
-| **Auth** | Password hardcoded `admin123` | Supabase Auth + RLS |
+| **Auth** | ⏸️ Password hardcoded `admin123` — **DI-SKIP sementara** (keputusan 2026-08-10). Agent jangan ubah sampai pemilik beresin (auth Supabase + RLS). JWT secret sudah di env hermes. |
 | **Data** | localStorage (local only) | Supabase (cloud, encrypted) |
 | **Multi-user** | Single user | RLS policies (owner write, team read) |
 | **Lisensi** | HMAC-SHA256 + device-bound | Sama, tapi validasi via cloud |

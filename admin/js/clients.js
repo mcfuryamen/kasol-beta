@@ -5,21 +5,19 @@
  * (tanpa pindah ke menu Lisensi) + kirim serial ke WhatsApp merchant.
  * Analitik: total outlet, aktif 30 hari, per app, sebaran wilayah.
  *
- * Akses: service_role key (BYPASS RLS → bisa baca/ubah semua baris).
+ * Akses: semua data lewat supabaseFetch() → Vercel Serverless /api/rest
+ * (service_role key hanya server-side, tidak pernah di browser).
  */
 
 import { showToast } from './toast.js';
 import { escapeHtml, formatRelativeTime, formatDate, normalizePhone, debounce } from './utils.js';
 import { STATE, setState } from './app-state.js';
 import * as LicenseCore from './license-core.js';
-
-const getSupabaseConfig = () => ({
-  url: window.SUPABASE_URL || 'https://hhywrvedlwljawgxzpkq.supabase.co',
-  key: window.SUPABASE_SERVICE_KEY || ''
-});
+import { supabaseFetch } from './api.js';
+import { updateSidebarBadges } from './navigation.js';
 
 // app_type → produk (prefix & salt yang BENAR; serial ini yang diterima app klien)
-const APP_META = {
+export const APP_META = {
   kaki5:  { prefix: 'KK5', salt: 'KASIRSOLO-KAKI5-HMAC-V2', icon: '🛵', label: 'Kaki Lima' },
   rosok:  { prefix: 'KSR', salt: 'KASIRSOLO-ROSOK-HMAC-V2', icon: '♻️', label: 'Rosok' },
   gerobak:{ prefix: 'GBK', salt: 'KASIRSOLO-GEROBAK-HMAC-V2', icon: '🛒', label: 'Gerobak' },
@@ -69,36 +67,209 @@ export async function initClients() {
   loadLeads();
 }
 
-/** Toggle tab Outlet / Leads di layar Klien */
+/** Toggle tab Outlet / Leads / Pembelian di layar Klien */
 function switchKlienTab(tab) {
   const showOutlet = tab === 'outlet';
+  const showPembelian = tab === 'pembelian';
   const on = document.getElementById('tabOutlet');
+  const pb = document.getElementById('tabPembelian');
   const ln = document.getElementById('tabLeads');
   const bOn = document.getElementById('tabBtnOutlet');
+  const bPb = document.getElementById('tabBtnPembelian');
   const bLn = document.getElementById('tabBtnLeads');
   if (on) on.hidden = !showOutlet;
-  if (ln) ln.hidden = showOutlet;
+  if (pb) pb.hidden = !showPembelian;
+  if (ln) ln.hidden = tab !== 'leads';
   if (bOn) { bOn.classList.toggle('active', showOutlet); bOn.setAttribute('aria-selected', String(showOutlet)); }
-  if (bLn) { bLn.classList.toggle('active', !showOutlet); bLn.setAttribute('aria-selected', String(!showOutlet)); }
+  if (bPb) { bPb.classList.toggle('active', showPembelian); bPb.setAttribute('aria-selected', String(showPembelian)); }
+  if (bLn) { bLn.classList.toggle('active', tab === 'leads'); bLn.setAttribute('aria-selected', String(tab === 'leads')); }
   // muat ulang leads tiap kali tab dibuka biar selalu segar
+  if (tab === 'pembelian') loadPembelianList();
   if (!showOutlet) loadLeads();
 }
 window.switchKlienTab = switchKlienTab;
 
+/** @type {Array} pembelian — shared state, di-declare di sini supaya ga conflict dgn pembelian.js */
+let pembelian = [];
+
+/** Load pembelian list dari Supabase */
+async function loadPembelianList() {
+  try {
+    const res = await supabaseFetch('/rest/v1/pembelian?order=created_at.desc&limit=100');
+    pembelian = res.ok ? (res.data || []) : [];
+    renderPembelianList();
+  } catch (e) {
+    pembelian = [];
+    console.error('load pembelian', e);
+  }
+}
+
+/** Render list pembelian */
+function renderPembelianList() {
+  const host = document.getElementById('pembelianList');
+  const empty = document.getElementById('pembelianEmpty');
+  if (!host) return;
+  
+  const filter = document.getElementById('pembelianStatusFilter')?.value || '';
+  const filtered = pembelian.filter(p => {
+    if (!filter) return true;
+    return p.status === filter;
+  });
+  
+  if (empty) empty.hidden = filtered.length > 0;
+  
+  if (filtered.length === 0) {
+    host.innerHTML = '';
+    return;
+  }
+  
+  host.innerHTML = filtered.map((p, i) => pembelianCardHtml(p)).join('');
+  
+  // Bind events
+  host.querySelectorAll('.btn-verify').forEach(btn => {
+    btn.addEventListener('click', () => verifyPembelian(btn.dataset.id));
+  });
+  host.querySelectorAll('.btn-activate').forEach(btn => {
+    btn.addEventListener('click', () => activatePembelian(btn.dataset.id));
+  });
+  host.querySelectorAll('.btn-reject').forEach(btn => {
+    btn.addEventListener('click', () => rejectPembelian(btn.dataset.id));
+  });
+  host.querySelectorAll('.btn-view-bukti').forEach(btn => {
+    btn.addEventListener('click', () => viewBukti(btn.dataset.url));
+  });
+}
+
+/** HTML card pembelian */
+function pembelianCardHtml(p) {
+  const statusBadge = {
+    'menunggu_verifikasi': '<span class="badge orange">⏳ Menunggu</span>',
+    'aktif': '<span class="badge green">✅ Aktif</span>',
+    'ditolak': '<span class="badge red">❌ Ditolak</span>'
+  }[p.status] || `<span class="badge">${p.status}</span>`;
+  
+  const buktiBtn = p.bukti_url 
+    ? `<button class="btn btn-ghost btn-sm btn-view-bukti" data-url="${p.bukti_url}">👁️ Lihat Bukti</button>`
+    : '<span class="hint">Belum ada bukti</span>';
+  
+  const actionBtns = p.status === 'menunggu_verifikasi' ? `
+    <button class="btn btn-primary btn-sm btn-verify" data-id="${p.id}">✓ Verifikasi</button>
+    <button class="btn btn-danger btn-sm btn-reject" data-id="${p.id}">✗ Tolak</button>
+  ` : '';
+  
+  return `
+    <div class="pembelian-card" style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+        <div>
+          <strong>${p.unit_id || '—'}</strong>
+          <span style="color:var(--text2);font-size:12px;margin-left:8px">${p.app_type || '?'} · ${new Date(p.created_at).toLocaleDateString('id-ID')}</span>
+        </div>
+        ${statusBadge}
+      </div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">
+        <div>Harga: ${p.harga ? 'Rp ' + Number(p.harga).toLocaleString('id-ID') : '—'}</div>
+        <div>Serial: <code style="font-family:monospace">${p.serial || '—'}</code></div>
+      </div>
+      <div style="margin-bottom:8px">${buktiBtn}</div>
+      <div style="display:flex;gap:8px">${actionBtns}</div>
+    </div>
+  `;
+}
+
+/** Verifikasi pembelian */
+async function verifyPembelian(id) {
+  try {
+    const res = await supabaseFetch(`/rest/v1/pembelian?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      data: {
+        status: 'verified',
+        verified_at: new Date().toISOString()
+      },
+      headers: { Prefer: 'return=representation' }
+    });
+    
+    if (!res.ok) throw new Error('Failed to verify');
+    
+    showToast('✅ Pembelian diverifikasi!', 2000, 'success');
+    await loadPembelianList();
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal memverifikasi', 2000, 'error');
+  }
+}
+
+/** Aktifkan lisensi via Edge Function */
+async function activatePembelian(id) {
+  const p = pembelian.find(x => x.id === id);
+  if (!p) return;
+
+  showToast('⏳ Mengaktifkan lisensi...', 3000, 'info');
+  
+  try {
+    // Call edge function via proxy (service key server-side)
+    const res = await supabaseFetch('/functions/v1/activate-license', {
+      method: 'POST',
+      data: {
+        unit_id: p.unit_id,
+        app_type: p.app_type,
+        device_code: p.device_code || ''
+      }
+    });
+    
+    const data = res.data;
+    
+    if (!res.ok || !data?.ok) throw new Error((data && data.error) || 'Activation failed');
+    
+    showToast(`✅ Lisensi aktif! Serial: ${data.serial}`, 3000, 'success');
+    await loadPembelianList();
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal mengaktifkan: ' + e.message, 3000, 'error');
+  }
+}
+
+/** Tolak pembelian */
+async function rejectPembelian(id) {
+  if (!confirm('Tolak pembelian ini? User akan diminta upload ulang bukti.')) return;
+  
+  try {
+    const res = await supabaseFetch(`/rest/v1/pembelian?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      data: {
+        status: 'ditolak',
+        verified_at: new Date().toISOString()
+      },
+      headers: { Prefer: 'return=representation' }
+    });
+    
+    if (!res.ok) throw new Error('Failed to reject');
+    
+    showToast('❌ Pembelian ditolak', 2000, 'warning');
+    await loadPembelianList();
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal menolak', 2000, 'error');
+  }
+}
+
+/** Preview bukti pembayaran */
+function viewBukti(url) {
+  if (!url) return;
+  window.open(url, '_blank');
+}
+
 /** Load all clients from Supabase */
 async function loadClients() {
-  const { url, key } = getSupabaseConfig();
   try {
-    const r = await fetch(`${url}/rest/v1/clients?order=last_seen.desc`, {
-      headers: { apikey: key, Authorization: 'Bearer ' + key }
-    });
-    clients = r.ok ? await r.json() : [];
+    const res = await supabaseFetch('/rest/v1/clients?order=last_seen.desc');
+    clients = res.ok ? (res.data || []) : [];
   } catch (e) {
     clients = [];
     console.error('load clients', e);
   }
   renderStats();
   renderList();
+  updateSidebarBadges({ clients: clients.length });
 }
 
 /** Analitik / matrik klien */
@@ -291,14 +462,13 @@ window.saveClient = async function () {
     no_whatsapp:  document.getElementById('clWa')?.value?.trim() || '',
     alamat_detail: document.getElementById('clAlamat')?.value?.trim() || ''
   };
-  const { url, key } = getSupabaseConfig();
   try {
-    const r = await fetch(`${url}/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
+    const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
-      headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json', Prefer: 'return=representation' },
-      body: JSON.stringify(payload)
+      data: payload,
+      headers: { Prefer: 'return=representation' }
     });
-    if (!r.ok) throw new Error(String(r.status));
+    if (!res.ok) throw new Error(String(res.status));
     showToast('✅ Klien disimpan', 2000, 'success');
     closeClientSheet();
     await loadClients();
@@ -313,13 +483,9 @@ window.deleteClient = async function () {
   if (!current) return;
   if (!confirm('Hapus klien ini dari daftar?')) return;
   const id = current.id;
-  const { url, key } = getSupabaseConfig();
   try {
-    const r = await fetch(`${url}/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers: { apikey: key, Authorization: 'Bearer ' + key }
-    });
-    if (r.ok || r.status === 204) {
+    const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (res.ok || res.status === 204) {
       showToast('Klien dihapus', 2000, 'success');
       closeClientSheet();
       await loadClients();
@@ -348,12 +514,9 @@ function setUpLeads() {
 
 /** Muat leads dari Supabase dan isi STATE.leads (dipakai dashboard juga) */
 async function loadLeads() {
-  const { url, key } = getSupabaseConfig();
   try {
-    const r = await fetch(`${url}/rest/v1/leads?order=created_at.desc`, {
-      headers: { apikey: key, Authorization: 'Bearer ' + key }
-    });
-    setState('leads', r.ok ? await r.json() : []);
+    const res = await supabaseFetch('/rest/v1/leads?order=created_at.desc');
+    setState('leads', res.ok ? (res.data || []) : []);
   } catch (e) {
     console.error('load leads', e);
     setState('leads', []);
@@ -442,19 +605,13 @@ function bindLeadRowEvents() {
 
 /** Update status lead di Supabase */
 async function updateLeadStatus(id, status) {
-  const { url, key } = getSupabaseConfig();
   try {
-    const r = await fetch(`${url}/rest/v1/leads?id=eq.${encodeURIComponent(id)}`, {
+    const res = await supabaseFetch(`/rest/v1/leads?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
-      headers: {
-        apikey: key,
-        Authorization: 'Bearer ' + key,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation'
-      },
-      body: JSON.stringify({ status, updated_at: new Date().toISOString() })
+      data: { status, updated_at: new Date().toISOString() },
+      headers: { Prefer: 'return=representation' }
     });
-    return r.ok;
+    return res.ok;
   } catch (e) {
     console.error('update lead status', e);
     return false;
@@ -463,13 +620,9 @@ async function updateLeadStatus(id, status) {
 
 /** Hapus lead dari Supabase */
 async function deleteLead(id) {
-  const { url, key } = getSupabaseConfig();
   try {
-    const r = await fetch(`${url}/rest/v1/leads?id=eq.${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers: { apikey: key, Authorization: 'Bearer ' + key }
-    });
-    return r.ok || r.status === 204;
+    const res = await supabaseFetch(`/rest/v1/leads?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+    return res.ok || res.status === 204;
   } catch (e) {
     console.error('delete lead', e);
     return false;

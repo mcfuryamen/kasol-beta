@@ -211,8 +211,6 @@
 	</div>
 	</div>
 	<button class="btn btn-primary" style="margin-top:16px;width:100%;text-align:center" onclick="window._ksr_openLicenseSheet()">🎫 Kelola Lisensi</button>
-<!-- licenseInfoCard: kartu info lisensi (status, masa berlaku, perpanjangan) di-render oleh license.js renderLicenseInfoCard() -->
-<div id="licenseInfoCard" style="margin-top:12px"></div>
 <!-- syncStatusText: status sinkronisasi profil ke Supabase (di-render oleh settings.js loadSettings()) -->
 <div id="syncStatusText" style="margin-top:12px;font-size:12px;color:var(--text2);text-align:center"></div>
 </div>
@@ -531,6 +529,17 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <button class="sheet-close" onclick="window._ksr_closeSheet('sheetLicense')" aria-label="Tutup">✕</button>
 </div>
 <div class="license-sheet-body" id="licenseSheetBody"></div>
+</div>
+</div>
+
+<!-- PEMBELIAN SHEET (QRIS + upload bukti) -->
+<div class="modal-overlay" id="sheetPurchase">
+<div class="license-sheet">
+<div class="license-sheet-head">
+<div style="font-size:18px;font-weight:800">💳 Beli Lisensi</div>
+<button class="sheet-close" onclick="window._ksr_closeSheet('sheetPurchase')" aria-label="Tutup">✕</button>
+</div>
+<div class="license-sheet-body" id="purchaseSheetBody"></div>
 </div>
 </div>
 

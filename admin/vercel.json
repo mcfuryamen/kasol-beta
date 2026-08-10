@@ -4,7 +4,7 @@
   "buildCommand": "node scripts/build-env-loader.mjs",
   "outputDirectory": ".",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

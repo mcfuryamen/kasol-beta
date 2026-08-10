@@ -69,3 +69,32 @@ temp/
 !rosok/dexie.min.js
 !admin/dexie.min.js
 !retail/dexie.min.js
+.vercel
+.env*
+
+# ===== Proteksi root (added 2026-08-10) ? JANGAN commit =====
+.secure.env
+*.env
+mig.json
+mig2.json
+pb.json
+run_migration_salt.js
+generator-lisensi-universal.html
+nul
+
+# ===== Artefak backup/rusak (added 2026-08-10) =====
+*.bak
+*.backup
+*.backup*
+*.fixed
+*.fixed4
+*.test
+*.testfix
+*.iconvfixed
+*.latin1fix
+*.latin1fix2
+backup_*
+mojibake*
+*_archive/
+x.startsWith*
+x[1])*

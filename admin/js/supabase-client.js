@@ -1,16 +1,15 @@
 /**
  * Supabase Client untuk Admin Dashboard
- * Full CRUD access dengan service_role key
+ * Semua akses data lewat Vercel Serverless Proxy /api/rest (service key server-side).
+ * TIDAK ada service_role key di browser.
  */
 
 // Load env vars from env-loader.js (which reads .env.local)
 const SUPABASE_URL = window.SUPABASE_URL || 'https://hhywrvedlwljawgxzpkq.supabase.co';
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
-const SUPABASE_SERVICE_KEY = window.SUPABASE_SERVICE_KEY || '';
 
-// Expose to window for other modules
+// Expose to window for other modules (tanpa service key)
 window.SUPABASE_URL = SUPABASE_URL;
-window.SUPABASE_SERVICE_KEY = SUPABASE_SERVICE_KEY;
 window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
 
 /**

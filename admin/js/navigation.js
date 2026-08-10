@@ -136,3 +136,18 @@ export function getCurrentScreen() {
 
 // Global alias for HTML onclick handlers
 window.showScreen = switchScreen;
+
+/**
+ * Update sidebar count badges (Katalog, Klien)
+ * Dipanggil setelah data selesai dimuat oleh modul terkait.
+ */
+export function updateSidebarBadges({ catalog, clients } = {}) {
+  if (typeof catalog === 'number') {
+    const el = document.getElementById('sideCountCatalog');
+    if (el) el.textContent = catalog;
+  }
+  if (typeof clients === 'number') {
+    const el = document.getElementById('sideCountClients');
+    if (el) el.textContent = clients;
+  }
+}

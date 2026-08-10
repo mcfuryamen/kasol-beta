@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasir Gerobak - Final Verification</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+  .check { margin: 10px 0; padding: 10px; border-radius: 4px; }
+  .pass { background: #d4edda; color: #155724; }
+  .fail { background: #f8d7da; color: #721c24; }
+  .summary { margin-top: 30px; padding: 20px; background: #e7f3ff; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h2>Kasir Gerobak - Final Verification</h2>
+<div id="results"></div>
+
+<script src="js/vendor/dexie.min.js"></script>
+<script src="js/error-tracking.js"></script>
+<script src="js/modules/crypto.js"></script>
+<script src="js/modules/database.js"></script>
+<script src="js/modules/ui.js"></script>
+<script src="js/modules/license.js"></script>
+<script src="js/modules/backup.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+// Run verification after modules load
+setTimeout(() => {
+  const checks = [];
+  
+  // Check all modules
+  ['CryptoModule', 'DatabaseModule', 'UIModule', 'LicenseModule', 'BackupModule'].forEach(m => {
+    checks.push({ name: m, passed: typeof window[m] !== 'undefined' });
+  });
+  
+  // Check Dexie
+  checks.push({ name: 'Dexie', passed: typeof Dexie !== 'undefined' });
+  
+  // Check errorTracker
+  checks.push({ name: 'errorTracker', passed: typeof errorTracker !== 'undefined' });
+  
+  // Check localStorage
+  checks.push({ name: 'localStorage', passed: !!window.localStorage });
+  
+  // Check UI methods
+  ['toast', 'formatRp', 'escapeHtml'].forEach(m => {
+    checks.push({ name: `UIModule.${m}`, passed: typeof UIModule[m] === 'function' });
+  });
+  
+  // Check DB methods
+  ['getSetting', 'setSetting'].forEach(m => {
+    checks.push({ name: `DatabaseModule.${m}`, passed: typeof DatabaseModule[m] === 'function' });
+  });
+  
+  // Check crypto methods
+  ['encryptBackup', 'decryptBackup', 'encryptLicense', 'decryptLicense'].forEach(m => {
+    checks.push({ name: `CryptoModule.${m}`, passed: typeof CryptoModule[m] === 'function' });
+  });
+  
+  // Display results
+  const passed = checks.filter(c => c.passed);
+  const failed = checks.filter(c => !c.passed);
+  const html = checks.map(c => 
+    `<div class="check ${c.passed ? 'pass' : 'fail'}">
+     ${c.passed ? '✅' : '❌'} ${c.name}: ${c.passed ? 'PASSED' : 'FAILED'}
+     </div>`
+  ).join('');
+  
+  document.getElementById('results').innerHTML = `
+    ${html}
+    <div class="summary">
+      <h3>Summary: ${passed.length}/${checks.length} Checks Passed</h3>
+      ${failed.length > 0 ? `<p class="fail">⚠️ ${failed.length} checks failed - see above</p>` : '<p class="pass">🎉 All checks passed!</p>'}
+      <p><strong>Version:</strong> v4.0 - Modular Architecture</p>
+      <p><strong>Status:</strong> ${failed.length === 0 ? '✅ PRODUCTION READY' : '⚠️ Issues need to be fixed'}</p>
+    </div>
+  `;
+  
+  console.log('Verification results:', { checks, passed, failed });
+}, 2000);
+</script>
+</body>
+</html>

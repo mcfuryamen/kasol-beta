@@ -166,10 +166,12 @@ CREATE POLICY "service_role_all_products" ON products
 
 | File | Purpose |
 |------|---------|
-| `js/env-loader.js` | Load env vars ke `window` (SUPABASE_URL, ANON_KEY, SERVICE_KEY) — **GENERATED at build** |
+| `js/env-loader.js` | Load env vars ke `window` (SUPABASE_URL, ANON_KEY, ADMIN_API_KEY gate) — **GENERATED at build**; TIDAK pernah berisi SERVICE_KEY |
 | `js/supabase-client.js` | Supabase REST client untuk landing (anon key) |
-| `js/catalog.js` | CRUD products via service_role key |
-| `js/clients.js` | **CRM Klien** — baca/tulis `clients` via service_role key, generate lisensi. Data dari onboarding + update profil app klien. |
+| `js/api.js` | Helper `supabaseFetch()` — semua operasi data lewat Vercel Serverless `/api/rest` |
+| `api/rest.js` | **Vercel Serverless Proxy** — satu-satunya tempat service_role key (server-side); whitelist tabel clients/leads/pembelian/products + fn activate-license |
+| `js/catalog.js` | CRUD products via `supabaseFetch()` (service key di server) |
+| `js/clients.js` | **CRM Klien** — baca/tulis `clients` via `supabaseFetch()`, generate lisensi. Data dari onboarding + update profil app klien. |
 | `js/license-core.js` | Pure logic HMAC-SHA256 + Base32 (portable ke client apps) |
 | `js/license-ui.js` | UI komponen lisensi (import dari license-core) |
 | `js/settings.js` | **MASIH localStorage** — rencana migrasi ke Supabase |
@@ -274,11 +276,13 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbG...aFIU
 
 ### Vercel Environment Variables
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://hhywrvedlwljawgxzpkq.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...4x50
+SUPABASE_URL=https://hhywrvedlwljawgxzpkq.supabase.co
+SUPABASE_ANON_KEY=eyJhbG...4x50
+SUPABASE_SERVICE_ROLE_KEY=svc_...   # HANYA server-side, dibaca api/rest.js
+ADMIN_API_KEY=xxx                    # gate sementara proxy (bukan master key DB)
 ```
 
-> **Service role key TIDAK perlu di-set di Vercel!** Build command `node scripts/build-env-loader.mjs` akan inject ke `js/env-loader.js` saat deploy.
+> **Phase A (FIXED):** service_role key TIDAK lagi di-inject ke client. Build command `node scripts/build-env-loader.mjs` hanya menulis `SUPABASE_URL`, `SUPABASE_ANON_KEY`, dan `SUPABASE_ADMIN_KEY` (gate) ke `js/env-loader.js`. Service key hidup **hanya** di Vercel Serverless `/api/rest`.
 
 ---
 
@@ -332,12 +336,12 @@ curl -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/datab
 
 ---
 
-## ⚠️ Security Hardening (REKOMENDASI PRIORITAS TINGGI)
+## ⚠️ Security Hardening
 
-### Masalah Saat Ini
-Admin dashboard di-deploy ke Vercel (URL publik). `js/env-loader.js` meng-inject **service_role key** ke `window` → **siapa pun yang buka DevTools bisa akses penuh ke database Supabase** (baca/tulis/hapus produk, clients, dll).
+### Status Phase A
+**FIXED:** Sebelumnya admin dashboard meng-inject **service_role key** ke `window` via `js/env-loader.js` → siapa pun dengan DevTools bisa akses penuh DB. Sekarang service key **tidak pernah** masuk browser; semua operasi Supabase lewat Vercel Serverless Proxy `/api/rest` (service key server-side) + whitelist tabel + gate `ADMIN_API_KEY`.
 
-### Solusi Jangka Pendek (Quick Win)
+### Follow-up (Phase B / setelah admin password beres)
 1. **Supabase Auth (Email/Password) + RLS per role**
    - Enable Email/Password auth di Supabase
    - Admin login pakai kredensial sesungguhnya (bukan hardcoded `admin123`)

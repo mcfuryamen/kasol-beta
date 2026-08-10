@@ -38,6 +38,7 @@ import {
   openLicenseSheet, openExtendFlow, grantExtension, activateLicense,
   tryShare
 } from './license.js';
+import { subscribeToLicenseUpdates, openPurchaseSheet } from './purchase.js';
 
 // ==================== WIRE WINDOW GLOBALS (for HTML onclick) ====================
 window.showPage           = showPage;
@@ -109,12 +110,15 @@ setLicenseRefs({
   checkLicenseGate,
   openExtendFlow,
   grantExtension,
-  openLicenseSheet
+  openLicenseSheet,
+  openPurchaseSheet
 });
 window._ksr_openLicenseSheet = openLicenseSheet;
 window._ksr_openExtendFlow   = openExtendFlow;
 window._ksr_activateLicense  = activateLicense;
+window._ksr_openPurchaseSheet = openPurchaseSheet;
 window._ksr_closeSheet       = (id) => document.getElementById(id)?.classList.remove('show');
+window._ksr_contactViaWA     = contactViaWA;
 // --- Syarat & Ketentuan 2-STEP onboarding (user gaptek friendly) ---
 // STEP 1 → STEP 2: validasi nama usaha, simpan, tampilkan modal S&K (trial BELUM mulai)
 window._ksr_proceedToTC = async () => {
@@ -270,6 +274,14 @@ async function boot() {
   ensureSynced({ silent: true }); // non-blocking, retry saat online berikutnya
   await checkProfileNotification(); // banner "lengkapi profil" bila profil belum lengkap
   setupPWA();
+  
+  // Subscribe to realtime license updates
+  try {
+    const { unit_id } = await ensureUnitId();
+    subscribeToLicenseUpdates(unit_id);
+  } catch (e) {
+    console.log('Realtime subscription skipped:', e.message);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);

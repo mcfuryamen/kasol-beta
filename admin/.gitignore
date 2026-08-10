@@ -1,5 +1,2 @@
-# Environment variables (DO NOT COMMIT)
+.vercel
 .env*
-.env
-.env.local
-!.env.example

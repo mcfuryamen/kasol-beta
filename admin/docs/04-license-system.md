@@ -2,13 +2,17 @@
 
 Detail lengkap algoritma lisensi HMAC-SHA256 yang terintegrasi di admin dashboard.
 
-> ⚠️ **Arah Arsitektur (2026):** Sistem lisensi akan melakukan **generate + validasi
-> via Supabase** (Lapisan Meta/CRM), *menggantikan* pendekatan offline saat ini.
-> Saat dokumen ini ditulis, validasi masih **offline** (HMAC diverifikasi lokal di app
-> klien) karena repo `admin/` **belum disinkronkan ke Supabase**.
+> ⚠️ **Arah Arsitektur (2026-08-10 — KONSEP HYBRID terkunci):** Sistem lisensi
+> bergerak ke **generate + validasi via Supabase** (admin = **satu-satunya sumber
+> kebenaran**), *melengkapi* pendekatan offline (bukan menggantikan sepenuhnya).
 >
-> - Ke depan: serial **wajib tervalidasi server-side di Supabase**, dengan fallback
->   offline untuk toleransi kegagalan jaringan.
+> - **Operasional tetap offline total** (Dexie) — transaksi tidak pernah ke server.
+> - **Lisensi + profil klien disimpan di Supabase** (database platform Kasir Solo).
+> - **Admin `admin/` mengelola SEMUA lisensi app klien** (kecuali landing & admin):
+>   generate, aktivasi, revoke, blacklist.
+> - App klien validasi offline (HMAC) → kawal sync status + blacklist saat online.
+> - Salt HMAC tetap dipakai app klien untuk validasi offline, tapi **generate &
+>   kontrol penuh pindah ke admin** (bukan helper publik `generator-lisensi-universal.html`).
 > - Rujukan arsitektur cloud menyeluruh: **`../CLOUD-ROADMAP.md`** (di root repo kasol).
 > - Standar ekosistem: **`../CONTEXT.md`**.
 

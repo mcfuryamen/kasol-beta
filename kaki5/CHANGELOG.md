@@ -2,6 +2,13 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-11 (Audit jalur data → Supabase + leads dari profil)
+
+- **Fix `sync.js` getClient() → isPlaceholderKey()**: filter `'******'` & placeholder umum (sebelumnya cuma blokir `'PASTE...'` & `'...'`). Konfigurasi anon key di `supabase-config.js` sudah terisi asli sejak audit sebelumnya — view tool sempat ngeredact jadi `'******'`.
+- **Jalur profil → `leads`**: `sync.js` `ensureSynced()` sekarang upsert ke tabel `leads` (ON CONFLICT unit_id) setelah upsert `clients`. Gagal leads tidak memutus sync clients (graceful catch). **Prasyarat:** jalankan `migration-leads-unitid.sql` di Supabase SQL editor.
+- **`purchase.js` client mandiri**: `getSupabaseClient()` sendiri (tidak bergantung `sync.js` getClient()). Guard `isPlaceholderKey()` + createClient sendiri. Semua fungsi purchase pakai `sb = getSupabaseClient()` bukan `window._ksrSupabaseClient` langsung.
+- **Migrasi:** `supabase/migration-leads-unitid.sql` — tambah `unit_id` + `user_id` + unique index + RLS anon own-rows di `leads` + backfill dari `clients`.
+
 ## 2026-08-07 (PWA Install Detection + API Wilayah Desa + Custom Period Laporan)
 
 - **PWA Install Detection** (`js/pwa.js`):

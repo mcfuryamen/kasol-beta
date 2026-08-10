@@ -167,10 +167,6 @@
               <div class="field"><label class="field-label" for="genProduct">Produk</label><select id="genProduct"></select></div>
               <div class="field"><label class="field-label" for="genUnitId">Device Code</label><input id="genUnitId" placeholder="KSR-ABCD / KK5-1A2B" maxlength="20"><small class="field-hint">Kode perangkat dari app klien.</small></div>
               <div class="field-grid-2">
-                <div class="field"><label class="field-label" for="genOwnerName">Nama Pemilik</label><input id="genOwnerName" placeholder="Nama usaha"></div>
-                <div class="field"><label class="field-label" for="genPhone">WhatsApp</label><input id="genPhone" placeholder="08xxx"></div>
-              </div>
-              <div class="field-grid-2">
                 <div class="field"><label class="field-label" for="genDays">Masa Aktif (hari)</label><input id="genDays" type="number" value="365"></div>
                 <div class="field"><label class="field-label" for="genMaxDevices">Max Device</label><input id="genMaxDevices" type="number" value="1"></div>
               </div>
@@ -224,6 +220,7 @@
 
         <div class="tab-bar" role="tablist">
           <button class="tab-btn active" id="tabBtnOutlet" data-tab="outlet" role="tab" aria-selected="true">🛍️ Outlet</button>
+          <button class="tab-btn" id="tabBtnPembelian" data-tab="pembelian" role="tab" aria-selected="false">💳 Pembelian</button>
           <button class="tab-btn" id="tabBtnLeads" data-tab="leads" role="tab" aria-selected="false">✉️ Leads</button>
         </div>
 
@@ -282,6 +279,30 @@
             <div class="empty-state" id="leadsEmpty" hidden>
               <div class="empty-ic">✉</div>
               <div class="empty-t">Belum ada leads</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tabPembelian" role="tabpanel" aria-labelledby="tabBtnPembelian" hidden>
+          <div class="panel mt16">
+            <div class="panel-head toolbar-inline">
+              <h3 class="panel-t">Pembelian Lisensi</h3>
+              <div class="toolbar-right">
+                <select class="select" id="pembelianStatusFilter" aria-label="Filter status">
+                  <option value="">Semua</option>
+                  <option value="menunggu_verifikasi">⏳ Menunggu</option>
+                  <option value="aktif">✅ Aktif</option>
+                  <option value="ditolak">❌ Ditolak</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="refreshPembelianBtn">⟳ Muat</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="pembelian-list" id="pembelianList"></div>
+              <div class="empty-state" id="pembelianEmpty" hidden>
+                <div class="empty-ic">💳</div>
+                <div class="empty-t">Belum ada pembelian</div>
+              </div>
             </div>
           </div>
         </div>

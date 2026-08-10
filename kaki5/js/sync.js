@@ -18,11 +18,25 @@ import { getUnitId, getDeviceCode, getInstallId } from './license.js';
 
 const APP_TYPE = 'kaki5';
 
+// Placeholder anon key menghasilkan JWT yang gagal auth → semua sync/purchase
+// reject RLS. Deteksi pola placeholder umum (bintang, 'PASTE_', '...', 'xxxx').
+function isPlaceholderKey(k) {
+  if (!k) return true;
+  const s = String(k);
+  return (
+    s.includes('***') ||
+    s.includes('...') ||
+    /^PASTE/i.test(s) ||
+    /^xxxx/i.test(s) ||
+    !s.includes('.') // JWT anon asli selalu punya 3 segmen bertitik
+  );
+}
+
 function getClient() {
   if (!window.supabase) return null;
   const url = window.KASIRSOLO_SUPABASE_URL;
   const anon = window.KASIRSOLO_SUPABASE_ANON_KEY;
-  if (!url || !anon || anon === 'PASTE_ANON_KEY_DISINI' || anon.includes('...')) return null;
+  if (!url || isPlaceholderKey(anon)) return null;
   if (!window._ksrSupabaseClient) {
     window._ksrSupabaseClient = window.supabase.createClient(url, anon, {
       auth: { persistSession: true, autoRefreshToken: true }
@@ -102,6 +116,23 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
       .from('clients')
       .upsert({ ...payload, user_id: userId }, { onConflict: 'unit_id' });
     if (upErr) throw upErr;
+    // Jalur profil → leads (CRM marketing). Sama seperti clients, dedupe per
+    // unit_id. Gagal di sini TIDAK menggagalkan sync clients agar tak memutus
+    // jalur utama (mis. kolom leads belum ada di DB).
+    try {
+      await sb.from('leads').upsert({
+        unit_id: payload.unit_id,
+        user_id: userId,
+        name: payload.nama_warung,
+        wa: payload.no_whatsapp,
+        address: payload.alamat_detail,
+        app_type: payload.app_type,
+        source: 'app-' + payload.app_type,
+        status: 'baru'
+      }, { onConflict: 'unit_id' });
+    } catch (_leadErr) {
+      console.warn('leads upsert skipped (ungsa migrasi leads):', _leadErr?.message || _leadErr);
+    }
     await setSetting('sync', { status: 'synced', syncedAt: new Date().toISOString() });
     if (!silent) showToast('✅ Profil tersinkron ke server');
     return { ok: true };

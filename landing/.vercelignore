@@ -11,6 +11,11 @@ npm-debug.log*
 .git
 .gitignore
 
+# Secrets — jangan pernah deploy file env apa pun (service key dll)
+.env
+.env.*
+!.env.example
+
 # OS
 .DS_Store
 Thumbs.db

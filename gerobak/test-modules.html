@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasir Solo - Gerobak</title>
+<meta name="theme-color" content="#FF7A1A">
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<style>
+  body { margin:0; padding:0; font-family:sans-serif; padding:20px; }
+  .module-status { margin:5px 0; padding:8px; border-radius:4px; }
+  .loaded { background:#d4edda; color:#155724; }
+  .not-loaded { background:#f8d7da; color:#721c24; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="js/vendor/dexie.min.js"></script>
+<script src="js/error-tracking.js"></script>
+<script src="js/modules/crypto.js"></script>
+<script src="js/modules/database.js"></script>
+<script src="js/modules/ui.js"></script>
+<script src="js/modules/license.js"></script>
+<script src="js/modules/backup.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+// Test modules after they load
+setTimeout(() => {
+  const appDiv = document.getElementById('app');
+  if (!appDiv) return;
+  
+  const modules = {
+    'CryptoModule': typeof CryptoModule !== 'undefined',
+    'DatabaseModule': typeof DatabaseModule !== 'undefined',
+    'UIModule': typeof UIModule !== 'undefined',
+    'LicenseModule': typeof LicenseModule !== 'undefined',
+    'BackupModule': typeof BackupModule !== 'undefined'
+  };
+  
+  let html = '<h2>Module Status</h2>';
+  let allLoaded = true;
+  
+  for (const [name, loaded] of Object.entries(modules)) {
+    const status = loaded ? 'Loaded' : 'Not Loaded';
+    const className = loaded ? 'module-status loaded' : 'module-status not-loaded';
+    html += `<div class="${className}">${name}: ${status}</div>`;
+    if (!loaded) allLoaded = false;
+  }
+  
+  if (allLoaded) {
+    html += '<h3 style="color:green;">✅ All modules loaded successfully!</h3>';
+    html += '<p>Check console for more details...</p>';
+  } else {
+    html += '<h3 style="color:red;">❌ Some modules failed to load!</h3>';
+  }
+  
+  appDiv.innerHTML = html;
+}, 2000);
+</script>
+</body>
+</html>

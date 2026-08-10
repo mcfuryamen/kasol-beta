@@ -9,13 +9,13 @@ import { storage } from './storage.js';
 import * as LicenseCore from './license-core.js';
 import { formatRupiah, escapeHtml, generateId } from './utils.js';
 import { showToast } from './toast.js';
+import { supabaseFetch } from './api.js';
+import { APP_META } from './clients.js';
 
 // DOM elements (new rosok-style IDs)
 let productRegistry = null;
 let genProduct = null;
 let genUnitId = null;
-let genOwnerName = null;
-let genPhone = null;
 let genDays = null;
 let genMaxDevices = null;
 let genRefCode = null;
@@ -35,31 +35,81 @@ let copyRefCodeBtn = null;
 // Product registry (from license-core defaults + custom)
 // ⚠️ SALT HARUS SAMA PERSIS dengan PRODUCT_SALT di tiap app klien,
 //    kalau beda, serial yang di-generate di TOLAK oleh validasi app.
-const PRODUCT_REGISTRY = {
+// PRODUCT_REGISTRY will be populated from Supabase products table on init
+// Each product must have: prefix (app_type), salt, name, price (from price_label)
+let PRODUCT_REGISTRY = {};
+
+// Fallback registry (offline / supabase fail): same salts as client apps
+const FALLBACK_REGISTRY = {
   KSR: { name: 'Kasir Rosok (rosok)', salt: 'KASIRSOLO-ROSOK-HMAC-V2', price: 250000 },
   KK5: { name: 'Kasir Kaki5 (kaki5)', salt: 'KASIRSOLO-KAKI5-HMAC-V2', price: 200000 },
   GBK: { name: 'Gerobak (gerobak)', salt: 'KASIRSOLO-GEROBAK-HMAC-V2', price: 300000 },
   RTL: { name: 'Kasir Retail (retail)', salt: 'KASIRSOLO-RETAIL-HMAC-V2', price: 350000 }
 };
 
+// Map app_type -> prefix+salt (sumber kebenaran: APP_META di clients.js)
+// APP_META ini yang sama dengan jalur generate serial di klien, jadi serial
+// yang dihasilkan dari menu Lisensi VALID di app klien.
+
+/**
+ * Load products from Supabase to populate PRODUCT_REGISTRY.
+ * Uses the /api/rest proxy (Phase A) — NOT direct anon-key fetch.
+ * Prefix & salt diambil dari APP_META (konsisten dgn jalur generate serial di klien).
+ */
+async function loadProductsFromSupabase() {
+  try {
+    const res = await supabaseFetch('/rest/v1/products?order=order_index.asc');
+    if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) {
+      console.warn('loadProductsFromSupabase: kosong/gagal, pakai fallback', res.status, res.text);
+      PRODUCT_REGISTRY = { ...FALLBACK_REGISTRY };
+      return;
+    }
+
+    const registry = {};
+    for (const p of res.data) {
+      const at = String(p.app_type || '').toLowerCase();
+      const meta = APP_META[at];
+      // prefix dari APP_META kalau dikenal; kalau tidak, derive dari app_type/name
+      const prefix = meta?.prefix || String(p.app_type || p.name || 'PRD').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) || 'PRD';
+      registry[prefix] = {
+        name: p.name || meta?.label || prefix,
+        salt: p.salt || meta?.salt || '',
+        price: parseInt(String(p.price_label || '').replace(/\D/g, '') || '0', 10)
+      };
+    }
+
+    if (Object.keys(registry).length === 0) {
+      PRODUCT_REGISTRY = { ...FALLBACK_REGISTRY };
+    } else {
+      PRODUCT_REGISTRY = registry;
+    }
+  } catch (error) {
+    console.error('loadProductsFromSupabase error:', error);
+    PRODUCT_REGISTRY = { ...FALLBACK_REGISTRY };
+  }
+}
+
 /**
  * Initialize license module
  */
-export function initLicense() {
+export async function initLicense() {
   cacheElements();
   bindEvents();
-  renderProductRegistry();
 
-  // Subscribe to license products
+  // Load products from Supabase to populate PRODUCT_REGISTRY
+  await loadProductsFromSupabase();
+
+  // Subscribe to license products (local storage changes)
   subscribe('licenseProducts', renderProductRegistry);
 
-  // Load saved license products
+  // Load saved license products (fallback/local overrides)
   loadLicenseProducts(storage).then(() => {
     renderProductRegistry();
   });
 
   // Load referral data
   loadReferralData();
+  renderProductRegistry();
 }
 
 /**
@@ -71,8 +121,6 @@ function cacheElements() {
   // Generate form
   genProduct = document.getElementById('genProduct');
   genUnitId = document.getElementById('genUnitId');
-  genOwnerName = document.getElementById('genOwnerName');
-  genPhone = document.getElementById('genPhone');
   genDays = document.getElementById('genDays');
   genMaxDevices = document.getElementById('genMaxDevices');
   genRefCode = document.getElementById('genRefCode');
@@ -200,8 +248,6 @@ function getProductIcon(prefix) {
 async function handleGenerate() {
   const prefix = genProduct?.value;
   const unitId = genUnitId?.value?.trim();
-  const ownerName = genOwnerName?.value?.trim();
-  const phone = genPhone?.value?.trim();
   const days = parseInt(genDays?.value) || 365;
   const maxDevices = parseInt(genMaxDevices?.value) || 1;
   const refCode = genRefCode?.value?.trim();
@@ -213,16 +259,6 @@ async function handleGenerate() {
   if (!unitId) {
     showToast('Masukkan Device Code', 2000, 'warning');
     genUnitId?.focus();
-    return;
-  }
-  if (!ownerName) {
-    showToast('Masukkan nama pemilik', 2000, 'warning');
-    genOwnerName?.focus();
-    return;
-  }
-  if (!phone) {
-    showToast('Masukkan nomor WhatsApp', 2000, 'warning');
-    genPhone?.focus();
     return;
   }
 

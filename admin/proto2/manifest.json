@@ -1,0 +1,43 @@
+{
+  "name": "Admin Marketing KASIRSOLO",
+  "short_name": "KasirAdmin",
+  "description": "Dashboard admin untuk mengelola landing page, leads, katalog, dan lisensi KASIRSOLO",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF8F0",
+  "theme_color": "#F7941D",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Ringkasan",
+      "url": "/#dashboard",
+      "description": "Lihat ringkasan performa"
+    },
+    {
+      "name": "Leads",
+      "url": "/#leads",
+      "description": "Kelola leads & trial"
+    },
+    {
+      "name": "Lisensi",
+      "url": "/#license",
+      "description": "Generate & verifikasi lisensi"
+    }
+  ]
+}

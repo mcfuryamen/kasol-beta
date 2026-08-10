@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -241,6 +241,19 @@
   .app-card .price{font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; color:var(--orange-600); font-size:15px; margin-bottom:14px;}
   .app-card .price span{font-weight:500; color:var(--ink-soft); font-size:12px;}
 
+  /* Watermark DEVELOPMENT untuk app yang belum punya domain resmi */
+  .app-card.dev{overflow:hidden; border-style:dashed;}
+  .app-card.dev::after{
+    content:'DEVELOPMENT'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-32deg);
+    font-size:40px; font-weight:800; letter-spacing:.08em; color:var(--orange-600); opacity:.09;
+    white-space:nowrap; pointer-events:none; user-select:none; font-family:'Plus Jakarta Sans',sans-serif;
+  }
+  .app-card.dev .app-icon{filter:grayscale(.55) opacity(.75);}
+  .dev-badge{
+    display:inline-block; background:var(--orange-600); color:#fff; font-size:9px; font-weight:800;
+    padding:2px 7px; border-radius:999px; letter-spacing:.06em; vertical-align:middle;
+  }
+
   /* Cara kerja */
   .steps{display:grid; grid-template-columns:repeat(4,1fr); gap:24px; counter-reset:step;}
   .step-card{position:relative; padding-top:8px;}
@@ -375,7 +388,6 @@
       <a href="#fitur">Fitur</a>
       <a href="#aplikasi">Aplikasi</a>
       <a href="#cara-kerja">Cara Kerja</a>
-      <a href="#harga">Harga</a>
       <a href="#testimoni">Testimoni</a>
       <a href="#faq">FAQ</a>
     </div>
@@ -390,7 +402,6 @@
     <a href="#fitur">Fitur</a>
     <a href="#aplikasi">Aplikasi</a>
     <a href="#cara-kerja">Cara Kerja</a>
-    <a href="#harga">Harga</a>
     <a href="#testimoni">Testimoni</a>
     <a href="#faq">FAQ</a>
     <a href="#aplikasi">Coba Gratis</a>
@@ -570,58 +581,6 @@
   </div>
 </section>
 
-<section id="lead-capture" style="background:linear-gradient(180deg,var(--cream),var(--cream-2)); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
-  <div class="container">
-    <div class="section-head" style="text-align:center; max-width:600px; margin:0 auto 32px;">
-      <span class="eyebrow">🚀 Mulai Sekarang</span>
-      <h2>Coba Gratis 7 Hari — Tanpa Kartu Kredit</h2>
-      <p>Isi data bisnis Anda, pilih aplikasi, dan langsung aktif. Tim kami akan hubungi via WhatsApp untuk bantuan setup.</p>
-    </div>
-    <div style="max-width:520px; margin:0 auto; background:#fff; border:1px solid var(--line); border-radius:var(--radius-lg); padding:32px; box-shadow:var(--shadow-card);">
-      <form id="leadForm" novalidate>
-        <div class="field-grid" style="gap:20px;">
-          <div class="field">
-            <label class="field-label">Nama Bisnis / Usaha <span style="color:var(--red-600)">*</span></label>
-            <input type="text" id="leadName" class="form-input" placeholder="Contoh: Toko Berkah Jaya" required>
-          </div>
-          <div class="field">
-            <label class="field-label">Aplikasi yang Diminati</label>
-            <select id="leadApp" class="form-input">
-              <option value="">Pilih aplikasi...</option>
-              <option value="retail">🛒 Kasir Retail</option>
-              <option value="konveksi">👕 Manajemen Konveksi</option>
-              <option value="bengkel">🔧 Bengkel + Sparepart</option>
-              <option value="masjid">🕌 Manajemen Masjid</option>
-              <option value="tpa">📖 Manajemen TPA/TPQ</option>
-              <option value="klinik">🩺 Klinik THT</option>
-              <option value="apotek">💊 Apotek</option>
-              <option value="dapur">🍳 Dapur SPPG</option>
-              <option value="lainnya">Lainnya / Belum Pasti</option>
-            </select>
-          </div>
-          <div class="field field-span-2">
-            <label class="field-label">WhatsApp (Aktif) <span style="color:var(--red-600)">*</span></label>
-            <input type="tel" id="leadWa" class="form-input" placeholder="Contoh: 0812-3456-7890" required>
-          </div>
-          <div class="field field-span-2">
-            <label class="field-label">Email (Opsional)</label>
-            <input type="email" id="leadEmail" class="form-input" placeholder="Contoh: owner@tokobahagia.com">
-          </div>
-          <div class="field field-span-2">
-            <label class="field-label">Alamat / Lokasi Usaha <span style="color:var(--red-600)">*</span></label>
-            <textarea id="leadAddress" class="form-input" rows="3" placeholder="Contoh: Jl. Merdeka No. 10, Solo, Jawa Tengah" required></textarea>
-          </div>
-        </div>
-        <div style="margin-top:24px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-          <button type="submit" class="btn btn-primary" style="flex:1; max-width:280px;">📩 Kirim & Dapatkan Trial</button>
-          <a id="waDirectLink" href="https://wa.me/628816566935?text=Halo%20KASIRSOLO%2C%20saya%20ingin%20konsultasi%20tentang%20aplikasi%20kasir." target="_blank" rel="noopener" class="btn btn-ghost" style="background:#25D366; color:#fff; border-color:#25D366; flex:1; max-width:280px;">💬 Langsung Chat WA</a>
-        </div>
-        <p id="leadMsg" style="margin-top:16px; text-align:center; font-size:13px; color:var(--ink-soft); min-height:20px;"></p>
-      </form>
-    </div>
-  </div>
-</section>
-
 <section style="background:#fff; border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
   <div class="container">
     <div class="section-head">
@@ -636,38 +595,6 @@
       <div class="adv-card"><div class="adv-icon">📱</div><h4>Multi-Device &amp; Platform</h4><p>Akses dari HP, tablet, atau laptop. Sinkronisasi data otomatis antar perangkat.</p></div>
       <div class="adv-card"><div class="adv-icon">💬</div><h4>Support WA Langsung</h4><p>Bantuan teknis langsung via WhatsApp. Respons cepat dari tim support berpengalaman.</p></div>
       <div class="adv-card"><div class="adv-icon">⚙️</div><h4>Kustomisasi Fleksibel</h4><p>Sesuaikan tampilan, fitur, dan workflow sesuai kebutuhan bisnis Anda. Tanpa biaya tambahan.</p></div>
-    </div>
-  </div>
-</section>
-
-<section id="harga">
-  <div class="container">
-    <div class="section-head">
-      <span class="eyebrow">💰 Harga</span>
-      <h2>Investasi Sekali, Untung Selamanya</h2>
-      <p>Tanpa biaya langganan bulanan. Bayar sekali, aplikasi aktif seumur hidup dengan update dan support gratis.</p>
-    </div>
-    <div class="price-wrap">
-      <div class="price-card">
-        <span class="price-badge">🏆 Best Value</span>
-        <div class="price-amount">Mulai dari Rp200.000<span>/sekali bayar seumur hidup</span></div>
-        <p class="price-note">Harga tergantung jenis aplikasi. Semua sudah termasuk fitur lengkap, update, dan support.</p>
-        <ul class="price-features">
-          <li>Akses semua fitur</li>
-          <li>Update gratis selamanya</li>
-          <li>Support WA langsung</li>
-          <li>Backup cloud otomatis</li>
-          <li>Multi-device sync</li>
-          <li>Tanpa biaya langganan</li>
-          <li>Training &amp; onboarding</li>
-          <li>Kustomisasi gratis</li>
-        </ul>
-        <div class="price-ctas">
-          <a href="#aplikasi" class="btn btn-primary">Coba Gratis 7 Hari</a>
-          <a id="waPriceLink" href="https://wa.me/628816566935?text=Halo%20KASIRSOLO%2C%20saya%20tertarik%20dengan%20aplikasi%20Anda.%20Bisa%20info%20lebih%20lanjut%20tentang%20harga%3F" target="_blank" rel="noopener" class="btn btn-ghost" style="background:#25D366; color:#fff; border-color:#25D366;">Tanya Harga</a>
-        </div>
-        <p class="price-fine">* Trial 7 hari gratis tanpa kartu kredit. Bisa perpanjang trial.</p>
-      </div>
     </div>
   </div>
 </section>
@@ -761,7 +688,6 @@
       <div class="foot-col">
         <h5>Perusahaan</h5>
         <a href="#fitur">Fitur</a>
-        <a href="#harga">Harga</a>
         <a href="#testimoni">Testimoni</a>
         <a href="#faq">FAQ</a>
         <a href="#aplikasi">Trial Gratis</a>
@@ -797,16 +723,21 @@
   burgerBtn.addEventListener('click', () => mobileMenu.classList.toggle('open'));
   mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => mobileMenu.classList.remove('open')));
 
-  // ===== Data bersama dengan Dashboard Admin (window.storage, shared) =====
+  // ===== Katalog & Settings — sumber: Supabase (anon read-only, publik) =====
+  // Landing HANYA menampilkan produk → CTA/closing merujuk ke domain app klien
+  // (store_url per produk, dikelola admin). Leads di-capture dari profil user
+  // (onboarding/update profil) di masing2 app klien — BUKAN dari landing.
+  const SUPABASE_URL = 'https://hhywrvedlwljawgxzpkq.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhoeXdydmVkbHdsamF3Z3h6cGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MzM4OTgsImV4cCI6MjEwMTEwOTg5OH0.GXHRDayBNRbWh1QywGkYCJ6D79qnm_mtyRSJUxw4x50';
+
+  // Fallback offline (dipakai hanya jika Supabase gagal di-fetch)
   const DEFAULT_CATALOG = [
-    {id:'retail', icon:'🛒', name:'Kasir Retail', desc:'Sistem kasir lengkap untuk toko retail, minimarket, dan warung. Dilengkapi manajemen stok & laporan.', price:250000, category:'bisnis', hot:true, trialUrl:'https://example.com/trial/retail'},
-    {id:'konveksi', icon:'👕', name:'Manajemen Konveksi', desc:'Kelola produksi konveksi dari order hingga pengiriman. Tracking progress & manajemen bahan.', price:350000, category:'bisnis', hot:false, trialUrl:'https://example.com/trial/konveksi'},
-    {id:'bengkel', icon:'🔧', name:'Bengkel + Sparepart', desc:'Manajemen bengkel lengkap dengan antrian service, stok sparepart, dan invoice otomatis.', price:400000, category:'bisnis', hot:true, trialUrl:'https://example.com/trial/bengkel'},
-    {id:'masjid', icon:'🕌', name:'Manajemen Masjid', desc:'Kelola keuangan masjid transparan: infaq, zakat, kas, dan laporan untuk jamaah.', price:200000, category:'institusi', hot:false, trialUrl:'https://example.com/trial/masjid'},
-    {id:'tpa', icon:'📖', name:'Manajemen TPA/TPQ', desc:'Sistem manajemen TPA/TPQ untuk pencatatan santri, absensi, progres hafalan, dan laporan wali.', price:200000, category:'institusi', hot:false, trialUrl:'https://example.com/trial/tpa'},
-    {id:'klinik', icon:'🩺', name:'Klinik THT', desc:'Sistem informasi klinik THT: rekam medis, antrian pasien, kasir, dan laporan. Serba terintegrasi.', price:500000, category:'kesehatan', hot:false, trialUrl:'https://example.com/trial/klinik'},
-    {id:'apotek', icon:'💊', name:'Apotek', desc:'Manajemen apotek lengkap: stok obat, penjualan, resep, expired date tracking, dan laporan.', price:450000, category:'kesehatan', hot:true, trialUrl:'https://example.com/trial/apotek'},
-    {id:'dapur', icon:'🍳', name:'Dapur SPPG', desc:'Sistem manajemen dapur untuk institusi: perencanaan menu, stok bahan, kalkulasi porsi & laporan.', price:300000, category:'institusi', hot:false, trialUrl:'https://example.com/trial/dapur'}
+    {id:'retail', icon:'🛒', name:'Kasir Retail', desc:'Sistem kasir lengkap untuk toko retail, minimarket, dan warung.', price:250000, category:'bisnis', hot:true, storeUrl:'https://retail.kasirsolo.com'},
+    {id:'konveksi', icon:'👕', name:'Manajemen Konveksi', desc:'Kelola produksi konveksi dari order hingga pengiriman.', price:350000, category:'bisnis', hot:false, storeUrl:null},
+    {id:'bengkel', icon:'🔧', name:'Bengkel + Sparepart', desc:'Manajemen bengkel lengkap dengan antrian service dan stok sparepart.', price:400000, category:'bisnis', hot:true, storeUrl:null},
+    {id:'masjid', icon:'🕌', name:'Manajemen Masjid', desc:'Kelola keuangan masjid transparan: infaq, zakat, kas, dan laporan.', price:200000, category:'institusi', hot:false, storeUrl:null},
+    {id:'tpa', icon:'📖', name:'Manajemen TPA/TPQ', desc:'Pencatatan santri, absensi, progres hafalan, dan laporan wali.', price:200000, category:'institusi', hot:false, storeUrl:null},
+    {id:'klinik', icon:'🩺', name:'Klinik THT', desc:'Sistem informasi klinik THT: rekam medis, antrian pasien, kasir, dan laporan.', price:500000, category:'kesehatan', hot:false, storeUrl:null}
   ];
   const DEFAULT_SETTINGS = {
     waNumber:'628816566935',
@@ -819,41 +750,66 @@
     statUptime:99.9
   };
 
-  async function storageGetJSON(key, fallback){
-    try{
-      if(!window.storage) return fallback;
-      const res = await window.storage.get(key, true);
-      if(res && res.value) return JSON.parse(res.value);
-      return fallback;
-    }catch(e){ return fallback; }
-  }
-  async function storageSetJSON(key, value){
-    try{
-      if(!window.storage) return false;
-      await window.storage.set(key, JSON.stringify(value), true);
-      return true;
-    }catch(e){ return false; }
-  }
   function formatRupiah(n){ return 'Rp' + Number(n).toLocaleString('id-ID'); }
+  function waLink(text){ return 'https://wa.me/' + DEFAULT_SETTINGS.waNumber + '?text=' + encodeURIComponent(text); }
+
+  function getCategory(appType){
+    const b = ['retail','rosok','gerobak','kaki5','konveksi','bengkel'];
+    const h = ['klinik','apotek'];
+    if(b.includes(appType)) return 'bisnis';
+    if(h.includes(appType)) return 'kesehatan';
+    return 'institusi';
+  }
+
+  // Transform baris Supabase → katalog landing. store_url = domain app klien aktif
+  // (dikontrol admin). Jika null → fallback tombol konsultasi WA.
+  function toCatalogApp(p){
+    return {
+      id: p.app_type,
+      icon: p.icon || '📦',
+      name: p.name,
+      tagline: p.tagline || '',
+      desc: p.description || '',
+      price: parseInt((p.price_label || '').replace(/\D/g, '') || '0'),
+      category: getCategory(p.app_type),
+      hot: p.order_index === 0,
+      storeUrl: p.store_url || null,
+            vercelUrl: p.vercel_url || null,
+            waUrl: waLink('Halo KASIRSOLO, saya tertarik dengan ' + (p.name || 'aplikasi') + '. Bisa info lebih lanjut?')
+    };
+  }
+
+  // Fetch katalog dinamis dari Supabase (anon, read-only). Fallback ke DEFAULT_CATALOG.
+  async function fetchCatalog(){
+    try{
+      const r = await fetch(
+              SUPABASE_URL + '/rest/v1/products?select=app_type,name,tagline,description,price_label,icon,order_index,visible,store_url,vercel_url&visible=eq.true&order=order_index.asc',
+        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY } }
+      );
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      const rows = await r.json();
+      if(!Array.isArray(rows) || rows.length === 0) return DEFAULT_CATALOG;
+      return rows.map(toCatalogApp);
+    }catch(e){
+      console.warn('Katalog gagal dimuat dari Supabase, pakai fallback:', e && e.message ? e.message : e);
+      return DEFAULT_CATALOG;
+    }
+  }
 
   function renderCatalog(catalog){
     const grid = document.getElementById('appGrid');
-    const select = document.getElementById('fApp');
     if(!grid) return;
     grid.innerHTML = catalog.map(app => `
-      <div class="app-card" data-cat="${app.category}">
+      <div class="app-card${!app.storeUrl ? ' dev' : ''}" data-cat="${app.category}">
         ${app.hot ? '<span class="hot-badge">Hot</span>' : ''}
+        ${!app.storeUrl ? '<span class="dev-badge">DEVELOPMENT</span>' : ''}
         <div class="app-icon">${app.icon}</div>
         <h4>${app.name}</h4>
         <p class="desc">${app.desc}</p>
         <div class="price">${formatRupiah(app.price)} <span>/selamanya</span></div>
-        <a href="${app.trialUrl}" class="btn btn-ghost btn-sm">Detail</a>
+        <a href="${app.storeUrl || app.waUrl}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">${app.storeUrl ? 'Buka Aplikasi' : 'Konsultasi'}</a>
       </div>
     `).join('');
-    if(select){
-      select.innerHTML = '<option value="">Pilih aplikasi...</option>' +
-        catalog.map(app => `<option>${app.name} - ${formatRupiah(app.price)}</option>`).join('');
-    }
     const statApps = document.getElementById('statApps');
     if(statApps) statApps.dataset.count = catalog.length;
   }
@@ -865,13 +821,10 @@
     if(statClients) statClients.dataset.count = s.statClients;
     if(statUptime) statUptime.dataset.count = s.statUptime;
 
-    const waText1 = encodeURIComponent('Halo KASIRSOLO, saya tertarik dengan aplikasi Anda. Bisa info lebih lanjut tentang harga?');
     const waText2 = encodeURIComponent('Halo KASIRSOLO, saya tertarik dengan aplikasi Anda. Bisa info lebih lanjut?');
-    const waPriceLink = document.getElementById('waPriceLink');
     const waFinalLink = document.getElementById('waFinalLink');
     const waFooterLink = document.getElementById('waFooterLink');
     const emailFooterLink = document.getElementById('emailFooterLink');
-    if(waPriceLink) waPriceLink.href = `https://wa.me/${s.waNumber}?text=${waText1}`;
     if(waFinalLink) waFinalLink.href = `https://wa.me/${s.waNumber}?text=${waText2}`;
     if(waFooterLink) waFooterLink.href = `https://wa.me/${s.waNumber}`;
     if(emailFooterLink) emailFooterLink.href = `mailto:${s.email}`;
@@ -886,24 +839,10 @@
     if(addrOpsMap) addrOpsMap.href = s.mapsOps;
   }
 
-  let CURRENT_CATALOG = DEFAULT_CATALOG;
-
-  (async function initSharedData(){
-    const [catalog, settings] = await Promise.all([
-      storageGetJSON('kasirsolo:catalog', DEFAULT_CATALOG),
-      storageGetJSON('kasirsolo:settings', DEFAULT_SETTINGS)
-    ]);
-    CURRENT_CATALOG = catalog;
+  (async function initLanding(){
+    const catalog = await fetchCatalog();
     renderCatalog(catalog);
-    applySettings(settings);
-
-    // Catat kunjungan (dibaca oleh dashboard admin)
-    const stats = await storageGetJSON('kasirsolo:stats', {visits:0});
-    stats.visits = (stats.visits || 0) + 1;
-    const success = await storageSetJSON('kasirsolo:stats', stats);
-    if (!success) {
-      console.warn('Gagal menyimpan statistik kunjungan');
-    }
+    applySettings(null);
   })();
 
   // Counter animation
@@ -962,77 +901,6 @@
       answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
     });
   });
-
-  // Lead form handler
-  const leadForm = document.getElementById('leadForm');
-  const leadMsg = document.getElementById('leadMsg');
-  if (leadForm) {
-    leadForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const submitBtn = leadForm.querySelector('button[type="submit"]');
-      const originalText = submitBtn.textContent;
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Mengirim...';
-      leadMsg.textContent = '';
-      leadMsg.style.color = 'var(--ink-soft)';
-
-      // Normalize WA to 628xxx
-      let wa = document.getElementById('leadWa').value.trim().replace(/[^0-9]/g, '');
-      if (wa.startsWith('08')) wa = '62' + wa.slice(1);
-      else if (wa.startsWith('8')) wa = '62' + wa;
-      else if (!wa.startsWith('62')) wa = '62' + wa;
-
-      const payload = {
-        name: document.getElementById('leadName').value.trim(),
-        wa: wa,
-        email: document.getElementById('leadEmail').value.trim() || null,
-        address: document.getElementById('leadAddress').value.trim(),
-        app_type: document.getElementById('leadApp').value || 'lainnya',
-        source: 'landing_form',
-        status: 'baru'
-      };
-
-      try {
-        // Submit to Supabase via anon key (RLS: anon insert only)
-        const SUPABASE_URL = 'https://hhywrvedlwljawgxzpkq.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhoeXdydmVkbHdsamF3Z3h6cGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2NzY2MTIsImV4cCI6MjA3MDI1MjYxMn0.dummy'; // replaced at build
-        const r = await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (r.ok) {
-          leadMsg.textContent = '✅ Terima kasih! Tim kami akan menghubungi Anda via WhatsApp segera.';
-          leadMsg.style.color = 'var(--green-600)';
-          leadForm.reset();
-          // Update WA direct link with form data
-          const waLink = document.getElementById('waDirectLink');
-          if (waLink) {
-            const text = encodeURIComponent(`Halo, saya ${payload.name} dari ${payload.address}. Ingin coba aplikasi ${payload.app_type}. No WA: ${payload.wa}`);
-            waLink.href = `https://wa.me/628816566935?text=${text}`;
-          }
-        } else {
-          const err = await r.text();
-          console.error('Lead submit failed:', r.status, err);
-          leadMsg.textContent = '❌ Gagal mengirim. Coba lagi atau chat langsung via WhatsApp.';
-          leadMsg.style.color = 'var(--red-600)';
-        }
-      } catch (err) {
-        console.error('Lead submit error:', err);
-        leadMsg.textContent = '❌ Terjadi kesalahan jaringan. Coba chat langsung via WhatsApp.';
-        leadMsg.style.color = 'var(--red-600)';
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
-      }
-    });
-  }
 
 </script>
 

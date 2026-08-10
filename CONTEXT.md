@@ -57,6 +57,42 @@ Sebelum jalanin preview/dev server, SELALU pakai port dari tabel ini. **Jangan n
 
 ---
 
+## 🎯 Keputusan Strategis Saat Ini (WAJIB DIHORMATI AGENT)
+
+> Keputusan strategis pemilik projekt. Agent **harus** baca & patuhi sebelum kerja.
+> Ini SUMBER KEBENARAN untuk scope kerja (per 2026-08-10).
+
+### Fokus kerja (Prioritas)
+Hanya **3 aplikasi** yang dikerjakan & diaudit dulu sampai robust:
+`landing/`, `admin/`, `kaki5/`. **Semua app klien lain (rosok, gerobak, retail, dst)
+DI-SKIP untuk sekarang** — jangan disentuh sampai landing/admin/kaki5 solid.
+
+- **`kaki5/` = REFERENSI ARSITEKTUR aplikasi klien** (sumber kebenaran pola code,
+  smart gate, sync profil, offline-first). App klien lain nanti meniru kaki5.
+
+### Lisensi — Konsep Hybrid (KONTROL PENUH via Admin)
+- **Konsep lama**: offline HMAC murni, generate dari `generator-lisensi-universal.html` publik.
+- **Konsep baru (HYBRID)** — sesuai kebutuhan operasional-offline klien:
+  1. **Operasional = offline total** (Dexie/IndexedDB). Transaksi TIDAK pernah ke server.
+  2. **Lisensi + profil klien = di server (platform Kasir Solo)** sebagai database
+     platform — `clients` + `licenses` di Supabase.
+  3. **Admin `admin/` = satu-satunya SUMBER KEBENARAN** untuk generate, aktivasi,
+     revoke, blacklist lisensi SEMUA app klien (kecuali landing & admin sendiri).
+  4. App klien tetap validasi offline pakai HMAC (operasional jalan tanpa internet),
+     lalu **kawal/sync status lisensi + blacklist ke server** saat online.
+- HTTPS: `generate-license` / `activate-license` edge function dipindah jadi
+  **backend otoritatif admin**, bukan helper publik.
+
+### Skip sementara: Password Admin
+- Password admin **`admin123`** (hardcoded di `admin/js/auth.js`) **sengaja DI-SKIP
+  dulu** sampai pemilik beresin manual (karena menyangkut auth Supabase + RLS).
+- **Agent JANGAN mengubah / "memperbaiki"** admin password / auth gate admin.
+  Catat sebagai item, jangan dikerjakan, sampai pemilik setuju.
+- Konteks: JWT secret sudah di-*tanem* di env hermes (`C:\Users\Admin\AppData\Local\hermes\.env`)
+  sebagai `JWT_SECRET` — dipakai nanti untuk auth admin.
+
+---
+
 ## 🎨 Design System (Dari Rosok.zip)
 
 ### Color Palette
@@ -171,6 +207,12 @@ nama-aplikasi/
 ## 🔐 Sistem Lisensi (WAJIB)
 
 Semua aplikasi klien HARUS memiliki validasi lisensi di onboard.
+**Konsep 2026-08-10: HYBRID** — offline HMAC + kontrol penuh via admin/server.
+Detail: lihat section "🎯 Keputusan Strategis Saat Ini" di atas. Intinya:
+- Operasional offline (Dexie), **transaksi tidak pernah ke server**.
+- Lisensi & profil klien disimpan di server (Supabase) sebagai **database platform**.
+- `admin/` = satu-satunya sumber kebenaran generate/aktif/revoke/blacklist.
+- App klien validasi offline (HMAC) → kawal sync status+blacklist saat online.
 
 ### Konstanta yang Harus Diganti per Aplikasi
 
@@ -361,7 +403,7 @@ Kunci natural = `unit_id`. Kolom: `unit_id, app_type, device_code, install_id,`
 
 **Kredensial Supabase** disimpan di env hermes (`C:\Users\Admin\AppData\Local\hermes\.env`):
 `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`,
-`SUPABASE_URL`, `SUPABASE_ANON_KEY`. 
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, **`JWT_SECRET`** (kunci JWT admin, sudah ditanam pemilik).
 
 ### Supabase Access Token (Hermes Env)
 
