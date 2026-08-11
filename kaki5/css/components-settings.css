@@ -32,17 +32,16 @@
 }
 .settings-grid .card { margin-bottom: 0; }
 
-/* Kartu pengaturan: hp 1 kolom, tablet 2 kolom, desktop 3 kolom */
-#page-pengaturan.active,
-#page-pengaturan { display: grid; gap: 16px; }
-#page-pengaturan.active,
-#page-pengaturan { grid-template-columns: 1fr; }
+/* Kartu pengaturan: hp 1 kolom, tablet 2 kolom, desktop 3 kolom.
+   Hanya aktif saat halaman pengaturan TAMPIL (.active). Tanpa .active,
+   rule #page-pengaturan (specificity 100) mengalahkan .page{display:none}
+   (specificity 10) → kartu bocor ke semua halaman. */
+#page-pengaturan.active { display: grid; gap: 16px; }
+#page-pengaturan.active { grid-template-columns: 1fr; }
 
 @media (min-width: 600px) {
-  #page-pengaturan.active,
-  #page-pengaturan { grid-template-columns: repeat(2, 1fr); }
+  #page-pengaturan.active { grid-template-columns: repeat(2, 1fr); }
 }
 @media (min-width: 900px) {
-  #page-pengaturan.active,
-  #page-pengaturan { grid-template-columns: repeat(3, 1fr); }
+  #page-pengaturan.active { grid-template-columns: repeat(3, 1fr); }
 }

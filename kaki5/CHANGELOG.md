@@ -2,14 +2,6 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
-## 2026-08-11 (UI: Device ID lintas-browser + Custom Date Picker + Settings Grid Responsive)
-
-- **Device ID lintas-browser (kunci lisensi = ID perangkat, bukan ID instalasi)**: fingerprint perangkat kini diturunkan dari identitas perangkat (`navigator.userAgent` + platform + core fingerprint, `simpleHash('DEVICE-' + fingerprint)` → 8 digit base36, format `XXXX-XXXX`), BUKAN dari ID instalasi/instalid. Efek: pengguna tetap dianggap perangkat yang sama walau pindah browser (Chrome/Firefox/dll), database & lisensi tidak berubah. Onboarding "perangkat baru" hanya muncul sekali per perangkat.
-- **Custom date picker dual-calendar (halaman Laporan)**: `buildCustomPicker()` dirombak jadi **dua kalender penuh side-by-side dalam satu halaman** (kiri = tanggal mulai, kanan = tanggal selesai) dengan highlight rentang; `buildMonthCal()` merender kalender bulan, `pickCustomDate(side, d)` menangkap pilihan kedua sisi; `_laporanWireMap` di `app.js` mendapat `pickCustomDate`. Pilihan custom diperbarui ke konteks (harian/mingguan/bulanan/custom) tanpa dialog terpisah.
-- **Settings grid responsive (halaman Pengaturan)**: `components-settings.css` baru — grid kartu pengaturan kini responsif: **1 kolom (HP) → 2 kolom (tablet, min-width:600px) → 3 kolom (desktop, min-width:900px)**. Selector `#page-pengaturan.active` disamakan di semua rule untuk konsistensi specificity (mengalahkan rule lama `style.css` yang `!important repeat(3,1fr)`).
-- **CSS modular**: `components-settings.css` ditambahkan sebagai stylesheet modular baru (+ `base.css`, `components-*.css`).
-- Validasi: verifikasi CDP `grid-template-columns` — HP 375px → 1 kolom, tablet 768px → 2 kolom, desktop 900px/1200px → 3 kolom.
-
 ## 2026-08-11 (P7: Seragamkan window-wiring — semua handler di app.js)
 - Hapus **self-wire** di modul: `purchase.js` (5 handler), `settings.sync.js` &
   `settings.js` (`_ksr_syncNow`, duplikat), `bantuan.js` (`initBantuan`,
