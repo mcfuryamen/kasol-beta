@@ -148,8 +148,11 @@ export async function simpanPenjualan() {
     return;
   }
 
+  const _now = new Date();
+  const _tgl = _now.getFullYear() + '-' + String(_now.getMonth()+1).padStart(2,'0') + '-' + String(_now.getDate()).padStart(2,'0');
+
   const saleId = await simpanPenjualanSync({
-    tanggal: new Date().toISOString().slice(0, 10),
+    tanggal: _tgl,
     items: items.map(c => ({
       menuId: c.menu.id,
       nama: c.menu.nama,
