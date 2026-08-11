@@ -66,7 +66,6 @@ temp/
 # deployed app breaks (Dexie undefined). Per PWA yang load dexie WAJIB punya
 # pengecualiannya di sini. Lihat DEPLOYMENT.md "Aturan Penting".
 !kaki5/dexie.min.js
-!kaki5/js/supabase.min.js
 !rosok/dexie.min.js
 !admin/dexie.min.js
 !retail/dexie.min.js
@@ -99,3 +98,9 @@ mojibake*
 *_archive/
 x.startsWith*
 x[1])*
+generator-lisensi-universal.html
+kasirsolo-kakilima-logo.png
+# Dev test harness (local-only, tidak di-track)
+kaki5/server.js
+kaki5/test-*.js
+kaki5/test-import.mjs
