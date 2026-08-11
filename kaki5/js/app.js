@@ -31,6 +31,9 @@ let _posModule = null;
 let _menuModule = null;
 let _laporanModule = null;
 let _settingsModule = null;
+// Resolve saat settings selesai di-wire (race: boot() butuh checkProfileNotification).
+let _settingsReadyResolve = null;
+const _settingsReady = new Promise(r => { _settingsReadyResolve = r; });
 let _bantuanModule = null;
 let _pengeluaranModule = null;
 let _berandaModule = null;
@@ -90,6 +93,7 @@ import('./settings.js').then(m => {
     if (modKey !== '__wired' && m[modKey] !== undefined) window[key] = m[modKey];
   }
   _settingsWireMap.__wired = true;
+  if (_settingsReadyResolve) { _settingsReadyResolve(); _settingsReadyResolve = null; }
   console.log('[APP] Wired settings module');
 }).catch(e => console.error('[APP] Failed to wire settings:', e));
 
@@ -429,6 +433,7 @@ async function boot() {
   await checkOnboarding();
   // Backfill otomatis: user yang sudah pakai (data cuma lokal) di-push sekali
   ensureSynced({ silent: true }); // non-blocking, retry saat online berikutnya
+  await _settingsReady; // tunggu settings module ke-wire sebelum pakai checkProfileNotification
   await checkProfileNotification(); // banner "lengkapi profil" bila profil belum lengkap
   setupPWA();
   

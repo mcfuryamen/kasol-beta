@@ -53,7 +53,7 @@ async function getSyncState() {
   return (await getSetting('sync', null)) || { status: 'none' };
 }
 
-async function buildPayload() {
+async function buildPayload(unitId) {
   const [namaWarung, pemilik, wa, provId, prov, kabId, kab, kecId, kec, desaId, desa, alamat] =
     await Promise.all([
       getSetting('namaWarung', ''), getSetting('namaPemilik', ''),
@@ -64,7 +64,7 @@ async function buildPayload() {
       getSetting('desa', ''),      getSetting('alamat', '')
     ]);
   const payload = {
-    unit_id:      await getUnitId(),
+    unit_id:      unitId,
     app_type:     APP_TYPE,
     device_code:  await getDeviceCode(),
     install_id:   await getInstallId(),
@@ -103,16 +103,28 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
   try {
     // Pakai session yang sudah ada kalau ada (persistSession=true di client config),
     // jangan signIn baru tiap kali — itu bikin user anonim baru & RLS auth.uid() mismatch.
+    const unitId = await getUnitId();
     let userId = null;
     const { data: sessData } = await sb.auth.getSession();
     if (sessData?.session?.user?.id) {
       userId = sessData.session.user.id;
+      // Sesi lama tanpa claim unit_id di user_metadata: update metadata biar
+      // claim refresh & jalur policy 'unit_id' aktif walau anon session ganti.
+      const metaUnit = sessData.session.user.user_metadata?.unit_id;
+      if (!metaUnit || metaUnit !== unitId) {
+        try {
+          await sb.auth.updateUser({ data: { unit_id: unitId } });
+        } catch (_claimErr) {
+          console.warn('claim unit_id skipped:', _claimErr?.message || _claimErr);
+        }
+      }
     } else {
-      const { data: anon, error: auErr } = await sb.auth.signInAnonymously();
+      const { data: anon, error: auErr } = await sb.auth
+        .signInAnonymously({ options: { data: { unit_id: unitId } } });
       if (auErr) throw auErr;
       userId = anon?.user?.id;
     }
-    const payload = await buildPayload();
+    const payload = await buildPayload(unitId);
     const { error: upErr } = await sb
       .from('clients')
       .upsert({ ...payload, user_id: userId }, { onConflict: 'unit_id' });
