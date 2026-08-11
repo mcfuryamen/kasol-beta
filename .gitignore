@@ -66,6 +66,7 @@ temp/
 # deployed app breaks (Dexie undefined). Per PWA yang load dexie WAJIB punya
 # pengecualiannya di sini. Lihat DEPLOYMENT.md "Aturan Penting".
 !kaki5/dexie.min.js
+!kaki5/js/supabase.min.js
 !rosok/dexie.min.js
 !admin/dexie.min.js
 !retail/dexie.min.js
