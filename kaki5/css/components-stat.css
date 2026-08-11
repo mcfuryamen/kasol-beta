@@ -1,0 +1,46 @@
+/* =========================================
+   STAT CARDS
+   ========================================= */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.stat-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.stat-card.full { grid-column: 1 / -1; }
+.stat-icon { font-size: 28px; margin-bottom: 4px; }
+.stat-label { font-size: 12px; color: var(--text3); font-weight: 600; margin-bottom: 2px; }
+.stat-value { font-size: 22px; font-weight: 800; }
+.stat-value.green { color: var(--green); }
+.stat-value.red { color: var(--red); }
+.stat-value.blue { color: var(--blue); }
+.stat-value.orange { color: var(--primary); }
+
+/* ── SKELETON LOADING ── */
+.skeleton { width: 100%; padding: 4px 0; }
+.skeleton-line {
+  height: 16px;
+  border-radius: 8px;
+  margin: 10px 0;
+  background: linear-gradient(90deg, #eee 25%, #f7f7f7 37%, #eee 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+.skeleton-line:nth-child(1) { width: 90%; }
+.skeleton-line:nth-child(2) { width: 70%; }
+.skeleton-line:nth-child(3) { width: 80%; }
+.skeleton-line:nth-child(4) { width: 100%; }
+.skeleton-line:nth-child(5) { width: 55%; }
+.skeleton-line:nth-child(6) { width: 85%; }
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}

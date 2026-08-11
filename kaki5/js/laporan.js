@@ -3,6 +3,8 @@ import { DB } from './db.js';
 import { escapeHtml, formatRp, formatDate, formatTime, todayStr, addDays, dayName, getWeekRange, getMonthRange, showLoading, showToast } from './helpers.js';
 import { reportPeriod, setReportPeriod, reportDate, setReportDate, customStart, customEnd, setCustomStart, setCustomEnd } from './app-state.js';
 
+let _customPickerOpen = false;
+
 export function setReportPeriodUI(p) {
   setReportPeriod(p);
   document.querySelectorAll('.report-tab').forEach(t => {
@@ -275,28 +277,105 @@ async function renderChart(range, period, sales, expenses) {
   </div>`;
 }
 
+function buildDayCalendar() {
+  const [y, m, sel] = reportDate.split('-').map(Number);
+  const firstDow = new Date(y, m - 1, 1).getDay(); // 0 = Minggu
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const today = todayStr();
+  const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  let cells = '';
+  for (let i = 0; i < firstDow; i++) cells += '<div class="cal-cell empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cls = 'cal-cell' + (d === sel ? ' sel' : '') + (ds === today ? ' today' : '');
+    cells += `<div class="${cls}" onclick="pickDate('${ds}')">${d}</div>`;
+  }
+  const dayHeaders = ['Mn','Sn','Rb','Km','Jm','Sb','Mg'].map(h => `<div class="cal-head">${h}</div>`).join('');
+  return `<div class="cal-title">${months[m-1]} ${y}</div><div class="cal-grid">${dayHeaders}${cells}</div>`;
+}
+
+function buildWeekOptions() {
+  const m = parseInt(reportDate.split('-')[1]);
+  const first = reportDate.slice(0, 8) + '01';
+  const endOfMonth = getMonthRange(reportDate).end;
+  let cursor = getWeekRange(first).start;
+  let idx = 1;
+  const weeks = [];
+  do {
+    const w = getWeekRange(cursor);
+    weeks.push({ n: idx, start: w.start, end: w.end });
+    cursor = addDays(w.start, 7);
+    idx++;
+  } while (getWeekRange(cursor).start <= endOfMonth && idx <= 6);
+  const active = getWeekRange(reportDate).start;
+  return weeks.map(w => {
+    const a = w.start === active ? ' sel' : '';
+    return `<button class="week-opt${a}" onclick="pickWeek('${w.start}')"><b>Minggu ${w.n}</b><span>${formatDate(w.start)} - ${formatDate(w.end)}</span></button>`;
+  }).join('');
+}
+
+function buildMonthOptions() {
+  const y = reportDate.split('-')[0];
+  const cur = parseInt(reportDate.split('-')[1]);
+  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return months.map((mn, i) => {
+    const mnum = i + 1;
+    const a = mnum === cur ? ' sel' : '';
+    return `<button class="month-opt${a}" onclick="pickMonth('${y}-${String(mnum).padStart(2,'0')}-01')"><b>${mn}</b><span>${y}</span></button>`;
+  }).join('');
+}
+
+function buildMonthCal(year, month, selDate, rangeStart, rangeEnd, side) {
+  const firstDow = new Date(year, month - 1, 1).getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const today = todayStr();
+  const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  let cells = '';
+  for (let i = 0; i < firstDow; i++) cells += '<div class="cal-cell empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const inRange = rangeStart && rangeEnd && ds > rangeStart && ds < rangeEnd;
+    const cls = 'cal-cell' + (ds === selDate ? ' sel' : '') + (inRange ? ' inrange' : '') + (ds === today ? ' today' : '');
+    cells += `<div class="${cls}" onclick="pickCustomDate('${side}','${ds}')">${d}</div>`;
+  }
+  const dayHeaders = ['Mn','Sn','Rb','Km','Jm','Sb','Mg'].map(h => `<div class="cal-head">${h}</div>`).join('');
+  return `<div class="cal-title">${months[month-1]} ${year}</div><div class="cal-grid">${dayHeaders}${cells}</div>`;
+}
+
+function buildCustomPicker() {
+  const [sy, sm, sd] = customStart.split('-').map(Number);
+  const [ey, em] = customEnd.split('-').map(Number);
+  // Kalender kanan selalu beda bulan dari kiri (geser 1 bulan) biar ga dobel
+  let ry = ey, rm = em;
+  if (ry === sy && rm === sm) {
+    const nxt = new Date(sy, sm - 1, 1);
+    nxt.setMonth(nxt.getMonth() + 1);
+    ry = nxt.getFullYear();
+    rm = nxt.getMonth() + 1;
+  }
+  return `
+    <div style="width:100%;display:flex;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">${buildMonthCal(sy, sm, customStart, customStart, customEnd, 'start')}</div>
+      <div style="flex:1;min-width:200px">${buildMonthCal(ry, rm, customEnd, customStart, customEnd, 'end')}</div>
+    </div>`;
+}
+
+function buildPickerBody() {
+  if (reportPeriod === 'harian') return buildDayCalendar();
+  if (reportPeriod === 'mingguan') return buildWeekOptions();
+  if (reportPeriod === 'bulanan') return buildMonthOptions();
+  return buildCustomPicker();
+}
+
 async function renderReportDateNav() {
   const box = document.getElementById('reportDateNav');
   let label = '';
-  let prevStep, nextStep;
+  let prevStep, nextStep, prevDelta, nextDelta;
+  const isCustom = reportPeriod === 'custom';
 
-  // Custom period — tampilkan dua input tanggal (mulai → selesai), tanpa ‹ ›
-  if (reportPeriod === 'custom') {
-    box.innerHTML = `
-      <div style="width:100%;display:flex;flex-direction:column;gap:8px;align-items:stretch">
-        <div style="display:flex;gap:6px;align-items:center">
-          <input type="date" id="customStartInput" value="${customStart}" class="custom-date-input"
-            onchange="setCustomDate('start')" style="flex:1" />
-          <span style="color:var(--text3);font-size:14px">→</span>
-          <input type="date" id="customEndInput" value="${customEnd}" class="custom-date-input"
-            onchange="setCustomDate('end')" style="flex:1" />
-        </div>
-        <div class="date-label" style="text-align:center">📅 ${formatDate(customStart)} - ${formatDate(customEnd)}</div>
-      </div>`;
-    return;
-  }
-
-  if (reportPeriod === 'harian') {
+  if (isCustom) {
+    label = `📅 ${formatDate(customStart)} - ${formatDate(customEnd)}`;
+  } else if (reportPeriod === 'harian') {
     const isToday = reportDate === todayStr();
     label = isToday ? 'Hari Ini' : formatDate(reportDate);
     prevStep = -1; nextStep = 1;
@@ -308,20 +387,69 @@ async function renderReportDateNav() {
     const [y,m] = reportDate.split('-');
     const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
     label = months[parseInt(m)-1] + ' ' + y;
-  }
-
-  let prevDelta, nextDelta;
-  if (reportPeriod === 'bulanan') {
     prevDelta = -1; nextDelta = 1;
-  } else {
+  }
+  if (reportPeriod !== 'bulanan' && prevDelta === undefined) {
     prevDelta = prevStep; nextDelta = nextStep;
   }
 
+  const navArea = isCustom
+    ? `<div class="date-label${_customPickerOpen ? ' active' : ''}" onclick="toggleCustomPicker()" style="flex:1;text-align:center;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none">${label}</div>`
+    : `<button class="date-btn" onclick="navReportDate(${prevDelta})">‹</button>
+       <div class="date-label${_customPickerOpen ? ' active' : ''}" onclick="toggleCustomPicker()" style="flex:1;text-align:center;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none">${label}</div>
+       <button class="date-btn" onclick="navReportDate(${nextDelta})">›</button>`;
+
   box.innerHTML = `
-    <button class="date-btn" onclick="navReportDate(${prevDelta})">‹</button>
-    <div class="date-label">📅 ${label}</div>
-    <button class="date-btn" onclick="navReportDate(${nextDelta})">›</button>
+    <div style="width:100%;display:flex;flex-direction:column;gap:8px">
+      <div style="width:100%;display:flex;align-items:center;gap:8px;flex-wrap:nowrap">
+        ${navArea}
+      </div>
+      <div id="customPicker" class="custom-picker" style="${_customPickerOpen ? '' : 'display:none;'}width:100%;box-sizing:border-box;background:#fff;border:2px solid var(--border);border-radius:12px;padding:10px">
+        ${buildPickerBody()}
+      </div>
+    </div>
   `;
+}
+
+// Klik tanggal di kalender harian → langsung set & filter
+export function pickDate(d) {
+  setReportDate(d);
+  _customPickerOpen = false;
+  loadReport();
+}
+
+// Klik opsi minggu → set ke hari Senin minggu terpilih & filter
+export function pickWeek(d) {
+  setReportDate(d);
+  _customPickerOpen = false;
+  loadReport();
+}
+
+// Klik opsi bulan → set ke tanggal 1 bulan terpilih & filter
+export function pickMonth(d) {
+  setReportDate(d);
+  _customPickerOpen = false;
+  loadReport();
+}
+
+// Custom: klik tanggal di kalender kiri (mulai) atau kanan (selesai)
+export function pickCustomDate(side, d) {
+  if (side === 'start') {
+    setCustomStart(d);
+    if (customEnd && d > customEnd) setCustomEnd(d);
+  } else {
+    setCustomEnd(d);
+    if (customStart && d < customStart) setCustomStart(d);
+  }
+  if (reportPeriod !== 'custom') setReportPeriod('custom');
+  renderReportDateNav();
+  loadReport();
+}
+
+// Akordeon custom: label tanggal sebagai trigger buka/tutup date picker di bawah nav
+export function toggleCustomPicker() {
+  _customPickerOpen = !_customPickerOpen;
+  renderReportDateNav();
 }
 
 // Window-wired date navigation (handles monthly via month arithmetic, otherwise day math)
@@ -346,6 +474,8 @@ export function setCustomDate(w) {
   const e = eEl ? eEl.value : customEnd;
   if (w === 'start' && s) setCustomStart(s);
   if (w === 'end' && e) setCustomEnd(e);
+  // Jika picker dibuka dari periode non-custom, pilih tanggal = switch ke custom period
+  if (reportPeriod !== 'custom') setReportPeriod('custom');
   // Validasi: mulai harus <= selesai (user bisa hubungi ulang setelah diperbaiki)
   if ((s && e && s > e) || (w === 'start' && e && s > e)) {
     showToast('Tanggal mulai tidak boleh lewat dari tanggal selesai', 'error');

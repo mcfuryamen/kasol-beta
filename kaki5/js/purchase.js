@@ -29,6 +29,13 @@ function isPlaceholderKey(k) {
   return s.includes('***') || s.includes('...') || /^PASTE/i.test(s) || !s.includes('.');
 }
 
+/** Tutup gate fullscreen + lockOverlay saat lisensi aktif (flow otomatis). */
+function unlockGate() {
+  const gate = document.getElementById('licenseGate');
+  if (gate) gate.style.display = 'none';
+  document.getElementById('lockOverlay')?.classList.remove('show');
+}
+
 /** Get current license status from Supabase */
 export async function getCloudLicenseStatus() {
   const sb = getSupabaseClient();
@@ -172,17 +179,19 @@ export async function submitPurchase(unitId, deviceCode) {
       .from('bukti')
       .getPublicUrl(fileName);
     
-    // Insert purchase record
+    // Insert purchase record — pipeline kini di tabel `clients` (leads/pembelian
+    // lama sudah dikonsolidasi). Update/Upsert baris clients supaya status
+    // pipeline jadi 'menunggu_verifikasi' + simpan bukti_url.
     const { error: insertError } = await sb
-      .from('pembelian')
-      .insert({
+      .from('clients')
+      .upsert({
         unit_id: unitId,
         app_type: APP_TYPE,
         device_code: deviceCode,
         status: 'menunggu_verifikasi',
         bukti_url: urlData?.publicUrl || '',
-        created_at: new Date().toISOString()
-      });
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'unit_id' });
     
     if (insertError) throw insertError;
     
@@ -209,6 +218,7 @@ export async function pollLicenseStatus(unitId) {
       // License activated!
       showToast('🎉 Lisensi berhasil diaktifkan!', 3000, 'success');
       window._ksr_closeSheet('sheetPurchase');
+      unlockGate();
       // Reload license info
       if (window._ksr_updateTrialChip) window._ksr_updateTrialChip();
       if (window._ksr_checkLicenseGate) window._ksr_checkLicenseGate();
@@ -241,6 +251,7 @@ export function subscribeToLicenseUpdates(unitId) {
       if (payload.new.license_status === 'aktif') {
         console.log('License activated via realtime!', payload.new);
         showToast('🎉 Lisensi berhasil diaktifkan!', 3000, 'success');
+        unlockGate();
         // Update local license
         if (window._ksr_updateTrialChip) window._ksr_updateTrialChip();
         if (window._ksr_checkLicenseGate) window._ksr_checkLicenseGate();
@@ -252,10 +263,3 @@ export function subscribeToLicenseUpdates(unitId) {
   channel.subscribe();
   console.log('Subscribed to license updates for', unitId);
 }
-
-// Wire to window for onclick handlers
-window._ksr_openPurchaseSheet = openPurchaseSheet;
-window._ksr_handleBuktiUpload = handleBuktiUpload;
-window._ksr_submitPurchase = submitPurchase;
-window._ksr_pollLicenseStatus = pollLicenseStatus;
-window._ksr_subscribeToLicenseUpdates = subscribeToLicenseUpdates;

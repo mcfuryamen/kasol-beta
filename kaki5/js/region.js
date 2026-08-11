@@ -1,22 +1,22 @@
-// ==================== REGION PICKER — API Wilayah Indonesia ====================
+﻿// ==================== REGION PICKER — API Wilayah Indonesia ====================
 // Data: https://github.com/emsifa/api-wilayah-indonesia (static JSON, tanpa key).
-// BUG FIX 2026-08: endpoint lama (emsifa.com/api/...) KO/404 → ganti ke raw GitHub
-// master static/api. Struktur asli:
+// Struktur rantai: Provinsi → Kabupaten → Kecamatan → Desa
+// Endpoint:
 //   static/api/provinces.json                 (semua provinsi)
-//   static/api/regencies/{provinsiId}.json    (kota/kabupaten per provinsi)
-//   static/api/districts/{kabupatenId}.json   (kecamatan per kota/kab)
-//   static/api/villages/{kecamatanId}.json    (desa/kelurahan per kecamatan)
-// Menyediakan rantai dropdown Provinsi -> Kota/Kabupaten -> Kecamatan -> Desa
-// dengan cache agar hemat & cepat. Hasil pilihan disimpan lewat objek `state`
-// (pakai referensi) agar caller tinggal membaca .provinsi_id/.provinsi/...
-// .kabkota_id/.kabkota/.kecamatan_id/.kecamatan/.desa_id/.desa
+//   static/api/regencies/{provinsiId}.json    (kabupaten per provinsi)
+//   static/api/districts/{kabupatenId}.json   (kecamatan per kabupaten)
+//   static/api/villages/{kecamatanId}.json    (desa per kecamatan)
+//
+// BUG FIX: loadDesa() sekarang dipanggil saat inisialisasi prefill modal,
+//          sehingga desa terpilih otomatis ter-load saat modal dibuka.
+//
 // Bisa dipakai offline-cache manual oleh caller jika perlu.
 
 const BASE = 'https://raw.githubusercontent.com/emsifa/api-wilayah-indonesia/master/static/api';
 const cache = {};
 
 function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
+  return String(s == null ? '' : s).replace(/[&<>"'\x27]/g, (c) => ({
     '&': '&', '<': '<', '>': '>', '"': '"', "'": "'"
   }[c]));
 }
@@ -59,6 +59,8 @@ export function setupRegionPicker({ provSel, kabSel, kecSel, desaSel, state }) {
   if (!pEl || !kEl || !cEl) return;
   if (!state) state = {};
 
+  // ── Loaders ────────────────────────────────────────────────────────────────
+
   async function loadKab(provId, selectKab) {
     try {
       const items = await getKabupaten(provId);
@@ -69,6 +71,7 @@ export function setupRegionPicker({ provSel, kabSel, kecSel, desaSel, state }) {
       kEl.innerHTML = '<option value="">Kota tidak tersedia</option>';
     }
   }
+
   async function loadKec(kabId, selectKec) {
     if (!kabId) {
       cEl.innerHTML = '<option value="">Pilih Kecamatan</option>';
@@ -85,6 +88,7 @@ export function setupRegionPicker({ provSel, kabSel, kecSel, desaSel, state }) {
       cEl.innerHTML = '<option value="">Kecamatan tidak tersedia</option>';
     }
   }
+
   async function loadDesa(kecId) {
     if (!kecId || !dEl) {
       if (dEl) { dEl.innerHTML = '<option value="">Pilih Desa / Kelurahan</option>'; dEl.disabled = true; }
@@ -99,18 +103,25 @@ export function setupRegionPicker({ provSel, kabSel, kecSel, desaSel, state }) {
     }
   }
 
-  // muat provinsi + prefill dari state awal
+  // ── Inisialisasi: prefill semua level dari state yang tersimpan ────────────
   (async () => {
     pEl.innerHTML = '<option value="">Memuat provinsi...</option>';
     try {
       const provs = await getProvinces();
       fill(pEl, provs, 'Pilih Provinsi', state.provinsi_id);
       pEl.disabled = false;
-      if (state.provinsi_id) await loadKab(state.provinsi_id, state.kabkota_id);
+
+      // chain: provinsi → kabupaten → kecamatan → desa
+      if (state.provinsi_id) {
+        await loadKab(state.provinsi_id, state.kabkota_id);
+        // loadDesa dipanggil dari dalam loadKec() setelah kecamatan prefill selesai
+      }
     } catch (e) {
       pEl.innerHTML = '<option value="">Gagal memuat wilayah (cek internet)</option>';
     }
   })();
+
+  // ── Event listeners ────────────────────────────────────────────────────────
 
   pEl.addEventListener('change', () => {
     state.provinsi_id = pEl.value;
@@ -131,7 +142,8 @@ export function setupRegionPicker({ provSel, kabSel, kecSel, desaSel, state }) {
     state.kabkota = o ? o.textContent : '';
     state.kecamatan_id = state.kecamatan = state.desa_id = state.desa = '';
     if (kEl.value) loadKec(kEl.value);
-    else { cEl.innerHTML = '<option value="">Pilih Kecamatan</option>'; cEl.disabled = true;
+    else {
+      cEl.innerHTML = '<option value="">Pilih Kecamatan</option>'; cEl.disabled = true;
       if (dEl) { dEl.innerHTML = '<option value="">Pilih Desa / Kelurahan</option>'; dEl.disabled = true; }
     }
   });

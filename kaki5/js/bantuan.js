@@ -329,9 +329,7 @@ export function toggleTutorial(tutId) {
   });
 
   panel.style.display = isOpen ? 'none' : 'block';
-  arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
-}
-
-// Auto-initialize when module loads (called from navigation.js)
-window.initBantuan = initBantuan;
-window.toggleTutorial = toggleTutorial;
+    arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+  }
+  // NOTE: initBantuan & toggleTutorial di-wire ke window oleh app.js (wire map),
+  // bukan self-wire di sini — satu-satunya tempat wiring = app.js (R3).

@@ -192,6 +192,20 @@ export async function initBantuan() {
 - Setiap section punya judul, ikon, deskripsi, step-by-step guides
 - Akses via bottom nav: tab "Bantuan" (🆕)
 
+### `region.js` — Picker Wilayah Indonesia 4-Level (🆕 v22)
+Dropdown bertingkat Provinsi → Kabupaten → Kecamatan → Desa/Kelurahan menggunakan API statis GitHub (emsifa):
+```js
+export async function initRegionModal(provEl, kabEl, kecEl, desaEl, initialState)
+export async function getProvinces()
+export async function getRegencies(provId)
+export async function getDistricts(kabId)
+export async function getVillages(kecId)
+```
+- Endpoint: `raw.githubusercontent.com/emsifa/api-wilayah-indonesia/master/static/api/`
+- **Penting**: endpoint desa memerlukan ID kecamatan 7 digit (bukan ID desa 8 digit)
+- State desa di-prefill otomatis saat modal dibuka dengan data tersimpan
+- Cache internal per URL untuk menghindari request berulang
+
 ---
 
 ## 3. Modul Inti — Penjelasan Fungsi Penting (Updated)
@@ -237,13 +251,10 @@ document.addEventListener('DOMContentLoaded', init);
 - `setupPWA()` **async**: fetch `assets/icon.png` → data URL → bangun manifest dinamis → pasang `<link rel="manifest">` → daftarkan `sw.js`.
 - Install prompt: `beforeinstallprompt` → banner → `installPWA()`.
 
-### `sw.js` — Service Worker (v4)
-- **Cache name**: `kasir-solo-kaki5-v4` (bump saat ada perubahan pre-cache).
-- `ASSETS_TO_CACHE`: shell + semua asset modular (`index.html`, `dexie.min.js`, `css/style.css`, `assets/icon*.png`, dan 17 modul `js/*.js`). **Catatan**: `bantuan.js` ditambahkan di v4, `carousel.js` sudah include.
-- **Strategi**: *network-first, fallback cache* — selalu coba ambil versi terbaru dari network, kalau offline gunakan cache. (Berbeda dari cache-first klasik; ini meminimalkan staleness saat deploy.)
-- `activate` membersihkan cache lama.
-
-> **Cache Invalidation**: Setiap kali `sw.js` dimodifikasi atau modul baru ditambahkan, **wajib increment CACHE_NAME** (v3→v4, v4→v5, dll) supaya browser memperbarui SW dan menghapus cache lama. Jika lupa, user bisa mendapatkan versi stale.
+### `sw.js` — Service Worker (v31)
+- **Cache name**: `kasir-solo-kaki5-v31`
+- **Strategi**: *network-first, fallback cache* — selalu coba ambil versi terbaru dari network, kalau offline gunakan cache.
+- **Pentinge**: Setiap modifikasi `sw.js` atau penambahan modul baru, **wajib bump CACHE_NAME** agar browser refresh SW dan hapus cache lama.
 
 ---
 
@@ -277,17 +288,21 @@ document.addEventListener('DOMContentLoaded', init);
 ## 6. Verifikasi & QA
 
 ```bash
-# Syntax check semua modul
-for f in js/*.js; do node --check "$f"; done
+# Validasi module-load authoritative (node --check + real import, exit 1 jika gagal)
+# NOTE: test-modules.js juga menjalankan lint anti-regresi DOM id (test-html-refs.js)
+#       di akhir run — exit 1 jika ada getElementById yang orphan.
+node test-modules.js
 
-# Syntax check gabungan (hapus file sementara setelahnya)
-cat js/*.js > _c.js && node --check _c.js && rm _c.js
-
-# Jalankan server uji (wajib http, bukan file://)
-python -m http.server 8123 --bind 127.0.0.1   # → http://127.0.0.1:8123/
+# Anti-regresi DOM id saja (cepat, buat pre-commit hook):
+# Setiap getElementById harus resolve ke id di index.html atau id yang di-inject
+# dinamis (lihat docs/REGRESSION-CHECKLIST.md). Exit 1 jika ada ref orphan.
+node test-html-refs.js
 
 # Unit test (validasi backup)
 node test_validate.js
+
+# Jalankan server uji (wajib http, bukan file://)
+python -m http.server 8123 --bind 127.0.0.1   # → http://127.0.0.1:8123/
 ```
 
 Checksheet smoke test browser:
@@ -319,11 +334,20 @@ checkLicenseGate() → getLicenseStatus()
 **Constants:**
 ```js
 const PRODUCT_PREFIX = 'KK5';
-const PRODUCT_SALT = 'KASIRSOLO-KAKI5-HMAC-V2';
+const PRODUCT_SALT = buildProductSalt();  // di-derive runtime (P6/K7), bukan konstanta plain
 const TRIAL_DAYS = 7;
 const MAX_EXTENSIONS = 20;     // Share-to-extend: maksimal 20x
 const EXTEND_DAYS = 1;         // Setiap extend = +1 hari
 ```
+
+> **Hardening lisensi (2026-08-11, P6/K7)**: 
+> - `MAX_EXTENSIONS` kini di-enforce **di core logic** `grantExtensionLogic()` (return
+>   `{ granted:false, reason:'max' }`), bukan cuma di UI — cegah bypass via console.
+> - Counter `extensionsUsed` di-sanitize (tolak negatif/NaN) di `grantExtensionLogic` &
+>   `trialEndDate` (cegah trial abadi via manipulasi storage).
+> - `PRODUCT_SALT` di-derive runtime via `buildProductSalt()` (obfuscation, defense-in-depth).
+> - **Batasan jujur**: frontend-only PWA mustahil anti-forge total; cap & HMAC lokal hanya
+>   policy-UI. Solusi final = validasi server (scaffold di `license.sync.js`, target `CLOUD-ROADMAP.md`).
 
 **Algoritma:**
 - **Device ID** — Generate dari hash `installId` (disimpan di settings, stable across sessions)
@@ -398,17 +422,20 @@ Halaman pengaturan menampilkan kartu **"📋 Info Usaha"** dengan 4 editable fie
 | Nama Usaha | `namaWarung` | nameModal | Not empty | Display di beranda header |
 | Nama Pemilik | `namaPemilik` | ownerModal | Not empty | Push ke Supabase CRM |
 | No. WhatsApp | `noWhatsapp` | waModal | Not empty | Contact number |
-| Alamat | `alamat` | alamatModal | Not empty | Lokasi unit (cloud sync 4-level: Prov→Kab→Kec→Desa) |
+| Alamat | `alamat` + wilayah 4-level | alamatModal | Not empty | Lokasi unit (cloud sync: Prov→Kab→Kec→Desa) |
 
 Setiap field punya:
 - Tombol edit (buka modal) → input value → simpan (setSetting) → close modal → refresh tampilan
-- **Setiap simpan otomatis panggil `ensureSynced()`** → push ke Supabase `clients` (onboarding baru + update profil lama)
+- **Setiap simpan otomatis panggil `ensureSynced({ force: true })`** → push ke Supabase `clients` (onboarding baru + update profil lama)
+- **Region picker 4-level** di modal alamat: Provinsi → Kabupaten → Kecamatan → Desa (API emsifa)
 
 ---
 
 ## 9. Sinkronisasi Profil ke Supabase (CRM) — `js/sync.js`
 
-Modul `sync.js` handle push profil outlet ke tabel `clients` Supabase:
+> **Self-host supabase-js (2026-08-11, P5/K6)**: client lib dimuat dari `js/supabase.min.js` (v2.112.2, UMD) — **bukan** CDN. Ini membuatnya same-origin (`response.type === 'basic'`) sehingga SW bisa `cache.addAll` ke precache (saat CDN cross-origin, fetch handler yang cuma cache `basic` tidak pernah menyimpannya → sync tak tersedia offline). Pesan versi baru/update bundle: unduh dari jsdelivr, pin versi, commit ulang, lalu **bump `CACHE_NAME` di `sw.js` + `?v=` di `index.html`/`README.md`** (rule P4).
+
+Modul `sync.js` handle push profil outlet ke tabel `clients` Supabase, lalu opsional ke `leads` (CRM marketing):
 
 ```js
 export async function ensureSynced({ force = false, silent = false } = {})
@@ -418,6 +445,11 @@ export function isSyncConfigured()
 **Dua skenario sync:**
 1. **User BARU** → dipanggil setelah selesai onboarding Step 2 (S&K disetujui) → `ensureSynced({silent:true})`
 2. **User LAMA** (data cuma lokal, belum pernah sync) → di boot otomatis di-push **SEKALI** lewat flag lokal `sync` (`none` → `synced` / `pending`). Ini "backfill".
+3. **Update profil** → semua save function memanggil `ensureSynced({ force: true })` agar perubahan selalu di-push.
+
+**Flow auth (penting):**
+- `getSession()` dulu → pakai session yang sudah ada
+- `signInAnonymously()` HANYA bila session kosong (mencegah user anon baru tiap sync → RLS mismatch)
 
 **Keamanan:**
 - Pakai Supabase **Anonymous Sign-In** → `auth.uid()` = anonymous user ID
@@ -442,6 +474,12 @@ export function isSyncConfigured()
 }
 ```
 
+**Upsert ke 2 tabel:**
+1. `clients` (wajib) — profil identitas outlet
+2. `leads` (opsional, graceful catch) — data CRM marketing; gagal tidak memutus sync clients
+
+> **Bug fix 2026-08-10**: Sebelumnya `ensureSynced()` skip bila `state.status === 'synced'` (tanpa force). Sekarang semua save memanggil `{ force: true }` agar perubahan alamat/pemilik/WA/nama warung selalu ter-sync.
+
 ---
 
 ## 9. Catatan Cloud Readiness (CONTEXT.md / CLOUD-ROADMAP.md)
@@ -462,17 +500,41 @@ Meski kaki5 saat ini **offline-first**, arsitektur sudah siap untuk cloud sync (
 
 ## 10. Testing & Debugging
 
+### Anti-Regression Window-Wiring (P7 / R3)
+
+Semua **function handler** `window.*` yang dipakai oleh HTML inline (`onclick`/`oninput`) wajib di-wire **hanya di `app.js`** — lewat wire-map untuk modul lazy-loaded (`_posWireMap`, `_bantuanWireMap`, dst.) atau assignment langsung untuk eager import. **Modul tidak boleh self-wire.**
+
+Yang di-izinkan tetap di modul hanyalah **shared-state** (config: `KASIRSOLO_SUPABASE_URL`, `_ksrSupabaseClient`, `_ksr_currentBuktiFile`), bukan function handler. Kalau mau nambah handler global, wire di `app.js`, bukan di dalam modul asal. `node test-modules.js` auto-verifikasi imports; untuk memastikan tidak ada self-wire handler, grep `window._ksr_` / `window.` di luar `app.js`.
+
 ### Syntax Validation
+
+> ⚠️ **Penting (sejak audit 2026-08-11, K5):** `node --check` **bisa false-pass** file yang punya stray `} catch` tanpa `try {` (asalkan masih ada statement top-level valid lain). Ia hanya lexing, tidak mengevaluasi module scope penuh. **Jangan andalkan `node --check` sendirian** — selalu konfirmasi dengan real ESM import.
+
 ```bash
-# Single file check
+# Single file check (syntax only)
 node --check js/app.js
 
-# All ESM modules
-for f in js/*.js; do node --check "$f"; done
+# LOAD & EVALUATE semua modul di browser-stub (AUTHORITATIVE — direkomendasikan)
+# Menjalankan node --check + real import per modul, LALU lint anti-regresi DOM id,
+# exit 1 jika ada yang gagal / ada ref getElementById orphan.
+node test-modules.js
 
-# Combined check (concatenate all modules)
-cat js/*.js > _temp.js && node --check _temp.js && rm _temp.js
+# Alternatif: hanya real-import semua modul (exit 1 jika gagal)
+node test-imports.js
+
+# Anti-regresi DOM id saja (cepat): setiap getElementById harus resolve ke id di
+# index.html atau id yang di-inject dinamis. Exit 1 jika ada orphan.
+node test-html-refs.js
 ```
+
+`test-modules.js` & `test-imports.js` memakai `test-shim.js` (stub global: Dexie, window, document, dll) sehingga semua 37 modul bisa dievaluasi di Node tanpa browser.
+
+### Anti-Regression DOM id (P4)
+
+Setiap `document.getElementById('...')` harus resolve ke elemen — baik statis di `index.html` maupun id yang di-inject dinamis (template `id="..."`, `el.id = '...'`) sebelum dipakai pertama kali. Karena banyak `render*()` punya null-guard (`if (!el) return`), elemen yang hilang **tidak tampak error** — fitur cuma diam-diam berhenti (persis `#licenseInfoCard` & `#syncStatusText` yang pernah regresi).
+
+- Jalankan `node test-html-refs.js` (atau `node test-modules.js`) sebelum rilis.
+- Lihat `docs/REGRESSION-CHECKLIST.md` untuk daftar id kritis & aturan bump cache version (APP_VERSION / CACHE_BUST / sw.js CACHE_NAME / ?v= di index.html — harus naik bareng).
 
 ### Unit Test (Backup Validation)
 ```bash
@@ -553,7 +615,7 @@ npx http-server -p 8123
         ▼                                           ▼
    ┌────────────┐                         ┌──────────────────┐
    │ IndexedDB  │                         │ Service Worker   │
-   │ (Dexie)    │                         │ (sw.js v3)       │
+   │ (Dexie)    │                         │ (sw.js v31)      │
    │            │                         │                  │
    │ v3 schema: │                         │ • Pre-cache      │
    │ • menu     │                         │ • Network-first  │
@@ -561,14 +623,19 @@ npx http-server -p 8123
    │ • pengeluaran                        └──────────────────┘
    │ • pengaturan
    │ • settings │
-   │ • platformMessages
+   │ • platformMessages                        │
+   │ • region state (prov→kab→kec→desa)        │
    └────────────┘
 ```
 
+*Catatan:*
+- API desa emsifa memerlukan ID kecamatan **7 digit** (bukan ID desa 8 digit). URL: `static/api/villages/{kecamatanId}.json`.
+- `ensureSynced()` wajib dipanggil dengan `{ force: true }` jika ingin memaksa push ke Supabase (mis. setelah update profil).
+
 ---
 
-*Dokumentasi terbaru: Scan kode ESM modular (20260805), License system + Onboarding integrated.*
-*Untuk pertanyaan/kontribusi: lihat README.md (kontak developer).*
+*Dokumentasi terbaru: 10 Agustus 2026 — Sync fix, region picker 4-level, logo baru, leads CRM.*
+*Untuk pertanyaan/kontribusi: lihat README.md (kontak developer).**
 ## 📦 Referensi Arsitektur Aplikasi Klien
 
 ### RUJUKAN UTAMA: `rosok.zip`

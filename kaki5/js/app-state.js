@@ -46,6 +46,10 @@ export let platCurrentSlide = 0;
 export let platAutoTimer = null;
 export const PLAT_SCROLL_MS = 4000; // Auto-advance every 4 seconds
 
+// --- Confirm dialog state ---
+export let confirmCallback = null;
+export let confirmState = { open: false, icon: '', text: '', btnText: '' };
+
 // ==================== SETTERS ====================
 export function setCart(value) {
   cart = value;
@@ -81,4 +85,13 @@ export function setPlatCurrentSlide(value) {
 
 export function setPlatAutoTimer(value) {
   platAutoTimer = value;
+}
+
+// --- Confirm dialog setters ---
+export function setConfirmCallback(value) {
+  confirmCallback = value;
+}
+
+export function setConfirmState(value) {
+  confirmState = value;
 }

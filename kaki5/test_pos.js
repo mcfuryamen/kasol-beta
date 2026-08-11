@@ -2,7 +2,7 @@
 // Mirip test_validate.js: ekstrak fungsi murni dari source agar bisa dijalankan
 // di Node tanpa Dexie/IndexedDB/DOM.
 const fs = require('fs');
-const src = fs.readFileSync('js/pos.js', 'utf8');
+const src = fs.readFileSync('js/pos.logic.js', 'utf8');
 const fnSrc = src.match(/function generatePresetNominal[\s\S]*?\n}/)[0];
 const generatePresetNominal = new Function(fnSrc + '\nreturn generatePresetNominal;')();
 

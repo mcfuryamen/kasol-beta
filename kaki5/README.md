@@ -18,67 +18,92 @@ Aplikasi ini adalah **Progressive Web App (PWA)** berarsitektur **single-page (S
 | **Keranjang (cart)** | localStorage (persisten lintas buka-tutup aplikasi) |
 | **Bahasa** | UI Bahasa Indonesia |
 | **Target pengguna** | Pedagang kaki lima / warung kecil |
+| **Logo aplikasi** | Orange gradient (logo baru, 1254x1254 PNG) |
+| **Logo versi lama** | PT Mesin Kasir Solo (di kartu versi halaman Pengaturan) |
 | **Deploy** | Static hosting (Vercel) via monorepo CI/CD |
 
 ---
 
-## 📁 Struktur Proyek (ESM Modular)
+## 📁 Struktur Proyek (Modular-Atomic 3-Layer)
 
-Proyek ini **telah direfactor menjadi ES modules (ESM)** agar mudah dipelihara dan scalable. JavaScript dimuat sebagai modul di folder `js/`, bukan disematkan di `index.html`. **Dexie.js diload global** (sebelum ESM entry) agar tersedia sebagai `window.Dexie`.
+Proyek ini **telah direfactor menjadi arsitektur modular-atomic** dengan pemisahan 3-layer (DATA, LOGIC, UI) untuk maintainability dan scalability. Setiap modul besar (POS, License, Settings) dipecah menjadi 3 file terpisah.
+
+**Total: 35+ files** (naik dari 24 files monolitik)
 
 ```
 kaki5/
-├── index.html          ← Shell HTML (modal templates + ESM script type="module")  ≈ 23KB
-├── IDEA.md             ← Catatan singkat: kaki5 klien ekosistem kasirsolo POS
-├── dexie.min.js        ← Library Dexie 3.2.4 (global script, bukan modul)
-├── sw.js               ← Service Worker v4 (pre-cache offline, network-first)
-├── vercel.json         ← Konfigurasi Vercel (SPA rewrite + cache headers)
+├── index.html          ← Shell HTML (modular CSS + ESM lazy loading)
+├── server.js           ← HTTP server dev port 8086 (no-cache)
+├── dexie.min.js        ← Library Dexie 3.2.4
+├── sw.js               ← Service Worker v35 (modular cache)
+├── vercel.json         ← Konfigurasi Vercel
 ├── css/
-│   └── style.css       ← Styling + skeleton loading + carousel styles      ≈ 26KB
+│   ├── base.css        ← Variables, reset, typography
+│   ├── components.css  ← Buttons, cards, forms, nav
+│   ├── components-stat.css
+│   ├── components-modal.css
+│   ├── components-banner.css
+│   ├── components-tabs.css
+│   ├── components-license.css
+│   ├── components-carousel.css
+│   ├── components-menu.css
+│   ├── components-cart.css
+│   ├── components-trx.css
+│   ├── components-report.css
+│   └── components-settings.css
 ├── assets/
-│   └── icon.png, icon-192.png, icon-512.png  ← Logo aplikasi (PWA icons)
+│   └── icon.png, icon-192.png, icon-512.png
 ├── docs/
-│   └── DEVELOPER.md     ← Panduan teknis untuk developer
-└── js/                 ← 21 modul ESM
-    ├── app.js          ── ENTRY POINT: inisialisasi app + wire window globals
-    ├── app-state.js    ── State terpusat (cart, nav, report, carousel state + setters)
-    ├── db.js           ── Dexie setup (v1 legacy, v2 settings, v3 platformMessages)
-    ├── helpers.js      ── Pure utilities: escapeHtml, formatRp, todayStr, toast, loading
-    ├── navigation.js   ── Router (showPage, bottom-nav, page switching)
-    ├── beranda.js      ── Dashboard: omzet, pengeluaran, untung, carousel, recent trx
-    ├── pos.js          ── POS: menu grid, search, filter, cart, payment
-    ├── menu.js         ── Menu CRUD: tambah, edit, hapus, toggle aktif
-    ├── pengeluaran.js  ── Expense tracking (legacy, masih ada untuk backward-compat)
-    ├── laporan.js      ── Reports + Pengeluaran integrated: harian/mingguan/bulanan + expense form
-    ├── trxdetail.js    ── Transaction detail + print + delete
-    ├── confirm.js      ── Reusable confirm dialog (hapus, clear all, dll)
-    ├── settings.js     ── Settings page: profil (nama, owner, WA, alamat) + printer + backup
-    ├── backup.js       ── Export/import data (JSON) + validasi ketat
-    ├── onboarding.js   ── Welcome screen + sample menu + profil capture
-    ├── license.js      ── Trial (7 hari) + share-to-extend (20x) + serial activation
-    ├── carousel.js     ── Platform carousel: render, auto-scroll (4s), swipe, dots
-    ├── bantuan.js      ── Help & Tutorial (🆕 v4)
-    ├── printer.js      ── Bluetooth printer: connect, test print, disconnect
-    ├── pwa.js          ── PWA: manifest dinamis + install prompt
-    └── test_validate.js── Unit test: validateBackup() — jalankan: node test_validate.js
+│   └── DEVELOPER.md
+└── js/
+    ├── app.js          ← ENTRY POINT: lazy loading + window globals (305L)
+    ├── app-state.js    ← Centralized state
+    ├── navigation.js   ← URL hash router + History API
+    ├── confirm.js      ← Confirmation dialog
+    ├── helpers.pure.js ← Pure utilities (format, validate, debounce)
+    ├── templates.js    ← Page templates + lifecycle hooks
+    │
+    ├── pos.js          ← POS coordinator
+    │   ├── pos.logic.js ← Cart operations (pure)
+    │   ├── pos.ui.js    ← Menu & cart rendering
+    │   └── pos.sync.js  ← Save sale to DB
+    │
+    ├── license.js      ← License coordinator
+    │   ├── license.logic.js ← HMAC validation
+    │   ├── license.ui.js    ← License sheet rendering
+    │   └── license.sync.js  ← Supabase activation
+    │
+    ├── settings.js     ← Settings coordinator
+    │   ├── settings.logic.js ← Validation + calculations
+    │   ├── settings.ui.js    ← Address & settings rendering
+    │   └── settings.sync.js  ← Region data fetching
+    │
+    ├── beranda.js      ← Dashboard page
+    ├── menu.js         ← Menu management (debounce search)
+    ├── laporan.js      ← Reports
+    ├── bantuan.js      ← Help & tutorial
+    ├── pengeluaran.js  ← Expense tracking
+    ├── printer.js      ← Bluetooth printer
+    └── sync.js         ← Profile sync to Supabase
 ```
 
-**UI/UX Changes (v4):**
-- ✅ Header: gear icon ⚙️ **removed** → `pengaturan` moved to **bottom nav**
-- ✅ Bottom nav: **5 tabs** (dari 6) — Beranda | Menu | Jualan | Laporan | Pengaturan
-- ✅ Laporan: **integrated pengeluaran** — `pengeluaran` halaman removed, fitur moved inside Laporan
-- ✅ Header: logo + nama + **trial chip only** (cleaner, minimal)
-- ✅ Bantuan: **new page** accessible via navigation or within app
-- ✅ Service Worker: **v4** (cache invalidation bumped, bantuan.js added)
+**UI/UX Changes (v5):**
+- ✅ **Modular-Atomic 3-Layer**: POS, License, Settings dipecah jadi Logic + UI + Sync
+- ✅ **CSS Modular**: 1 file → 13 files (base + 12 component files)
+- ✅ **Lazy Loading**: Critical modules (POS, Beranda) pre-wire, others load on demand
+- ✅ **Debounce Search**: POS dan Menu search di-debounce 300ms
+- ✅ **Router System**: URL hash-based navigation dengan History API
+- ✅ **Service Worker v35**: Modular cache dengan no-cache headers
 
-**Urutan load penting**:
-1. `<script src="dexie.min.js">` (global, before ESM)
-2. `<script type="module" src="js/app.js">` (ESM entry point)
+**Arsitektur baru (v5):**
+1. `<script src="dexie.min.js">` (global)
+2. `<script type="module" src="js/app.js?v=48">` (ESM entry - lazy loading)
 
-Saat `app.js` dimuat:
-- Impor semua modul (ESM handles dependency order otomatis)
-- Wire semua fungsi ke `window.*` agar HTML onclick handlers bisa akses
-- Run `DOMContentLoaded` listener: cek lisensi → boot aplikasi
+`app.js` melakukan:
+- Pre-wire critical modules (pos, beranda)
+- Lazy-wire page modules saat navigasi
+- Wire window globals untuk HTML onclick
+- Check license → boot aplikasi
 
 ---
 
@@ -192,11 +217,11 @@ Fitur lain:
   device code) ke Supabase tabel `clients` → ditampilkan & dikelola di Admin (tab **Klien**).
 - **Offline-first**: app tetap jalan tanpa internet; sync dicoba saat online.
 - **Backfill otomatis**: user lama yang datanya cuma lokal ikut tersinkron di boot berikutnya.
-- **Wilayah Indonesia** (Provinsi → Kota/Kab → Kecamatan) dari API **emsifa** (`js/region.js`).
+- **Wilayah Indonesia** (Provinsi → Kota/Kab → Kecamatan → Desa) dari API **emsifa** (`js/region.js`).
 - Keamanan: **Supabase Anonymous Auth + RLS** — tiap perangkat cuma bisa mengubah
   barisnya sendiri (profil antar-outlet terpisah).
-- Modul: `js/sync.js`, `js/region.js`, `js/supabase-config.js`. Tombol "Sinkron Sekarang"
-  ada di halaman Pengaturan.
+- **Upsert ke 2 tabel**: `clients` (profil) + `leads` (CRM marketing, opsional).
+- Modul: `js/sync.js`, `js/region.js`, `js/supabase-config.js`, `js/supabase.min.js` (self-host, agar offline-cache-able — lihat AUDIT-REPORT §12).
 
 ---
 
@@ -223,81 +248,77 @@ Karena banyak konten di-render dari input pengguna (nama menu, keterangan pengel
 
 ## ⚙️ Cara Kerja Teknis & Arsitektur
 
-### Application Flow
+### Modular-Atomic 3-Layer Pattern
+
+Setiap modul besar dipecah menjadi 3 layer terpisah:
+
+```
+┌─────────────────────────────────────────┐
+│         COORDINATOR (*.js)               │
+│  Menyatukan Logic + UI + Sync           │
+├─────────────────────────────────────────┤
+│  LOGIC (*.logic.js)  │  UI (*.ui.js)    │
+│  Pure functions      │  DOM operations  │
+│  Business logic      │  Rendering       │
+│  Validation          │  Event handling  │
+├─────────────────────────────────────────┤
+│         DATA (*.data.js/sync.js)         │
+│  Database ops, API calls, Sync          │
+└─────────────────────────────────────────┘
+```
+
+**Keuntungan:**
+- ✅ **Testable**: Logic pure bisa di-test tanpa DOM
+- ✅ **Reusable**: UI components bisa dipakai di page lain
+- ✅ **Maintainable**: Fix bug di satu layer tidak ganggu layer lain
+- ✅ **Scalable**: Tambah fitur baru cukup tambahkan layer
+
+### Application Flow (v5)
 
 ```
 [index.html dimuat]
     ↓
 [<script src="dexie.min.js">] ← Dexie global tersedia
     ↓
-[<script type="module" src="js/app.js">] ← ESM entry point
+[<script type="module" src="js/app.js?v=48">] ← ESM entry point
     ↓
-[app.js imports semua modul]
+[app.js: Lazy load critical modules first]
+    ├─ pos.js (PRE-WIRE)
+    └─ beranda.js (PRE-WIRE)
     ↓
-[Wire semua fungsi ke window.* untuk HTML onclick handlers]
+[app.js: Lazy load lainnya saat navigasi]
+    ├─ menu.js
+    ├─ laporan.js
+    ├─ settings.js
+    ├─ bantuan.js
+    └─ pengeluaran.js
     ↓
-[DOMContentLoaded event listener] ← app.js:169
-    ├─ checkLicenseGate() ← License gate (trial/serial validation)
-    ├─ boot() if status = 'active' or 'trial'
-    │   ├─ ensureUnitId() ← Generate/retrieve device ID (cloud-ready)
-    │   ├─ loadBeranda() ← Load dashboard
-    │   ├─ checkOnboarding() ← Show profil form if first run
-    │   └─ setupPWA() ← Register Service Worker
-    └─ Show licenseGate overlay if status != active/trial
+[Wire semua window globals untuk HTML onclick]
+    ↓
+[init() → checkLicenseGate() → boot()]
+    ├─ ensureUnitId()
+    ├─ loadBeranda()
+    ├─ checkOnboarding()
+    └─ setupPWA()
 ```
 
-### Module Dependency Graph (ESM)
+### Navigation Router
 
+```javascript
+// URL-based routing dengan History API
+const ROUTES = {
+  '#beranda': { module: 'beranda', init: loadBeranda },
+  '#jualan': { module: 'pos', init: loadPOS },
+  '#menu': { module: 'menu', init: loadMenu },
+  '#laporan': { module: 'laporan', init: loadLaporan },
+  '#pengaturan': { module: 'settings', init: loadSettings },
+  '#bantuan': { module: 'bantuan', init: loadBantuan }
+};
+
+// Lifecycle hooks
+init()    → saat page pertama kali dibuka
+cleanup() → saat pindah ke page lain
 ```
-app.js (ENTRY)
-  ├── imports: navigation, beranda, carousel, pos, menu, pengeluaran, laporan, trxdetail, settings, confirm, backup, onboarding, printer, pwa, license
-  │
-  ├── db.js
-  │   └── imports: helpers.js (showToast)
-  │
-  ├── app-state.js
-  │   └── imports: helpers.js (todayStr)
-  │
-  ├── helpers.js (LEAF — no imports)
-  │   exports: escapeHtml, formatRp, todayStr, formatDate, showToast, showLoading, getGreeting, dayName, etc.
-  │
-  ├── license.js
-  │   ├── imports: db.js, helpers.js
-  │   └── exports: getLicenseStatus, activateSerial, startTrial, ensureUnitId, checkLicenseGate, etc.
-  │
-  ├── onboarding.js
-  │   ├── imports: db.js, helpers.js, license.js, beranda.js
-  │   └── exports: checkOnboarding, finishOnboarding
-  │
-  ├── carousel.js
-  │   ├── imports: db.js, app-state.js, helpers.js
-  │   └── exports: renderPlatformCarousel, platGoTo, platNext, platPrev, etc.
-  │
-  ├── beranda.js
-  │   ├── imports: db.js, helpers.js, carousel.js
-  │   └── exports: loadBeranda
-  │
-  └── [other page modules: pos, menu, pengeluaran, laporan, etc.]
-      └── import: db.js, helpers.js, app-state.js (as needed)
-```
-
-### ESM + Window Globals Bridge
-
-Karena HTML inline handlers (`onclick="..."`) tidak bisa akses ESM module scope, `app.js` wires **semua public functions** ke `window.*`:
-
-```js
-// app.js: ~40-100 lines of wiring
-window.showPage           = showPage;
-window.renderPOSMenu      = renderPOSMenu;
-window.addToCart          = addToCart;
-// ... dst
-window._ksr_platGoTo = (slideIdx) => { platGoTo(slideIdx); };
-```
-
-**Keuntungan**:
-- ESM scope tetap private (mencegah name collision)
-- HTML handlers bisa dipanggil (backward compatible)
-- Mudah audit: semua public functions terdaftar di `app.js`
 
 ### Komponen Teknis
 
@@ -324,18 +345,34 @@ window._ksr_platGoTo = (slideIdx) => { platGoTo(slideIdx); };
 
 ---
 
-## 🚦 Pengembangan & Kontribusi
+## 🚀 Pengembangan & Kontribusi
 
-Pola kerja yang dipakai dalam proyek ini (bisa jadi acuan):
+### Refactor Roadmap (5 Fase) - SELESAI ✅
 
-- **Modular split via script line-range** (`_extract.js`/`_rebuild.js`) — bukan copy manual — untuk menjaga fidelitas saat memecah single-file. (Skrip sementara sudah dihapus setelah refactor.)
-- **Verifikasi**: `node --check` per-file & gabungan; serve via `python -m http.server`; smoke test browser; **unit test** untuk logika murni (mis. `validateBackup`).
-- Network error / tool quirk: pakai Node untuk download, `grep -n` sebagai fallback `search_files`, dan hindari string literal berisi `&`/`<` saat patch.
+| Phase | Task | Status | Hours |
+|-------|------|--------|-------|
+| **Phase 1** | Extract Pure Helpers + Consolidate State | ✅ Done | 6h |
+| **Phase 2** | Module Split (Settings, License, POS → 3-layer) | ✅ Done | 18h |
+| **Phase 3** | Page Templates + Navigation Router | ✅ Done | 12h |
+| **Phase 4** | CSS Architecture + Unit Tests | ✅ Done | 14h |
+| **Phase 5** | Performance (Lazy Load + Debounce) | ✅ Done | 6h |
+| **TOTAL** | | | **56h** |
 
 ### Test
 ```bash
-node test_validate.js        # unit test validasi backup (14 kasus)
+# Unit test validasi backup
+node test_validate.js
+
+# Jalankan dev server
+npx server.js
+# atau
+python -m http.server 8086
 ```
+
+### Dev Server
+- **Local**: http://localhost:8086/
+- **LAN**: http://192.168.22.112:8086/
+- No-cache headers untuk development
 
 ### Catatan Ekosistem (monorepo kasol)
 - `kaki5` hidup di repo root `kasol` bersama `rosok/`, `gerobak/`, `landing/`, dan `retail` (direncanakan).
@@ -352,4 +389,5 @@ node test_validate.js        # unit test validasi backup (14 kasus)
 
 ---
 
-*Dokumentasi ini disusun berdasarkan kondisi kode terkini proyek `kaki5` (struktur modular pasca-refactor P1–P3).*
+*Dokumentasi ini disusun berdasarkan kondisi kode terkini proyek `kaki5` (struktur modular-atomic 3-layer pasca-refactor Phase 1-5).*
+

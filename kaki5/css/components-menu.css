@@ -1,0 +1,63 @@
+/* =========================================
+   MENU GRID & ITEM
+   ========================================= */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+}
+
+.menu-item {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+}
+.menu-item:active { transform: scale(.95); }
+.menu-item.selected { border-color: var(--primary); background: var(--orange-bg); }
+.menu-item .item-emoji { font-size: 32px; display: block; margin-bottom: 4px; }
+.menu-item .item-name { font-size: 13px; font-weight: 700; line-height: 1.2; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-item .item-price { font-size: 14px; font-weight: 800; color: var(--primary); }
+.menu-item .item-qty {
+  position: absolute;
+  top: -8px; right: -8px;
+  background: var(--primary);
+  color: #fff;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── TOP MENU LIST (for menu page) ── */
+.top-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.top-menu-item:last-child { border-bottom: none; }
+.top-rank {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--orange-bg);
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.top-menu-info { flex: 1; }
+.top-menu-name { font-weight: 700; font-size: 14px; }
+.top-menu-stat { font-size: 12px; color: var(--text3); }
+.top-menu-total { font-weight: 800; color: var(--green); font-size: 14px; }

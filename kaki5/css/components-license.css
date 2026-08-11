@@ -1,0 +1,120 @@
+/* =========================================
+   LICENSE COMPONENTS
+   ========================================= */
+.header-right { display: flex; align-items: center; gap: 8px; }
+
+.trial-badge {
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.35);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 10px;
+  text-align: center;
+  flex-shrink: 0;
+  min-width: 62px;
+  cursor: pointer;
+  line-height: 1.15;
+}
+.trial-badge.warn { background: #fff; color: var(--primary-dark); border-color: #fff; }
+.trial-label-xs { font-size: 9px; opacity: .9; letter-spacing: .5px; }
+.trial-value-sm { font-weight: 700; font-size: 12px; }
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.badge.green { background: #E8F5E9; color: var(--green); }
+.badge.orange { background: #FFF3E0; color: var(--primary-dark); }
+.badge.red { background: #FFEBEE; color: var(--red); }
+.badge.compact { font-size: 13px; padding: 6px 14px; }
+
+/* License card */
+.license-card-active { text-align: center; padding: 16px; }
+.license-card-active .license-icon { font-size: 40px; margin-bottom: 8px; }
+.license-card-active .license-key { font-size: 13px; color: var(--text3); margin-top: 8px; margin-bottom: 0; word-break: break-all; }
+.license-card-active .license-expiry { font-size: 12px; color: var(--text3); margin: 4px 0 8px; }
+.license-card-active .license-desc { font-size: 11.5px; color: var(--text3); margin-top: 8px; line-height: 1.4; }
+.license-card-trial { text-align: center; }
+
+.license-header { margin-bottom: 12px; }
+.license-header .badge { margin-left: 6px; }
+.license-icon { font-size: 32px; margin-bottom: 8px; }
+.license-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.license-description { font-size: 13px; color: var(--text2); margin-bottom: 8px; line-height: 1.4; }
+.license-extend-section { margin-top: 12px; }
+.license-extend-section .license-usage { margin-top: 8px; }
+.license-usage { text-align: center; font-size: 12px; color: var(--text3); }
+.license-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.btn-extend {
+  background: linear-gradient(135deg, var(--green), var(--green-light));
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  width: 100%;
+}
+.btn-extend:active { transform: scale(.98); }
+.btn-buy-wa {
+  background: #fff;
+  border: 1.5px solid var(--primary-dark);
+  color: var(--primary-dark);
+  padding: 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-buy-wa:active { transform: scale(.98); }
+
+.field-label { display: block; font-size: 13px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
+.mt12 { margin-top: 12px; }
+.hint { margin-top: 12px; font-size: 12px; color: var(--text3); line-height: 1.4; }
+.uppercase { text-transform: uppercase; }
+
+/* License sheet (bottom sheet) */
+.license-sheet {
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  animation: sheetUp .3s ease;
+}
+@keyframes sheetUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.license-sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.sheet-close {
+  background: #f2f2f2;
+  border: none;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text2);
+}
+.license-sheet-body { max-width: 480px; margin: 0 auto; }
+.license-lock-card { text-align: center; padding: 24px; max-width: 480px; width: 90%; border-radius: 20px; }
+
+
+/* --- Cloud-first license state --- */
+.badge.amber { background: #FFF8E1; color: #b45309; }
+.license-card-pending { text-align: center; padding: 16px; }
+.license-card-pending .license-icon { font-size: 40px; margin-bottom: 8px; }
+.license-card-pending .license-title { font-size: 15px; }
+.license-card-pending .license-description { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.manual-key-toggle { font-size: 12px; color: var(--text3); }

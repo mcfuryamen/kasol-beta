@@ -2,6 +2,73 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-11 (UI: Device ID lintas-browser + Custom Date Picker + Settings Grid Responsive)
+
+- **Device ID lintas-browser (kunci lisensi = ID perangkat, bukan ID instalasi)**: fingerprint perangkat kini diturunkan dari identitas perangkat (`navigator.userAgent` + platform + core fingerprint, `simpleHash('DEVICE-' + fingerprint)` → 8 digit base36, format `XXXX-XXXX`), BUKAN dari ID instalasi/instalid. Efek: pengguna tetap dianggap perangkat yang sama walau pindah browser (Chrome/Firefox/dll), database & lisensi tidak berubah. Onboarding "perangkat baru" hanya muncul sekali per perangkat.
+- **Custom date picker dual-calendar (halaman Laporan)**: `buildCustomPicker()` dirombak jadi **dua kalender penuh side-by-side dalam satu halaman** (kiri = tanggal mulai, kanan = tanggal selesai) dengan highlight rentang; `buildMonthCal()` merender kalender bulan, `pickCustomDate(side, d)` menangkap pilihan kedua sisi; `_laporanWireMap` di `app.js` mendapat `pickCustomDate`. Pilihan custom diperbarui ke konteks (harian/mingguan/bulanan/custom) tanpa dialog terpisah.
+- **Settings grid responsive (halaman Pengaturan)**: `components-settings.css` baru — grid kartu pengaturan kini responsif: **1 kolom (HP) → 2 kolom (tablet, min-width:600px) → 3 kolom (desktop, min-width:900px)**. Selector `#page-pengaturan.active` disamakan di semua rule untuk konsistensi specificity (mengalahkan rule lama `style.css` yang `!important repeat(3,1fr)`).
+- **CSS modular**: `components-settings.css` ditambahkan sebagai stylesheet modular baru (+ `base.css`, `components-*.css`).
+- Validasi: verifikasi CDP `grid-template-columns` — HP 375px → 1 kolom, tablet 768px → 2 kolom, desktop 900px/1200px → 3 kolom.
+
+## 2026-08-11 (P7: Seragamkan window-wiring — semua handler di app.js)
+- Hapus **self-wire** di modul: `purchase.js` (5 handler), `settings.sync.js` &
+  `settings.js` (`_ksr_syncNow`, duplikat), `bantuan.js` (`initBantuan`,
+  `toggleTutorial`). Kini **function handler hanya di-wire di `app.js`** (konvensi R3).
+- `app.js`: wire purchase handlers + `_ksr_syncNow` secara eksplisit; tambah
+  `toggleTutorial` ke `_bantuanWireMap` (dipakai onclick global tanpa prefix).
+- Shared-state `window.*` (config/client cache) tetap di modul — di luar scope R3.
+- Tanpa bump versi/cache-version (logika internal wiring saja).
+- Validasi: `test-modules.js` 38/38 + lint DOM 0 orphan, `test-imports.js` 38/38,
+  `test_validate` 14/14 — semua exit 0.
+
+## 2026-08-11 (P6: Perkuat lisensi â€” harden core logic + obfuscate salt)
+- **Enforce MAX_EXTENSIONS di core logic** (`grantExtensionLogic`): function kini
+  return `{ granted:false, reason:'max' }` saat jatah habis, bukan sekadar increment
+  (sebelumnya cap cuma di UI layer â€” bisa di-bypass via console). UI `grantExtension`
+  menangani `granted:false` dengan toast error.
+- **Sanitize counter**: `grantExtensionLogic` & `trialEndDate` kini menolak nilai
+  `extensionsUsed` negatif/NaN yang bisa dipakai memanipulasi masa trial (trial abadi).
+- **Obfuscate salt**: `PRODUCT_SALT` tidak lagi konstanta plain yang greppable â€”
+  di-derive runtime via `buildProductSalt()`. Â± defense-in-depth (security-through-
+  obscurity), bukan pengganti validasi server. Trade-off offline PWA didokumentasikan.
+- **Tidak ada bump versi/**cache-version (logika internal saja, tanpa public-facing
+  constant index.html/sw).
+- Validasi: `test-modules.js` (38/38 + lint DOM 0 orphan) & `test-imports.js` (38/38), exit 0.
+
+## 2026-08-11 (P5: Self-Host supabase-js agar offline-cache-able)
+
+- **Self-host supabase-js (P5/K6)**: download `@supabase/supabase-js@2.112.2` (UMD, `var supabase` → `window.supabase`) ke `js/supabase.min.js` (211KB). `index.html` tidak lagi load dari `https://cdn.jsdelivr.net/...` — kini file lokal, jadi bisa **di-precache** oleh SW.
+- **Akar masalah (K6)**: fetch handler SW cuma `response.type === 'basic'` — supabase dari CDN cross-origin (type `cors`/`opaque`) **tidak pernah masuk cache**, jadi sync tak tersedia offline. Dengan self-host, file jadi same-origin `basic` → bisa `cache.addAll`.
+- **SW precache**: tambah `./js/supabase.min.js` ke `ASSETS_TO_CACHE`; bump `CACHE_NAME = 'kasir-solo-kaki5-v41'`.
+- **Versi di-sync (P4 rule)**: cache-bust `?v=47 → ?v=48` di `index.html` & `README.md`.
+- **Tes**: `test-modules.js` & `test-imports.js` **38/38** (supabase.min.js ikut ke-scan, valid), lint DOM id 0 orphan, `test_validate` 14/14, `test_pos` 6/6 — semua exit 0.
+- **Docs**: `AUDIT-REPORT.md` §12, `DEVELOPER.md` §2/supabase, `REGRESSION-CHECKLIST.md` cache-version table.
+
+## 2026-08-11 (P4: Anti-Regression Checklist DOM id + Version Bump)
+
+- **Lint DOM id otomatis (P4)**: file baru `test-html-refs.js` — scan semua `getElementById('...')` di 37 modul & verifikasi tiap id resolve ke `index.html` atau dibuat dinamis. Exit 1 kalau ada ref orphan (mencegah regresi senyap ala `#licenseInfoCard`/`#syncStatusText` yang pernah hilang tanpa error karena null-guard).
+- **Gate diperkuat**: `test-modules.js` kini menjalankan lint DOM id di akhir run & exit 1 kalau ada orphan — satu perintah = syntax + real-import + anti-regresi id.
+- **Dokumen baru** `docs/REGRESSION-CHECKLIST.md`: daftar id kritis (licenseInfoCard, syncStatusText, licUnit, installBanner, licenseGate) + trap order-of-operations untuk id yang di-inject dinamis + aturan bump cache version (APP_VERSION/CACHE_BUST di `js/version.js`, `CACHE_NAME` di `sw.js`, `?v=` di `index.html` & `README.md` wajib naik bareng).
+- **Docs**: `DEVELOPER.md` §6 & §10 + unit-test lint; `AUDIT-REPORT.md` mencatat §11 (P4).
+- Hasil lint bersih: **159 ref getElementById, 0 orphan**; `test-modules.js` & `test-imports.js` 37/37 exit 0.
+
+## 2026-08-11 (P1–P3: Sentralisasi Versi + Test Harness Reliable)
+
+- **Sentralisasi versi (P1/N7/K8)**: file baru `js/version.js` jadi satu sumber `APP_VERSION` (`1.0.0`). `app.js` me-wire `window.APP_VERSION` + mengisi label `#appVersionLabel`; `index.html` tidak lagi hard-code "Versi 1.0"; cache-bust `?v=46 → ?v=47` disinkronkan di `README.md`.
+- **Test harness reliable (P2/K4)**: file baru `test-shim.js` (stub global Dexie/window/document/dll). `test-imports.js` di-rewrite agar memuat **semua** modul `js/` (36/36), bukan daftar hard-coded yang gagal karena kurang stub.
+- **Validator CI-grade (P3/K5)**: file baru `test-modules.js` menjalankan `node --check` + real ESM import per modul dan exit 1 bila gagal — menghentikan false-pass `node --check` (trap yang pernah bikin `app.js` rusak lolos ke produksi).
+- **Docs**: `DEVELOPER.md` §6 & §10 memakai `test-modules.js` & `test-imports.js` sebagai validasi utama; `AUDIT-REPORT.md` mencatat §9 (temuan K1–K8) & §10 (perbaikan P1–P3).
+- **Cache-bust index.html `?v=47`** (bump setelah perubahan app.js/README).
+
+## 2026-08-10 (Fix Sync Profil + Region Picker 4-Level + Logo Baru)
+
+- **Fix `sync.js` skip-on-already-synced**: `ensureSynced()` dulunya return early bila `state.status === 'synced'` (tanpa force). Kini semua save function di `settings.js` memanggil `ensureSynced({ force: true })` agar perubahan profil (alamat, pemilik, WA, nama warung) selalu di-push ke Supabase.
+- **Fix `region.js` village prefill chain**: `loadDesa()` kini dipanggil otomatis saat modal alamat dibuka dengan data tersimpan (pre-fill desa sesuai kecamatan yang terpilih). Sebelumnya desa selalu kosong karena `loadDesa()` hanya dipanggil saat user manual pilih kecamatan.
+- **Endpoint desa diperbaiki**: API desa menggunakan ID kecamatan 7 digit (bukan ID desa 8 digit). URL: `static/api/villages/{kecamatanId}.json`.
+- **Logo aplikasi diperbarui**: `assets/icon.png` diganti logo baru (orange gradient, 1254x1254 PNG). PWA icons (`icon-192.png`, `icon-512.png`) diregenerasi dari logo baru. Logo lama (`icon-old.png`) dipertahankan di kartu versi halaman Pengaturan.
+- **Hapus console.log debug** dari `sync.js`, `settings.js`, `region.js` pasca-verifikasi.
+- **SW cache v30 → v31** (perubahan sync.js, region.js, settings.js, assets/icon*).
+
 ## 2026-08-11 (Audit jalur data → Supabase + leads dari profil)
 
 - **Fix `sync.js` getClient() → isPlaceholderKey()**: filter `'******'` & placeholder umum (sebelumnya cuma blokir `'PASTE...'` & `'...'`). Konfigurasi anon key di `supabase-config.js` sudah terisi asli sejak audit sebelumnya — view tool sempat ngeredact jadi `'******'`.

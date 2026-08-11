@@ -4,12 +4,12 @@ import { todayStr, showToast } from './helpers.js';
 import { setCart } from './app-state.js';
 import { showConfirm } from './confirm.js';
 import { clearCartStorage } from './pos.js';
-import { showPage } from './navigation.js';
+import { navigateTo } from './navigation.js';
 
 export async function exportData() {
   // Exclude sensitive/device-bound keys from the backup so a shared file never
   // leaks the license serial, installId, or unitId (device identity + CRM data).
-  const sensitiveKeys = ['installId', 'unitId'];
+  const sensitiveKeys = ['installId', 'unitId', 'deviceIdentity'];
   const settings = (await DB.settings.toArray())
     .filter(r => !sensitiveKeys.includes(r.key))
     .map(r => r.key === 'license' && r.value && typeof r.value === 'object'
@@ -88,7 +88,7 @@ export async function importData(event) {
 
         clearCartStorage();
         showToast('✅ Data berhasil dipulihkan!');
-        showPage('beranda');
+        navigateTo('beranda');
       } catch (err) {
         console.error('[Restore] failed:', err);
         showToast('Gagal memulihkan: data rusak!', 'error');
@@ -112,6 +112,6 @@ export function confirmClearAll() {
     setCart({});
     clearCartStorage();
     showToast('Semua data dihapus');
-    showPage('beranda');
+    navigateTo('beranda');
   });
 }

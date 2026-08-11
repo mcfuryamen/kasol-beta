@@ -63,7 +63,7 @@ async function buildPayload() {
       getSetting('kecamatan', ''), getSetting('desaId', ''),
       getSetting('desa', ''),      getSetting('alamat', '')
     ]);
-  return {
+  const payload = {
     unit_id:      await getUnitId(),
     app_type:     APP_TYPE,
     device_code:  await getDeviceCode(),
@@ -78,6 +78,7 @@ async function buildPayload() {
     alamat_detail: alamat,
     last_seen:    new Date().toISOString()
   };
+  return payload;
 }
 
 /**
@@ -116,22 +117,29 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
       .from('clients')
       .upsert({ ...payload, user_id: userId }, { onConflict: 'unit_id' });
     if (upErr) throw upErr;
-    // Jalur profil → leads (CRM marketing). Sama seperti clients, dedupe per
-    // unit_id. Gagal di sini TIDAK menggagalkan sync clients agar tak memutus
-    // jalur utama (mis. kolom leads belum ada di DB).
+    // Pipeline marketing kini ada DI clients (leads/pembelian lama sudah
+    // dikonsolidasi). Profil tidak boleh me-reset status yang sudah dimajukan
+    // admin, jadi `source` & `status` hanya di-set saat baris masih baru
+    // (status null/'' ) lewat PATCH selektif — bukan lewat upsert profil.
     try {
-      await sb.from('leads').upsert({
-        unit_id: payload.unit_id,
-        user_id: userId,
-        name: payload.nama_warung,
-        wa: payload.no_whatsapp,
-        address: payload.alamat_detail,
-        app_type: payload.app_type,
-        source: 'app-' + payload.app_type,
-        status: 'baru'
-      }, { onConflict: 'unit_id' });
+      const { data: cur } = await sb
+        .from('clients')
+        .select('status, source')
+        .eq('unit_id', payload.unit_id)
+        .maybeSingle();
+      const needSeed = !cur || !cur.status || cur.status === '' || cur.status === null;
+      if (needSeed) {
+        await sb.from('clients').update({
+          source: 'app-' + payload.app_type,
+          status: 'baru'
+        }).eq('unit_id', payload.unit_id);
+      } else if (!cur.source) {
+        await sb.from('clients').update({
+          source: 'app-' + payload.app_type
+        }).eq('unit_id', payload.unit_id);
+      }
     } catch (_leadErr) {
-      console.warn('leads upsert skipped (ungsa migrasi leads):', _leadErr?.message || _leadErr);
+      console.warn('pipeline seed skipped (clients):', _leadErr?.message || _leadErr);
     }
     await setSetting('sync', { status: 'synced', syncedAt: new Date().toISOString() });
     if (!silent) showToast('✅ Profil tersinkron ke server');

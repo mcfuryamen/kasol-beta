@@ -1,0 +1,37 @@
+/* =========================================
+   REPORT COMPONENTS
+   ========================================= */
+.report-tabs {
+  display: flex;
+  background: #f0f0f0;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+.report-tab {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text3);
+  transition: all .15s;
+}
+.report-tab.active { background: #fff; color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+
+/* ── CHART BARS ── */
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 140px;
+  padding: 8px 0;
+}
+.chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.chart-bar { width: 100%; border-radius: 6px 6px 0 0; min-height: 4px; transition: height .3s; }
+.chart-bar.income { background: var(--green-light); }
+.chart-bar.expense { background: var(--red-light); }
+.chart-label { font-size: 10px; color: var(--text3); font-weight: 600; }
+.chart-val { font-size: 9px; color: var(--text2); font-weight: 700; }

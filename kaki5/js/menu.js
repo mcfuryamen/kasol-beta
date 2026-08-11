@@ -5,6 +5,17 @@ import { currentPage } from './app-state.js';
 import { showConfirm } from './confirm.js';
 import { loadPOS } from './pos.js';
 
+// Debounced search for menu list
+function debounce(fn, delay = 300) {
+  let timer = null;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+const _debouncedRenderMenuList = debounce(renderMenuList, 300);
+
 export async function renderMenuList() {
   const search = (document.getElementById('searchMenuList').value || '').toLowerCase();
   let menus = await DB.menu.toArray();
@@ -126,3 +137,6 @@ export function confirmDeleteMenu(id) {
     showToast('Menu dihapus');
   });
 }
+
+// Export debounced version for oninput handler
+export const renderMenuListDebounced = _debouncedRenderMenuList;

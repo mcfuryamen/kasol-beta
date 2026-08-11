@@ -24,6 +24,9 @@ body{display:flex;flex-direction:column}
 
 /* BOTTOM NAV */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:#fff;display:flex;border-top:2px solid var(--border);z-index:700;padding-bottom:env(safe-area-inset-bottom)}
+/* Gate onboarding/lisensi = full-screen blocker: sembunyikan navbar + header biar nggak nongol di atasnya */
+body.gate-active .bottom-nav,
+body.gate-active .app-header{display:none !important}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;border:none;background:none;color:var(--text3);font-size:11px;font-weight:600;gap:2px;padding:4px 0;position:relative}
 .nav-item.active{color:var(--primary)}
 .nav-item .nav-icon{font-size:26px;line-height:1}
@@ -319,8 +322,6 @@ input[type=number]{-moz-appearance:textfield}
 .setting-item{padding:18px 0;gap:18px}
 .setting-icon{width:52px;height:52px;font-size:26px}
 .settings-grid{grid-template-columns:repeat(3,1fr)}
-#page-pengaturan.active{display:grid;grid-template-columns:1fr;gap:16px}
-#page-pengaturan{grid-template-columns:repeat(3,1fr)!important}
 .chart-bars{height:200px}
 .search-box input{padding:14px 18px 14px 48px;font-size:16px}
 .cat-tab{padding:10px 20px;font-size:15px}

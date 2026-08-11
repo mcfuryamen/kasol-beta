@@ -1,0 +1,48 @@
+/* =========================================
+   SETTINGS COMPONENTS
+   ========================================= */
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.setting-item:last-child { border-bottom: none; }
+.setting-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.setting-info { flex: 1; }
+.setting-info .s-title { font-weight: 700; font-size: 15px; }
+.setting-info .s-desc { font-size: 12px; color: var(--text3); }
+.setting-arrow { color: var(--text3); font-size: 18px; }
+
+/* Settings responsive grid */
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.settings-grid .card { margin-bottom: 0; }
+
+/* Kartu pengaturan: hp 1 kolom, tablet 2 kolom, desktop 3 kolom */
+#page-pengaturan.active,
+#page-pengaturan { display: grid; gap: 16px; }
+#page-pengaturan.active,
+#page-pengaturan { grid-template-columns: 1fr; }
+
+@media (min-width: 600px) {
+  #page-pengaturan.active,
+  #page-pengaturan { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 900px) {
+  #page-pengaturan.active,
+  #page-pengaturan { grid-template-columns: repeat(3, 1fr); }
+}
