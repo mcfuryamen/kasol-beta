@@ -318,11 +318,12 @@ function buildMonthOptions() {
   const y = reportDate.split('-')[0];
   const cur = parseInt(reportDate.split('-')[1]);
   const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-  return months.map((mn, i) => {
+  const opts = months.map((mn, i) => {
     const mnum = i + 1;
     const a = mnum === cur ? ' sel' : '';
     return `<button class="month-opt${a}" onclick="pickMonth('${y}-${String(mnum).padStart(2,'0')}-01')"><b>${mn}</b><span>${y}</span></button>`;
   }).join('');
+  return `<div class="month-grid">${opts}</div>`;
 }
 
 function buildMonthCal(year, month, selDate, rangeStart, rangeEnd, side) {
@@ -354,9 +355,9 @@ function buildCustomPicker() {
     rm = nxt.getMonth() + 1;
   }
   return `
-    <div style="width:100%;display:flex;gap:12px;flex-wrap:wrap">
-      <div style="flex:1;min-width:200px">${buildMonthCal(sy, sm, customStart, customStart, customEnd, 'start')}</div>
-      <div style="flex:1;min-width:200px">${buildMonthCal(ry, rm, customEnd, customStart, customEnd, 'end')}</div>
+    <div style="width:100%;display:flex;gap:8px;flex-wrap:wrap">
+      <div style="flex:1;min-width:190px">${buildMonthCal(sy, sm, customStart, customStart, customEnd, 'start')}</div>
+      <div style="flex:1;min-width:190px">${buildMonthCal(ry, rm, customEnd, customStart, customEnd, 'end')}</div>
     </div>`;
 }
 
@@ -404,7 +405,7 @@ async function renderReportDateNav() {
       <div style="width:100%;display:flex;align-items:center;gap:8px;flex-wrap:nowrap">
         ${navArea}
       </div>
-      <div id="customPicker" class="custom-picker" style="${_customPickerOpen ? '' : 'display:none;'}width:100%;box-sizing:border-box;background:#fff;border:2px solid var(--border);border-radius:12px;padding:10px">
+      <div id="customPicker" class="custom-picker" style="${_customPickerOpen ? '' : 'display:none;'}width:100%;box-sizing:border-box;background:#fff;border:2px solid var(--border);border-radius:12px;padding:8px">
         ${buildPickerBody()}
       </div>
     </div>

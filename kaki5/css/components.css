@@ -293,32 +293,32 @@ select.form-input {
 .date-nav .cal-title {
   text-align: center;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 13px;
   color: var(--text);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .date-nav .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 3px;
 }
 .date-nav .cal-head {
   text-align: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   color: var(--text3);
   padding-bottom: 2px;
 }
 .date-nav .cal-cell {
-  aspect-ratio: 1;
+  height: clamp(30px, 7vw, 38px);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text);
   background: #f7f7f7;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   user-select: none;
 }
@@ -327,31 +327,64 @@ select.form-input {
 .date-nav .cal-cell.sel { background: var(--primary); color: #fff; }
 .date-nav .cal-cell.inrange { background: rgba(230,81,0,.14); box-shadow: inset 0 0 0 1px rgba(230,81,0,.35); }
 .date-nav .cal-cell:active { opacity: .6; }
-.date-nav .week-opt, .date-nav .month-opt {
+.date-nav .week-opt {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 12px 14px;
-  margin-bottom: 8px;
+  padding: 8px 12px;
+  margin-bottom: 5px;
   border: 2px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fff;
-  font-size: 15px;
+  font-size: 13px;
   cursor: pointer;
   color: var(--text);
 }
-.date-nav .week-opt b, .date-nav .month-opt b { font-weight: 800; }
-.date-nav .week-opt span, .date-nav .month-opt span {
+.date-nav .week-opt b { font-weight: 800; }
+.date-nav .week-opt span {
   font-size: 12px;
   color: var(--text3);
   font-weight: 600;
 }
-.date-nav .week-opt.sel, .date-nav .month-opt.sel {
+.date-nav .week-opt.sel {
   border-color: var(--primary);
   background: var(--primary);
   color: #fff;
 }
-.date-nav .week-opt.sel span, .date-nav .month-opt.sel span { color: rgba(255,255,255,.85); }
-.date-nav .week-opt:active, .date-nav .month-opt:active { opacity: .7; }
+.date-nav .week-opt.sel span { color: rgba(255,255,255,.85); }
+.date-nav .week-opt:active { opacity: .7; }
+/* Opsi bulan disusun grid 4 kolom biar kompak */
+.date-nav .month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.date-nav .month-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 10px 4px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+}
+.date-nav .month-opt b { font-weight: 800; }
+.date-nav .month-opt span {
+  font-size: 10px;
+  color: var(--text3);
+  font-weight: 600;
+}
+.date-nav .month-opt.sel {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+.date-nav .month-opt.sel span { color: rgba(255,255,255,.85); }
+.date-nav .month-opt:active { opacity: .7; }
 
