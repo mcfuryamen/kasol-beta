@@ -1,0 +1,18 @@
+{
+  "name": "kasol",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kasir Solo monorepo - semua aplikasi dalam satu repo",
+  "packageManager": "npm@11.17.0",
+  "workspaces": [
+    "admin",
+    "gerobak",
+    "kaki5",
+    "landing",
+    "retail",
+    "rosok"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

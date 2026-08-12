@@ -3,6 +3,8 @@
 Repository ini berisi semua aplikasi Kasir Solo dalam satu monorepo. Setiap aplikasi di-deploy secara terpisah ke Vercel sebagai **static site tanpa build step**.
 
 > **Catatan:** Deploy **TIDAK lagi memakai GitHub Actions.** Semua workflow `.github/workflows/*` sudah dihapus. Deploy sekarang otomatis oleh **Vercel git integration** (auto-detect) per project.
+>
+> **Catatan (2026-08):** Selective deploy memakai fitur **Vercel "Skip Unaffected Projects"** via **npm workspaces** — bukan `vercel-ignore.sh`. Detail di bawah.
 
 ## 📁 Struktur Aplikasi
 
@@ -33,12 +35,43 @@ kasol/
 
 Setiap aplikasi = **satu Vercel project terpisah**, terhubung ke repo ini dengan **Root Directory** menunjuk ke folder aplikasinya. Begitu ada **push ke branch utama**, Vercel **otomatis deploy** hanya project yang foldernya berubah.
 
+### Selective Deploy: Skip Unaffected Projects (npm workspaces)
+
+Repo memakai **npm workspaces** supaya Vercel bisa otomatis cuma build project yang foldernya berubah. Konfigurasi ada di `package.json` root:
+
+```json
+{
+  "name": "kasol",
+  "private": true,
+  "packageManager": "npm@11.17.0",
+  "workspaces": [
+    "admin", "gerobak", "kaki5", "landing",
+    "landing-new", "retail", "rosok", "fnb"
+  ]
+}
+```
+
+**Syarat wajib (sudah dipenuhi):**
+1. `package.json` di root dengan `workspaces` yang nge-list SEMUA folder app.
+2. Setiap app punya `package.json` dengan **`name` unik** dan `"private": true`.
+3. Semua project Vercel terhubung ke repo GitHub yang sama.
+4. **Toggle "Skip deployment" di-settings ENABLED** per project (default): *Settings → Build and Deployment → Root Directory → Skip deployment = On*.
+
+**Kenapa ini bener & cara kerjanya:**
+- Vercel narik **dependency graph** antar package via workspaces untuk mutusin project mana yang berubah.
+- Hanya project yang source code / dependency / lockfile-nya berubah yang di-deploy.
+- Perubahan di root (README, docs, script, API key) → dianggap global → deploy semua (karena bukan bagian workspace).
+- Ini **TIDAK mengonsumsi concurrent build slot** (beda sama Ignored Build Step) dan **tidak butuh `vercel-ignore.sh`**.
+- `packageManager` di root nge-lock npm supaya Vercel deteksi manager dengan pasti (ngga rely semata pada lockfile).
+
+> ⚠️ **PENTING — jangan pakai `vercel-ignore.sh` lagi.** Kalau project masih punya **Ignored Build Step** yang mengarah ke script itu, hapus field-nya di dashboard (Settings → Build and Deployment → bersihkan kolom *Ignored Build Step*). Karena file `vercel-ignore.sh` nggak ada di repo, kalau dibiarkan script-nya bakal fail dan Vercel fallback deploy semua project.
+
 ### Cara Kerja:
-1. **Push perubahan di `rosok/`** → project Vercel Rosok deploy otomatis
-2. **Push perubahan di `kaki5/`** → project Vercel Kaki5 deploy otomatis
-3. **Push perubahan di `landing/`** → project Vercel Landing deploy otomatis
-4. **dst.** untuk `admin/`, `gerobak/`, `retail/`
-5. Perubahan di file root (README, dll) → **tidak memicu deploy** (tidak memengaruhi folder project mana pun)
+1. **Push perubahan di `rosok/`** → project Vercel Rosok deploy otomatis (project lain skip)
+2. **Push perubahan di `kaki5/`** → project Vercel Kaki5 deploy otomatis (project lain skip)
+3. **Push perubahan di `landing/`** → project Vercel Landing deploy otomatis (project lain skip)
+4. **dst.** untuk `admin/`, `gerobak/`, `retail/`, `fnb/`, `landing-new/`
+5. Perubahan di file root (README, dll) → dianggap global → deploy semua project
 
 ### Setup Vercel Project (sekali saja per app):
 
@@ -77,7 +110,7 @@ git commit -m "feat: ..."
 # Push ke GitHub (manual, dilakukan oleh pengguna):
 ```
 
-Tidak ada path-filter per-app di CI — **Vercel git integration** yang menangani per-app secara otomatis via Root Directory.
+Selective deploy ditangani Vercel via **npm workspaces** ("Skip Unaffected Projects") — per-app otomatis, tanpa script `vercel-ignore.sh`.
 
 ## 🔗 Domain Mapping (Opsional)
 
