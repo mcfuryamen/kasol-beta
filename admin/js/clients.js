@@ -157,15 +157,12 @@ function renderAll() {
   else renderAnalytics();
 }
 
-/** Tab kanban aktif: 'semua' | stage key */
-let kanbanTab = 'semua';
-
-/** Render kanban tab-per-status */
+/** Render kanban — board kolom-per-stage dengan drag & drop */
 function renderKanban() {
   const host = document.getElementById('kanbanBoard');
   if (!host) return;
   const q = (document.getElementById('clientsSearch')?.value || '').toLowerCase();
-  const qNorm = (c) => [c.nama_warung, c.nama_pemilik, c.device_code, c.no_whatsapp, c.kabkota, c.provinsi, c.unit_id]
+  const qNorm = (c) => [c.nama_warung, c.nama_pemilik, c.device_code, c.no_whatsapp, c.email, c.kabkota, c.provinsi, c.unit_id, c.serial]
     .some((v) => (v || '').toLowerCase().includes(q));
   const appF = document.getElementById('clientsAppFilter')?.value || '';
   const rows = clients.filter((c) => {
@@ -178,46 +175,116 @@ function renderKanban() {
     return;
   }
 
-  const tab = (key, label, n, tone) => `
-    <button type="button" class="kb-tab ${kanbanTab === key ? 'active' : ''}" data-stage="${key}" role="tab" aria-selected="${kanbanTab === key}">
-      ${label} <span class="badge ${tone}">${n}</span>
-    </button>`;
-
-  const tabs = `
-    <div class="kb-tabs" role="tablist">
-      ${tab('semua', 'Semua', rows.length, 'gray')}
-      ${PIPELINE_STAGES.map((st) => tab(st.key, st.label, rows.filter((c) => c.status === st.key).length, st.tone)).join('')}
+  // Header baris statistik ringkas (diatas board)
+  const total = rows.length;
+  const subtotalAll = rows.reduce((a, c) => a + (Number(c.harga) || 0), 0);
+  const headStats = `
+    <div class="kb-headstats">
+      <span class="kb-headstat">🃏 <b>${total}</b> kartu</span>
+      ${subtotalAll ? `<span class="kb-headstat">💰 <b>Rp ${subtotalAll.toLocaleString('id-ID')}</b> value</span>` : ''}
+      ${rows.filter((c) => isActive(c)).length ? `<span class="kb-headstat">🟢 <b>${rows.filter((c) => isActive(c)).length}</b> aktif</span>` : ''}
     </div>`;
 
-  const shown = kanbanTab === 'semua' ? rows : rows.filter((c) => c.status === kanbanTab);
-  const shownMeta = kanbanTab === 'semua' ? null : stageMeta(kanbanTab);
-  const subtotal = shown.reduce((a, c) => a + (Number(c.harga) || 0), 0);
+  // Board: 1 kolom per stage pipeline
+  const columns = PIPELINE_STAGES.map((st, sIdx) => {
+    const list = rows.filter((c) => c.status === st.key);
+    const sub = list.reduce((a, c) => a + (Number(c.harga) || 0), 0);
+    const cards = list.length
+      ? list.map((c) => kanbanCardHtml(c)).join('')
+      : `<div class="kb-drop-hint">Kosong — seret kartu ke sini</div>`;
+    return `
+      <div class="kb-col ${st.key === 'batal' ? 'kb-col-batal' : ''}" data-stage="${st.key}">
+        <div class="kb-col-head">
+          <span class="kb-col-label">${st.label}</span>
+          <span class="badge ${st.tone}">${list.length}</span>
+        </div>
+        <div class="kb-col-sub">${sub ? 'Rp ' + sub.toLocaleString('id-ID') : '—'}</div>
+        <div class="kb-col-list" data-stage="${st.key}">${cards}</div>
+      </div>`;
+  }).join('');
 
-  const cards = shown.length
-    ? shown.map(kanbanCardHtml).join('')
-    : `<div class="kb-drop-hint">Belum ada kartu di ${shownMeta ? shownMeta.label : 'filter ini'}. Geser dari tahap lain pakai tombol ‹ ›, atau ubah status lewat detail.</div>`;
+  host.innerHTML = headStats + `<div class="kb-board">${columns}</div>`;
 
-  host.innerHTML = tabs + `
-    <div class="kb-tab-panel">
-      <div class="kb-tab-head">
-        <span class="kb-tab-title">${shownMeta ? shownMeta.label : 'Semua Klien'}</span>
-        <span class="kb-tab-total">${shown.length} kartu${subtotal ? ' · Rp ' + subtotal.toLocaleString('id-ID') : ''}</span>
-      </div>
-      <div class="kb-tab-list">${cards}</div>
-    </div>`;
-
-  host.querySelectorAll('.kb-tab').forEach((t) => {
-    t.addEventListener('click', () => { kanbanTab = t.dataset.stage; renderKanban(); });
-  });
+  // Klik kartu / bukti / menu aksi
   host.querySelectorAll('.kb-bukti').forEach((el) => {
     el.addEventListener('click', (e) => { e.stopPropagation(); const u = el.dataset.bukti; if (u) window.open(u, '_blank'); });
   });
-  // Klik kartu = buka detail (tombol di dalam kartu diabaikan)
   host.querySelectorAll('.kanban-card').forEach((card) => {
     card.addEventListener('click', (e) => {
-      if (e.target.closest('button')) return;
+      if (e.target.closest('button') || e.target.closest('.kb-card-menu-pop')) return;
       const id = card.dataset.clientId;
       if (id) openClientById(id);
+    });
+  });
+  host.querySelectorAll('.kb-menu-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggleKbMenu(btn); });
+  });
+
+  // Inisialisasi drag & drop + tutup menu saat klik luar
+  enableKanbanDnd(host);
+  host.querySelectorAll('.kb-card-menu').forEach((m) => {
+    // menu action delegation (Buka Detail / Pindah)
+  });
+  // one-time: tutup semua popup menu saat klik di luar board
+  if (!window.__kbMenuCloseBound) {
+    window.__kbMenuCloseBound = true;
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.kb-card-menu-pop.open').forEach((p) => p.classList.remove('open'));
+    });
+  }
+}
+
+/** Toggle popup menu aksi kartu */
+function toggleKbMenu(btn) {
+  const card = btn.closest('.kanban-card');
+  if (!card) return;
+  const all = card.querySelectorAll('.kb-card-menu-pop');
+  all.forEach((p) => p.classList.toggle('open'));
+  // posisikan pop
+  const pop = card.querySelector('.kb-card-menu-pop');
+  if (pop && pop.classList.contains('open')) {
+    const r = pop.getBoundingClientRect();
+    if (r.right > window.innerWidth) pop.style.right = '0'; else pop.style.right = '';
+  }
+}
+window.toggleKbMenu = toggleKbMenu;
+
+/** Drag & drop kartu antar kolom stage */
+function enableKanbanDnd(host) {
+  let dragCard = null;
+  host.querySelectorAll('.kanban-card[draggable]').forEach((card) => {
+    card.addEventListener('dragstart', (e) => {
+      dragCard = card;
+      card.classList.add('dragging');
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+      if (dragCard) dragCard.classList.remove('dragging');
+      dragCard = null;
+      host.querySelectorAll('.kb-col.drop-target').forEach((col) => col.classList.remove('drop-target'));
+    });
+  });
+  host.querySelectorAll('.kb-col-list').forEach((list) => {
+    list.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      const col = list.closest('.kb-col');
+      if (col) col.classList.add('drop-target');
+    });
+    list.addEventListener('dragleave', (e) => {
+      if (!list.contains(e.relatedTarget)) {
+        const col = list.closest('.kb-col');
+        if (col) col.classList.remove('drop-target');
+      }
+    });
+    list.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const col = list.closest('.kb-col');
+      if (col) col.classList.remove('drop-target');
+      if (!dragCard) return;
+      const id = dragCard.dataset.clientId;
+      const stage = col.dataset.stage;
+      if (id && stage) moveStage(id, stage);
     });
   });
 }
@@ -225,45 +292,85 @@ function renderKanban() {
 function kanbanCardHtml(c) {
   const m = metaFor(c.app_type);
   const sm = stageMeta(c.status);
-  const wil = [c.desa, c.kecamatan, c.kabkota].filter(Boolean).join(', ');
   const esc = escapeHtml;
+  const wil = [c.desa, c.kecamatan, c.kabkota].filter(Boolean).join(', ');
   const idx = PIPELINE_STAGES.findIndex((s) => s.key === c.status);
   const isBatal = c.status === 'batal';
+  const harga = Number(c.harga) || 0;
+  const serial = c.serial ? String(c.serial) : '';
+  // Progress posisi di pipeline (persen dari urutan stage)
+  const progressPct = idx >= 0 ? Math.round(((idx + 0.5) / PIPELINE_STAGES.length) * 100) : 0;
+  const contact = c.no_whatsapp
+    ? `<span>💬${esc(c.no_whatsapp)}</span>`
+    : (c.email ? `<span>✉️${esc(c.email)}</span>` : '');
   return `
-    <div class="kanban-card ${statusAccent(c.status)}${isBatal ? ' kb-card-batal' : ''}" data-client-id="${esc(c.id)}">
+    <div class="kanban-card ${statusAccent(c.status)}${isBatal ? ' kb-card-batal' : ''}" data-client-id="${esc(c.id)}" draggable="true">
+      <div class="kb-progress" style="width:${progressPct}%"></div>
       <div class="kb-card-top">
         <span class="client-avatar">${m.icon}</span>
         <div class="kb-card-main">
           <strong class="kb-card-name">${esc(c.nama_warung || '—')}</strong>
           <small class="kb-card-sub">${esc(m.label)}${c.device_code ? ' · ' + esc(c.device_code) : ''}</small>
         </div>
-        ${kanbanTab === 'semua' ? `<span class="badge ${sm.tone} kb-card-status">${sm.label}</span>` : ''}
       </div>
+      ${c.source ? `<span class="badge tone-gray kb-card-src">${esc(c.source)}</span>` : ''}
       <div class="kb-card-meta">
         ${c.nama_pemilik ? `<span>👤${esc(c.nama_pemilik)}</span>` : ''}
-        ${c.no_whatsapp ? `<span>💬${esc(c.no_whatsapp)}</span>` : ''}
+        ${contact}
         ${wil ? `<span>📍${esc(wil)}</span>` : ''}
       </div>
       ${statusCtxHtml(c, esc)}
+      <div class="kb-card-deal">
+        <span class="kb-card-price">${harga ? '💰 Rp ' + harga.toLocaleString('id-ID') : '💰 —'}</span>
+        ${serial ? `<span class="kb-card-serial">🔑 ${esc(serial.slice(0, 10))}…</span>` : `<span class="kb-card-age">🕑 ${formatLeadAge(c.first_seen)}</span>`}
+      </div>
       <div class="kb-card-foot">
-        <span class="text-xs" style="color:var(--text2)">🕒 ${formatRelativeTime(c.last_seen)}</span>
+        <span class="text-xs kb-card-time">🕒 ${formatRelativeTime(c.last_seen)}</span>
         <div class="kb-card-actions">
-          <button type="button" class="btn btn-ghost btn-sm" title="Status sebelumnya" ${idx <= 0 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','prev')">‹</button>
           ${statusCta(c, esc)}
-          <button type="button" class="btn btn-ghost btn-sm" title="Status berikutnya" ${idx < 0 || idx >= PIPELINE_STAGES.length - 1 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','next')">›</button>
+          <div class="kb-card-menu">
+            <button type="button" class="btn btn-ghost btn-sm kb-menu-btn" title="Aksi lain" aria-label="Menu aksi">⋯</button>
+            <div class="kb-card-menu-pop">
+              <button type="button" data-act="open" onclick="openClientById('${esc(c.id)}')">👁️ Buka Detail</button>
+              <button type="button" data-act="prev" ${idx <= 0 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','prev')">⬅️ Status sebelumnya</button>
+              <button type="button" data-act="next" ${idx < 0 || idx >= PIPELINE_STAGES.length - 1 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','next')">➡️ Status berikutnya</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>`;
 }
 
-/** Pindah kartu ke tahap sebelumnya/berikutnya */
+/** Umur lead dalam teks ramah (dari first_seen / created_at) */
+function formatLeadAge(firstSeen) {
+  const t = firstSeen ? new Date(firstSeen).getTime() : null;
+  if (!t) return '—';
+  const d = Math.max(0, Math.floor((Date.now() - t) / 86400000));
+  if (d === 0) return 'baru';
+  if (d < 30) return d + ' hari';
+  const mo = Math.floor(d / 30);
+  return mo + ' bln';
+}
+
+/** Pindah kartu ke tahap lain — dir='prev'|'next' ATAU key stage langsung */
 function moveStage(id, dir) {
   const c = clients.find((x) => x.id === id);
   if (!c) return;
-  const idx = PIPELINE_STAGES.findIndex((s) => s.key === c.status);
-  const next = dir === 'next' ? idx + 1 : idx - 1;
-  if (next < 0 || next >= PIPELINE_STAGES.length) return;
-  updateClientStatus(id, PIPELINE_STAGES[next].key);
+  let target;
+  if (dir === 'next') {
+    const idx = PIPELINE_STAGES.findIndex((s) => s.key === c.status);
+    if (idx < 0 || idx >= PIPELINE_STAGES.length - 1) return;
+    target = PIPELINE_STAGES[idx + 1].key;
+  } else if (dir === 'prev') {
+    const idx = PIPELINE_STAGES.findIndex((s) => s.key === c.status);
+    if (idx <= 0) return;
+    target = PIPELINE_STAGES[idx - 1].key;
+  } else {
+    // target stage key langsung (dari drag & drop)
+    if (!PIPELINE_STAGES.some((s) => s.key === dir) || dir === c.status) return;
+    target = dir;
+  }
+  updateClientStatus(id, target);
 }
 window.moveStage = moveStage;
 

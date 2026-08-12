@@ -3,6 +3,41 @@
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
 
+## [1.5.0] - (Overhaul Kartu Kanban: Board Pipeline + Kartu Info-Rich)
+
+### ⚡ Board kanban kolom-per-stage (bukan tab)
+- Tampilan dirombak jadi **board horizontal kolom-per-tahap** (Baru → Dihubungi →
+  Tertarik → Verifikasi → Aktif) dengan scroll kiri-kanan; di layar sempit otomatis
+  jadi stack vertikal.
+- **Header statistik ringkas** (`.kb-headstats`): total kartu, total nilai (Rp), jumlah aktif.
+
+### 🧲 Drag & drop antar kolom
+- Kartu bisa **diseret antar kolom stage** dan dilepas untuk pindah status langsung.
+- Drop zone highlight saat menyeret; kolom `Batal` menerima drop.
+
+### 🔍 Kartu lebih informatif
+- **Progress bar** tipis di atas kartu menunjuk posisi di pipeline (% dari urutan stage).
+- **Baris deal** (`.kb-card-deal`): 🤑 Harga (Rp, format id-ID) • 🔑 cuplikan serial
+  atau 🕑 umur lead (formatLeadAge) bila belum ada serial.
+- **Badge sumber** (`.kb-card-src`) bila `source` terisi.
+- Meta diperkaya: 👤 pemilik, 💬 WhatsApp / ✉️ email, 📍 wilayah (desa/kecamatan/kabkota).
+
+### 🎛️ Menu aksi tunggal (⋯) menggantikan tombol ‹ ›
+- Tombol **⋯** membuka popup: 👁️ Buka Detail, ⬅️ Status sebelumnya, ➡️ Status berikutnya.
+- Tombol prev/next otomatis nonaktif di ujung pipeline.
+- CTA utama kontekstual per status tetap (📞 Hubungi / 💡 Tawarkan / dsb).
+
+### 🔧 Teknis
+- `renderKanban()` → board kolom-per-stage + render ulang on drop.
+- `enableKanbanDnd()` baru (HTML5 drag & drop).
+- `kanbanCardHtml()` → DOM info-rich baru.
+- `moveStage()` mendukung target stage key langsung (untuk drag & drop).
+- `formatLeadAge()` helper umur lead baru.
+- CSS baru: `.kb-board`, `.kb-col*`, `.kb-progress`, `.kb-card-deal`,
+  `.kb-card-src`, `.kb-card-menu*`, `.kb-headstats`, media query mobile.
+- SW cache → `kasir-admin-v19`.
+
+
 ## [1.4.8] - (Kartu Kanban Kontekstual per Status)
 
 ### 🎨 Tampilan kartu klien dinamis sesuai konteks status

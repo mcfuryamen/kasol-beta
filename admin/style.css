@@ -734,22 +734,31 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 .badge.red { background: var(--red-50, #fdeaea); color: var(--red-600, #c0392b); }
 .badge.gray { background: rgba(0,0,0,.06); color: var(--ink-2); }
 
-/* Kanban board */
+/* Kanban board — kolom-per-stage, horizontal scroll di layar kecil */
 .kanban-board {
   display: flex; flex-direction: column; gap: 0; padding-bottom: 8px;
+}
+.kb-headstats { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px 4px; }
+.kb-headstat { font-size: 12px; color: var(--text2); background: var(--bg-card, var(--surface)); border: 1px solid var(--border); border-radius: var(--radius-full, 999px); padding: 4px 12px; }
+.kb-headstat b { color: var(--text); }
+.kb-board {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(268px, 1fr);
+  gap: 12px; padding: 10px 12px 14px; overflow-x: auto; align-items: start;
 }
 .kb-col {
   background: var(--bg-card, var(--surface)); border: 1px solid var(--border); border-radius: var(--radius, 12px); display: flex; flex-direction: column; min-height: 240px;
 }
+.kb-col-batal { opacity: .9; }
 .kb-col-head {
   display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border);
 }
 .kb-col-label { font-size: 13px; font-weight: 800; color: var(--text); }
 .kb-col-count { font-size: 11px; padding: 2px 9px; }
 .kb-col-total { padding: 4px 12px 6px; font-size: 11px; font-weight: 700; color: var(--text2); }
-.kb-col-body { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 10px; overflow-y: auto; max-height: 62vh; }
+.kb-col-sub { padding: 6px 12px 2px; font-size: 11px; font-weight: 700; color: var(--text2); }
+.kb-col-list { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 10px; overflow-y: auto; max-height: 62vh; min-height: 160px; }
 .kb-drop-hint { border: 1.5px dashed var(--border); border-radius: 8px; color: var(--text3); font-size: 11.5px; text-align: center; padding: 18px 8px; }
-.kb-col-body.drop-target { background: var(--orange-50, #fff7ef); border-radius: 8px; }
+.kb-col.drop-target .kb-col-list, .kb-col-list.drop-target { background: var(--orange-50, #fff7ef); border-radius: 8px; outline: 2px dashed var(--primary); }
 
 /* Kanban card */
 .kanban-card {
@@ -795,6 +804,31 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 .kb-acc-red{background:rgba(192,57,43,.06);}
 .kb-acc-gray{background:rgba(0,0,0,.03);}
 .kb-card-batal{opacity:.62;}
+/* Progress bar posisi pipeline */
+.kanban-card { position: relative; overflow: hidden; }
+.kb-progress { position: absolute; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--primary), var(--primary-2, var(--primary))); border-radius: 0 2px 2px 0; min-width: 6px; opacity: .85; }
+.kb-card-batal .kb-progress { background: var(--red-600, #c0392b); opacity: .5; }
+/* Source badge */
+.kb-card-src { align-self: flex-start; margin-top: 8px; }
+/* Deal row (harga / serial / umur) */
+.kb-card-deal { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding: 6px 8px; background: var(--bg-muted, rgba(0,0,0,.03)); border-radius: 8px; font-size: 11.5px; font-weight: 700; color: var(--text); }
+.kb-card-price { white-space: nowrap; }
+.kb-card-serial { color: var(--text2); font-family: var(--mono, ui-monospace, monospace); font-size: 10.5px; }
+.kb-card-age { color: var(--text2); font-size: 11px; }
+/* Menu popup (tombol ⋯) */
+.kb-card-menu { position: relative; }
+.kb-card-menu-pop { position: absolute; right: 0; top: calc(100% + 4px); z-index: 40; min-width: 190px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-md, 0 8px 24px rgba(0,0,0,.15)); padding: 5px; display: none; }
+.kb-card-menu-pop.open { display: flex; flex-direction: column; gap: 2px; }
+.kb-card-menu-pop button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: none; background: transparent; color: var(--text); font-size: 12.5px; font-weight: 600; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.kb-card-menu-pop button:hover { background: var(--bg-muted, rgba(0,0,0,.05)); color: var(--primary); }
+.kb-card-menu-pop button:disabled { opacity: .4; cursor: not-allowed; }
+.kb-card-menu-pop button:disabled:hover { background: transparent; color: var(--text); }
+
+/* Responsive kanban — board jadi stack vertikal di layar sempit */
+@media (max-width: 760px) {
+  .kb-board { grid-auto-flow: row; grid-auto-columns: 1fr; grid-template-columns: 1fr; overflow-x: visible; align-items: stretch; }
+  .kb-col-list { max-height: none; }
+}
 .an-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--s4); }
 .an-title { font-size: 13px; font-weight: 800; color: var(--ink); margin: 0 0 var(--s3); }
 .bar-fill.tone-blue { background: #2563eb; }

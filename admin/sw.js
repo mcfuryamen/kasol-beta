@@ -4,7 +4,7 @@
 // v8: Fix unresolved Response (return valid fallback instead of undefined) so SW
 //     doesn't throw "Failed to convert value to 'Response'" when fetch fails offline.
 
-const CACHE_NAME = 'kasir-admin-v18';
+const CACHE_NAME = 'kasir-admin-v19';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
