@@ -21,7 +21,7 @@ import { setupPWA, installPWA } from './pwa.js';
 import { connectBTPrinter, disconnectBTPrinter, printNota, printLastNota, testPrint } from './printer.js';
 import { showTrxDetail, closeTrxDetail, hapusPenjualan } from './trxdetail.js';
 import { showExpenseDetail } from './expensedetail.js';
-import { subscribeToLicenseUpdates, openPurchaseSheet, handleBuktiUpload, submitPurchase, pollLicenseStatus } from './purchase.js';
+import { subscribeToLicenseUpdates, openPurchaseSheet, purchaseShowUpload, handleBuktiUpload, submitPurchase, pollLicenseStatus } from './purchase.js';
 import { syncNow as _ksrSyncNow } from './settings.sync.js';
 import { APP_VERSION, APP_VERSION_LABEL } from './version.js';
 import { setReportPeriod, setReportDate, setCustomStart, setCustomEnd, setPosCat, setCurrentPage, setCart, setSelectedTrxId, setLastSaleId, setPlatCurrentSlide, setPlatAutoTimer } from './app-state.js';
@@ -177,6 +177,7 @@ window._ksr_openLicenseSheet = openLicenseSheet;
 window._ksr_openExtendFlow   = openExtendFlow;
 window._ksr_activateLicense  = activateLicense; // UI: trima inputId, baca input, validasi serial
 window._ksr_openPurchaseSheet = openPurchaseSheet;
+window._ksr_purchaseShowUpload = purchaseShowUpload;
 window._ksr_checkLicenseStatus = checkCloudStatusAndUnlock;
 window._ksr_toggleManualKey  = toggleManualKey;
 window._ksr_handleBuktiUpload = handleBuktiUpload;

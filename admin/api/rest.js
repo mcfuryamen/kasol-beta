@@ -21,7 +21,7 @@
  * Environment (Vercel): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_API_KEY
  */
 
-const ALLOWED_REST_TABLES = new Set(['clients', 'leads', 'pembelian', 'products']);
+const ALLOWED_REST_TABLES = new Set(['clients', 'leads', 'pembelian', 'products', 'settings']);
 const ALLOWED_FUNCTIONS = new Set(['activate-license']);
 
 export default async function handler(req, res) {

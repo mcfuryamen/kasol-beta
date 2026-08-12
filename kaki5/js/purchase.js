@@ -4,6 +4,7 @@
  */
 
 import { getUnitId, getDeviceCode } from './license.js';
+import { showToast } from './helpers.js';
 
 const QRIS_BUCKET_URL = 'https://hhywrvedlwljawgxzpkq.supabase.co/storage/v1/object/public/qris/';
 const BUKTI_BUCKET_URL = 'https://hhywrvedlwljawgxzpkq.supabase.co/storage/v1/object/bukti/';
@@ -46,7 +47,7 @@ export async function getCloudLicenseStatus() {
     .from('clients')
     .select('license_status, license_serial, license_expires_at')
     .eq('unit_id', unit_id)
-    .single();
+    .maybeSingle();
   
   if (error) return null;
   return data;
@@ -59,74 +60,143 @@ async function getUnitIdWithDevice() {
   return { unit_id: unitId, device_code: deviceCode };
 }
 
-/** Open purchase sheet with QRIS */
+/** Open purchase sheet with QRIS + bank account (Step 1) */
 export async function openPurchaseSheet() {
   const { unit_id, device_code } = await getUnitIdWithDevice();
   const body = document.getElementById('purchaseSheetBody');
   if (!body) return;
   
-  // Get QRIS URL from settings
+  // Get payment info from Supabase `settings` (qris_url + bank_info) & `products` harga
   const sb = getSupabaseClient();
-  let qrisUrl = '';
+  let payInfo = { qrisUrl: '', bank: '', accountNumber: '', accountName: '', priceLabel: '' };
+
   try {
-    const { data } = await sb
-      .from('settings')
-      .select('value')
-      .eq('key', 'qris_url')
-      .single();
-    if (data?.value) {
-      const val = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
-      qrisUrl = val?.url || '';
-    }
-  } catch (e) { console.error('Failed to get QRIS URL', e); }
+    const [qrisRes, bankRes, prodRes] = await Promise.all([
+      sb.from('settings').select('value').eq('key', 'qris_url').maybeSingle(),
+      sb.from('settings').select('value').eq('key', 'bank_info').maybeSingle(),
+      sb.from('products').select('price_label').eq('app_type', APP_TYPE).maybeSingle()
+    ]);
+
+    const parseVal = (d) => {
+      if (!d) return {};
+      if (typeof d.value === 'string') {
+        try { return JSON.parse(d.value); } catch { return {}; }
+      }
+      return d.value || {};
+    };
+
+    const qrisVal = parseVal(qrisRes.data);
+    const bankVal = parseVal(bankRes.data);
+    payInfo = {
+      qrisUrl: qrisVal.url || '',
+      bank: bankVal.bank || '',
+      accountNumber: bankVal.account_number || '',
+      accountName: bankVal.account_name || '',
+      priceLabel: prodRes.data?.price_label || ''
+    };
+  } catch (e) { console.error('Failed to load payment info', e); }
+
+  const hasQris = !!payInfo.qrisUrl;
   
-  const qrisHtml = qrisUrl 
-    ? `<img src="${qrisUrl}" style="width:100%;max-width:300px;border-radius:12px;margin-bottom:12px" alt="QRIS">
+  const qrisHtml = hasQris
+    ? `<img src="${payInfo.qrisUrl}" style="width:100%;max-width:300px;border-radius:12px;margin-bottom:12px" alt="QRIS">
        <div style="text-align:center;margin-bottom:12px">
-         <a href="${qrisUrl}" download="qris-kasirsolo.png" class="btn btn-ghost btn-sm">⤓ Unduh QRIS</a>
+         <a href="${payInfo.qrisUrl}" download="qris-kasirsolo.png" class="btn btn-ghost btn-sm">⤓ Unduh QRIS</a>
        </div>`
     : `<div style="text-align:center;padding:20px;color:var(--text2)">
          QRIS sedang dalam konfigurasi. Hubungi admin untuk informasi pembayaran.
        </div>`;
-  
+
+  const bankHtml = (payInfo.bank || payInfo.accountNumber || payInfo.accountName)
+    ? `
+      <div style="background:var(--bg2);border-radius:12px;padding:14px;margin-bottom:16px">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:8px;font-weight:700">🏦 Rekening Pembayaran</div>
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:14px">
+          <span style="color:var(--text2)">Bank</span><span style="font-weight:700">${payInfo.bank || '—'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:14px">
+          <span style="color:var(--text2)">No. Rekening</span><span style="font-weight:700;font-family:monospace">${payInfo.accountNumber || '—'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;font-size:14px">
+          <span style="color:var(--text2)">Atas Nama</span><span style="font-weight:700">${payInfo.accountName || '—'}</span>
+        </div>
+      </div>`
+    : `
+      <div style="background:var(--bg2);border-radius:12px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--text2)">
+        💳 Pembayaran bisa langsung ditransfer. No. rekening info akan tampil di sini setelah admin mengatur lewat dashboard.
+      </div>`;
+
+  const priceRow = payInfo.priceLabel
+    ? `
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border-radius:12px;padding:12px 14px;margin-bottom:16px">
+        <span style="font-size:14px;color:var(--text2)">Harga Lisensi</span>
+        <span style="font-size:18px;font-weight:800;color:var(--accent,var(--success,#16a34a))">${payInfo.priceLabel}</span>
+      </div>`
+    : '';
+
+  // STEP 1 — info pembayaran + tombol "Kirim Bukti Bayar"
   body.innerHTML = `
     <div style="margin-bottom:16px">
       <h3 style="margin:0 0 8px 0;font-size:16px">💳 Beli Lisensi Kasir Solo</h3>
       <p style="margin:0;color:var(--text2);font-size:14px">
-        Transfer sesuai nominal ke QRIS di bawah, lalu upload bukti pembayaran.
+        Transfer sesuai nominal, lalu kirim bukti pembayaran. Admin akan memverifikasi & mengaktifkan lisensi secara otomatis.
       </p>
     </div>
     
+    ${priceRow}
     <div style="text-align:center;margin-bottom:16px">${qrisHtml}</div>
-    
+    ${bankHtml}
+
     <div style="background:var(--bg2);border-radius:12px;padding:12px;margin-bottom:16px">
       <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Unit ID</div>
       <div style="font-family:monospace;font-size:14px;font-weight:600">${unit_id}</div>
     </div>
-    
-    <div style="margin-bottom:16px">
-      <label style="font-size:13px;color:var(--text2);display:block;margin-bottom:4px">Upload Bukti Transfer</label>
-      <input type="file" id="buktiInput" accept="image/*" style="display:none" onchange="window._ksr_handleBuktiUpload(event)">
-      <button class="btn btn-primary" style="width:100%" onclick="document.getElementById('buktiInput').click()">
-        📷 Pilih Foto Bukti
-      </button>
-      <div id="buktiPreview" style="margin-top:8px;text-align:center"></div>
-    </div>
-    
-    <button class="btn btn-primary" style="width:100%" onclick="window._ksr_submitPurchase('${unit_id}', '${device_code}')" id="submitPurchaseBtn" disabled>
-      🚀 Kirim Bukti Pembayaran
+
+    <button class="btn btn-primary" style="width:100%" onclick="window._ksr_purchaseShowUpload()">
+      🧾 Kirim Bukti Bayar
     </button>
-    
+
+    <!-- STEP 2 — form upload bukti (tersembunyi sampai tombol Kirim Bukti diklik) -->
+    <div id="purchaseUploadStep" style="display:none;margin-top:16px">
+      <div style="margin-bottom:16px">
+        <label style="font-size:13px;color:var(--text2);display:block;margin-bottom:4px">Upload Bukti Transfer</label>
+        <input type="file" id="buktiInput" accept="image/*" style="display:none" onchange="window._ksr_handleBuktiUpload(event)">
+        <button class="btn btn-primary" style="width:100%" onclick="document.getElementById('buktiInput').click()">
+          📷 Pilih Foto Bukti
+        </button>
+        <div id="buktiPreview" style="margin-top:8px;text-align:center"></div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%" onclick="window._ksr_submitPurchase('${unit_id}', '${device_code}')" id="submitPurchaseBtn" disabled>
+        🚀 Kirim Bukti Pembayaran
+      </button>
+    </div>
+
     <div style="margin-top:16px;padding:12px;background:var(--bg2);border-radius:8px;font-size:13px;color:var(--text2)">
       <strong>📋 Cara Pembayaran:</strong><br>
-      1. Scan QRIS di atas dengan aplikasi e-wallet Anda<br>
-      2. Transfer sesuai nominal<br>
-      3. Upload bukti transfer di bawah<br>
+      1. Scan QRIS di atas atau transfer ke rekening yang tertera<br>
+      2. Transfer sesuai nominal (${payInfo.priceLabel || 'lihat info harga'})<br>
+      3. Klik "Kirim Bukti Bayar" lalu upload bukti transfer<br>
       4. Admin akan memverifikasi & mengaktifkan lisensi Anda
     </div>
   `;
   
   window._ksr_currentBuktiFile = null;
+  window._ksr_currentPrice = parsePriceToNumber(payInfo.priceLabel) || null;
+}
+
+/** Parse "Rp 500.000" / "Rp500.000" menjadi angka 500000. */
+function parsePriceToNumber(label) {
+  if (!label) return 0;
+  const cleaned = String(label).replace(/[^0-9]/g, '');
+  const num = parseInt(cleaned, 10);
+  return isNaN(num) ? 0 : num;
+}
+
+/** Pindah dari Step 1 (info) ke Step 2 (form upload bukti). */
+export function purchaseShowUpload() {
+  const step = document.getElementById('purchaseUploadStep');
+  if (step) step.style.display = 'block';
 }
 
 /** Handle bukti upload preview */
@@ -181,7 +251,8 @@ export async function submitPurchase(unitId, deviceCode) {
     
     // Insert purchase record — pipeline kini di tabel `clients` (leads/pembelian
     // lama sudah dikonsolidasi). Update/Upsert baris clients supaya status
-    // pipeline jadi 'menunggu_verifikasi' + simpan bukti_url.
+    // pipeline jadi 'menunggu_verifikasi' + simpan bukti_url + harga.
+    const harga = window._ksr_currentPrice || null;
     const { error: insertError } = await sb
       .from('clients')
       .upsert({
@@ -190,6 +261,7 @@ export async function submitPurchase(unitId, deviceCode) {
         device_code: deviceCode,
         status: 'menunggu_verifikasi',
         bukti_url: urlData?.publicUrl || '',
+        harga,
         updated_at: new Date().toISOString()
       }, { onConflict: 'unit_id' });
     
@@ -197,6 +269,13 @@ export async function submitPurchase(unitId, deviceCode) {
     
     showToast('✅ Bukti pembayaran dikirim! Tunggu verifikasi admin.', 3000, 'success');
     window._ksr_closeSheet('sheetPurchase');
+
+    // Refresh status card langsung → jadi "Menunggu Verifikasi Admin"
+    try {
+      const { renderLicenseStatusArea } = await import('./license.ui.js');
+      await renderLicenseStatusArea('licenseInfoCard', 'licenseKeyInputSettings');
+      await renderLicenseStatusArea('lockLicenseStatusArea', 'lockLicenseInput');
+    } catch (e) { /* UI sudah ditutup — aman */ }
     
     // Start polling for license activation
     window._ksr_pollLicenseStatus(unitId);

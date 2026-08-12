@@ -348,6 +348,22 @@
         </div>
 
         <div class="panel mt16">
+          <div class="panel-head"><h3 class="panel-t">Pembayaran Lisensi (QRIS & Rekening)</h3></div>
+          <div class="panel-body">
+            <p class="hint" style="margin-top:0">Informasi ini ditampilkan di sheet "Beli Lisensi" aplikasi klien. Simpan ke Supabase, bukan localStorage.</p>
+            <div class="field"><label class="field-label" for="payQrisUrl">URL Gambar QRIS</label><input id="payQrisUrl" placeholder="https://.../qris.png"><small class="field-hint">URL langsung file gambar QRIS (bisa dari bucket storage atau hosting lain).</small></div>
+            <div class="field"><label class="field-label" for="payBankName">Nama Bank</label><input id="payBankName" placeholder="BCA"></div>
+            <div class="field"><label class="field-label" for="payBankNumber">No. Rekening</label><input id="payBankNumber" placeholder="1234567890"></div>
+            <div class="field"><label class="field-label" for="payBankHolder">Atas Nama</label><input id="payBankHolder" placeholder="PT Mesin Kasir Solo"></div>
+            <div class="row-actions">
+              <button class="btn btn-primary" onclick="savePaymentSettings()">💾 Simpan Pembayaran</button>
+              <button class="btn btn-ghost btn-sm" onclick="loadPaymentSettings()">⟳ Muat</button>
+            </div>
+            <div id="paymentStatusMsg" class="hint" style="margin-bottom:0"></div>
+          </div>
+        </div>
+
+        <div class="panel mt16">
           <div class="panel-head"><h3 class="panel-t">Backup & Reset</h3></div>
           <div class="panel-body">
             <div class="row-actions">
