@@ -1,5 +1,10 @@
 # 09 — KONSEP: Beli & Aktivasi Lisensi Otomatis (QRIS Statis + Supabase)
 
+> ⚠️ **SUPERSEDED (2026-08-11):** Dokumen konsep ini memakai tabel `leads`/`pembelian`
+> yang sudah di-DROP. Implementasi live kini memakai **pipeline satu-tabel `clients`**
+> (stage `menunggu_verifikasi` untuk verifikasi pembayaran — lihat `01-overview.md`
+> & `03-data-schema.md`). Disimpan sebagai catatan riwayat.
+
 > **Status: KONSEP (belum diimplementasi).**
 > Produk: **satu lisensi sekali bayar, berlaku seumur hidup** (buy-once, lifetime).
 > Pembayaran: **QRIS gambar STATIS** (QRIS merchant milik sendiri), **fungsional

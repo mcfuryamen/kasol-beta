@@ -169,7 +169,7 @@ CREATE POLICY "service_role_all_products" ON products
 | `js/env-loader.js` | Load env vars ke `window` (SUPABASE_URL, ANON_KEY, ADMIN_API_KEY gate) — **GENERATED at build**; TIDAK pernah berisi SERVICE_KEY |
 | `js/supabase-client.js` | Supabase REST client untuk landing (anon key) |
 | `js/api.js` | Helper `supabaseFetch()` — semua operasi data lewat Vercel Serverless `/api/rest` |
-| `api/rest.js` | **Vercel Serverless Proxy** — satu-satunya tempat service_role key (server-side); whitelist tabel clients/leads/pembelian/products + fn activate-license |
+| `api/rest.js` | **Vercel Serverless Proxy** — satu-satunya tempat service_role key (server-side); whitelist tabel `clients`/`products` (leads & pembelian di-drop 2026-08-11) + fn activate-license |
 | `js/catalog.js` | CRUD products via `supabaseFetch()` (service key di server) |
 | `js/clients.js` | **CRM Klien** — baca/tulis `clients` via `supabaseFetch()`, generate lisensi. Data dari onboarding + update profil app klien. |
 | `js/license-core.js` | Pure logic HMAC-SHA256 + Base32 (portable ke client apps) |
@@ -189,15 +189,23 @@ CREATE POLICY "service_role_all_products" ON products
 
 ## 🔐 License System (HMAC-SHA256 + Base32)
 
-**File utama:** `admin/js/license-core.js` (pure logic, zero DOM)
+**File utama:** `admin/api/license.js` (Vercel Serverless — memegang salt & crypto)
 
-### Produk & Salt (WAJIB SAMA di admin & client)
+> ⚠️ **Security (Fix C1):** Generate & verifikasi lisensi DIJALANKAN SERVER-SIDE.
+> `admin/js/license-core.js` adalah pure logic yang dipakai server (`api/license.js`).
+> **HMAC salt TIDAK PERNAH dikirim ke browser** — salt produk resmi hanya ada di
+> env server (`LICENSE_SALT_*` / `LICENSE_SALTS`) dengan fallback konstanta di
+> `api/license.js`. Client cuma kirim aksi (`generate`/`verify`) + input polos lewat
+> helper `licenseApi()` di `js/api.js`, dilindungi gate `ADMIN_API_KEY`.
+
+### Produk & Salt (WAJIB SAMA antar app klien & server)
 ```javascript
-const APP_META = {
-  kaki5:  { prefix: 'KK5', salt: 'KASIRSOLO-KAKI5-HMAC-V2' },
-  rosok:  { prefix: 'KSR', salt: 'KASIRSOLO-ROSOK-HMAC-V2' },
-  gerobak:{ prefix: 'GBK', salt: 'KASIRSOLO-GEROBAK-HMAC-V2' },
-  retail: { prefix: 'RTL', salt: 'KASIRSOLO-RETAIL-HMAC-V2' }
+// Konfigurasi salt SERVER-SIDE (admin/api/license.js)
+const DEFAULT_SALTS = {
+  KK5: process.env.LICENSE_SALT_KAKI5 || 'KASIRSOLO-KAKI5-HMAC-V2',  // kaki5
+  KSR: process.env.LICENSE_SALT_ROSOK || 'KASIRSOLO-ROSOK-HMAC-V2',  // rosok
+  GBK: process.env.LICENSE_SALT_GEROBAK || 'KASIRSOLO-GEROBAK-HMAC-V2', // gerobak
+  RTL: process.env.LICENSE_SALT_RETAIL || 'KASIRSOLO-RETAIL-HMAC-V2' // retail
 };
 ```
 
@@ -279,10 +287,12 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbG...aFIU
 SUPABASE_URL=https://hhywrvedlwljawgxzpkq.supabase.co
 SUPABASE_ANON_KEY=eyJhbG...4x50
 SUPABASE_SERVICE_ROLE_KEY=svc_...   # HANYA server-side, dibaca api/rest.js
-ADMIN_API_KEY=xxx                    # gate sementara proxy (bukan master key DB)
+ADMIN_API_KEY=xxx                    # gate proxy — WAJIB di-set (fail-closed: jika kosong → 503, bukan terbuka)
 ```
 
 > **Phase A (FIXED):** service_role key TIDAK lagi di-inject ke client. Build command `node scripts/build-env-loader.mjs` hanya menulis `SUPABASE_URL`, `SUPABASE_ANON_KEY`, dan `SUPABASE_ADMIN_KEY` (gate) ke `js/env-loader.js`. Service key hidup **hanya** di Vercel Serverless `/api/rest`.
+>
+> **H1 (FIXED v1.3.2):** gate `/api/rest` & `/api/license` memakai helper `api/_gate.js` — **fail-closed + constant-time** (`timingSafeEqual`). Jika `ADMIN_API_KEY` tidak diset di env, kedua endpoint return `503 server_not_configured`, TIDAK pernah membiarkan request lewat. Login admin resmi tetap ditunda (lihat `../CONTEXT.md`); upgrade ke JWT admin = follow-up terpisah.
 
 ---
 
@@ -389,6 +399,7 @@ curl -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/datab
 | File | Deskripsi |
 |------|-----------|
 | `supabase/migration-clients.sql` | SQL create table `clients` + RLS + trigger |
+| `supabase/migration-device-claim.sql` | RPC `device_known` (SECURITY DEFINER) — onboarding once-per-device lintas browser + transfer ownership anon |
 | `admin/js/license-core.js` | Pure logic HMAC-SHA256 + Base32 (generate/verify) |
 | `admin/js/clients.js` | CRM module + generate serial di sheet |
 | `kaki5/js/sync.js` | `ensureSynced()` — push profil ke clients (onboarding + update profil) |

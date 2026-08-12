@@ -6,13 +6,11 @@
 import { initState, STATE } from './app-state.js';
 import { storage } from './storage.js';
 import { initAuth } from './auth.js';
-import { initNavigation } from './navigation.js';
+import { initNavigation, getCurrentScreen } from './navigation.js';
 import { initDashboard } from './dashboard.js';
 import { initCatalog } from './catalog.js';
 import { initSettings } from './settings.js';
-import { initLicense } from './license-ui.js';
 import { initClients } from './clients.js';
-import { initPembelian } from './pembelian.js';
 import { initToast } from './toast.js';
 import { showToast } from './toast.js';
 import './emoji-picker.js'; // side-effect: men-wire window.showEmojiPicker/hideEmojiPicker/pickEmoji
@@ -50,9 +48,7 @@ async function bootstrap() {
     initDashboard();
     initCatalog();
     initSettings();
-    initLicense();
     initClients();
-    initPembelian();
 
     // Listen for screen changes to trigger specific renders if needed
     window.addEventListener('screen:change', (e) => {
@@ -74,6 +70,24 @@ async function bootstrap() {
     showToast('Gagal memulai aplikasi', 3000, 'error');
   }
 }
+
+/**
+ * Smart refresh: muat ulang data sesuai halaman yang sedang aktif.
+ * Dipanggil dari tombol ⟳ di topbar (semua modul).
+ */
+window.refreshCurrentScreen = function () {
+  const screen = getCurrentScreen();
+  const btn = document.getElementById('refreshBtn');
+  const prev = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳'; }
+  const done = () => { if (btn) { btn.disabled = false; btn.innerHTML = prev; } };
+  const fn = screen === 'klien' ? window.refreshClients
+    : screen === 'catalog' ? window.refreshCatalog
+    : screen === 'dashboard' ? window.refreshDashboard
+    : null;
+  if (fn) { Promise.resolve(fn()).finally(done); }
+  else { window.location.reload(); }
+};
 
 // Start the app
 bootstrap();

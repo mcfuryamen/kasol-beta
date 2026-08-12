@@ -12,10 +12,10 @@ Menampilkan ringkasan statistik bisnis dengan 6 KPI gradient cards.
 
 | Card | Icon | Metrik | Sumber | Warna Gradient |
 |------|------|--------|--------|----------------|
-| Total Leads | 👥 | `leads.length` | Leads | Brand (orange→red) |
+| Total Pipeline | 👥 | `clients.length` | Klien | Brand (orange→red) |
 | Deal | 🤝 | status = "Deal" | Leads | Green |
 | Aplikasi Aktif | 📦 | `catalog.length` / 8 max | Catalog | Teal |
-| Potensial Revenue | 💰 | Σ (price × leads per app) | Catalog + Leads | Purple |
+| Potensial Revenue | 💰 | Σ (harga × klien per app) | Catalog + Klien | Purple |
 | Lead Baru | 🆕 | status = "Baru" | Leads | Blue |
 | Konversi | 📈 | Deal / Total × 100% | Leads | Red |
 
@@ -34,13 +34,13 @@ Menampilkan ringkasan statistik bisnis dengan 6 KPI gradient cards.
 
 ### Bar Charts
 
-**Leads per Aplikasi**
-- Mengelompokkan leads berdasarkan kolom `app`
+**Klien per Aplikasi**
+- Mengelompokkan klien berdasarkan kolom `app_type`
 - Horizontal bar chart dengan lebar proporsional
 - Label dipotong max 22 karakter + ellipsis
 
-**Leads per Status**
-- Mengelompokkan leads berdasarkan kolom `status`
+**Klien per Status (Pipeline)**
+- Mengelompokkan klien berdasarkan kolom `status` (baru/dihubungi/tertarik/menunggu_verifikasi/aktif/batal)
 - Horizontal bar chart dengan lebar proporsional
 
 ### Empty States
@@ -60,39 +60,41 @@ Tombol **🔄 Refresh Data** di footer sidebar memuat ulang semua data dari stor
 
 ---
 
-## 2. Leads Management
+## 2. Klien / Pipeline Management
 
-Modul untuk mengelola pendaftar trial dari landing page.
+Modul CRM untuk mengelola seluruh pipeline klien (satu tabel `clients`) — dari lead yang
+masuk (source `app-kaki5` dll) hingga `aktif`/`batal`, dengan 2 mode tampilan: **List**
+(kartu + filter + dropdown status) dan **Kanban** (6 kolom pipeline, drag-drop status).
 
 ### Toolbar
 
 | Elemen | Fungsi |
 |--------|--------|
-| Search input | Filter real-time berdasarkan nama, WA, atau alamat |
-| Status filter | Dropdown: Semua / Baru / Dihubungi / Trial Aktif / Berlangganan / Batal |
+| Search input | Filter real-time berdasarkan nama, WA, atau wilayah |
+| Status filter | Dropdown pipeline: Semua / Baru / Dihubungi / Tertarik / Menunggu Verifikasi / Aktif / Batal |
 
-### Tabel Leads (5 Kolom Sejajar)
+### Tabel / Kartu Klien
 
 | Kolom | Isi | Aksi |
 |-------|-----|------|
-| Nama/Bisnis | `lead.name` | — |
-| WhatsApp | `lead.wa` | Klik buka `wa.me` link |
-| Aplikasi | `lead.app` | — |
-| Tanggal Daftar | `lead.createdAt` (formatted) | — |
-| Status | Dropdown select | Ubah status → auto-save |
+| Warung / Pemilik | `nama_warung`, `nama_pemilik` | — |
+| WhatsApp | `no_whatsapp` | Klik buka `wa.me` link |
+| Aplikasi | `app_type` | — |
+| Wilayah | `kabkota`, `provinsi` | — |
+| Status | Dropdown select | Ubah status (List) / drag-drop (Kanban) → auto-save |
 
 **Empty State:**
 ```html
-<div id="leadsEmpty" class="empty-state" hidden>
+<div id="clientsEmpty" class="empty-state" hidden>
   <div class="empty-icon">📭</div>
-  <div class="empty-title">Belum ada leads</div>
-  <div class="empty-desc">Leads akan otomatis muncul saat ada yang mengisi form trial di landing page.</div>
+  <div class="empty-title">Belum ada klien</div>
+  <div class="empty-desc">Klien akan otomatis muncul saat ada yang mengisi profil di aplikasi klien (landing / app kaki5).</div>
 </div>
 ```
 
 ### Export CSV
 
-Tombol **⬇️ Export CSV** menghasilkan file `leads-kasirsolo.csv`:
+Tombol **⬇️ Export CSV** menghasilkan file `clients-kasirsolo.csv`:
 ```csv
 Nama,Alamat,WhatsApp,Aplikasi,Status,Tanggal Daftar
 "Toko Maju Jaya","Jl. Contoh No.1","081234567890","Kasir Retail - Rp250.000","Baru","01 Agu 2026 10:30"
@@ -298,7 +300,7 @@ Form untuk mengontrol konten landing page + admin backup/restore.
 
 | Tombol | Fungsi |
 |--------|--------|
-| **📥 Export Backup Admin** | Download JSON berisi: settings, catalog, leads, products, license |
+| **📥 Export Backup Admin** | Download JSON berisi: settings, catalog, clients pipeline, products, license |
 | **📤 Import Backup Admin** | File input → restore semua section → refresh screen |
 
 ### Bantuan & Dukungan

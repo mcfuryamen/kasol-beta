@@ -29,3 +29,23 @@ export async function supabaseFetch(path, { method = 'GET', data, headers = {} }
   const text = await r.text();
   return { ok: r.ok, status: r.status, data: null, text };
 }
+
+/**
+ * Generate / verify lisensi lewat Vercel Serverless /api/license.
+ * Salt produk tinggal di server — client cuma kirim aksi + input polos.
+ * Hasil: { ok, status, data }
+ */
+export async function licenseApi(action, payload) {
+  const gate = window.SUPABASE_ADMIN_KEY || '';
+  const r = await fetch('/api/license', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-key': gate
+    },
+    body: JSON.stringify({ action, ...payload })
+  });
+  let json = null;
+  try { json = await r.json(); } catch { /* body bukan JSON */ }
+  return { ok: r.ok, status: r.status, data: json };
+}

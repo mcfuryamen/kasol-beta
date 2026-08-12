@@ -12,18 +12,20 @@
 import { showToast } from './toast.js';
 import { escapeHtml, formatRelativeTime, formatDate, normalizePhone, debounce } from './utils.js';
 import { STATE, setState } from './app-state.js';
-import * as LicenseCore from './license-core.js';
-import { supabaseFetch } from './api.js';
+import { supabaseFetch, licenseApi } from './api.js';
 import { updateSidebarBadges } from './navigation.js';
+import { formatExpiry } from './license-core.js';
 
-// app_type → produk (prefix & salt yang BENAR; serial ini yang diterima app klien)
+// app_type → produk (HANYA metadata: prefix/ikon/label).
+// SECURITY (Fix C1): HMAC salt TIDAK lagi di client — generate/verify lisensi
+// dipindah ke Vercel Serverless /api/license yang memegang salt server-side.
 export const APP_META = {
-  kaki5:  { prefix: 'KK5', salt: 'KASIRSOLO-KAKI5-HMAC-V2', icon: '🛵', label: 'Kaki Lima' },
-  rosok:  { prefix: 'KSR', salt: 'KASIRSOLO-ROSOK-HMAC-V2', icon: '♻️', label: 'Rosok' },
-  gerobak:{ prefix: 'GBK', salt: 'KASIRSOLO-GEROBAK-HMAC-V2', icon: '🛒', label: 'Gerobak' },
-  retail: { prefix: 'RTL', salt: 'KASIRSOLO-RETAIL-HMAC-V2', icon: '🏪', label: 'Retail' }
+  kaki5:  { prefix: 'KK5', icon: '🛵', label: 'Kaki Lima' },
+  rosok:  { prefix: 'KSR', icon: '♻️', label: 'Rosok' },
+  gerobak:{ prefix: 'GBK', icon: '🛒', label: 'Gerobak' },
+  retail: { prefix: 'RTL', icon: '🏪', label: 'Retail' }
 };
-const metaFor = (at) => APP_META[at] || { prefix: '', salt: '', icon: '📦', label: (at || 'Lain') };
+const metaFor = (at) => APP_META[at] || { prefix: '', icon: '📦', label: (at || 'Lain') };
 
 let clients = [];
 let current = null; // klien yang terbuka di sheet
@@ -32,231 +34,245 @@ let currentMeta = null;
 const DAYS = 30 * 24 * 60 * 60 * 1000;
 const isActive = (c) => c.last_seen && (Date.now() - new Date(c.last_seen).getTime()) < DAYS;
 
-/** Init module */
+/** Init module — pipeline tunggal dari tabel `clients` */
 export async function initClients() {
-  document.getElementById('clientsSearch')?.addEventListener('input', renderList);
-  document.getElementById('clientsAppFilter')?.addEventListener('change', renderList);
+  document.getElementById('clientsSearch')?.addEventListener('input', renderAll);
+  document.getElementById('clientsAppFilter')?.addEventListener('change', renderAll);
+  document.getElementById('backFromClient')?.addEventListener('click', () => window.backFromClient());
 
-  // Tab Klien (Outlet / Leads)
-  document.querySelectorAll('.tab-btn[data-tab]').forEach((btn) => {
-    btn.addEventListener('click', () => switchKlienTab(btn.dataset.tab));
-    // Aksesibilitas: navigasi tab keyboard (Arrow/Home/End)
-    btn.addEventListener('keydown', (e) => {
-      const tabs = Array.from(document.querySelectorAll('.tab-btn[data-tab]'));
-      const i = tabs.indexOf(btn);
-      let next = null;
-      if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
-      else if (e.key === 'ArrowLeft') next = tabs[(i - 1 + tabs.length) % tabs.length];
-      else if (e.key === 'Home') next = tabs[0];
-      else if (e.key === 'End') next = tabs[tabs.length - 1];
-      if (next) {
-        e.preventDefault();
-        next.focus();
-        next.click();
-      }
-    });
+  // Toggle view List / Kanban
+  document.querySelectorAll('.client-view-btn[data-view]').forEach((btn) => {
+    btn.addEventListener('click', () => switchClientView(btn.dataset.view));
   });
-
-  // Leads — digabung ke dalam modul Klien (satu layar)
-  setUpLeads();
 
   window.addEventListener('screen:change', (e) => {
-    if (e.detail?.screen === 'klien') { loadClients(); loadLeads(); }
+    if (e.detail?.screen === 'klien') { loadClients(); }
   });
   await loadClients();
-  loadLeads();
 }
 
-/** Toggle tab Outlet / Leads / Pembelian di layar Klien */
-function switchKlienTab(tab) {
-  const showOutlet = tab === 'outlet';
-  const showPembelian = tab === 'pembelian';
-  const on = document.getElementById('tabOutlet');
-  const pb = document.getElementById('tabPembelian');
-  const ln = document.getElementById('tabLeads');
-  const bOn = document.getElementById('tabBtnOutlet');
-  const bPb = document.getElementById('tabBtnPembelian');
-  const bLn = document.getElementById('tabBtnLeads');
-  if (on) on.hidden = !showOutlet;
-  if (pb) pb.hidden = !showPembelian;
-  if (ln) ln.hidden = tab !== 'leads';
-  if (bOn) { bOn.classList.toggle('active', showOutlet); bOn.setAttribute('aria-selected', String(showOutlet)); }
-  if (bPb) { bPb.classList.toggle('active', showPembelian); bPb.setAttribute('aria-selected', String(showPembelian)); }
-  if (bLn) { bLn.classList.toggle('active', tab === 'leads'); bLn.setAttribute('aria-selected', String(tab === 'leads')); }
-  // muat ulang leads tiap kali tab dibuka biar selalu segar
-  if (tab === 'pembelian') loadPembelianList();
-  if (!showOutlet) loadLeads();
+/** View mode saat ini: 'analitik' | 'kelola' */
+let clientView = 'analitik';
+function switchClientView(view) {
+  clientView = view;
+  document.querySelectorAll('.client-view-btn[data-view]').forEach((btn) => {
+    const on = btn.dataset.view === view;
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', String(on));
+  });
+  const anEl = document.getElementById('analyticsView');
+  const kanEl = document.getElementById('kanbanView');
+  if (anEl) anEl.hidden = view !== 'analitik';
+  if (kanEl) kanEl.hidden = view !== 'kelola';
+  if (view === 'kelola') renderKanban();
+  else renderAnalytics();
 }
-window.switchKlienTab = switchKlienTab;
+window.switchClientView = switchClientView;
 
-/** @type {Array} pembelian — shared state, di-declare di sini supaya ga conflict dgn pembelian.js */
-let pembelian = [];
+/** Pipeline stages — satu tabel `clients` */
+const PIPELINE_STAGES = [
+  { key: 'baru', label: '🆕 Baru', tone: 'blue' },
+  { key: 'dihubungi', label: '📞 Dihubungi', tone: 'orange' },
+  { key: 'tertarik', label: '💡 Tertarik', tone: 'amber' },
+  { key: 'menunggu_verifikasi', label: '⏳ Verifikasi', tone: 'teal' },
+  { key: 'aktif', label: '✅ Aktif', tone: 'green' },
+  { key: 'batal', label: '❌ Batal', tone: 'red' },
+];
 
-/** Load pembelian list dari Supabase */
-async function loadPembelianList() {
-  try {
-    const res = await supabaseFetch('/rest/v1/pembelian?order=created_at.desc&limit=100');
-    pembelian = res.ok ? (res.data || []) : [];
-    renderPembelianList();
-  } catch (e) {
-    pembelian = [];
-    console.error('load pembelian', e);
+function stageMeta(status) {
+  return PIPELINE_STAGES.find((s) => s.key === status) || { key: status, label: status || 'Tanpa status', tone: 'gray' };
+}
+
+function statusBadge(status) {
+  const m = stageMeta(status);
+  return `<span class="badge ${m.tone}">${m.label}</span>`;
+}
+
+/** Aksen kartu mengikuti konteks status */
+function statusAccent(status) {
+  return 'kb-acc-' + stageMeta(status).tone;
+}
+
+/** Baris konteks status pada kartu */
+function statusCtxHtml(c, esc) {
+  const sm = stageMeta(c.status);
+  const on = isActive(c);
+  switch (c.status) {
+    case 'baru': return `<span class="kb-card-ctx">🆕 Lead baru — belum dihubungi</span>`;
+    case 'dihubungi': return `<span class="kb-card-ctx">📞 Sudah dihubungi</span>`;
+    case 'tertarik': return `<span class="kb-card-ctx">💡 Tertarik — siap ditawarkan</span>`;
+    case 'menunggu_verifikasi':
+      return c.bukti_url
+        ? `<span class="kb-bukti" data-bukti="${esc(c.bukti_url)}">🧾 Lihat Bukti</span>`
+        : `<span class="kb-card-ctx">⏳ Menunggu verifikasi</span>`;
+    case 'aktif':
+      return `<span class="kb-card-ctx ${on ? 'on' : 'off'}">${on ? '🟢 Online' : '⚪ Offline'}${c.serial ? ' · 🔑 ' + esc(String(c.serial).slice(0, 10)) + '…' : ''}</span>`;
+    case 'batal': return `<span class="kb-card-ctx">❌ Batal — lisensi nonaktif</span>`;
+    default: return `<span class="kb-card-ctx">${esc(sm.label)}</span>`;
   }
 }
 
-/** Render list pembelian */
-function renderPembelianList() {
-  const host = document.getElementById('pembelianList');
-  const empty = document.getElementById('pembelianEmpty');
+/** Tombol utama kartu, berubah sesuai konteks status */
+function statusCta(c, esc) {
+  const id = esc(c.id);
+  switch (c.status) {
+    case 'baru': return `<button type="button" class="btn btn-primary btn-sm" onclick="moveStage('${id}','next')">📞 Hubungi</button>`;
+    case 'dihubungi': return `<button type="button" class="btn btn-primary btn-sm" onclick="moveStage('${id}','next')">💡 Tawarkan</button>`;
+    case 'tertarik': return `<button type="button" class="btn btn-primary btn-sm" onclick="moveStage('${id}','next')">⏳ Minta Verifikasi</button>`;
+    case 'menunggu_verifikasi': return `<button type="button" class="btn btn-primary btn-sm" onclick="openClientById('${id}')">🔍 Verifikasi</button>`;
+    case 'aktif': return `<button type="button" class="btn btn-primary btn-sm" onclick="openClientById('${id}')">⚙️ Kelola</button>`;
+    case 'batal': return `<button type="button" class="btn btn-outline btn-sm" onclick="openClientById('${id}')">↩️ Pulihkan</button>`;
+    default: return `<button type="button" class="btn btn-outline btn-sm" onclick="openClientById('${id}')">Buka</button>`;
+  }
+}
+
+/** Update status pipeline klien (dipakai kanban drag & dropdown) */
+async function updateClientStatus(id, status) {
+  const prev = clients.find((c) => c.id === id);
+  if (!prev) return;
+  clients = clients.map((c) => c.id === id ? { ...c, status } : c);
+
+  if (clientView === 'kelola') renderKanban(); else renderAnalytics();
+  updateSidebarBadges({ clients: clients.length });
+
+  try {
+    const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      data: { status },
+      headers: { Prefer: 'return=representation' }
+    });
+    if (!res.ok) throw new Error('Failed to update status');
+    showToast(`Status → ${stageMeta(status).label.slice(2)}`, 1800, 'success');
+  } catch (e) {
+    clients = clients.map((c) => c.id === id ? prev : c);
+    if (clientView === 'kelola') renderKanban(); else renderAnalytics();
+    console.error(e);
+    showToast('Gagal update status', 2000, 'error');
+  }
+}
+
+/** Render all (stats + view aktif) */
+function renderAll() {
+  if (clientView === 'kelola') renderKanban();
+  else renderAnalytics();
+}
+
+/** Tab kanban aktif: 'semua' | stage key */
+let kanbanTab = 'semua';
+
+/** Render kanban tab-per-status */
+function renderKanban() {
+  const host = document.getElementById('kanbanBoard');
   if (!host) return;
-  
-  const filter = document.getElementById('pembelianStatusFilter')?.value || '';
-  const filtered = pembelian.filter(p => {
-    if (!filter) return true;
-    return p.status === filter;
+  const q = (document.getElementById('clientsSearch')?.value || '').toLowerCase();
+  const qNorm = (c) => [c.nama_warung, c.nama_pemilik, c.device_code, c.no_whatsapp, c.kabkota, c.provinsi, c.unit_id]
+    .some((v) => (v || '').toLowerCase().includes(q));
+  const appF = document.getElementById('clientsAppFilter')?.value || '';
+  const rows = clients.filter((c) => {
+    if (appF && c.app_type !== appF) return false;
+    return q ? qNorm(c) : true;
   });
-  
-  if (empty) empty.hidden = filtered.length > 0;
-  
-  if (filtered.length === 0) {
-    host.innerHTML = '';
+
+  if (!clients.length) {
+    host.innerHTML = `<div class="empty-state">Belum ada klien. Data otomatis muncul di sini saat aplikasi klien pertama kali terhubung.</div>`;
     return;
   }
-  
-  host.innerHTML = filtered.map((p, i) => pembelianCardHtml(p)).join('');
-  
-  // Bind events
-  host.querySelectorAll('.btn-verify').forEach(btn => {
-    btn.addEventListener('click', () => verifyPembelian(btn.dataset.id));
+
+  const tab = (key, label, n, tone) => `
+    <button type="button" class="kb-tab ${kanbanTab === key ? 'active' : ''}" data-stage="${key}" role="tab" aria-selected="${kanbanTab === key}">
+      ${label} <span class="badge ${tone}">${n}</span>
+    </button>`;
+
+  const tabs = `
+    <div class="kb-tabs" role="tablist">
+      ${tab('semua', 'Semua', rows.length, 'gray')}
+      ${PIPELINE_STAGES.map((st) => tab(st.key, st.label, rows.filter((c) => c.status === st.key).length, st.tone)).join('')}
+    </div>`;
+
+  const shown = kanbanTab === 'semua' ? rows : rows.filter((c) => c.status === kanbanTab);
+  const shownMeta = kanbanTab === 'semua' ? null : stageMeta(kanbanTab);
+  const subtotal = shown.reduce((a, c) => a + (Number(c.harga) || 0), 0);
+
+  const cards = shown.length
+    ? shown.map(kanbanCardHtml).join('')
+    : `<div class="kb-drop-hint">Belum ada kartu di ${shownMeta ? shownMeta.label : 'filter ini'}. Geser dari tahap lain pakai tombol ‹ ›, atau ubah status lewat detail.</div>`;
+
+  host.innerHTML = tabs + `
+    <div class="kb-tab-panel">
+      <div class="kb-tab-head">
+        <span class="kb-tab-title">${shownMeta ? shownMeta.label : 'Semua Klien'}</span>
+        <span class="kb-tab-total">${shown.length} kartu${subtotal ? ' · Rp ' + subtotal.toLocaleString('id-ID') : ''}</span>
+      </div>
+      <div class="kb-tab-list">${cards}</div>
+    </div>`;
+
+  host.querySelectorAll('.kb-tab').forEach((t) => {
+    t.addEventListener('click', () => { kanbanTab = t.dataset.stage; renderKanban(); });
   });
-  host.querySelectorAll('.btn-activate').forEach(btn => {
-    btn.addEventListener('click', () => activatePembelian(btn.dataset.id));
+  host.querySelectorAll('.kb-bukti').forEach((el) => {
+    el.addEventListener('click', (e) => { e.stopPropagation(); const u = el.dataset.bukti; if (u) window.open(u, '_blank'); });
   });
-  host.querySelectorAll('.btn-reject').forEach(btn => {
-    btn.addEventListener('click', () => rejectPembelian(btn.dataset.id));
-  });
-  host.querySelectorAll('.btn-view-bukti').forEach(btn => {
-    btn.addEventListener('click', () => viewBukti(btn.dataset.url));
+  // Klik kartu = buka detail (tombol di dalam kartu diabaikan)
+  host.querySelectorAll('.kanban-card').forEach((card) => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      const id = card.dataset.clientId;
+      if (id) openClientById(id);
+    });
   });
 }
 
-/** HTML card pembelian */
-function pembelianCardHtml(p) {
-  const statusBadge = {
-    'menunggu_verifikasi': '<span class="badge orange">⏳ Menunggu</span>',
-    'aktif': '<span class="badge green">✅ Aktif</span>',
-    'ditolak': '<span class="badge red">❌ Ditolak</span>'
-  }[p.status] || `<span class="badge">${p.status}</span>`;
-  
-  const buktiBtn = p.bukti_url 
-    ? `<button class="btn btn-ghost btn-sm btn-view-bukti" data-url="${p.bukti_url}">👁️ Lihat Bukti</button>`
-    : '<span class="hint">Belum ada bukti</span>';
-  
-  const actionBtns = p.status === 'menunggu_verifikasi' ? `
-    <button class="btn btn-primary btn-sm btn-verify" data-id="${p.id}">✓ Verifikasi</button>
-    <button class="btn btn-danger btn-sm btn-reject" data-id="${p.id}">✗ Tolak</button>
-  ` : '';
-  
+function kanbanCardHtml(c) {
+  const m = metaFor(c.app_type);
+  const sm = stageMeta(c.status);
+  const wil = [c.desa, c.kecamatan, c.kabkota].filter(Boolean).join(', ');
+  const esc = escapeHtml;
+  const idx = PIPELINE_STAGES.findIndex((s) => s.key === c.status);
+  const isBatal = c.status === 'batal';
   return `
-    <div class="pembelian-card" style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
-        <div>
-          <strong>${p.unit_id || '—'}</strong>
-          <span style="color:var(--text2);font-size:12px;margin-left:8px">${p.app_type || '?'} · ${new Date(p.created_at).toLocaleDateString('id-ID')}</span>
+    <div class="kanban-card ${statusAccent(c.status)}${isBatal ? ' kb-card-batal' : ''}" data-client-id="${esc(c.id)}">
+      <div class="kb-card-top">
+        <span class="client-avatar">${m.icon}</span>
+        <div class="kb-card-main">
+          <strong class="kb-card-name">${esc(c.nama_warung || '—')}</strong>
+          <small class="kb-card-sub">${esc(m.label)}${c.device_code ? ' · ' + esc(c.device_code) : ''}</small>
         </div>
-        ${statusBadge}
+        ${kanbanTab === 'semua' ? `<span class="badge ${sm.tone} kb-card-status">${sm.label}</span>` : ''}
       </div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">
-        <div>Harga: ${p.harga ? 'Rp ' + Number(p.harga).toLocaleString('id-ID') : '—'}</div>
-        <div>Serial: <code style="font-family:monospace">${p.serial || '—'}</code></div>
+      <div class="kb-card-meta">
+        ${c.nama_pemilik ? `<span>👤${esc(c.nama_pemilik)}</span>` : ''}
+        ${c.no_whatsapp ? `<span>💬${esc(c.no_whatsapp)}</span>` : ''}
+        ${wil ? `<span>📍${esc(wil)}</span>` : ''}
       </div>
-      <div style="margin-bottom:8px">${buktiBtn}</div>
-      <div style="display:flex;gap:8px">${actionBtns}</div>
-    </div>
-  `;
+      ${statusCtxHtml(c, esc)}
+      <div class="kb-card-foot">
+        <span class="text-xs" style="color:var(--text2)">🕒 ${formatRelativeTime(c.last_seen)}</span>
+        <div class="kb-card-actions">
+          <button type="button" class="btn btn-ghost btn-sm" title="Status sebelumnya" ${idx <= 0 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','prev')">‹</button>
+          ${statusCta(c, esc)}
+          <button type="button" class="btn btn-ghost btn-sm" title="Status berikutnya" ${idx < 0 || idx >= PIPELINE_STAGES.length - 1 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','next')">›</button>
+        </div>
+      </div>
+    </div>`;
 }
 
-/** Verifikasi pembelian */
-async function verifyPembelian(id) {
-  try {
-    const res = await supabaseFetch(`/rest/v1/pembelian?id=eq.${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      data: {
-        status: 'verified',
-        verified_at: new Date().toISOString()
-      },
-      headers: { Prefer: 'return=representation' }
-    });
-    
-    if (!res.ok) throw new Error('Failed to verify');
-    
-    showToast('✅ Pembelian diverifikasi!', 2000, 'success');
-    await loadPembelianList();
-  } catch (e) {
-    console.error(e);
-    showToast('Gagal memverifikasi', 2000, 'error');
-  }
+/** Pindah kartu ke tahap sebelumnya/berikutnya */
+function moveStage(id, dir) {
+  const c = clients.find((x) => x.id === id);
+  if (!c) return;
+  const idx = PIPELINE_STAGES.findIndex((s) => s.key === c.status);
+  const next = dir === 'next' ? idx + 1 : idx - 1;
+  if (next < 0 || next >= PIPELINE_STAGES.length) return;
+  updateClientStatus(id, PIPELINE_STAGES[next].key);
 }
+window.moveStage = moveStage;
 
-/** Aktifkan lisensi via Edge Function */
-async function activatePembelian(id) {
-  const p = pembelian.find(x => x.id === id);
-  if (!p) return;
-
-  showToast('⏳ Mengaktifkan lisensi...', 3000, 'info');
-  
-  try {
-    // Call edge function via proxy (service key server-side)
-    const res = await supabaseFetch('/functions/v1/activate-license', {
-      method: 'POST',
-      data: {
-        unit_id: p.unit_id,
-        app_type: p.app_type,
-        device_code: p.device_code || ''
-      }
-    });
-    
-    const data = res.data;
-    
-    if (!res.ok || !data?.ok) throw new Error((data && data.error) || 'Activation failed');
-    
-    showToast(`✅ Lisensi aktif! Serial: ${data.serial}`, 3000, 'success');
-    await loadPembelianList();
-  } catch (e) {
-    console.error(e);
-    showToast('Gagal mengaktifkan: ' + e.message, 3000, 'error');
-  }
+/** Buka sheet dari kanban via id */
+function openClientById(id) {
+  const idx = clients.findIndex((c) => c.id === id);
+  if (idx >= 0) openClient(idx);
 }
-
-/** Tolak pembelian */
-async function rejectPembelian(id) {
-  if (!confirm('Tolak pembelian ini? User akan diminta upload ulang bukti.')) return;
-  
-  try {
-    const res = await supabaseFetch(`/rest/v1/pembelian?id=eq.${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      data: {
-        status: 'ditolak',
-        verified_at: new Date().toISOString()
-      },
-      headers: { Prefer: 'return=representation' }
-    });
-    
-    if (!res.ok) throw new Error('Failed to reject');
-    
-    showToast('❌ Pembelian ditolak', 2000, 'warning');
-    await loadPembelianList();
-  } catch (e) {
-    console.error(e);
-    showToast('Gagal menolak', 2000, 'error');
-  }
-}
-
-/** Preview bukti pembayaran */
-function viewBukti(url) {
-  if (!url) return;
-  window.open(url, '_blank');
-}
+window.openClientById = openClientById;
 
 /** Load all clients from Supabase */
 async function loadClients() {
@@ -267,37 +283,15 @@ async function loadClients() {
     clients = [];
     console.error('load clients', e);
   }
-  renderStats();
-  renderList();
+  renderAll();
   updateSidebarBadges({ clients: clients.length });
+  setState('clients', clients);
 }
+window.refreshClients = loadClients;
 
-/** Analitik / matrik klien */
-function renderStats() {
-  const host = document.getElementById('clientStatCards');
-  if (!host) return;
-  const total = clients.length;
-  const active = clients.filter(isActive).length;
-  const byApp = {};
-  clients.forEach((c) => {
-    const m = metaFor(c.app_type);
-    byApp[m.icon + ' ' + m.label] = (byApp[m.icon + ' ' + m.label] || 0) + 1;
-  });
-  const appHtml = Object.entries(byApp).map(([k, v]) =>
-    `<div class="stat-card"><div class="stat-label">${escapeHtml(k)}</div><div class="stat-value orange">${v}</div></div>`
-  ).join('');
-
-  host.innerHTML = `
-    <div class="stat-card"><div class="stat-label">🛍️ Total Outlet</div><div class="stat-value">${total}</div></div>
-    <div class="stat-card"><div class="stat-label">🟢 Aktif 30 Hari</div><div class="stat-value green">${active}</div></div>
-    ${appHtml}
-  `;
-}
-
-/** Render list klien (terfilter) */
-function renderList() {
-  const host = document.getElementById('clientsList');
-  const empty = document.getElementById('clientsEmpty');
+/** Render dashboard analitik khusus klien (view "Analitik") */
+function renderAnalytics() {
+  const host = document.getElementById('analyticsBody');
   if (!host) return;
 
   const q = (document.getElementById('clientsSearch')?.value || '').toLowerCase();
@@ -309,103 +303,184 @@ function renderList() {
       .some((v) => (v || '').toLowerCase().includes(q));
   });
 
-  if (empty) empty.hidden = rows.length > 0;
-  host.innerHTML = rows.map((c, i) => cardHtml(c, i)).join('');
-  host.querySelectorAll('[data-open]').forEach((el) => {
-    el.addEventListener('click', () => openClient(parseInt(el.dataset.open, 10)));
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        openClient(parseInt(el.dataset.open, 10));
-      }
-    });
-  });
-}
+  if (!rows.length) {
+    host.innerHTML = `<div class="empty-state"><div class="empty-ic">📊</div><div class="empty-t">Belum ada data klien</div><div class="empty-d">Data analitik muncul saat klien pertama kali terhubung.</div></div>`;
+    return;
+  }
 
-function cardHtml(c, i) {
-  const m = metaFor(c.app_type);
-  const wilayah = [c.desa, c.kecamatan, c.kabkota, c.provinsi].filter(Boolean).join(', ');
-  return `
-    <div class="client-card" data-open="${i}" role="button" tabindex="0">
-      <div class="client-card-head">
-        <span class="client-avatar">${m.icon}</span>
-        <div class="client-main">
-          <strong class="client-name">${escapeHtml(c.nama_warung || '—')}</strong>
-          <small class="client-sub">${escapeHtml(m.label)} · ${escapeHtml(c.device_code || '')}</small>
-        </div>
-        <span class="client-status ${isActive(c) ? 'on' : 'off'}">${isActive(c) ? '🟢' : '⚪'}</span>
+  const total = rows.length;
+  const active = rows.filter(isActive).length;
+  const aktifDeal = rows.filter((c) => c.status === 'aktif').length;
+  const potensi = rows.reduce((a, c) => a + (Number(c.harga) || 0), 0);
+
+  // Per status pipeline
+  const perStatus = PIPELINE_STAGES.map((st) => {
+    const list = rows.filter((c) => c.status === st.key);
+    return { ...st, n: list.length, rev: list.reduce((a, c) => a + (Number(c.harga) || 0), 0) };
+  });
+  const maxStage = Math.max(1, ...perStatus.map((s) => s.n));
+
+  // Per aplikasi
+  const perApp = Object.entries(APP_META).map(([at, m]) => ({
+    ...m, key: at, n: rows.filter((c) => c.app_type === at).length
+  })).filter((x) => x.n > 0);
+  const appTotal = perApp.reduce((a, x) => a + x.n, 0);
+  const maxApp = Math.max(1, ...perApp.map((x) => x.n));
+
+  // Sebaran wilayah (kabkota/provinsi)
+  const wil = {};
+  rows.forEach((c) => {
+    const w = c.kabkota || c.provinsi;
+    if (w) wil[w] = (wil[w] || 0) + 1;
+  });
+  const topWilayah = Object.entries(wil).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const maxWil = Math.max(1, ...topWilayah.map(([, n]) => n));
+
+  const barStage = perStatus.filter((s) => s.n > 0).map((s) => `
+    <div class="bar-row">
+      <span class="bar-label">${s.label}</span>
+      <div class="bar-track"><div class="bar-fill tone-${s.tone}" style="width:${(s.n / maxStage) * 100}%"></div></div>
+      <span class="bar-num">${s.n}</span>
+    </div>`).join('') || `<div class="text-xs" style="color:var(--text2)">Belum ada klien di pipeline ini.</div>`;
+
+  const barApp = perApp.map((x) => `
+    <div class="bar-row">
+      <span class="bar-label">${x.icon} ${escapeHtml(x.label)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(x.n / maxApp) * 100}%"></div></div>
+      <span class="bar-num">${x.n}</span>
+    </div>`).join('');
+
+  const barWil = topWilayah.map(([w, n]) => `
+    <div class="bar-row">
+      <span class="bar-label">${escapeHtml(w)}</span>
+      <div class="bar-track"><div class="bar-fill tone-teal" style="width:${(n / maxWil) * 100}%"></div></div>
+      <span class="bar-num">${n}</span>
+    </div>`).join('') || `<div class="text-xs" style="color:var(--text2)">Belum ada data wilayah.</div>`;
+
+  host.innerHTML = `
+    <div class="stat-grid" style="margin-bottom:var(--s5)">
+      <div class="stat-card"><div class="stat-label">👥 Total Klien</div><div class="stat-value">${total}</div></div>
+      <div class="stat-card"><div class="stat-label">✅ Aktif / Deal</div><div class="stat-value green">${aktifDeal}</div></div>
+      <div class="stat-card"><div class="stat-label">🟢 Aktif 30 Hari</div><div class="stat-value green">${active}</div></div>
+      <div class="stat-card"><div class="stat-label">💰 Potensial Revenue</div><div class="stat-value orange">Rp ${potensi.toLocaleString('id-ID')}</div></div>
+    </div>
+
+    <div class="an-grid">
+      <div class="an-box">
+        <h4 class="an-title">Pipeline per Status</h4>
+        ${barStage}
       </div>
-      <div class="client-meta">
-        ${c.nama_pemilik ? `<span>👤 ${escapeHtml(c.nama_pemilik)}</span>` : ''}
-        ${c.no_whatsapp ? `<span>💬 ${escapeHtml(c.no_whatsapp)}</span>` : ''}
-        ${wilayah ? `<span>📍 ${escapeHtml(wilayah)}</span>` : ''}
-        ${c.last_seen ? `<span class="client-seen">Terakhir: ${escapeHtml(formatRelativeTime(c.last_seen))}</span>` : ''}
+      <div class="an-box">
+        <h4 class="an-title">Klien per Aplikasi</h4>
+        ${barApp}
+        <div class="text-xs" style="color:var(--text2);margin-top:var(--s3)">Total ${appTotal} klien</div>
+      </div>
+      <div class="an-box">
+        <h4 class="an-title">Sebaran Wilayah</h4>
+        ${barWil}
       </div>
     </div>
   `;
 }
 
-/** Open client detail/license sheet */
+/** Open client detail (HALAMAN PENUH, bukan modal) */
 export function openClient(i) {
   current = clients[i];
   if (!current) return;
   currentMeta = metaFor(current.app_type);
-  const host = document.getElementById('clientSheetBody');
+  const host = document.getElementById('clientDetailBody');
   if (!host) return;
+  const board = document.getElementById('kanbanBoard');
+  const head = document.getElementById('kanbanViewHead');
+  host.hidden = false;
+  if (board) board.hidden = true;
+  if (head) head.hidden = true;
   const wilayah = [current.desa, current.kecamatan, current.kabkota, current.provinsi].filter(Boolean).join(', ');
   host.innerHTML = `
-    <div class="sheet-handle"></div>
-    <div class="sheet-title"><span>${currentMeta.icon} ${escapeHtml(current.nama_warung || 'Klien')}</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeClientSheet()">✕</span></div>
-
-    <div class="field-grid">
-      <div class="field"><label class="field-label">Unit ID</label><input type="text" id="clUnitId" value="${escapeHtml(current.unit_id || '')}" readonly class="input-readonly"></div>
-      <div class="field"><label class="field-label">Aplikasi</label><input type="text" value="${escapeHtml(currentMeta.label)}" readonly class="input-readonly"></div>
-      <div class="field"><label class="field-label">Device Code</label><input type="text" id="clDevice" value="${escapeHtml(current.device_code || '')}" class="input-mono"></div>
-      <div class="field"><label class="field-label">Nama Usaha</label><input type="text" id="clNama" value="${escapeHtml(current.nama_warung || '')}"></div>
-      <div class="field"><label class="field-label">Nama Pemilik</label><input type="text" id="clOwner" value="${escapeHtml(current.nama_pemilik || '')}"></div>
-      <div class="field"><label class="field-label">No. WhatsApp</label><input type="tel" id="clWa" value="${escapeHtml(current.no_whatsapp || '')}"></div>
-      <div class="field field-span-2"><label class="field-label">Wilayah</label><input type="text" value="${escapeHtml(wilayah || '—')}" readonly class="input-readonly"></div>
-      <div class="field field-span-2"><label class="field-label">Alamat Detail</label><input type="text" id="clAlamat" value="${escapeHtml(current.alamat_detail || '')}"></div>
-    </div>
-
-    <div class="section-label mt16">⚡ Generate Lisensi</div>
-    <div class="field-grid mt8">
-      <div class="field"><label class="field-label">Produk</label><input type="text" value="${escapeHtml(currentMeta.prefix || '—')} · ${escapeHtml(currentMeta.label)}" readonly class="input-readonly"></div>
-      <div class="field"><label class="field-label">Masa Aktif</label>
-        <select id="clDays">
-          <option value="30">1 Bulan</option>
-          <option value="90">3 Bulan</option>
-          <option value="180">6 Bulan</option>
-          <option value="365" selected>1 Tahun</option>
-          <option value="730">2 Tahun</option>
-          <option value="99">Seumur Hidup</option>
-        </select>
-      </div>
-      <div class="field field-span-2"><label class="field-label">Hasil Serial</label>
-        <textarea id="clSerialOut" readonly rows="2" class="input-mono" placeholder="Serial muncul di sini"></textarea>
-        <div class="btn-block-row mt8">
-          <button class="btn btn-primary" onclick="generateClientSerial()">🔑 Generate</button>
-          <button class="btn btn-outline" onclick="copyClientSerial()">📋 Copy</button>
-          <button class="btn btn-outline" onclick="sendClientSerialWA()">💬 Kirim WA</button>
+    <div class="panel-head cd-head">
+      <div class="cd-title">
+        <span class="client-avatar">${currentMeta.icon}</span>
+        <div>
+          <h3 class="panel-t">${escapeHtml(current.nama_warung || 'Klien')}</h3>
+          <span class="panel-sub">${escapeHtml(currentMeta.label)}${current.device_code ? ' · ' + escapeHtml(current.device_code) : ''}</span>
         </div>
       </div>
+      ${statusBadge(current.status)}
     </div>
+    <div class="panel-body">
 
-    <div class="btn-block-row mt16">
-      <button class="btn btn-outline" onclick="closeClientSheet()">Tutup</button>
-      <button class="btn btn-primary" onclick="saveClient()">💾 Simpan</button>
-      <button class="btn btn-danger" onclick="deleteClient()">🗑️ Hapus</button>
+      <div class="section-label">📋 Data Klien</div>
+      <div class="field-grid">
+        <div class="field"><label class="field-label">Unit ID</label><input type="text" id="clUnitId" value="${escapeHtml(current.unit_id || '')}" readonly class="input-readonly"></div>
+        <div class="field"><label class="field-label">Aplikasi</label><input type="text" value="${escapeHtml(currentMeta.label)}" readonly class="input-readonly"></div>
+        <div class="field"><label class="field-label">Device Code</label><input type="text" id="clDevice" value="${escapeHtml(current.device_code || '')}" class="input-mono"></div>
+        <div class="field"><label class="field-label">Nama Usaha</label><input type="text" id="clNama" value="${escapeHtml(current.nama_warung || '')}"></div>
+        <div class="field"><label class="field-label">Nama Pemilik</label><input type="text" id="clOwner" value="${escapeHtml(current.nama_pemilik || '')}"></div>
+        <div class="field"><label class="field-label">No. WhatsApp</label><input type="tel" id="clWa" value="${escapeHtml(current.no_whatsapp || '')}"></div>
+        <div class="field field-span-2"><label class="field-label">Wilayah</label><input type="text" value="${escapeHtml(wilayah || '—')}" readonly class="input-readonly"></div>
+        <div class="field field-span-2"><label class="field-label">Alamat Detail</label><input type="text" id="clAlamat" value="${escapeHtml(current.alamat_detail || '')}"></div>
+      </div>
+
+      <div class="section-label mt16">⚡ Generate Lisensi</div>
+      <div class="field-grid mt8">
+        <div class="field"><label class="field-label">Produk</label><input type="text" value="${escapeHtml(currentMeta.prefix || '—')} · ${escapeHtml(currentMeta.label)}" readonly class="input-readonly"></div>
+        <div class="field"><label class="field-label">Masa Aktif</label>
+          <select id="clDays">
+            <option value="30">1 Bulan</option>
+            <option value="90">3 Bulan</option>
+            <option value="180">6 Bulan</option>
+            <option value="365" selected>1 Tahun</option>
+            <option value="730">2 Tahun</option>
+            <option value="99">Seumur Hidup</option>
+          </select>
+        </div>
+        <div class="field field-span-2"><label class="field-label">Hasil Serial</label>
+          <textarea id="clSerialOut" readonly rows="2" class="input-mono" placeholder="Serial muncul di sini"></textarea>
+          <div class="btn-block-row mt8">
+            <button class="btn btn-primary" onclick="generateClientSerial()">🔑 Generate</button>
+            <button class="btn btn-outline" onclick="copyClientSerial()">📋 Copy</button>
+            <button class="btn btn-outline" onclick="sendClientSerialWA()">💬 Kirim WA</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label mt16">🔎 Verifikasi Serial</div>
+      <div class="field-grid mt8">
+        <div class="field field-span-2"><label class="field-label">Serial Number</label>
+          <input type="text" id="clVerifySerial" class="input-mono" placeholder="Serial yang akan dicek" value="${escapeHtml(current.serial || '')}">
+        </div>
+        <div class="field field-span-2">
+          <button class="btn btn-outline" onclick="verifyClientSerial()">✅ Verifikasi</button>
+          <div id="clVerifyResult" class="verify-box mt8" hidden></div>
+        </div>
+      </div>
+
+      <div class="btn-block-row mt16">
+        <button class="btn btn-outline" onclick="backFromClient()">← Kembali</button>
+        <button class="btn btn-primary" onclick="saveClient()">💾 Simpan</button>
+        <button class="btn btn-danger" onclick="deleteClient()">🗑️ Hapus</button>
+      </div>
     </div>
   `;
-  document.getElementById('sheetClient')?.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  // Detail tampil inline di dalam panel kanban (board & head disembunyikan di atas)
 }
 
-/** Tutup sheet Klien + pulihkan scroll (dipakai ✕, Tutup, backdrop, simpan/hapus) */
-window.closeClientSheet = function () {
-  document.getElementById('sheetClient')?.classList.remove('open');
+/** Kembali dari detail klien ke daftar/kanban */
+window.backFromClient = function () {
+  const board = document.getElementById('kanbanBoard');
+  const head = document.getElementById('kanbanViewHead');
+  const host = document.getElementById('clientDetailBody');
+  if (host) host.hidden = true;
+  if (head) head.hidden = false;
+  if (board) {
+    board.hidden = false;
+    renderKanban();
+  }
   document.body.style.overflow = '';
 };
+
+/** Alias lama — tetap dipakai saveClient/deleteClient */
+window.closeClientSheet = window.backFromClient;
 
 /** Generate serial untuk klien yang terbuka */
 window.generateClientSerial = async function () {
@@ -424,7 +499,17 @@ window.generateClientSerial = async function () {
   else if (days <= 730) expCode = '24';
   else if (days <= 1095) expCode = '36';
   else if (days <= 1825) expCode = '60';
-  const serial = await LicenseCore.generateSerial(currentMeta.prefix, currentMeta.salt, rawDevice, expCode);
+  const res = await licenseApi('generate', {
+    prefix: currentMeta.prefix,
+    deviceCode: rawDevice,
+    expCode
+  });
+  if (!res.ok) {
+    const msg = res.data?.error || `Gagal generate (${res.status})`;
+    showToast('Gagal membuat serial: ' + msg, 3000, 'error');
+    return;
+  }
+  const serial = res.data.serial;
   const out = document.getElementById('clSerialOut');
   if (out) { out.value = serial; out.style.display = 'block'; }
   showToast('✅ Serial berhasil dibuat!', 2000, 'success');
@@ -438,6 +523,78 @@ window.copyClientSerial = async function () {
     await navigator.clipboard.writeText(v);
     showToast('Serial disalin', 2000, 'success');
   } catch { showToast('Gagal menyalin', 2000, 'error'); }
+};
+
+/** Verifikasi serial klien yang terbuka (server-side HMAC via /api/license) */
+window.verifyClientSerial = async function () {
+  if (!current || !currentMeta?.prefix) {
+    showToast('Produk klien ini belum dikenal / belum ada prefix', 2000, 'warning');
+    return;
+  }
+  const serial = document.getElementById('clVerifySerial')?.value?.trim();
+  if (!serial) { showToast('Masukkan serial yang ingin diverifikasi', 2000, 'warning'); return; }
+  const deviceCode = document.getElementById('clDevice')?.value?.trim() || current.device_code || '';
+  if (!deviceCode) { showToast('Device Code kosong', 2000, 'warning'); return; }
+
+  const res = await licenseApi('verify', {
+    prefix: currentMeta.prefix,
+    serial,
+    deviceCode
+  });
+  const box = document.getElementById('clVerifyResult');
+  if (!res.ok || !res.data) {
+    const msg = res.data?.error || `Gagal verifikasi (${res.status})`;
+    if (box) {
+      box.innerHTML = `<div class="verify-badge error">❌ ERROR</div><div class="verify-detail">${escapeHtml(msg)}</div>`;
+      box.className = 'verify-box mt8 error';
+      box.hidden = false;
+    }
+    showToast('Error saat verifikasi: ' + msg, 3000, 'error');
+    return;
+  }
+  const result = res.data;
+  const productName = currentMeta.label;
+  if (result.valid && !result.expired) {
+    if (box) {
+      box.innerHTML = `
+        <div class="verify-badge success">✅ VALID</div>
+        <div class="verify-detail">
+          Produk: ${escapeHtml(productName)}<br>
+          Device Code: ${escapeHtml(result.deviceCode)}<br>
+          Masa Berlaku: ${escapeHtml(result.expiryText || formatExpiry(result.expCode))}<br>
+          <small>Status: Aktif</small>
+        </div>`;
+      box.className = 'verify-box mt8 success';
+      box.hidden = false;
+    }
+    showToast('Serial valid', 2000, 'success');
+  } else if (result.valid && result.expired) {
+    if (box) {
+      box.innerHTML = `
+        <div class="verify-badge warning">⚠️ KADALUARSA</div>
+        <div class="verify-detail">
+          Produk: ${escapeHtml(productName)}<br>
+          Device Code: ${escapeHtml(result.deviceCode)}<br>
+          Kadaluarsa: ${escapeHtml(result.expiryText || formatExpiry(result.expCode))}<br>
+          <small>Serial valid tapi masa berlaku habis</small>
+        </div>`;
+      box.className = 'verify-box mt8 warning';
+      box.hidden = false;
+    }
+    showToast('Serial kadaluarsa', 2500, 'warning');
+  } else {
+    if (box) {
+      box.innerHTML = `
+        <div class="verify-badge error">❌ TIDAK VALID</div>
+        <div class="verify-detail">
+          Serial tidak cocok dengan Device Code atau salt produk.<br>
+          Periksa kembali input Anda.
+        </div>`;
+      box.className = 'verify-box mt8 error';
+      box.hidden = false;
+    }
+    showToast('Serial tidak valid', 2000, 'error');
+  }
 };
 
 /** Kirim serial ke WhatsApp merchant */
@@ -495,192 +652,6 @@ window.deleteClient = async function () {
     showToast('Gagal menghapus', 2000, 'error');
   }
 };
-
-// ==================== LEADS (digabung ke dalam modul Klien) ====================
-let leadsTbody = null;
-let leadsSearch = null;
-let leadsStatusFilter = null;
-let leadsEmpty = null;
-
-function setUpLeads() {
-  leadsTbody = document.getElementById('leadsTbody');
-  leadsSearch = document.getElementById('leadsSearch');
-  leadsStatusFilter = document.getElementById('leadsStatusFilter');
-  leadsEmpty = document.getElementById('leadsEmpty');
-  leadsSearch?.addEventListener('input', debounce(renderLeadsTable, 150));
-  leadsStatusFilter?.addEventListener('change', renderLeadsTable);
-  document.getElementById('exportCsvBtn')?.addEventListener('click', exportLeadsCSV);
-}
-
-/** Muat leads dari Supabase dan isi STATE.leads (dipakai dashboard juga) */
-async function loadLeads() {
-  try {
-    const res = await supabaseFetch('/rest/v1/leads?order=created_at.desc');
-    setState('leads', res.ok ? (res.data || []) : []);
-  } catch (e) {
-    console.error('load leads', e);
-    setState('leads', []);
-  }
-  renderLeadsTable();
-}
-
-/** Render tabel leads (dari STATE.leads) */
-function renderLeadsTable() {
-  if (!leadsTbody) return;
-  const search = (leadsSearch?.value || '').toLowerCase().trim();
-  const statusFilter = leadsStatusFilter?.value || '';
-
-  const filtered = (STATE.leads || []).filter((l) => {
-    const ms = !search ||
-      (l.name || '').toLowerCase().includes(search) ||
-      (l.wa || '').toLowerCase().includes(search) ||
-      (l.address || '').toLowerCase().includes(search) ||
-      (l.app_type || '').toLowerCase().includes(search) ||
-      (l.email || '').toLowerCase().includes(search);
-    return ms && (!statusFilter || l.status === statusFilter);
-  });
-
-  if (leadsEmpty) leadsEmpty.hidden = filtered.length > 0;
-
-  leadsTbody.innerHTML = filtered.map((lead) => `
-    <tr>
-      <td class="lead-contact">
-        <b class="lead-name">${escapeHtml(lead.name || '-')}</b>
-        <span class="lead-addr">${escapeHtml(lead.address || '-')}</span>
-        ${lead.email ? `<span class="lead-email">${escapeHtml(lead.email)}</span>` : ''}
-        <a class="wa-link" href="https://wa.me/${escapeHtml((lead.wa || '').replace(/[^0-9]/g, ''))}" target="_blank" rel="noopener">
-          ${escapeHtml(lead.wa || '-')}
-        </a>
-      </td>
-      <td class="lead-app">${escapeHtml(lead.app_type || '-')}</td>
-      <td class="lead-source">${escapeHtml(lead.source || '-')}</td>
-      <td>
-        <select class="status-select" data-id="${escapeHtml(lead.id)}">
-          ${['baru', 'dihubungi', 'tertarik', 'deal', 'batal'].map((s) =>
-            `<option value="${s}" ${s === lead.status ? 'selected' : ''}>${getStatusLabel(s)}</option>`
-          ).join('')}
-        </select>
-      </td>
-      <td class="lead-date">${formatDate(lead.created_at)}</td>
-      <td>
-        <button class="btn btn-sm btn-danger" data-del="${escapeHtml(lead.id)}">Hapus</button>
-      </td>
-    </tr>
-  `).join('');
-
-  bindLeadRowEvents();
-}
-
-/** Bind event status select & tombol hapus di tabel leads */
-function bindLeadRowEvents() {
-  if (!leadsTbody) return;
-  leadsTbody.querySelectorAll('.status-select').forEach((sel) => {
-    sel.addEventListener('change', async () => {
-      const lead = (STATE.leads || []).find((l) => String(l.id) === String(sel.dataset.id));
-      if (!lead) return;
-      const ok = await updateLeadStatus(lead.id, sel.value);
-      if (ok) {
-        lead.status = sel.value;
-        showToast('Status lead diperbarui', 2000, 'success');
-      } else {
-        showToast('Gagal menyimpan ke Supabase', 2000, 'error');
-        renderLeadsTable();
-      }
-    });
-  });
-  leadsTbody.querySelectorAll('[data-del]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      if (!confirm('Hapus lead ini?')) return;
-      const ok = await deleteLead(btn.dataset.del);
-      if (ok) {
-        setState('leads', (STATE.leads || []).filter((l) => String(l.id) !== String(btn.dataset.del)));
-        renderLeadsTable();
-        showToast('Lead dihapus', 2000, 'success');
-      } else {
-        showToast('Gagal menghapus dari Supabase', 2000, 'error');
-      }
-    });
-  });
-}
-
-/** Update status lead di Supabase */
-async function updateLeadStatus(id, status) {
-  try {
-    const res = await supabaseFetch(`/rest/v1/leads?id=eq.${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      data: { status, updated_at: new Date().toISOString() },
-      headers: { Prefer: 'return=representation' }
-    });
-    return res.ok;
-  } catch (e) {
-    console.error('update lead status', e);
-    return false;
-  }
-}
-
-/** Hapus lead dari Supabase */
-async function deleteLead(id) {
-  try {
-    const res = await supabaseFetch(`/rest/v1/leads?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
-    return res.ok || res.status === 204;
-  } catch (e) {
-    console.error('delete lead', e);
-    return false;
-  }
-}
-
-/** Ekspor leads ke CSV */
-function exportLeadsCSV() {
-  if (!STATE.leads?.length) {
-    showToast('Belum ada leads untuk diekspor', 2000, 'warning');
-    return;
-  }
-  const header = ['Nama', 'Alamat', 'WhatsApp', 'Email', 'Aplikasi', 'Sumber', 'Status', 'Tanggal Daftar'];
-  const rows = STATE.leads.map((l) => [l.name, l.address, l.wa, l.email, l.app_type, l.source, l.status, l.created_at]);
-  const csv = [header, ...rows].map((r) =>
-    r.map((v) => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
-  ).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `leads-kasirsolo-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('CSV berhasil diunduh', 2000, 'success');
-}
-
-/** Label status leads */
-function getStatusLabel(status) {
-  const labels = { 'baru': '🆕 Baru', 'dihubungi': '📞 Dihubungi', 'tertarik': '💡 Tertarik', 'deal': '🤝 Deal', 'batal': '❌ Batal' };
-  return labels[status] || status;
-}
-
-/** Buka detail lead (dipanggil dari recent activity dashboard) */
-export function openLeadDetail(id) {
-  const overlay = document.getElementById('sheetLeadDetail');
-  const body = document.getElementById('leadDetailBody');
-  if (!overlay || !body) return;
-  const lead = (STATE.leads || []).find((l) => String(l.id) === String(id));
-  if (!lead) {
-    body.innerHTML = '<p class="empty-state" hidden>Lead tidak ditemukan.</p>';
-  } else {
-    body.innerHTML = `
-      <div class="field"><label class="field-label">Nama / Bisnis</label><input class="input-mono" readonly value="${escapeHtml(lead.name || '')}"></div>
-      <div class="field"><label class="field-label">Alamat</label><input class="input-mono" readonly value="${escapeHtml(lead.address || '-')}"></div>
-      <div class="field"><label class="field-label">WhatsApp</label><input class="input-mono" readonly value="${escapeHtml(lead.wa || '-')}"></div>
-      <div class="field"><label class="field-label">Email</label><input class="input-mono" readonly value="${escapeHtml(lead.email || '-')}"></div>
-      <div class="field"><label class="field-label">Aplikasi</label><input class="input-mono" readonly value="${escapeHtml(lead.app_type || '-')}"></div>
-      <div class="field"><label class="field-label">Sumber</label><input class="input-mono" readonly value="${escapeHtml(lead.source || '-')}"></div>
-      <div class="field"><label class="field-label">Status</label><input class="input-mono" readonly value="${escapeHtml(getStatusLabel(lead.status) || lead.status)}"></div>
-      <div class="field"><label class="field-label">Tanggal Daftar</label><input class="input-mono" readonly value="${escapeHtml(formatDate(lead.created_at || '-'))}"></div>
-      ${lead.notes ? `<div class="field field-span-2"><label class="field-label">Catatan</label><input class="input-mono" readonly value="${escapeHtml(lead.notes)}"></div>` : ''}
-    `;
-  }
-  overlay.classList.add('open');
-}
-window.openLeadDetail = openLeadDetail;
-window.exportLeadsCSV = exportLeadsCSV;
 
 // Wire openClient to window for inline onclick handlers
 window.openClient = openClient;

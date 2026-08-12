@@ -39,6 +39,7 @@ async function fetchProductsFromSupabase() {
       hot: p.order_index === 0,
       orderIndex: p.order_index,
           visible: p.visible,
+          status: p.status || '',
           storeUrl: p.store_url || '',
           vercelUrl: p.vercel_url || ''
         }));
@@ -87,6 +88,14 @@ export async function initCatalog() {
   console.log('✅ Catalog loaded from Supabase:', products.length, 'products');
 }
 
+window.refreshCatalog = async function () {
+  const products = await fetchProductsFromSupabase();
+  if (!catalogGrid) return;
+  setState('catalog', products);
+  updateSidebarBadges({ catalog: products.length });
+  showToast('Katalog diperbarui', 2000, 'success');
+};
+
 /**
  * Render catalog as grid cards (Rosok-style)
  */
@@ -111,7 +120,8 @@ export function renderCatalog() {
       <div class="catalog-card-meta">${formatRupiah(app.price || 0)}</div>
       <div class="catalog-card-category">${getCategoryLabel(app.category)}</div>
             <div class="catalog-card-domain">
-              ${app.storeUrl ? `<a href="${escapeHtml(app.storeUrl)}" target="_blank" rel="noopener" class="domain-chip domain-live">🌐 Live</a>` : '<span class="domain-chip domain-none">⚙️ Development</span>'}
+              ${statusChip(app)}
+              ${app.storeUrl ? `<a href="${escapeHtml(app.storeUrl)}" target="_blank" rel="noopener" class="domain-chip domain-vercel">🌐 Live</a>` : ''}
               ${app.vercelUrl ? `<a href="${escapeHtml(app.vercelUrl)}" target="_blank" rel="noopener" class="domain-chip domain-vercel">▲ Vercel</a>` : ''}
             </div>
             ${app.hot ? '<span class="catalog-card-hot">🔥 Hot</span>' : ''}
@@ -144,6 +154,35 @@ function getCategoryLabel(category) {
 }
 
 /**
+ * Resolve status final dari kartu produk. Logika saling terhubung:
+ *  - Semua link (live & vercel) kosong → development (fallback otomatis)
+ *  - Status 'live' / auto-derive       → live jika store_url ada, ready bila cuma vercel
+ *  - Status 'ready' / 'maintenance'    → dipertahankan selama ada link
+ */
+function resolveProductStatus(app) {
+  const hasLive = !!app.storeUrl;
+  const hasVer = !!app.vercelUrl;
+  if (!hasLive && !hasVer) return 'development';
+  const s = (app.status || '').toLowerCase();
+  if (s === 'maintenance') return 'maintenance';
+  if (s === 'development') return 'development';
+  if (s === 'ready') return 'ready';
+  return hasLive ? 'live' : 'ready';
+}
+
+function statusChip(app) {
+  const s = resolveProductStatus(app);
+  const map = {
+    live:         { cls: 'domain-live',  label: '● LIVE' },
+    ready:        { cls: 'domain-ready', label: '● READY' },
+    maintenance:  { cls: 'domain-maint', label: '🛠 MAINTENANCE' },
+    development:  { cls: 'domain-none',  label: '◆ DEVELOPMENT' }
+  };
+  const b = map[s] || map.development;
+  return `<span class="domain-chip ${b.cls}">${b.label}</span>`;
+}
+
+/**
  * Open catalog sheet modal (create or edit)
  */
 window.openCatalogSheet = function(idx = null) {
@@ -157,6 +196,7 @@ window.openCatalogSheet = function(idx = null) {
     category: 'bisnis',
     hot: false,
     appType: '',
+    status: 'development',
     storeUrl: '',
     vercelUrl: '',
     orderIndex: (STATE.catalog || []).length
@@ -215,6 +255,16 @@ window.openCatalogSheet = function(idx = null) {
         <input type="number" id="catOrderIndex" value="${app.orderIndex || 0}" min="0" step="1">
       </div>
             <div class="field field-span-2">
+              <label class="field-label">Status Aplikasi</label>
+              <select id="catStatus">
+                <option value="live" ${app.status === 'live' ? 'selected' : ''}>● Live — rilis resmi</option>
+                <option value="ready" ${app.status === 'ready' ? 'selected' : ''}>● Ready — siap dibuka</option>
+                <option value="maintenance" ${app.status === 'maintenance' ? 'selected' : ''}>🛠 Maintenance — sedang perbaikan</option>
+                <option value="development" ${app.status === 'development' ? 'selected' : ''}>◆ Development — belum rilis</option>
+              </select>
+              <small class="field-hint">Otomatis jadi "Development" jika Live & Vercel kosong. Pilih "Live" tapi kosong → pakai Vercel (status jadi Ready).</small>
+            </div>
+            <div class="field field-span-2">
               <label class="field-label">Domain Live (store_url)</label>
               <input type="url" id="catStoreUrl" value="${escapeHtml(app.storeUrl || '')}" placeholder="https://retail.kasirsolo.com">
               <small class="field-hint">Domain resmi aplikasi. Jika kosong → landing menampilkan status "DEVELOPMENT".</small>
@@ -261,6 +311,7 @@ window.saveCatalogApp = async function(idx = null) {
   const price = parseInt(document.getElementById('catPrice')?.value) || 0;
   const hot = document.getElementById('catHot')?.checked || false;
   const orderIndex = parseInt(document.getElementById('catOrderIndex')?.value) || 0;
+  const status = document.getElementById('catStatus')?.value || 'development';
   const storeUrl = document.getElementById('catStoreUrl')?.value.trim() || '';
   const vercelUrl = document.getElementById('catVercelUrl')?.value.trim() || '';
 
@@ -282,6 +333,7 @@ window.saveCatalogApp = async function(idx = null) {
     color: '#F5821F',
     order_index: orderIndex,
     visible: true,
+    status: status,
     store_url: storeUrl || null,
     vercel_url: vercelUrl || null
   };

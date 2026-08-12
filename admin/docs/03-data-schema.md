@@ -53,23 +53,26 @@ Detail struktur data localStorage (tahap awal) dan rencana schema Supabase.
 
 ---
 
-### 3. `kasirsolo:leads` — Data Lead
+### 3. Pipeline `clients` — Data Lead/Klien (satu tabel)
+
+> Tabel `leads` & `pembelian` di-DROP (2026-08-11). Seluruh funnel kini **satu tabel
+> `clients`**, pergerakan ditandai kolom `status`.
 
 ```json
-[
-  {
-    "id": "lead_1722480000000_a3f2k",
-    "name": "Toko Maju Jaya",
-    "address": "Jl. Pemuda No. 12, Solo",
-    "wa": "081234567890",
-    "app": "Kasir Retail - Rp250.000",
-    "status": "Baru",
-    "createdAt": "2026-08-01T10:30:00.000Z"
-  }
-]
+{
+  "unit_id": "K5-018T-MCER",
+  "nama_warung": "Bakso Mblenger",
+  "nama_pemilik": "Amin",
+  "no_whatsapp": "62852369853",
+  "app_type": "kaki5",
+  "source": "app-kaki5",
+  "kabkota": "Blora",
+  "status": "baru",
+  "last_seen": "2026-08-10T05:49:55.715655+00:00"
+}
 ```
 
-**Status values:** `Baru`, `Dihubungi`, `Trial Aktif`, `Berlangganan`, `Batal`
+**Pipeline `status`:** `baru` → `dihubungi` → `tertarik` → `menunggu_verifikasi` → `aktif` / `batal`
 
 ---
 
@@ -157,20 +160,12 @@ CREATE TABLE businesses (
 );
 ```
 
-### Tabel `leads`
+### Tabel `clients` (pipeline satu-tabel; `leads` & `pembelian` di-drop 2026-08-11)
 
-```sql
-CREATE TABLE leads (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id UUID REFERENCES businesses(id),
-  name TEXT NOT NULL,
-  address TEXT,
-  wa TEXT,
-  app TEXT,
-  status TEXT DEFAULT 'Baru' CHECK (status IN ('Baru','Dihubungi','Trial Aktif','Berlangganan','Batal')),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-```
+Kolom pipeline: `status` (baru/dihubungi/tertarik/menunggu_verifikasi/aktif/batal),
+`source` (asal mis. `app-kaki5`), `lead_source`, plus kolom pembayaran yang dulu ada
+di `pembelian`: `harga`, `bukti_url`, `nama_pembayar`, `verified_at`, `activated_at`.
+Kolom lengkap & urutan pipeline lihat CHANGELOG 1.4.0 / `01-overview.md`.
 
 ### Tabel `products`
 
@@ -233,7 +228,7 @@ CREATE TABLE stats (
 |--------|-----------------|----------------|
 | Katalog Aplikasi | `kasirsolo:catalog` | `products` |
 | Pengaturan | `kasirsolo:settings` | `settings` |
-| Leads | `kasirsolo:leads` | `leads` |
+| Pipeline Klien | `kasirsolo:leads` (legacy) | `clients` |
 | Statistik | `kasirsolo:stats` | `stats` |
 | Product Registry | `kasirsolo_license_products_v3` | `products` (with salt) |
 | Users | — | `users` |

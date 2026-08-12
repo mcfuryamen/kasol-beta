@@ -2,6 +2,12 @@
 
 Modular Vanilla ESM SPA architecture dengan 5 tab navigasi, integrasi sistem lisensi HMAC-SHA256, dan design system kaki5.
 
+> ⚠️ **Pipeline (2026-08-11):** tabel `leads` & `pembelian` di-DROP dari Supabase.
+> Seluruh funnel kini digarap di **satu tabel `clients`** (baru → dihubungi → tertarik →
+> menunggu_verifikasi → aktif/batal) lewat UI Klien **List + Kanban**. `js/leads.js` &
+> `js/pembelian.js` sudah dihapus — referensi `leads` di dokumen ini bagian dari
+> arsitektur lama (pre-1.4.0).
+
 > ⚠️ **Arah Arsitektur Cloud (2026):** Admin adalah **Lapisan Meta/CRM**. Sistem
 > lisensi melakukan **generate + validasi via Supabase** (menggantikan offline saat
 > ini). Data Bisnis transaksi klien & Dashboard Hub termasuk **Lapisan B** — bukan
@@ -72,7 +78,7 @@ Modular Vanilla ESM SPA architecture dengan 5 tab navigasi, integrasi sistem lis
 │  │                                                                 │   │
 │  │  MODULE LAYER (screens)                                       │   │
 │  │  ├── dashboard.js            # 6 KPI + bar charts + empty      │   │
-│  │  ├── leads.js                # 5-col table + search/filter/CSV │   │
+│  │  ├── clients.js              # CRM pipeline + List/Kanban (leads.js dihapus) │   │
 │  │  ├── catalog.js              # Card grid + actions + sheet     │   │
 │  │  ├── license-ui.js           # Registry + generate/verify/ref  │   │
 │  │  └── settings.js             # Forms + backup/restore/reset    │   │
@@ -145,7 +151,7 @@ app.js (entry)
 ├── navigation.js
 ├── license-core.js
 ├── dashboard.js
-├── leads.js
+├── clients.js
 ├── catalog.js
 ├── license-ui.js
 └── settings.js
@@ -161,7 +167,7 @@ import { showToast } from './toast.js';
 import { doLogin, doLogout, checkAuth } from './auth.js';
 import { showScreen } from './navigation.js';
 import { renderDashboard } from './dashboard.js';
-import { renderLeads } from './leads.js';
+import { initClients } from './clients.js';
 import { renderCatalog, openCatalogSheet } from './catalog.js';
 import { renderLicenseScreen, openProductForm, openLicenseSheet } from './license-ui.js';
 import { renderSettingsForm } from './settings.js';
@@ -247,7 +253,7 @@ KSR-A1B2-C3D4-99-X7K9M2
 
 | Dari (localStorage) | Ke (Supabase) |
 |---------------------|---------------|
-| `kasirsolo:leads` | Tabel `leads` |
+| `kasirsolo:leads` | ~~Tabel `leads`~~ → `clients` (pipeline satu-tabel, 2026-08-11) |
 | `kasirsolo:catalog` | Tabel `products` |
 | `kasirsolo:settings` | Tabel `settings` |
 | `kasirsolo:stats` | Tabel `stats` |
@@ -257,11 +263,11 @@ KSR-A1B2-C3D4-99-X7K9M2
 
 ```sql
 -- Owner bisa read/write semua
-CREATE POLICY "owner_all" ON leads FOR ALL
+CREATE POLICY "owner_all" ON clients FOR ALL
   USING (auth.uid() = (SELECT user_id FROM businesses WHERE id = business_id));
 
 -- Team hanya bisa read
-CREATE POLICY "team_read" ON leads FOR SELECT
+CREATE POLICY "team_read" ON clients FOR SELECT
   USING (EXISTS (
     SELECT 1 FROM users WHERE id = auth.uid() AND role = 'team'
   ));
@@ -286,7 +292,7 @@ export async function storageGetJSON(key, fallback) {
 }
 ```
 
-**Keuntungan abstraction layer:** Hanya `storage.js` yang perlu diubah, semua module lain (`dashboard.js`, `leads.js`, `catalog.js`, `license-ui.js`, `settings.js`) tidak perlu disentuh.
+**Keuntungan abstraction layer:** Hanya `storage.js` yang perlu diubah, semua module lain (`dashboard.js`, `clients.js`, `catalog.js`, `license-ui.js`, `settings.js`) tidak perlu disentuh.
 
 ---
 
@@ -312,7 +318,7 @@ window.showScreen = function(screenId) {
   window.scrollTo(0, 0);
   // Trigger render if needed
   if (screenId === 'dashboard') renderDashboard();
-  if (screenId === 'leads') renderLeads();
+  if (screenId === 'klien') initClients();
   if (screenId === 'catalog') renderCatalog();
   if (screenId === 'license') renderLicenseScreen();
   if (screenId === 'settings') renderSettingsForm();
@@ -325,7 +331,7 @@ window.showScreen = function(screenId) {
 | Dashboard | `dashboard` | `screen-dashboard` | |
 | Katalog | `catalog` | `screen-catalog` | |
 | Lisensi | `license` | `screen-license` | |
-| Klien | `klien` | `screen-klien` | 2 tab `.tab-btn`: **Outlet** (klien) & **Leads** (`leadsTbody`, `leadsSearch`, `leadsStatusFilter`, `exportCsvBtn`) |
+| Klien | `klien` | `screen-klien` | toggle **List** & **Kanban** (6 kolom pipeline) — `#listView`/`#kanbanView` |
 | Pengaturan | `settings` | `screen-settings` | |
 
 ---

@@ -1,8 +1,10 @@
 // Service Worker for Admin Marketing KASIRSOLO
 // Version: v1.0.0 - Update this when changing cached assets
 // v7: Removed license card from settings page, added skipWaiting + claim
+// v8: Fix unresolved Response (return valid fallback instead of undefined) so SW
+//     doesn't throw "Failed to convert value to 'Response'" when fetch fails offline.
 
-const CACHE_NAME = 'kasir-admin-v7';
+const CACHE_NAME = 'kasir-admin-v18';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -21,8 +23,7 @@ const STATIC_ASSETS = [
   '/js/emoji-picker.js',
   '/js/overlay-a11y.js',
   '/js/settings.js',
-  '/js/license-core.js',
-  '/js/license-ui.js'
+  '/js/license-core.js'
 ];
 
 // Install - cache static assets
@@ -79,6 +80,7 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => caches.match(request))
+        .then((response) => response || new Response('', { status: 503, statusText: 'Service Unavailable' }))
     );
     return;
   }
@@ -99,16 +101,18 @@ self.addEventListener('fetch', (event) => {
                 caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
               }
               return response;
-            });
+            })
+            .catch(() => new Response('', { status: 503, statusText: 'Service Unavailable' }));
         })
     );
     return;
   }
 
-  // Default - network first
+  // Default - network first, fallback ke cache, lalu Response fallback valid
   event.respondWith(
     fetch(request)
       .catch(() => caches.match(request))
+      .then((response) => response || new Response('', { status: 404, statusText: 'Not Found' }))
   );
 });
 

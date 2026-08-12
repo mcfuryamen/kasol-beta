@@ -19,7 +19,7 @@ export function initNavigation() {
   navItems = document.querySelectorAll('.nav-link, .nav-item, .sb-link');
 
   // Hamburger is already in HTML (topbar-right)
-  hamburger = document.querySelector('.hamburger');
+  hamburger = document.querySelector('.menu-toggle, .hamburger');
 
   // Nav item clicks (both sidebar and bottom nav)
   navItems.forEach(item => {

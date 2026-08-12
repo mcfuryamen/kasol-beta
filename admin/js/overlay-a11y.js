@@ -23,6 +23,12 @@ function closeOpenOverlay(ov) {
   lastTrigger = null;
 }
 
+// Tutup sheet/modal berdasarkan id (dipanggil dari inline onclick di index.html)
+window.closeSheet = function (id) {
+  const overlay = document.getElementById(id);
+  if (overlay) overlay.classList.remove('open');
+};
+
 document.addEventListener('keydown', (e) => {
   const ov = activeOverlay();
   if (!ov) return;

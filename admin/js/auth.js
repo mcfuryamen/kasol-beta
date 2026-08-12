@@ -34,9 +34,10 @@ export function initAuth() {
   });
   logoutBtn?.addEventListener('click', doLogout);
 
-  // Check for existing session (if implemented)
-  // For now, always show login
-  showLoginScreen();
+  // CHECKPOINT: Login page di-bypass (user request "skip, jangan ditampilin").
+  // Modul kredensial (auth/login proper + JWT admin) ditunda — lihat audit-admin-kasirsolo.md (BACKLOG).
+  // Saat modul kredensial dikerjakan, aktifkan lagi showLoginScreen() di bawah.
+  showApp();
 }
 
 /**
@@ -80,10 +81,11 @@ function doLogin() {
 
 /**
  * Handle logout
+ * NOTE: Login di-bypass, jadi logout tidak kembali ke layar login.
  */
 function doLogout() {
-  showLoginScreen();
-  showToast('Anda telah keluar', 2000, 'info');
+  showApp();
+  showToast('Login sementara di-bypass', 2000, 'info');
 }
 
 /**

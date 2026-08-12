@@ -1,6 +1,6 @@
 # Admin Dashboard — Ringkasan Proyek
 
-Dashboard internal untuk mengelola seluruh ekosistem KASIRSOLO — leads, katalog aplikasi, lisensi, dan pengaturan landing page.
+Dashboard internal untuk mengelola seluruh ekosistem KASIRSOLO — pipeline klien (konsolidasi leads), katalog aplikasi, lisensi, dan pengaturan landing page.
 
 > ⚠️ **Arah Arsitektur Cloud (2026):** Admin adalah pintu ke **Lapisan Meta/CRM**
 > (Supabase). Sistem lisensi akan melakukan **generate + validasi via Supabase**,
@@ -53,7 +53,7 @@ admin/
 │   ├── auth.js             # doLogin, doLogout, checkAuth
 │   ├── navigation.js       # showScreen, sidebar/bottomnav handling
 │   ├── dashboard.js        # 6 KPI cards + bar charts + empty states
-│   ├── leads.js            # 5-col table + search/filter/export + empty state
+│   ├── clients.js          # CRM: pipeline satu-tabel + UI List/Kanban (leads.js & pembelian.js dihapus)
 │   ├── catalog.js          # Card grid + actions + sheet modal (.field-grid)
 │   ├── license-ui.js       # Product registry + Generate/Verify + Reference code
 │   ├── license-core.js     # Pure HMAC-SHA256 (no DOM, no side-effects)
@@ -74,12 +74,12 @@ Menampilkan ringkasan data bisnis (6 KPI gradient cards):
 
 | KPI | Icon | Metrik |
 |-----|------|--------|
-| Total Leads | 👥 | `leads.length` |
-| Deal | 🤝 | status = "Deal" |
+| Total Pipeline | 👥 | `clients.length` |
+| Deal | 🤝 | status = "aktif" |
 | Aplikasi Aktif | 📦 | catalog.length / max 8 |
-| Potensial Revenue | 💰 | Σ price × leads |
-| Lead Baru | 🆕 | status = "Baru" |
-| Konversi | 📈 | Deal / Total × 100% |
+| Potensial Revenue | 💰 | Σ harga × klien |
+| Klien Baru | 🆕 | status = "baru" |
+| Konversi | 📈 | Aktif / Total × 100% |
 
 - **Bar Charts**: Leads per Aplikasi + Leads per Status (horizontal, proportional)
 - **Empty states**: pakai `hidden` attribute (bukan inline style)
@@ -199,7 +199,7 @@ python3 -m http.server 8083
 
 ## 🔄 Perubahan Terbaru (2026-08-08)
 
-- **Merge Leads → Klien (CRM)**: screen & menu **Leads terpisah dihapus**; leads kini **tab "Leads"** di dalam satu layar **Klien** (`screen-klien`, `.tab-btn` Outlet/Leads) — `js/clients.js` menangani keduanya (`loadClients` + `loadLeads` → `STATE.leads`), `js/leads.js` dihapus
+- **Pipeline konsolidasi satu-tabel `clients` (2026-08-11)**: tabel `leads` & `pembelian` di-DROP. Seluruh funnel kini digarap di tabel `clients` (baru → dihubungi → tertarik → menunggu_verifikasi → aktif/batal), ditampilkan lewat layar **Klien** dengan toggle **List** (kartu + dropdown status) & **Kanban** (6 kolom pipeline, drag-drop) — `js/clients.js` (`PIPELINE_STAGES`, `renderKanban()`, `switchClientView()`, `updateClientStatus()`), `js/leads.js` & `js/pembelian.js` dihapus. Verifikasi pembayaran = stage `menunggu_verifikasi`.
 - **Fix clients.js bugs**: 3 header `apikey: *** Authorization` → `apikey: key, Authorization: 'Bearer ' + key`
 - **Sync 4-level wilayah (desa)**: `sync.js`, `settings.js`, `clients.js` include `desa_id`, `desa`
 - **Smart Gate 2-langkah onboarding**: Step 1 nama usaha → Step 2 S&K (Batal/Setuju)

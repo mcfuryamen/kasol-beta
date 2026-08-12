@@ -15,7 +15,12 @@ Dashboard internal untuk mengelola seluruh ekosistem KASIRSOLO — leads, katalo
 cd /c/Users/Admin/Documents/kasol/admin
 
 # 2. Start local server — PORT RESMI app ini = 8082 (lihat Port Registry: kasol/CONTEXT.md)
-python -m http.server 8082
+#    API routes (/api/rest, /api/license) butuh runtime Vercel. JALANKAN DARI ROOT REPO:
+cd /c/Users/Admin/Documents/kasol
+vercel dev --listen 8082
+
+#    (Catatan: project rootDirectory = admin, jadi vercel dev harus dari root kasol/,
+#     bukan dari dalam admin/. Env dibaca dari .env di root repo.)
 
 # 3. Open browser
 http://127.0.0.1:8082
@@ -26,8 +31,11 @@ Password: admin123
 
 **Requirements:**
 - Browser modern (Chrome, Firefox, Safari, Edge) dengan ES Modules support
-- Python 3 untuk HTTP server
-- **Tidak perlu Node.js, build tool, atau npm dependencies**
+- Node.js 18+ & Vercel CLI (`npm i -g vercel`), sudah login via `vercel login`
+- `.env` di root repo berisi `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`, dan `ADMIN_API_KEY` (dev) — jangan di-commit
+- **Opsional (static-only, tanpa API):** `python -m http.server 8082` — cukup
+  untuk preview UI, tapi semua panggilan `/api/*` akan 501
 
 ---
 

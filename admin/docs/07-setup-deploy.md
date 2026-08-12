@@ -2,6 +2,10 @@
 
 Panduan lengkap development dan deployment admin dashboard (modular ESM, Vercel deployment).
 
+> ⚠️ **Pipeline (2026-08-11):** tabel `leads` & `pembelian` di-DROP dari Supabase.
+> Funnel kini satu tabel `clients` (baru/dihubungi/tertarik/menunggu_verifikasi/aktif/batal)
+> dengan UI Klien List + Kanban.
+
 ---
 
 ## 🖥️ Local Development
@@ -133,7 +137,7 @@ admin/
 │   ├── navigation.js   # Screen switching
 │   ├── license-core.js # Pure HMAC (reusable)
 │   ├── dashboard.js
-│   ├── leads.js
+│   ├── clients.js
 │   ├── catalog.js
 │   ├── license-ui.js
 │   └── settings.js
@@ -282,7 +286,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const TABLE_MAP = {
   catalog: 'products',
   settings: 'settings',
-  leads: 'leads',
+  clients: 'clients',
   stats: 'stats',
   products: 'license_products'
 };
@@ -308,13 +312,13 @@ export async function storageSetJSON(key, value) {
 }
 ```
 
-**Keuntungan:** Semua module lain (`dashboard.js`, `leads.js`, `catalog.js`, `license-ui.js`, `settings.js`) **tidak perlu diubah**.
+**Keuntungan:** Semua module lain (`dashboard.js`, `clients.js`, `catalog.js`, `license-ui.js`, `settings.js`) **tidak perlu diubah**.
 
 ### Fase 3: Implementasi RLS
 
 ```sql
--- Contoh policy untuk leads
-CREATE POLICY "team_read_leads" ON leads
+-- Contoh policy untuk clients
+CREATE POLICY "team_read_clients" ON clients
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM users 
@@ -323,7 +327,7 @@ CREATE POLICY "team_read_leads" ON leads
     )
   );
 
-CREATE POLICY "owner_write_leads" ON leads
+CREATE POLICY "owner_write_clients" ON clients
   FOR ALL USING (
     EXISTS (
       SELECT 1 FROM users 

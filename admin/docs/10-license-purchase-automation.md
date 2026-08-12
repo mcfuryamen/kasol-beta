@@ -1,5 +1,10 @@
 # Sistem Pembelian & Aktivasi Lisensi Otomatis
 
+> ⚠️ **SUPERSEDED (2026-08-11):** Proposal ini memakai tabel `pembelian` yang sudah
+> di-DROP. Verifikasi pembayaran kini ditangani stage `menunggu_verifikasi` di tabel
+> `clients` (kolom `harga`, `bukti_url`, `verified_at`, `activated_at`). Disimpan
+> sebagai catatan riwayat.
+
 ## Konsep
 
 Flow pembelian lisensi yang **user-friendly** dan **low-friction**:

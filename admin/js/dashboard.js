@@ -7,25 +7,14 @@ import { STATE, subscribe } from './app-state.js';
 import { formatNumber, formatRupiah, escapeHtml } from './utils.js';
 import { showToast } from './toast.js';
 
-let refreshBtn = null;
-
 /**
  * Initialize dashboard
  */
 export function initDashboard() {
-  refreshBtn = document.getElementById('refreshBtn');
-  refreshBtn?.addEventListener('click', refreshData);
-
   // Subscribe to state changes
-  subscribe('leads', renderOverview);
+  subscribe('clients', renderOverview);
   subscribe('stats', renderOverview);
   subscribe('catalog', renderOverview);
-  subscribe('isLoading', (loading) => {
-    if (refreshBtn) {
-      refreshBtn.disabled = loading;
-      refreshBtn.textContent = loading ? '⏳ Memuat...' : '🔄 Muat Ulang Data';
-    }
-  });
 
   // Initial render
   renderOverview();
@@ -44,38 +33,39 @@ async function refreshData() {
     showToast('Gagal memuat data', 2000, 'error');
   }
 }
+window.refreshDashboard = refreshData;
 
 /**
  * Render overview stats and charts
  */
 export function renderOverview() {
-  const totalLeads = STATE.leads?.length || 0;
-  const newLeads = STATE.leads?.filter(l => l.status === 'baru').length || 0;
-  const contactedLeads = STATE.leads?.filter(l => l.status === 'dihubungi').length || 0;
-  const interestedLeads = STATE.leads?.filter(l => l.status === 'tertarik').length || 0;
-  const dealLeads = STATE.leads?.filter(l => l.status === 'deal').length || 0;
+  const clients = STATE.clients || [];
+  const totalClients = clients.length;
+  const baru = clients.filter(c => c.status === 'baru').length;
+  const dihubungi = clients.filter(c => c.status === 'dihubungi').length;
+  const tertarik = clients.filter(c => c.status === 'tertarik').length;
+  const verifikasi = clients.filter(c => c.status === 'menunggu_verifikasi').length;
+  const aktif = clients.filter(c => c.status === 'aktif').length;
   const totalApps = STATE.catalog?.length || 0;
   // "visible" adalah field keaktifan katalog (dari Supabase). Default katalog tanpa
-  // field visible dianggap aktif (visible !== false). Sebelumnya filter c.active
-  // → salah (data pakai visible) → selalu 0.
+  // field visible dianggap aktif (visible !== false).
   const activeApps = STATE.catalog?.filter(c => c.visible !== false).length || 0;
 
   // Render KPI stat cards grid (Gerobak summary-card gradients)
   const container = document.getElementById('statCards');
   if (!container) return;
 
-  // 6 KPI cards mengikuti pola kartu KPI gerobak (summary-card gradient)
-  const conversionPct = totalLeads > 0 ? ((dealLeads / totalLeads) * 100) : 0;
+  const conversionPct = totalClients > 0 ? ((aktif / totalClients) * 100) : 0;
   const potentialRevenue = STATE.stats?.potentialRevenue || 0;
 
   container.innerHTML = `
     <div class="summary-card brand">
-      <div class="kpi-head"><span class="icon">👥</span><span class="label">Total Leads</span></div>
-      <span class="value">${formatNumber(totalLeads)}</span>
+      <div class="kpi-head"><span class="icon">👥</span><span class="label">Total Pipeline</span></div>
+      <span class="value">${formatNumber(totalClients)}</span>
     </div>
     <div class="summary-card green">
-      <div class="kpi-head"><span class="icon">🤝</span><span class="label">Deal</span></div>
-      <span class="value">${formatNumber(dealLeads)}</span>
+      <div class="kpi-head"><span class="icon">✅</span><span class="label">Aktif / Deal</span></div>
+      <span class="value">${formatNumber(aktif)}</span>
     </div>
     <div class="summary-card teal">
       <div class="kpi-head"><span class="icon">📦</span><span class="label">Aplikasi Aktif</span></div>
@@ -86,8 +76,8 @@ export function renderOverview() {
       <span class="value" style="font-size:18px">${formatRupiah(potentialRevenue)}</span>
     </div>
     <div class="summary-card blue">
-      <div class="kpi-head"><span class="icon">🆕</span><span class="label">Lead Baru</span></div>
-      <span class="value">${formatNumber(newLeads)}</span>
+      <div class="kpi-head"><span class="icon">🆕</span><span class="label">Baru / Dihubungi</span></div>
+      <span class="value">${formatNumber(baru + dihubungi)}</span>
     </div>
     <div class="summary-card red">
       <div class="kpi-head"><span class="icon">📈</span><span class="label">Konversi</span></div>
@@ -95,33 +85,34 @@ export function renderOverview() {
     </div>
   `;
 
-  // Leads by App chart
-  renderLeadsByApp();
+  // Pipeline by App chart
+  renderClientsByApp();
 
-  // Leads by Status chart
-  renderLeadsByStatus();
+  // Pipeline by Status chart
+  renderClientsByStatus();
 
   // Recent activity
   renderRecentActivity();
 }
 
 /**
- * Render leads by app bar chart
+ * Render clients by app bar chart
  */
-function renderLeadsByApp() {
+function renderClientsByApp() {
   const container = document.getElementById('leadsByApp');
   if (!container) return;
 
   const byApp = {};
-  STATE.leads?.forEach(l => {
-    byApp[l.app] = (byApp[l.app] || 0) + 1;
+  (STATE.clients || []).forEach(c => {
+    const key = c.app_type || 'lain';
+    byApp[key] = (byApp[key] || 0) + 1;
   });
 
   const appEntries = Object.entries(byApp).sort((a, b) => b[1] - a[1]);
   const maxApp = Math.max(1, ...appEntries.map(e => e[1]));
 
   if (appEntries.length === 0) {
-    container.innerHTML = '<p class="empty-state" hidden>Belum ada data leads.</p>';
+    container.innerHTML = '<p class="empty-state" hidden>Belum ada data pipeline.</p>';
     return;
   }
 
@@ -135,22 +126,22 @@ function renderLeadsByApp() {
 }
 
 /**
- * Render leads by status bar chart
+ * Render clients by status bar chart
  */
-function renderLeadsByStatus() {
+function renderClientsByStatus() {
   const container = document.getElementById('leadsByStatus');
   if (!container) return;
 
   const byStatus = {};
-  STATE.leads?.forEach(l => {
-    byStatus[l.status] = (byStatus[l.status] || 0) + 1;
+  (STATE.clients || []).forEach(c => {
+    byStatus[c.status] = (byStatus[c.status] || 0) + 1;
   });
 
   const statusEntries = Object.entries(byStatus).sort((a, b) => b[1] - a[1]);
   const maxStatus = Math.max(1, ...statusEntries.map(e => e[1]));
 
   if (statusEntries.length === 0) {
-    container.innerHTML = '<p class="empty-state" hidden>Belum ada data leads.</p>';
+    container.innerHTML = '<p class="empty-state" hidden>Belum ada data pipeline.</p>';
     return;
   }
 
@@ -158,7 +149,8 @@ function renderLeadsByStatus() {
     'baru': '🆕 Baru',
     'dihubungi': '📞 Dihubungi',
     'tertarik': '💡 Tertarik',
-    'deal': '🤝 Deal',
+    'menunggu_verifikasi': '⏳ Verifikasi',
+    'aktif': '✅ Aktif',
     'batal': '❌ Batal'
   };
 
@@ -172,18 +164,18 @@ function renderLeadsByStatus() {
 }
 
 /**
- * Render recent activity
+ * Render recent activity (klien terakhir ter-update)
  */
 function renderRecentActivity() {
   const container = document.getElementById('recentActivityCard');
   if (!container) return;
 
-  const recentLeads = (STATE.leads || [])
+  const recent = (STATE.clients || [])
     .slice()
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .sort((a, b) => new Date(b.last_seen || b.created_at) - new Date(a.last_seen || a.created_at))
     .slice(0, 5);
 
-  if (recentLeads.length === 0) {
+  if (recent.length === 0) {
     container.innerHTML = `
       <div class="empty-state" hidden>
         <div class="empty-icon">📋</div>
@@ -196,14 +188,14 @@ function renderRecentActivity() {
 
   container.innerHTML = `
     <div class="compact-list">
-      ${recentLeads.map(lead => `
-        <div class="row-item" onclick="openLeadDetail('${escapeHtml(lead.id)}')">
-          <div class="row-icon">${getStatusIcon(lead.status)}</div>
+      ${recent.map(c => `
+        <div class="row-item" onclick="openClientById('${escapeHtml(c.id)}')" data-open-client="${escapeHtml(c.id)}" role="button" tabindex="0">
+          <div class="row-icon">${getStatusIcon(c.status)}</div>
           <div class="row-body">
-            <div class="row-title">${escapeHtml(lead.name)}</div>
-            <div class="row-sub">${escapeHtml(lead.app || '—')} • ${formatDate(lead.createdAt)}</div>
+            <div class="row-title">${escapeHtml(c.nama_warung || '—')}</div>
+            <div class="row-sub">${escapeHtml(c.app_type || '—')} • ${formatDate(c.last_seen || c.created_at)}</div>
           </div>
-          <span class="badge ${getStatusBadgeClass(lead.status)}">${getStatusLabel(lead.status)}</span>
+          <span class="badge ${getStatusBadgeClass(c.status)}">${getStatusLabel(c.status)}</span>
         </div>
       `).join('')}
     </div>
@@ -218,7 +210,8 @@ function getStatusIcon(status) {
     'baru': '🆕',
     'dihubungi': '📞',
     'tertarik': '💡',
-    'deal': '🤝',
+    'menunggu_verifikasi': '⏳',
+    'aktif': '✅',
     'batal': '❌'
   };
   return icons[status] || '📋';
@@ -231,8 +224,9 @@ function getStatusBadgeClass(status) {
   const classes = {
     'baru': 'blue',
     'dihubungi': 'orange',
-    'tertarik': 'green',
-    'deal': 'green',
+    'tertarik': 'amber',
+    'menunggu_verifikasi': 'teal',
+    'aktif': 'green',
     'batal': 'red'
   };
   return classes[status] || 'blue';
@@ -246,7 +240,8 @@ function getStatusLabel(status) {
     'baru': 'Baru',
     'dihubungi': 'Dihubungi',
     'tertarik': 'Tertarik',
-    'deal': 'Deal',
+    'menunggu_verifikasi': 'Verifikasi',
+    'aktif': 'Aktif',
     'batal': 'Batal'
   };
   return labels[status] || status;

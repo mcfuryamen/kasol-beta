@@ -1,5 +1,9 @@
 # Auto Activation License - Implementation Summary
 
+> ⚠️ **SUPERSEDED (2026-08-11):** Implementasi "Tab Pembelian" di dokumen ini memakai
+> tabel `pembelian` yang sudah di-DROP. Pembayaran kini diverifikasi via stage
+> `menunggu_verifikasi` di pipeline `clients`. Disimpan sebagai catatan riwayat.
+
 ## ✅ Yang Sudah Diimplementasi
 
 ### 1. Admin Dashboard (C:\Users\Admin\Documents\kasol\admin)

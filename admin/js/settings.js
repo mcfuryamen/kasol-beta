@@ -6,7 +6,6 @@
 import { STATE, subscribe, setState } from './app-state.js';
 import { storage } from './storage.js';
 import { showToast } from './toast.js';
-import { supabaseFetch } from './api.js';
 
 /**
  * Initialize settings module
@@ -25,9 +24,6 @@ export function initSettings() {
 
   const saveLandingBtn = document.querySelector('button[onclick="saveLandingSettings()"]');
   if (saveLandingBtn) saveLandingBtn.addEventListener('click', saveLandingSettings);
-
-  // Payment settings (QRIS + bank) — load dari Supabase `settings`
-  loadPaymentSettings();
 }
 
 /**
@@ -257,123 +253,4 @@ window.finishAdminOnboarding = async function() {
 
   showToast(ok ? 'Pengaturan awal tersimpan! 🎉' : 'Gagal menyimpan pengaturan', 2000, ok ? 'success' : 'error');
   window.dispatchEvent(new CustomEvent('app:ready'));
-};
-
-// ==================== PEMBAYARAN LISENSI (QRIS + Rekening) ====================
-// Disimpan ke Supabase tabel `settings` (key qris_url & bank_info) supaya dibaca
-// oleh aplikasi klien (kaki5/js/purchase.js). BUKAN localStorage.
-
-function paymentMsg(text, type) {
-  const el = document.getElementById('paymentStatusMsg');
-  if (el) {
-    el.textContent = text || '';
-    if (type) {
-      el.style.color = type === 'error' ? 'var(--danger,#dc2626)' : 'var(--success,#16a34a)';
-    }
-  }
-}
-
-async function fetchSettingsRows() {
-  const res = await supabaseFetch('/rest/v1/settings?select=key,value');
-  if (!res.ok) throw new Error('Gagal membaca settings: HTTP ' + res.status);
-  return Array.isArray(res.data) ? res.data : [];
-}
-
-/** Mengisi form pembayaran dari Supabase `settings`. */
-window.loadPaymentSettings = async function() {
-  paymentMsg('');
-  try {
-    const rows = await fetchSettingsRows();
-    const qris = rows.find(r => r.key === 'qris_url');
-    const bank = rows.find(r => r.key === 'bank_info');
-
-    const parseVal = (row) => {
-      if (!row || row.value == null) return {};
-      if (typeof row.value === 'string') {
-        try { return JSON.parse(row.value); } catch { return {}; }
-      }
-      return row.value || {};
-    };
-
-    const qrisVal = parseVal(qris);
-    const bankVal = parseVal(bank);
-
-    const elQris = document.getElementById('payQrisUrl');
-    const elBank = document.getElementById('payBankName');
-    const elNumber = document.getElementById('payBankNumber');
-    const elHolder = document.getElementById('payBankHolder');
-
-    if (elQris) elQris.value = qrisVal.url || '';
-    if (elBank) elBank.value = bankVal.bank || '';
-    if (elNumber) elNumber.value = bankVal.account_number || '';
-    if (elHolder) elHolder.value = bankVal.account_name || '';
-
-    paymentMsg('✔ Data pembayaran dimuat dari Supabase.');
-  } catch (e) {
-    console.error('loadPaymentSettings:', e);
-    paymentMsg('Gagal memuat: ' + e.message, 'error');
-    showToast('Gagal memuat pembayaran', 2000, 'error');
-  }
-};
-
-/** Menyimpan QRIS + bank ke Supabase `settings` (upsert 2 key). */
-window.savePaymentSettings = async function() {
-  const qrisUrl = (document.getElementById('payQrisUrl')?.value || '').trim();
-  const bank = (document.getElementById('payBankName')?.value || '').trim();
-  const accountNumber = (document.getElementById('payBankNumber')?.value || '').trim();
-  const accountName = (document.getElementById('payBankHolder')?.value || '').trim();
-
-  if (!qrisUrl) {
-    paymentMsg('URL QRIS wajib diisi.', 'error');
-    showToast('URL QRIS wajib diisi', 2000, 'warning');
-    return;
-  }
-
-  paymentMsg('');
-  const now = new Date().toISOString();
-
-  try {
-    // Upsert key qris_url
-    const r1 = await supabaseFetch('/rest/v1/settings?key=eq.qris_url', {
-      method: 'PATCH',
-      data: {
-        value: { url: qrisUrl },
-        updated_at: now
-      },
-      headers: { Prefer: 'return=representation' }
-    });
-    if (!r1.ok) throw new Error('Gagal simpan qris_url: HTTP ' + r1.status);
-
-    // Upsert key bank_info
-    const bankVal = { bank, account_number: accountNumber, account_name: accountName };
-    const r2 = await supabaseFetch('/rest/v1/settings?key=eq.bank_info', {
-      method: 'PATCH',
-      data: {
-        value: bankVal,
-        updated_at: now
-      },
-      headers: { Prefer: 'return=representation' }
-    });
-    if (!r2.ok && r2.status !== 404) throw new Error('Gagal simpan bank_info: HTTP ' + r2.status);
-
-    // Kalau baris belum ada, insert
-    if (r2.status === 404 || (r2.ok && Array.isArray(r2.data) && r2.data.length === 0)) {
-      const r3 = await supabaseFetch('/rest/v1/settings', {
-        method: 'POST',
-        data: {
-          key: 'bank_info',
-          value: bankVal,
-          updated_at: now
-        }
-      });
-      if (!r3.ok) throw new Error('Gagal insert bank_info: HTTP ' + r3.status);
-    }
-
-    paymentMsg('✔ QRIS & rekening bank berhasil disimpan ke Supabase.');
-    showToast('Pembayaran lisensi tersimpan! 💾', 2500, 'success');
-  } catch (e) {
-    console.error('savePaymentSettings:', e);
-    paymentMsg('Gagal menyimpan: ' + e.message, 'error');
-    showToast('Gagal menyimpan pembayaran', 2500, 'error');
-  }
 };

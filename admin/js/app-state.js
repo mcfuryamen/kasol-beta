@@ -31,6 +31,7 @@ export const STATE = {
   catalog: [],
   settings: {},
   leads: [],
+  clients: [],
   stats: { visits: 0 },
   licenseProducts: [],
   currentUser: null,

@@ -8,6 +8,10 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 > akan melakukan **generate + validasi via Supabase**, menggantikan pendekatan
 > offline saat ini (yang masih dipakai karena `admin/` belum sinkron ke Supabase).
 > Rujukan roadmap menyeluruh: **`../CLOUD-ROADMAP.md`**.
+>
+> ⚠️ **Pipeline (2026-08-11):** tabel `leads` & `pembelian` di-DROP. Funnel kini
+> satu tabel `clients` (baru/dihubungi/tertarik/menunggu_verifikasi/aktif/batal) —
+> dikelola di admin lewat UI Klien List + Kanban.
 
 ---
 
@@ -112,7 +116,7 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 |-------|--------|
 | **Peran** | Marketing, funnel, lead generation |
 | **Hubungan ke Admin** | Membaca katalog & settings dari admin |
-| **Menulis ke Admin** | Menulis leads & stats ke localStorage |
+| **Menulis ke Admin** | Menulis pipeline `clients` & stats (via sync app klien / `/api/rest`) |
 | **Dokumentasi** | [`landing/docs/`](../landing/docs/) |
 
 ### 2. Admin Dashboard
@@ -120,7 +124,7 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 | Aspek | Detail |
 |-------|--------|
 | **Peran** | Pusat kontrol seluruh ekosistem |
-| **Hubungan ke Landing** | Menulis katalog, settings; membaca leads, stats |
+| **Hubungan ke Landing** | Menulis katalog, settings; membaca pipeline `clients`, stats |
 | **Hubungan ke Klien** | Generate & verifikasi lisensi |
 | **Hubungan ke Supabase** | Rencana: read/write semua data (dengan RLS) |
 | **Dokumentasi** | `admin/docs/` (file ini) |
@@ -141,7 +145,7 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 |-------|--------|-------------|
 | `users` | Multi-user dengan RLS | Admin |
 | `businesses` | Data bisnis klien | Admin |
-| `leads` | Pendaftar trial | Admin |
+| `clients` | Pipeline klien (leads & pembelian dikonsolidasi, 2026-08-11) | Admin |
 | `products` | Katalog aplikasi | Admin, Landing |
 | `settings` | Pengaturan landing | Admin |
 | `licenses` | Generate & **validasi** serial (status active/expired/revoked) | Admin, Klien |
@@ -211,7 +215,7 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 │  ┌─────────────────────────────────────────────────────┐      │
 │  │                  SUPABASE                           │      │
 │  │                                                     │      │
-│  │  Tables: users, businesses, leads, products,        │      │
+│  │  Tables: users, businesses, clients (pipeline), products,│      │
 │  │          settings, licenses, stats                  │      │
 │  │                                                     │      │
 │  │  licenses: generate + VALIDASI (status active/      │      │

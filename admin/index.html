@@ -46,9 +46,6 @@
         <span class="nav-ic">◧</span><span class="nav-tx">Katalog</span>
         <span class="nav-count" id="sideCountCatalog">0</span>
       </button>
-      <button class="nav-link" data-screen="license">
-        <span class="nav-ic">⚿</span><span class="nav-tx">Lisensi</span>
-      </button>
       <button class="nav-link" data-screen="klien">
         <span class="nav-ic">◍</span><span class="nav-tx">Klien</span>
         <span class="nav-count" id="sideCountClients">0</span>
@@ -77,10 +74,7 @@
         <p id="pageSubtitle">Ringkasan performa bisnis</p>
       </div>
       <div class="topbar-right">
-        <button class="icon-btn" id="refreshBtn" title="Muat ulang data">⟳</button>
-        <div class="license-pill" id="licenseChip" role="button" tabindex="0" aria-label="Status lisensi" onclick="openLicenseSheet()">
-          <span class="lp-dot"></span><span id="licenseChipText">Aktif</span>
-        </div>
+        <button class="icon-btn" id="refreshBtn" title="Muat ulang data" onclick="window.refreshCurrentScreen()">⟳</button>
         <div class="user-chip">
           <div class="user-avatar">A</div>
           <div class="user-meta">
@@ -101,7 +95,6 @@
             <h2 class="page-h">Ringkasan</h2>
             <p class="page-d">Performa leads, katalog, dan lisensi secara real-time.</p>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="window.location.reload()">⟳ Segarkan</button>
         </div>
 
         <div class="kpi-grid" id="statCards"></div>
@@ -146,68 +139,6 @@
         </div>
       </section>
 
-      <!-- ============ LISENSI ============ -->
-      <section class="screen" id="screen-license" aria-label="Lisensi">
-        <div class="page-head">
-          <div>
-            <h2 class="page-h">Lisensi & Produk</h2>
-            <p class="page-d">Generate serial number, verifikasi, dan kelola referral.</p>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="openProductForm()">＋ Produk</button>
-        </div>
-
-        <div class="grid-2col">
-          <div class="panel">
-            <div class="panel-head"><h3 class="panel-t">Daftar Produk</h3></div>
-            <div class="panel-body" id="productRegistry"></div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><h3 class="panel-t">Generate Serial Number</h3></div>
-            <div class="panel-body">
-              <div class="field"><label class="field-label" for="genProduct">Produk</label><select id="genProduct"></select></div>
-              <div class="field"><label class="field-label" for="genUnitId">Device Code</label><input id="genUnitId" placeholder="KSR-ABCD / KK5-1A2B" maxlength="20"><small class="field-hint">Kode perangkat dari app klien.</small></div>
-              <div class="field-grid-2">
-                <div class="field"><label class="field-label" for="genDays">Masa Aktif (hari)</label><input id="genDays" type="number" value="365"></div>
-                <div class="field"><label class="field-label" for="genMaxDevices">Max Device</label><input id="genMaxDevices" type="number" value="1"></div>
-              </div>
-              <div class="field"><label class="field-label" for="genRefCode">Referral (opsional)</label><input id="genRefCode" placeholder="Unit ID referrer"></div>
-              <button class="btn btn-primary" id="generateSerialBtn">🔑 Generate</button>
-              <div class="mt12">
-                <label class="field-label" for="serialOutput">Hasil Serial</label>
-                <textarea id="serialOutput" readonly rows="2" class="input-mono" style="display:none"></textarea>
-                <div class="row-actions mt8">
-                  <button class="btn btn-outline btn-sm" id="copySerialBtn" style="display:none">📋 Copy</button>
-                  <button class="btn btn-ghost btn-sm" id="downloadSerialBtn" style="display:none">💾 Unduh</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid-2col mt16">
-          <div class="panel">
-            <div class="panel-head"><h3 class="panel-t">Verifikasi Serial</h3></div>
-            <div class="panel-body">
-              <div class="field"><label class="field-label" for="verifySerial">Serial Number</label><input id="verifySerial" placeholder="Serial yang akan dicek"></div>
-              <div class="field"><label class="field-label" for="verifyDeviceCode">Device Code</label><input id="verifyDeviceCode" placeholder="Kode perangkat" maxlength="8"></div>
-              <button class="btn btn-primary" id="verifyBtn">✅ Verifikasi</button>
-              <div id="verifyResult" class="verify-box" hidden></div>
-            </div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><h3 class="panel-t">Kode Referral</h3></div>
-            <div class="panel-body">
-              <div class="field"><label class="field-label" for="myRefCode">Kode Saya</label><input id="myRefCode" readonly class="input-readonly center-lg"></div>
-              <div class="stat-mini">
-                <div><span class="sm-label">Sukses</span><span class="sm-val green" id="refSuccessCount">0</span></div>
-                <div><span class="sm-label">Koin</span><span class="sm-val orange" id="refCoins">0</span></div>
-              </div>
-              <button class="btn btn-outline btn-sm" id="copyRefCodeBtn">📋 Salin Kode</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <!-- ============ KLIEN ============ -->
       <section class="screen" id="screen-klien" aria-label="Klien">
         <div class="page-head">
@@ -215,96 +146,38 @@
             <h2 class="page-h">Klien</h2>
             <p class="page-d">Outlet (merchant aktif) & calon pelanggan dari landing. Generate lisensi langsung dari sini.</p>
           </div>
-          <button class="btn btn-ghost btn-sm" id="refreshClientsBtn">⟳ Muat</button>
         </div>
 
-        <div class="tab-bar" role="tablist">
-          <button class="tab-btn active" id="tabBtnOutlet" data-tab="outlet" role="tab" aria-selected="true">🛍️ Outlet</button>
-          <button class="tab-btn" id="tabBtnPembelian" data-tab="pembelian" role="tab" aria-selected="false">💳 Pembelian</button>
-          <button class="tab-btn" id="tabBtnLeads" data-tab="leads" role="tab" aria-selected="false">✉️ Leads</button>
-        </div>
-
-        <div class="tab-panel" id="tabOutlet" role="tabpanel" aria-labelledby="tabBtnOutlet">
-          <div class="stat-grid" id="clientStatCards"></div>
-
-          <div class="panel mt16">
-            <div class="panel-head toolbar-inline">
-              <h3 class="panel-t">Daftar Outlet</h3>
-              <div class="toolbar-right">
-                <input class="search" id="clientsSearch" aria-label="Cari outlet" placeholder="Cari nama / WA / wilayah">
-                <select class="select" id="clientsAppFilter" aria-label="Filter aplikasi">
-                  <option value="">Semua App</option>
-                  <option value="kaki5">Kaki Lima</option>
-                  <option value="rosok">Rosok</option>
-                  <option value="gerobak">Gerobak</option>
-                  <option value="retail">Retail</option>
-                </select>
-              </div>
-            </div>
-            <div class="panel-body">
-              <div class="client-list" id="clientsList"></div>
-              <div class="empty-state" id="clientsEmpty" hidden>
-                <div class="empty-ic">◍</div>
-                <div class="empty-t">Belum ada klien</div>
-              </div>
-            </div>
+        <div class="toolbar-inline" style="gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <div class="seg" role="group" aria-label="Mode tampilan">
+            <button type="button" class="client-view-btn active" data-view="analitik" aria-pressed="true">📊 Analitik</button>
+            <button type="button" class="client-view-btn" data-view="kelola" aria-pressed="false">🗂 Kelola Klien</button>
           </div>
+          <div style="flex:1"></div>
+          <input class="search" id="clientsSearch" aria-label="Cari outlet" placeholder="Cari nama / WA / wilayah / unit">
+          <select class="select" id="clientsAppFilter" aria-label="Filter aplikasi">
+            <option value="">Semua App</option>
+            <option value="kaki5">Kaki Lima</option>
+            <option value="rosok">Rosok</option>
+            <option value="gerobak">Gerobak</option>
+            <option value="retail">Retail</option>
+          </select>
         </div>
 
-        <div class="tab-panel" id="tabLeads" role="tabpanel" aria-labelledby="tabBtnLeads" hidden>
-          <div class="panel">
-            <div class="panel-head toolbar-inline">
-              <h3 class="panel-t">Calon Pelanggan (Leads)</h3>
-              <div class="toolbar-right">
-                <input class="search" id="leadsSearch" aria-label="Cari leads" placeholder="Cari nama / WA / alamat">
-                <select class="select" id="leadsStatusFilter" aria-label="Filter status">
-                  <option value="">Semua Status</option>
-                  <option value="baru">Baru</option>
-                  <option value="dihubungi">Dihubungi</option>
-                  <option value="tertarik">Tertarik</option>
-                  <option value="deal">Deal</option>
-                  <option value="batal">Batal</option>
-                </select>
-                <button class="btn btn-ghost btn-sm" id="exportCsvBtn">⤓ Ekspor CSV</button>
-              </div>
-            </div>
-            <div class="table-scroll">
-              <table class="data-table leads-table">
-                <thead><tr>
-                  <th scope="col">Kontak</th><th scope="col">Aplikasi</th><th scope="col">Sumber</th><th scope="col">Status</th><th scope="col">Tanggal</th><th></th>
-                </tr></thead>
-                <tbody id="leadsTbody"></tbody>
-              </table>
-            </div>
-            <div class="empty-state" id="leadsEmpty" hidden>
-              <div class="empty-ic">✉</div>
-              <div class="empty-t">Belum ada leads</div>
-            </div>
-          </div>
+        <!-- Analitik view -->
+        <div class="panel mt8" id="analyticsView">
+          <div class="panel-head"><h3 class="panel-t">📊 Analitik Klien</h3></div>
+          <div class="panel-body" id="analyticsBody"></div>
         </div>
 
-        <div class="tab-panel" id="tabPembelian" role="tabpanel" aria-labelledby="tabBtnPembelian" hidden>
-          <div class="panel mt16">
-            <div class="panel-head toolbar-inline">
-              <h3 class="panel-t">Pembelian Lisensi</h3>
-              <div class="toolbar-right">
-                <select class="select" id="pembelianStatusFilter" aria-label="Filter status">
-                  <option value="">Semua</option>
-                  <option value="menunggu_verifikasi">⏳ Menunggu</option>
-                  <option value="aktif">✅ Aktif</option>
-                  <option value="ditolak">❌ Ditolak</option>
-                </select>
-                <button class="btn btn-ghost btn-sm" id="refreshPembelianBtn">⟳ Muat</button>
-              </div>
-            </div>
-            <div class="panel-body">
-              <div class="pembelian-list" id="pembelianList"></div>
-              <div class="empty-state" id="pembelianEmpty" hidden>
-                <div class="empty-ic">💳</div>
-                <div class="empty-t">Belum ada pembelian</div>
-              </div>
-            </div>
+        <!-- Kanban view (Kelola Klien) -->
+        <div class="panel mt8" id="kanbanView" hidden>
+          <div class="panel-head" id="kanbanViewHead">
+            <h3 class="panel-t">Pipeline Klien</h3>
+            <span class="panel-sub">Tab per status — geser kartu antar tahap pakai tombol ‹ ›</span>
           </div>
+          <div class="kanban-board" id="kanbanBoard"></div>
+          <div class="panel-body" id="clientDetailBody" hidden></div>
         </div>
       </section>
 
@@ -348,22 +221,6 @@
         </div>
 
         <div class="panel mt16">
-          <div class="panel-head"><h3 class="panel-t">Pembayaran Lisensi (QRIS & Rekening)</h3></div>
-          <div class="panel-body">
-            <p class="hint" style="margin-top:0">Informasi ini ditampilkan di sheet "Beli Lisensi" aplikasi klien. Simpan ke Supabase, bukan localStorage.</p>
-            <div class="field"><label class="field-label" for="payQrisUrl">URL Gambar QRIS</label><input id="payQrisUrl" placeholder="https://.../qris.png"><small class="field-hint">URL langsung file gambar QRIS (bisa dari bucket storage atau hosting lain).</small></div>
-            <div class="field"><label class="field-label" for="payBankName">Nama Bank</label><input id="payBankName" placeholder="BCA"></div>
-            <div class="field"><label class="field-label" for="payBankNumber">No. Rekening</label><input id="payBankNumber" placeholder="1234567890"></div>
-            <div class="field"><label class="field-label" for="payBankHolder">Atas Nama</label><input id="payBankHolder" placeholder="PT Mesin Kasir Solo"></div>
-            <div class="row-actions">
-              <button class="btn btn-primary" onclick="savePaymentSettings()">💾 Simpan Pembayaran</button>
-              <button class="btn btn-ghost btn-sm" onclick="loadPaymentSettings()">⟳ Muat</button>
-            </div>
-            <div id="paymentStatusMsg" class="hint" style="margin-bottom:0"></div>
-          </div>
-        </div>
-
-        <div class="panel mt16">
           <div class="panel-head"><h3 class="panel-t">Backup & Reset</h3></div>
           <div class="panel-body">
             <div class="row-actions">
@@ -386,34 +243,6 @@
 <!-- ===================== SHEETS / MODALS ===================== -->
 <div class="overlay" id="sheetCatalog" onclick="event.target===this&&closeCatalogSheet()">
   <div class="sheet" id="catalogSheet"></div>
-</div>
-
-<div class="overlay" id="sheetProduct" onclick="event.target===this&&closeSheet('sheetProduct')">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title"><span id="prodFormTitle">Tambah Produk</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetProduct')">✕</span></div>
-    <input type="hidden" id="prodFormId">
-    <div class="field"><label class="field-label" for="prodFormCode">Kode Produk (2-4 huruf)</label><input type="text" id="prodFormCode" placeholder="KSR / K5 / GBK" maxlength="4" class="input-mono uppercase"></div>
-    <div class="field"><label class="field-label" for="prodFormName">Nama Produk</label><input type="text" id="prodFormName" placeholder="Kasir Solo - Rosok"></div>
-    <div class="field"><label class="field-label" for="prodFormPrefix">Prefix Serial</label><input type="text" id="prodFormPrefix" placeholder="KSR" maxlength="6" class="input-mono uppercase"></div>
-    <div class="field"><label class="field-label" for="prodFormSecret">Secret Key (HMAC)</label><input type="text" id="prodFormSecret" placeholder="Auto-generate jika kosong"></div>
-    <div class="field"><label class="field-label" for="prodFormDefaultDays">Default Masa Aktif (hari)</label><input type="number" id="prodFormDefaultDays" value="365" min="1"></div>
-    <div class="field"><label class="field-label" for="prodFormMaxDevices">Default Max Device</label><input type="number" id="prodFormMaxDevices" value="1" min="1"></div>
-    <div class="field hot-toggle"><label><input type="checkbox" id="prodFormActive" checked> Aktif</label></div>
-    <div class="btn-block-row mt12">
-      <button class="btn btn-outline" onclick="closeSheet('sheetProduct')">Batal</button>
-      <button class="btn btn-primary" onclick="saveProduct()">Simpan Produk</button>
-    </div>
-  </div>
-</div>
-
-<!-- LISENSI SHEET (dari chip header) -->
-<div class="overlay" id="sheetLicense" onclick="event.target===this&&closeSheet('sheetLicense')">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title"><span>Status Lisensi Admin</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetLicense')">✕</span></div>
-    <div id="licenseSheetBody"></div>
-  </div>
 </div>
 
 <!-- ONBOARDING (first run) -->
@@ -445,11 +274,6 @@
     <div class="sheet-title"><span>Detail Lead</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetLeadDetail')">✕</span></div>
     <div id="leadDetailBody"></div>
   </div>
-</div>
-
-<!-- Client Detail / License Sheet -->
-<div class="overlay" id="sheetClient" onclick="event.target===this&&closeClientSheet()">
-  <div class="sheet"><div id="clientSheetBody"></div></div>
 </div>
 
 <!-- TOAST -->

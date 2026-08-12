@@ -11,18 +11,22 @@
  *   - Front-end sekarang PERSIS mengirim ke /api/rest; proxy ini menyisipkan
  *     service key server-side lalu meneruskan ke Supabase REST / Edge Function.
  *
- * Gate (sementara):
+ * Gate (H1 hardening):
  *   - `ADMIN_API_KEY` dari env Vercel; client mengirim via header `x-admin-key`.
- *     Ini pengganti sementara sampai login admin dengan Supabase Auth diimplementasi.
- *     NOTE: nilai ini DIKETAHUI client, jadi ini bukan keamanan penuh — batas
- *     tingkat server-side + whitelist tabel. Upgrade ke JWT admin = follow-up.
+ *     Divalidasi fail-closed + constant-time di `./_gate.js`: kalau key tidak
+ *     diset di env → 503 (TIDAK pernah biarkan request lewat). Ini pengganti
+ *     sementara sampai login admin (Supabase Auth) diimplementasi — nilai masih
+ *     DIKETAHUI client, jadi ini bukan keamanan penuh; batas tingkat
+ *     server-side + whitelist tabel. Upgrade ke JWT admin = follow-up.
  *   - Whitelist tabel & endpoint supaya scope terbatas (defense in depth).
  *
  * Environment (Vercel): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_API_KEY
  */
 
-const ALLOWED_REST_TABLES = new Set(['clients', 'leads', 'pembelian', 'products', 'settings']);
+const ALLOWED_REST_TABLES = new Set(['clients', 'products']);
 const ALLOWED_FUNCTIONS = new Set(['activate-license']);
+
+import { checkAdminGate } from './_gate.js';
 
 export default async function handler(req, res) {
   // Hanya POST dari front-end sendiri (same-origin, tidak perlu CORS).
@@ -30,10 +34,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'method_not_allowed' });
   }
 
-  // Gate sementara (lihat komentar atas).
-  const gate = process.env.ADMIN_API_KEY || '';
-  if (gate && req.headers['x-admin-key'] !== gate) {
-    return res.status(401).json({ error: 'unauthorized' });
+  // Gate fail-closed + constant-time (lihat _gate.js). Kalau ADMIN_API_KEY
+  // belum diset di env → 503 (bukan biarkan lewat).
+  const gate = checkAdminGate(req);
+  if (!gate.ok) {
+    return res.status(gate.code).json({ error: gate.error });
   }
 
   let body;
