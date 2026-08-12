@@ -157,7 +157,10 @@ function renderAll() {
   else renderAnalytics();
 }
 
-/** Render kanban — board kolom-per-stage dengan drag & drop */
+/** Tab kanban aktif: 'semua' | stage key */
+let kanbanTab = 'semua';
+
+/** Render kanban Tab-per-Status (bukan board kolom) */
 function renderKanban() {
   const host = document.getElementById('kanbanBoard');
   if (!host) return;
@@ -175,40 +178,41 @@ function renderKanban() {
     return;
   }
 
-  // Header baris statistik ringkas (diatas board)
-  const total = rows.length;
-  const subtotalAll = rows.reduce((a, c) => a + (Number(c.harga) || 0), 0);
-  const headStats = `
-    <div class="kb-headstats">
-      <span class="kb-headstat">🃏 <b>${total}</b> kartu</span>
-      ${subtotalAll ? `<span class="kb-headstat">💰 <b>Rp ${subtotalAll.toLocaleString('id-ID')}</b> value</span>` : ''}
-      ${rows.filter((c) => isActive(c)).length ? `<span class="kb-headstat">🟢 <b>${rows.filter((c) => isActive(c)).length}</b> aktif</span>` : ''}
+  const tab = (key, label, n, tone) => `
+    <button type="button" class="kb-tab ${kanbanTab === key ? 'active' : ''}" data-stage="${key}" role="tab" aria-selected="${kanbanTab === key}">
+      ${label} <span class="badge ${tone}">${n}</span>
+    </button>`;
+
+  const tabs = `
+    <div class="kb-tabs" role="tablist">
+      ${tab('semua', 'Semua', rows.length, 'gray')}
+      ${PIPELINE_STAGES.map((st) => tab(st.key, st.label, rows.filter((c) => c.status === st.key).length, st.tone)).join('')}
     </div>`;
 
-  // Board: 1 kolom per stage pipeline
-  const columns = PIPELINE_STAGES.map((st, sIdx) => {
-    const list = rows.filter((c) => c.status === st.key);
-    const sub = list.reduce((a, c) => a + (Number(c.harga) || 0), 0);
-    const cards = list.length
-      ? list.map((c) => kanbanCardHtml(c)).join('')
-      : `<div class="kb-drop-hint">Kosong — seret kartu ke sini</div>`;
-    return `
-      <div class="kb-col ${st.key === 'batal' ? 'kb-col-batal' : ''}" data-stage="${st.key}">
-        <div class="kb-col-head">
-          <span class="kb-col-label">${st.label}</span>
-          <span class="badge ${st.tone}">${list.length}</span>
-        </div>
-        <div class="kb-col-sub">${sub ? 'Rp ' + sub.toLocaleString('id-ID') : '—'}</div>
-        <div class="kb-col-list" data-stage="${st.key}">${cards}</div>
-      </div>`;
-  }).join('');
+  const shown = kanbanTab === 'semua' ? rows : rows.filter((c) => c.status === kanbanTab);
+  const shownMeta = kanbanTab === 'semua' ? null : stageMeta(kanbanTab);
+  const subtotal = shown.reduce((a, c) => a + (Number(c.harga) || 0), 0);
 
-  host.innerHTML = headStats + `<div class="kb-board">${columns}</div>`;
+  const cards = shown.length
+    ? shown.map(kanbanCardHtml).join('')
+    : `<div class="kb-drop-hint">Belum ada kartu di ${shownMeta ? shownMeta.label : 'filter ini'}. Ubah status lewat detail.</div>`;
 
-  // Klik kartu / bukti / menu aksi
+  host.innerHTML = tabs + `
+    <div class="kb-tab-panel">
+      <div class="kb-tab-head">
+        <span class="kb-tab-title">${shownMeta ? shownMeta.label : 'Semua Klien'}</span>
+        <span class="kb-tab-total">${shown.length} kartu${subtotal ? ' · Rp ' + subtotal.toLocaleString('id-ID') : ''}</span>
+      </div>
+      <div class="kb-tab-list">${cards}</div>
+    </div>`;
+
+  host.querySelectorAll('.kb-tab').forEach((t) => {
+    t.addEventListener('click', () => { kanbanTab = t.dataset.stage; renderKanban(); });
+  });
   host.querySelectorAll('.kb-bukti').forEach((el) => {
     el.addEventListener('click', (e) => { e.stopPropagation(); const u = el.dataset.bukti; if (u) window.open(u, '_blank'); });
   });
+  // Klik kartu = buka detail (tombol/menu di dalam kartu diabaikan)
   host.querySelectorAll('.kanban-card').forEach((card) => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('button') || e.target.closest('.kb-card-menu-pop')) return;
@@ -219,13 +223,7 @@ function renderKanban() {
   host.querySelectorAll('.kb-menu-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => { e.stopPropagation(); toggleKbMenu(btn); });
   });
-
-  // Inisialisasi drag & drop + tutup menu saat klik luar
-  enableKanbanDnd(host);
-  host.querySelectorAll('.kb-card-menu').forEach((m) => {
-    // menu action delegation (Buka Detail / Pindah)
-  });
-  // one-time: tutup semua popup menu saat klik di luar board
+  // one-time: tutup semua popup menu saat klik di luar
   if (!window.__kbMenuCloseBound) {
     window.__kbMenuCloseBound = true;
     document.addEventListener('click', () => {
@@ -240,7 +238,7 @@ function toggleKbMenu(btn) {
   if (!card) return;
   const all = card.querySelectorAll('.kb-card-menu-pop');
   all.forEach((p) => p.classList.toggle('open'));
-  // posisikan pop
+  // posisikan pop (jangan keluar viewport)
   const pop = card.querySelector('.kb-card-menu-pop');
   if (pop && pop.classList.contains('open')) {
     const r = pop.getBoundingClientRect();
@@ -248,46 +246,6 @@ function toggleKbMenu(btn) {
   }
 }
 window.toggleKbMenu = toggleKbMenu;
-
-/** Drag & drop kartu antar kolom stage */
-function enableKanbanDnd(host) {
-  let dragCard = null;
-  host.querySelectorAll('.kanban-card[draggable]').forEach((card) => {
-    card.addEventListener('dragstart', (e) => {
-      dragCard = card;
-      card.classList.add('dragging');
-      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-    });
-    card.addEventListener('dragend', () => {
-      if (dragCard) dragCard.classList.remove('dragging');
-      dragCard = null;
-      host.querySelectorAll('.kb-col.drop-target').forEach((col) => col.classList.remove('drop-target'));
-    });
-  });
-  host.querySelectorAll('.kb-col-list').forEach((list) => {
-    list.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      const col = list.closest('.kb-col');
-      if (col) col.classList.add('drop-target');
-    });
-    list.addEventListener('dragleave', (e) => {
-      if (!list.contains(e.relatedTarget)) {
-        const col = list.closest('.kb-col');
-        if (col) col.classList.remove('drop-target');
-      }
-    });
-    list.addEventListener('drop', (e) => {
-      e.preventDefault();
-      const col = list.closest('.kb-col');
-      if (col) col.classList.remove('drop-target');
-      if (!dragCard) return;
-      const id = dragCard.dataset.clientId;
-      const stage = col.dataset.stage;
-      if (id && stage) moveStage(id, stage);
-    });
-  });
-}
 
 function kanbanCardHtml(c) {
   const m = metaFor(c.app_type);
@@ -304,7 +262,7 @@ function kanbanCardHtml(c) {
     ? `<span>💬${esc(c.no_whatsapp)}</span>`
     : (c.email ? `<span>✉️${esc(c.email)}</span>` : '');
   return `
-    <div class="kanban-card ${statusAccent(c.status)}${isBatal ? ' kb-card-batal' : ''}" data-client-id="${esc(c.id)}" draggable="true">
+    <div class="kanban-card ${statusAccent(c.status)}${isBatal ? ' kb-card-batal' : ''}" data-client-id="${esc(c.id)}">
       <div class="kb-progress" style="width:${progressPct}%"></div>
       <div class="kb-card-top">
         <span class="client-avatar">${m.icon}</span>
@@ -312,6 +270,7 @@ function kanbanCardHtml(c) {
           <strong class="kb-card-name">${esc(c.nama_warung || '—')}</strong>
           <small class="kb-card-sub">${esc(m.label)}${c.device_code ? ' · ' + esc(c.device_code) : ''}</small>
         </div>
+        ${kanbanTab === 'semua' ? `<span class="badge ${sm.tone} kb-card-status">${sm.label}</span>` : ''}
       </div>
       ${c.source ? `<span class="badge tone-gray kb-card-src">${esc(c.source)}</span>` : ''}
       <div class="kb-card-meta">

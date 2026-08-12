@@ -3,39 +3,25 @@
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
 
-## [1.5.0] - (Overhaul Kartu Kanban: Board Pipeline + Kartu Info-Rich)
+## [1.5.1] - (Kartu Info-Rich di Tab Per Status)
 
-### ⚡ Board kanban kolom-per-stage (bukan tab)
-- Tampilan dirombak jadi **board horizontal kolom-per-tahap** (Baru → Dihubungi →
-  Tertarik → Verifikasi → Aktif) dengan scroll kiri-kanan; di layar sempit otomatis
-  jadi stack vertikal.
-- **Header statistik ringkas** (`.kb-headstats`): total kartu, total nilai (Rp), jumlah aktif.
+### ↩️ Balik ke tampilan Tab Per Status (bukan board kolom)
+- View Kelola kembali pakai **tab per status**: Semua / Baru / Dihubungi / Tertarik /
+  Menunggu Verifikasi / Aktif / Batal.
+- Tiap tab nampilin kartu sesuai status + header (label status, jumlah kartu, total Rp).
 
-### 🧲 Drag & drop antar kolom
-- Kartu bisa **diseret antar kolom stage** dan dilepas untuk pindah status langsung.
-- Drop zone highlight saat menyeret; kolom `Batal` menerima drop.
+### 🔍 Kartu tetap info-rich (dari 1.5.0)
+- **Progress bar** posisi pipeline di atas kartu.
+- **Baris deal**: 🤑 harga (Rp id-ID) • 🔑 cuplikan serial / 🕑 umur lead.
+- **Badge sumber**, meta lengkap (👤 pemilik, 💬 WA / ✉️ email, 📍 wilayah).
+- **Badge status** di pojok kanan kartu saat tab "Semua" aktif.
+- **Menu aksi ⋯** (👁️ Detail, ⬅️ prev, ➡️ next) menggantikan tombol ‹ ›.
 
-### 🔍 Kartu lebih informatif
-- **Progress bar** tipis di atas kartu menunjuk posisi di pipeline (% dari urutan stage).
-- **Baris deal** (`.kb-card-deal`): 🤑 Harga (Rp, format id-ID) • 🔑 cuplikan serial
-  atau 🕑 umur lead (formatLeadAge) bila belum ada serial.
-- **Badge sumber** (`.kb-card-src`) bila `source` terisi.
-- Meta diperkaya: 👤 pemilik, 💬 WhatsApp / ✉️ email, 📍 wilayah (desa/kecamatan/kabkota).
-
-### 🎛️ Menu aksi tunggal (⋯) menggantikan tombol ‹ ›
-- Tombol **⋯** membuka popup: 👁️ Buka Detail, ⬅️ Status sebelumnya, ➡️ Status berikutnya.
-- Tombol prev/next otomatis nonaktif di ujung pipeline.
-- CTA utama kontekstual per status tetap (📞 Hubungi / 💡 Tawarkan / dsb).
-
-### 🔧 Teknis
-- `renderKanban()` → board kolom-per-stage + render ulang on drop.
-- `enableKanbanDnd()` baru (HTML5 drag & drop).
-- `kanbanCardHtml()` → DOM info-rich baru.
-- `moveStage()` mendukung target stage key langsung (untuk drag & drop).
-- `formatLeadAge()` helper umur lead baru.
-- CSS baru: `.kb-board`, `.kb-col*`, `.kb-progress`, `.kb-card-deal`,
-  `.kb-card-src`, `.kb-card-menu*`, `.kb-headstats`, media query mobile.
-- SW cache → `kasir-admin-v19`.
+### 🧹 Bersih-bersih
+- Buang kode board kolom-per-stage + drag & drop (`.kb-board`, `.kb-col*`,
+  `.kb-headstats`, `enableKanbanDnd`) yang ternyata bukan yang dimau.
+- Buang CSS dead board; CSS tab (`kb-tabs`/`kb-tab*`) dipakai lagi.
+- SW cache → `kasir-admin-v20`.
 
 
 ## [1.4.8] - (Kartu Kanban Kontekstual per Status)
