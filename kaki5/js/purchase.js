@@ -183,6 +183,9 @@ export async function openPurchaseSheet() {
   
   window._ksr_currentBuktiFile = null;
   window._ksr_currentPrice = parsePriceToNumber(payInfo.priceLabel) || null;
+
+  // Tampilkan sheet
+  document.getElementById('sheetPurchase')?.classList.add('show');
 }
 
 /** Parse "Rp 500.000" / "Rp500.000" menjadi angka 500000. */
@@ -252,6 +255,15 @@ export async function submitPurchase(unitId, deviceCode) {
     // Insert purchase record — pipeline kini di tabel `clients` (leads/pembelian
     // lama sudah dikonsolidasi). Update/Upsert baris clients supaya status
     // pipeline jadi 'menunggu_verifikasi' + simpan bukti_url + harga.
+    // RLS clients: auth.uid() = user_id → pastikan ada session anon & kirim user_id.
+    const { data: sessData } = await sb.auth.getSession();
+    let userId = sessData?.session?.user?.id || null;
+    if (!userId) {
+      const { data: anon, error: auErr } = await sb.auth
+        .signInAnonymously({ options: { data: { unit_id: unitId } } });
+      if (auErr) throw auErr;
+      userId = anon?.user?.id;
+    }
     const harga = window._ksr_currentPrice || null;
     const { error: insertError } = await sb
       .from('clients')
@@ -259,6 +271,7 @@ export async function submitPurchase(unitId, deviceCode) {
         unit_id: unitId,
         app_type: APP_TYPE,
         device_code: deviceCode,
+        user_id: userId,
         status: 'menunggu_verifikasi',
         bukti_url: urlData?.publicUrl || '',
         harga,
