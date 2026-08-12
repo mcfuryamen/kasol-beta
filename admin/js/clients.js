@@ -40,7 +40,7 @@ export async function initClients() {
   document.getElementById('clientsAppFilter')?.addEventListener('change', renderAll);
   document.getElementById('backFromClient')?.addEventListener('click', () => window.backFromClient());
 
-  // Toggle view List / Kanban
+  // Toggle view Analitik / Kelola
   document.querySelectorAll('.client-view-btn[data-view]').forEach((btn) => {
     btn.addEventListener('click', () => switchClientView(btn.dataset.view));
   });
@@ -126,7 +126,7 @@ function statusCta(c, esc) {
   }
 }
 
-/** Update status pipeline klien (dipakai kanban drag & dropdown) */
+/** Update status pipeline klien (prev/next tab status) */
 async function updateClientStatus(id, status) {
   const prev = clients.find((c) => c.id === id);
   if (!prev) return;
@@ -256,11 +256,20 @@ function kanbanCardHtml(c) {
   const isBatal = c.status === 'batal';
   const harga = Number(c.harga) || 0;
   const serial = c.serial ? String(c.serial) : '';
+  const lic = (c.license_status || '').toLowerCase();
   // Progress posisi di pipeline (persen dari urutan stage)
   const progressPct = idx >= 0 ? Math.round(((idx + 0.5) / PIPELINE_STAGES.length) * 100) : 0;
   const contact = c.no_whatsapp
     ? `<span>💬${esc(c.no_whatsapp)}</span>`
     : (c.email ? `<span>✉️${esc(c.email)}</span>` : '');
+
+  // Info lisensi / verifikasi (muncul hanya bila tersedia)
+  const licLine = [];
+  if (lic === 'aktif' || lic === 'active') licLine.push('<span class="kb-lic on">✓ Lisensi Aktif</span>');
+  else if (c.activated_at) licLine.push('<span class="kb-lic">✓ Diaktifkan ' + esc(formatDate(c.activated_at)) + '</span>');
+  if (c.verified_at) licLine.push('<span class="kb-lic">🔎 Verifikasi ' + esc(formatDate(c.verified_at)) + '</span>');
+  const licHtml = licLine.length ? `<div class="kb-card-lic">${licLine.join('')}</div>` : '';
+
   return `
     <div class="kanban-card ${statusAccent(c.status)}${isBatal ? ' kb-card-batal' : ''}" data-client-id="${esc(c.id)}">
       <div class="kb-progress" style="width:${progressPct}%"></div>
@@ -281,8 +290,9 @@ function kanbanCardHtml(c) {
       ${statusCtxHtml(c, esc)}
       <div class="kb-card-deal">
         <span class="kb-card-price">${harga ? '💰 Rp ' + harga.toLocaleString('id-ID') : '💰 —'}</span>
-        ${serial ? `<span class="kb-card-serial">🔑 ${esc(serial.slice(0, 10))}…</span>` : `<span class="kb-card-age">🕑 ${formatLeadAge(c.first_seen)}</span>`}
+        ${serial ? `<span class="kb-card-serial">🔑 ${esc(serial.slice(0, 12))}…</span>` : `<span class="kb-card-age">🕑 ${formatLeadAge(c.first_seen)}</span>`}
       </div>
+      ${licHtml}
       <div class="kb-card-foot">
         <span class="text-xs kb-card-time">🕒 ${formatRelativeTime(c.last_seen)}</span>
         <div class="kb-card-actions">
@@ -333,7 +343,7 @@ function moveStage(id, dir) {
 }
 window.moveStage = moveStage;
 
-/** Buka sheet dari kanban via id */
+/** Buka detail klien dari kartu via id */
 function openClientById(id) {
   const idx = clients.findIndex((c) => c.id === id);
   if (idx >= 0) openClient(idx);
@@ -528,10 +538,10 @@ export function openClient(i) {
       </div>
     </div>
   `;
-  // Detail tampil inline di dalam panel kanban (board & head disembunyikan di atas)
+  // Detail tampil inline di dalam panel Kelola Klien (board & head disembunyikan di atas)
 }
 
-/** Kembali dari detail klien ke daftar/kanban */
+/** Kembali dari detail klien ke daftar kartu */
 window.backFromClient = function () {
   const board = document.getElementById('kanbanBoard');
   const head = document.getElementById('kanbanViewHead');

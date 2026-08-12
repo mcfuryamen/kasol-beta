@@ -3,6 +3,23 @@
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
 
+## [1.5.2] - (Polish Kartu Klien: Info Lisensi & Verifikasi)
+
+### 🎨 Kartu lebih informatif & komprehensif (design polish)
+- **Baris lisensi/verifikasi** (`kb-card-lic`): muncul hanya bila data tersedia —
+  chip hijau "✓ Lisensi Aktif" + chip "🔎 Verifikasi <tanggal>" / "✓ Diaktifkan <tanggal>"
+  sehingga admin langsung tahu status lisensi tanpa buka detail.
+- **Harga deal** dipertegas (positif, readable) di baris deal.
+- **Cuplikan serial** diperpanjang 10 → 12 karakter biar lebih mudah dicocokkan.
+
+### 🧹 Bersih-bersih lanjutan
+- Hapus CSS dead `.kanban-card.dragging` (drag & drop sudah tidak ada).
+- `cursor: grab` → `pointer` (kartu tidak bisa di-drag, diklik untuk buka detail).
+- Rapikan komentar yang masih menyebut "kanban board / drag & drop" → view Kelola
+  Klien + tab status.
+- SW cache → `kasir-admin-v21`.
+
+
 ## [1.5.1] - (Kartu Info-Rich di Tab Per Status)
 
 ### ↩️ Balik ke tampilan Tab Per Status (bukan board kolom)
