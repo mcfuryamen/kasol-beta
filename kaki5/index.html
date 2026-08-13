@@ -507,10 +507,10 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="gateOnboarding" style="max-width:440px;width:100%;text-align:center">
 <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px;border-radius:50%" alt="Logo">
 <div style="font-size:22px;font-weight:800;margin-bottom:4px">Kasir Solo</div><div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
-<div style="font-size:15px;color:var(--text2);margin-bottom:18px;line-height:1.5">Aplikasi kasir buat <strong>pedagang kaki lima</strong>. Catat jualan, pengeluaran, dan lihat untung tiap hari!</div>
+<div style="font-size:15px;color:var(--text2);margin-bottom:18px;line-height:1.5">Aplikasi kasir buat <strong>pedagang kaki lima</strong>. Catat jualan, pengeluaran, dan lihat untung tiap hari! Masukkan nomor WhatsApp untuk memulai.</div>
 <div class="form-group" style="text-align:left">
 <label class="form-label">Nomor WhatsApp <span style="color:var(--red);font-weight:700">*</span></label>
-<input type="tel" class="form-input" id="onboardWa" placeholder="Contoh: 08816566935" oninput="window._ksr_onboardInput()">
+<input type="tel" class="form-input" id="onboardWa" placeholder="Contoh: 08816566935" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); window._ksr_onboardInput()">
 </div>
 <div id="onboardMsg" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px;text-align:left"></div>
 <div style="background:var(--green-bg);border-radius:16px;padding:16px;margin-bottom:16px">
@@ -518,7 +518,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div style="font-size:13px;color:var(--text2);margin-top:6px">Aktifkan masa percobaan gratis 7 hari, tanpa kartu.</div>
 <button class="btn btn-green" id="trialBtn" style="margin-top:12px" onclick="window._ksr_proceedToTC()">🚀 Mulai Masa Percobaan</button>
 </div>
-<div style="font-size:12px;color:var(--text3);margin-top:8px">Profil lengkap (pemilik, WhatsApp, alamat) bisa diisi nanti di menu Pengaturan.<br>Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a></div>
+<div style="font-size:12px;color:var(--text3);margin-top:8px">Nomor WhatsApp akan dipakai untuk aktivasi lisensi dan komunikasi.<br>Isi lengkapnya bisa ditambah nanti di menu Pengaturan.</div>
 </div>
 <div id="gateLicenseBlock" style="display:none;max-width:440px;width:100%;text-align:center"></div>
 </div>

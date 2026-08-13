@@ -197,10 +197,13 @@ window._ksr_proceedToTC = async () => {
     if (msg) { msg.textContent = 'Mohon isi Nomor WhatsApp terlebih dahulu.'; msg.style.display = 'block'; }
     return;
   }
+  // Format: pastikan diawali 62 atau 0, hapus karakter non-digit
+  const cleanWa = wa.replace(/\D/g, '');
+  const formattedWa = cleanWa.startsWith('62') ? '0' + cleanWa.slice(2) : cleanWa.startsWith('0') ? cleanWa : '0' + cleanWa;
   if (wa) {
-    await setSetting('noWhatsapp', wa);
+    await setSetting('noWhatsapp', formattedWa);
     const nw = document.getElementById('settingWa');
-    if (nw) nw.textContent = wa;
+    if (nw) nw.textContent = formattedWa;
   }
   document.getElementById('tcModal')?.classList.add('show'); // STEP 2
 };
