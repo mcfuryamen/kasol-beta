@@ -37,7 +37,7 @@ const TUTORIALS = [
           <li>Buka tab <b>Makanan</b> (menu bawah: 🍽️ Menu)</li>
           <li>Tekan tombol <b>➕</b> (hijau) di pojok kanan bawah</li>
           <li>Isi <b>Nama Menu</b> (misal: Bakso Urat)</li>
-          <li>Pilih <b>Kategori</b> dari daftar: 🍚 Makanan / 🥤 Minuman / 🍢 Snack / 📦 Lainnya</li>
+          <li>Pilih <b>Kategori</b> dari daftar: 🍚 Makanan / 🥤 Minuman / 🍢 Snack / Jajanan / 📦 Lainnya</li>
           <li>Isi <b>Harga Jual</b> (misal: 15000) — wajib</li>
           <li>Isi <b>Harga Modal / Bahan</b> (misal: 8000) — untuk menghitung untung</li>
           <li>Tekan <b>"💾 Simpan"</b></li>
@@ -111,7 +111,7 @@ const TUTORIALS = [
         <p><b>Cara Melihat Laporan:</b></p>
         <ol style="padding-left:20px;margin:8px 0">
           <li>Buka tab <b>Laporan</b> (📊)</li>
-          <li>Pilih periode: <b>Harian / Mingguan / Bulanan</b></li>
+          <li>Pilih periode: <b>Harian / Mingguan / Bulanan</b> (ada juga <b>Custom</b> untuk rentang tanggal)</li>
           <li>Geser tanggal dengan tombol <b>‹</b> dan <b>›</b></li>
         </ol>
         <p style="margin-top:16px"><b>Yang Bisa Dilihat:</b></p>
@@ -187,7 +187,7 @@ const TUTORIALS = [
           <li>🏪 <b>Nama Usaha</b></li>
           <li>👤 <b>Nama Pemilik</b></li>
           <li>💬 <b>Nomor WhatsApp</b></li>
-          <li>📍 <b>Alamat</b> — pilih Provinsi → Kota/Kabupaten → Kecamatan, lalu isi detail</li>
+          <li>📍 <b>Alamat</b> — pilih Provinsi → Kota/Kabupaten → Kecamatan → <b>Desa/Kelurahan</b>, lalu isi detail alamat</li>
         </ul>
         <p style="margin-top:16px"><b>Cara Mengubah:</b></p>
         <ol style="padding-left:20px;margin:8px 0">
@@ -240,12 +240,18 @@ const TUTORIALS = [
                   <li>Tekan chip <b>"TRIAL"</b> di pojok kanan atas untuk buka panel lisensi</li>
           <li>Tekan <b>"🎁 Tambah 1 Hari Gratis"</b>, bagikan ke teman (maksimal 20 kali)</li>
         </ol>
-        <p style="margin-top:16px"><b>Aktivasi Kode Lisensi Resmi:</b></p>
+        <p style="margin-top:16px"><b>Beli Lisensi:</b></p>
         <ol style="padding-left:20px;margin:8px 0">
                   <li>Tekan chip <b>"TRIAL"</b> di pojok kanan atas untuk buka panel lisensi</li>
-          <li>Beli kode via <b>"💬 Beli Lisensi"</b> (hubungi WhatsApp kami)</li>
-          <li>Masukkan kode berformat <b>KK5-XXXX-XXXX-XX-XXXXXX</b> → tekan <b>"🔓 Aktifkan"</b></li>
-        </ol>
+                  <li>Tekan <b>"💳 Beli Lisensi"</b> → muncul sheet dengan <b>QRIS</b> atau rekening &amp; nominal</li>
+                  <li>Transfer sesuai nominal, lalu tekan <b>"🧾 Kirim Bukti Bayar"</b> → pilih foto bukti, tekan lagi untuk mengirim</li>
+                  <li>Admin verifikasi → lisensi diaktifkan otomatis (tunggu beberapa saat)</li>
+                </ol>
+                <p style="margin-top:16px"><b>Aktivasi Kode Lisensi Resmi:</b></p>
+                <ol style="padding-left:20px;margin:8px 0">
+                  <li>Tekan chip <b>"TRIAL"</b> di pojok kanan atas untuk buka panel lisensi</li>
+                  <li>Masukkan kode berformat <b>KK5-XXXX-XXXX-XX-XXXXXX</b> → tekan <b>"🔑 Aktifkan Kode"</b></li>
+                </ol>
         <p style="background:var(--orange-bg);padding:12px;border-radius:8px;margin-top:12px">
           🎟️ <b>Info:</b> Kode lisensi berlaku <b>per perangkat</b>. Simpan baik-baik kode yang dibeli.
         </p>
@@ -261,7 +267,7 @@ const TUTORIALS = [
         <p style="padding-left:20px;margin:8px 0">Tidak. Semua data tersimpan otomatis di HP (mode offline).</p>
         <p style="margin-top:14px"><b>Pindah HP, data ikut pindah?</b></p>
         <p style="padding-left:20px;margin:8px 0">
-          Buka <b>Pengaturan → Simpan Cadangan</b> untuk mengunduh file, pindahkan ke HP baru,
+          Buka <b>Pengaturan → Data &amp; Cadangan</b> untuk mengunduh file, pindahkan ke HP baru,
           lalu <b>Pulihkan Data</b>.
         </p>
         <p style="margin-top:14px"><b>Printer tidak mau mencetak?</b></p>
