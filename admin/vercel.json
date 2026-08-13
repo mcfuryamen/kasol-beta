@@ -1,7 +1,7 @@
 {
   "version": 2,
   "framework": null,
-  "buildCommand": "node scripts/build-env-loader.mjs",
+  "buildCommand": "node scripts/build-env-loader.mjs && node scripts/build-version.mjs",
   "outputDirectory": ".",
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
