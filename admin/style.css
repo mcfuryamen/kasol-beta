@@ -96,6 +96,15 @@ input[type=number]{-moz-appearance:textfield;}
 .nav-link.active::before{content:'';position:absolute;left:-1px;top:50%;transform:translateY(-50%);width:4px;height:22px;border-radius:0 4px 4px 0;background:var(--brand-grad);}
 .nav-count{margin-left:auto;background:var(--bg-subtle);color:var(--ink-3);font-size:11px;font-weight:800;min-width:22px;height:22px;border-radius:var(--r-full);display:flex;align-items:center;justify-content:center;padding:0 6px;}
 .nav-link.active .nav-count{background:var(--primary);color:#fff;}
+.nav-sub{font-size:13px;font-weight:600;padding-left:48px;}
+.nav-sub .nav-ic{font-size:14px;}
+.nav-arrow{margin-left:auto;font-size:12px;color:var(--ink-3);transition:transform .2s var(--ease);line-height:1;}
+.nav-parent.open .nav-arrow{transform:rotate(180deg);}
+.nav-sub-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s var(--ease);}
+.nav-sub-wrap.open{grid-template-rows:1fr;}
+.nav-sub-box{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:2px;margin:0;}
+.nav-sub-box .nav-sub{overflow:hidden;min-height:0;padding-left:44px;border-radius:8px;}
+.nav-parent.active + .nav-sub-wrap .nav-sub-box{background:transparent;}
 
 .sidebar-foot{padding:var(--s4);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:var(--s2);}
 .sync-chip{font-size:12px;font-weight:600;color:var(--green);background:var(--green-bg);border-radius:var(--r-full);padding:6px 12px;text-align:center;}
@@ -125,7 +134,7 @@ input[type=number]{-moz-appearance:textfield;}
 .user-role{font-size:11px;color:var(--ink-3);font-weight:600;}
 
 /* CONTENT */
-.content{flex:1;padding:var(--s6);max-width:1320px;width:100%;margin:0 auto;}
+.content{flex:1;padding:var(--s6);max-width:1024px;width:100%;margin:0 auto;}
 .screen{display:none;}
 .screen.active{display:block;animation:fade .25s var(--ease);}
 @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
@@ -333,6 +342,11 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 
 /* EMPTY */
 .empty-state{text-align:center;padding:var(--s10) var(--s5);color:var(--ink-3);}
+
+/* Floating action button */
+.fab{position:fixed;right:24px;bottom:24px;width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--primary-dark) 0%,#C73712 100%);color:#fff;font-size:26px;font-weight:300;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-brand);cursor:pointer;transition:transform .15s var(--ease),filter .15s;z-index:60;}
+.fab:hover{transform:translateY(-2px) scale(1.04);filter:brightness(1.06);}
+.fab:active{transform:scale(.95);}
 .empty-ic{font-size:54px;margin-bottom:var(--s3);opacity:.5;}
 .empty-t{font-weight:800;font-size:16px;color:var(--ink);margin-bottom:var(--s1);}
 .empty-d{font-size:13px;max-width:300px;margin:0 auto;line-height:1.5;}
@@ -738,20 +752,143 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 .kanban-board { display: flex; flex-direction: column; gap: 0; padding-bottom: 8px; }
 .kb-drop-hint { border: 1.5px dashed var(--border); border-radius: 8px; color: var(--text3); font-size: 11.5px; text-align: center; padding: 18px 8px; }
 
-/* Kanban card */
+/* Kanban card — kartu klien yang rapi & informatif */
 .kanban-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px; box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06)); cursor: pointer; transition: transform .12s var(--ease, ease), box-shadow .12s, border-color .12s;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 12px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06));
+  cursor: pointer;
+  transition: transform .12s var(--ease, ease), box-shadow .12s, border-color .12s;
 }
-.kanban-card:hover { box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,.12)); border-color: var(--primary); }
-.kb-card-top { display: flex; align-items: center; gap: 8px; }
-.kb-card-main { min-width: 0; display: flex; flex-direction: column; }
-.kb-card-name { font-size: 13.5px; font-weight: 800; color: var(--text); line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kanban-card:hover { box-shadow: var(--shadow-md, 0 6px 18px rgba(0,0,0,.10)); border-color: var(--primary); transform: translateY(-1px); }
+.kanban-card:hover .kb-card-name { color: var(--primary); }
+
+/* Header: avatar + nama + status */
+.kb-head { display: flex; align-items: flex-start; gap: 9px; cursor: pointer; }
+.kb-title { min-width: 0; display: flex; flex-direction: column; flex: 1; gap: 1px; }
+.kb-card-name { font-size: 14px; font-weight: 800; color: var(--text); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .12s; }
 .kb-card-sub { font-size: 11.5px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kb-card-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 8px; font-size: 11.5px; color: var(--text2); }
-.kb-card-meta span { display: inline-flex; align-items: center; gap: 2px; }
-.kb-bukti { cursor: pointer; color: var(--primary); font-weight: 700; }
-.kb-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
-.client-avatar { font-size: 18px; }
+.kb-chev { flex-shrink: 0; align-self: center; font-size: 12px; color: var(--text3); transition: transform .2s var(--ease, ease); }
+.kanban-card.expanded .kb-chev { transform: rotate(180deg); }
+
+/* Status chip — selalu tampil */
+.kb-status {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--bg-muted, rgba(0,0,0,.05));
+  color: var(--text2);
+  white-space: nowrap;
+}
+.kb-status.blue   { background: rgba(37,99,235,.12); color: #1d4ed8; }
+.kb-status.orange { background: rgba(217,80,20,.12); color: #c2410c; }
+.kb-status.amber  { background: rgba(217,119,6,.13); color: #b45309; }
+.kb-status.teal   { background: rgba(15,123,123,.13); color: #0e7490; }
+.kb-status.green  { background: rgba(22,128,76,.13); color: #15803d; }
+.kb-status.red    { background: rgba(192,57,43,.12); color: #b91c1c; }
+.kb-status.gray   { background: rgba(0,0,0,.06); color: var(--text2); }
+
+/* Source label — kecil & subtle */
+.kb-src {
+  display: inline-block;
+  margin-top: 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text3, #999);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* Konteks status — satu baris tipis di bawah header */
+.kb-ctx { margin-top: 6px; }
+.kb-card-ctx { display: block; font-size: 12px; font-weight: 600; color: var(--text2); }
+.kb-card-ctx.on { color: var(--green); }
+.kb-card-ctx.off { color: var(--text3); }
+
+/* CTA — tampil di kartu saat collapse, pindah ke dalam akordeon saat expand */
+.kb-cta { margin-top: 10px; }
+.kb-cta .btn { width: 100%; justify-content: center; }
+.kb-cta-open { display: none; margin-top: 12px; }
+.kanban-card.expanded .kb-cta-card { display: none; }
+.kanban-card.expanded .kb-cta-open { display: flex; }
+
+/* Detail akordeon — collapse by default, expand saat head diklik */
+.kb-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .28s var(--ease, ease); }
+.kb-detail.open { grid-template-rows: 1fr; }
+.kb-detail-inner { min-height: 0; overflow: hidden; }
+
+/* Sub-akordeon "Kelola Klien" — collapse dengan pattern grid 0fr→1fr sama */
+.kb-manage { margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg-card, var(--surface)); }
+.kb-manage-t { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 8px 10px; background: var(--bg-muted, rgba(0,0,0,.03)); border: none; color: var(--text); font-size: 12px; font-weight: 800; cursor: pointer; }
+.kb-manage-t:hover { background: var(--bg-muted, rgba(0,0,0,.06)); }
+.kb-manage-b { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .28s var(--ease, ease); }
+.kb-manage-open.kb-manage-b { grid-template-rows: 1fr; }
+.kb-manage-b > div { min-height: 0; overflow: hidden; padding: 0 10px; }
+
+/* Info baca doang — baris label + nilai rapi */
+.kb-info { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; margin-top: 6px; }
+.kb-info-r { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px dashed var(--border); font-size: 12px; min-width: 0; }
+.kb-info-r:last-child { border-bottom: none; }
+.kb-info-l { flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: var(--text3, #999); text-transform: uppercase; letter-spacing: .05em; }
+.kb-info-v { flex: 1; text-align: right; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.kb-info-v.mono { font-family: var(--mono, ui-monospace, monospace); font-size: 11.5px; }
+
+/* Fakta kunci — grid label + nilai rapi */
+.kb-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; margin-top: 12px; }
+.kb-fact { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.kb-fact-wide { grid-column: 1 / -1; }
+.kb-fact-l { font-size: 10.5px; font-weight: 700; color: var(--text3, #999); text-transform: uppercase; letter-spacing: .05em; }
+.kb-fact-v { font-size: 12.5px; font-weight: 600; color: var(--text); display: inline-flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kb-fact-v a { color: var(--primary); }
+
+/* Baris deal — harga menonjol */
+.kb-deal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 9px 11px;
+  background: var(--bg-muted, rgba(0,0,0,.03));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.kb-price { font-size: 15px; font-weight: 800; color: var(--text); white-space: nowrap; }
+.kb-deal-side { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.kb-serial { color: var(--text2); font-family: var(--mono, ui-monospace, monospace); font-size: 11px; }
+.kb-age { color: var(--text2); font-size: 11.5px; font-weight: 600; }
+
+/* Baris lisensi / verifikasi (chip kecil, muncul bila data tersedia) */
+.kb-card-lic { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.kb-lic { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: var(--text2); background: var(--bg-muted, rgba(0,0,0,.04)); border: 1px solid var(--border); border-radius: var(--radius-full, 999px); padding: 3px 9px; }
+.kb-lic.on { color: var(--green); background: var(--green-bg, #ECFDF3); border-color: transparent; }
+
+/* Footer aksi */
+.kb-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+.kb-time { font-size: 11.5px; color: var(--text2); white-space: nowrap; }
+.kb-actions { display: inline-flex; gap: 4px; }
+
+.kb-card-batal { opacity: .62; }
+.kb-card-batal .kb-progress { background: var(--red-600, #c0392b); opacity: .5; }
+
+/* Progress bar posisi pipeline */
+.kb-progress { position: absolute; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--primary), var(--primary-2, var(--primary))); border-radius: 0 2px 2px 0; min-width: 6px; opacity: .85; }
+
+/* Menu popup (tombol ⋯) */
+.kb-card-menu { position: relative; }
+.kb-card-menu-pop { position: absolute; right: 0; top: calc(100% + 4px); z-index: 40; min-width: 190px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-md, 0 8px 24px rgba(0,0,0,.15)); padding: 5px; display: none; }
+.kb-card-menu-pop.open { display: flex; flex-direction: column; gap: 2px; }
+.kb-card-menu-pop button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: none; background: transparent; color: var(--text); font-size: 12.5px; font-weight: 600; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.kb-card-menu-pop button:hover { background: var(--bg-muted, rgba(0,0,0,.05)); color: var(--primary); }
+.kb-card-menu-pop button:disabled { opacity: .4; cursor: not-allowed; }
+.kb-card-menu-pop button:disabled:hover { background: transparent; color: var(--text); }
 
 /* Kanban tab-per-status */
 .kb-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 12px 4px; border-bottom: 1px solid var(--border); }
@@ -764,15 +901,15 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 .kb-tab-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px 6px; }
 .kb-tab-title { font-size: 14px; font-weight: 800; color: var(--text); }
 .kb-tab-total { font-size: 12px; font-weight: 700; color: var(--text2); }
-.kb-tab-list { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 14px; max-height: 62vh; overflow-y: auto; }
-.kb-tab-list .kanban-card { cursor: default; }
+.kb-tab-list { display: flex; flex-direction: column; gap: 8px; padding: 8px 10px 14px; max-height: 62vh; overflow-y: auto; }
+.kb-tab-list .kanban-card { cursor: default; flex-shrink: 0; }
 .kb-card-status { margin-left: auto; flex-shrink: 0; }
 .kb-card-actions { display: inline-flex; gap: 4px; }
 
-/* Kartu kontekstual per status — aksen warna halus (subtle tint, bukan border tebal) */
-.kb-card-ctx{display:block;width:100%;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--text2);}
-.kb-card-ctx.on{color:var(--green);}
-.kb-card-ctx.off{color:var(--text3);}
+/* Tombol "🧾 Lihat Bukti" (konteks menunggu verifikasi) */
+.kb-bukti { cursor: pointer; color: var(--primary); font-weight: 700; }
+
+/* Aksen warna halus (subtle tint) per status di badan kartu */
 .kb-acc-blue{background:rgba(37,99,235,.06);}
 .kb-acc-orange{background:rgba(199,55,18,.06);}
 .kb-acc-amber{background:rgba(217,119,6,.06);}
@@ -780,30 +917,6 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 .kb-acc-green{background:rgba(26,127,76,.06);}
 .kb-acc-red{background:rgba(192,57,43,.06);}
 .kb-acc-gray{background:rgba(0,0,0,.03);}
-.kb-card-batal{opacity:.62;}
-/* Progress bar posisi pipeline */
-.kanban-card { position: relative; overflow: hidden; }
-.kb-progress { position: absolute; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--primary), var(--primary-2, var(--primary))); border-radius: 0 2px 2px 0; min-width: 6px; opacity: .85; }
-.kb-card-batal .kb-progress { background: var(--red-600, #c0392b); opacity: .5; }
-/* Source badge */
-.kb-card-src { align-self: flex-start; margin-top: 8px; }
-/* Deal row (harga / serial / umur) */
-.kb-card-deal { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding: 6px 8px; background: var(--bg-muted, rgba(0,0,0,.03)); border-radius: 8px; font-size: 11.5px; font-weight: 700; color: var(--text); }
-.kb-card-price { white-space: nowrap; color: var(--text); }
-.kb-card-serial { color: var(--text2); font-family: var(--mono, ui-monospace, monospace); font-size: 10.5px; }
-.kb-card-age { color: var(--text2); font-size: 11px; }
-/* Baris lisensi / verifikasi (chip kecil, muncul bila data tersedia) */
-.kb-card-lic { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.kb-lic { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; color: var(--text2); background: var(--bg-muted, rgba(0,0,0,.04)); border: 1px solid var(--border); border-radius: var(--radius-full, 999px); padding: 2px 8px; }
-.kb-lic.on { color: var(--green); background: var(--green-bg, #ECFDF3); border-color: transparent; }
-/* Menu popup (tombol ⋯) */
-.kb-card-menu { position: relative; }
-.kb-card-menu-pop { position: absolute; right: 0; top: calc(100% + 4px); z-index: 40; min-width: 190px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-md, 0 8px 24px rgba(0,0,0,.15)); padding: 5px; display: none; }
-.kb-card-menu-pop.open { display: flex; flex-direction: column; gap: 2px; }
-.kb-card-menu-pop button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: none; background: transparent; color: var(--text); font-size: 12.5px; font-weight: 600; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
-.kb-card-menu-pop button:hover { background: var(--bg-muted, rgba(0,0,0,.05)); color: var(--primary); }
-.kb-card-menu-pop button:disabled { opacity: .4; cursor: not-allowed; }
-.kb-card-menu-pop button:disabled:hover { background: transparent; color: var(--text); }
 
 /* Responsive kanban tab-list — scroll maksimal di layar sempit */
 @media (max-width: 760px) {

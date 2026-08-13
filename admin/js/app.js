@@ -6,11 +6,11 @@
 import { initState, STATE } from './app-state.js';
 import { storage } from './storage.js';
 import { initAuth } from './auth.js';
-import { initNavigation, getCurrentScreen } from './navigation.js';
+import { initNavigation, getCurrentScreen } from './navigation.js?v=20260812i';
 import { initDashboard } from './dashboard.js';
 import { initCatalog } from './catalog.js';
 import { initSettings } from './settings.js';
-import { initClients } from './clients.js';
+import { initClients } from './clients.js?v=20260813a';
 import { initToast } from './toast.js';
 import { showToast } from './toast.js';
 import './emoji-picker.js'; // side-effect: men-wire window.showEmojiPicker/hideEmojiPicker/pickEmoji
@@ -52,10 +52,11 @@ async function bootstrap() {
 
     // Listen for screen changes to trigger specific renders if needed
     window.addEventListener('screen:change', (e) => {
-      const { screen } = e.detail;
-      // Modules subscribe to state changes, so they auto-render
-      // But we can trigger specific actions here if needed
-      console.log('Screen changed to:', screen);
+      const { screen, clientView } = e.detail;
+      if (screen === 'klien' && clientView) {
+        window.switchClientView(clientView);
+      }
+      console.log('Screen changed to:', screen, clientView ? `(view: ${clientView})` : '');
     });
 
     // Listen for app:ready (after login)

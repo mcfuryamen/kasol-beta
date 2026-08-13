@@ -13,7 +13,7 @@ import { showToast } from './toast.js';
 import { escapeHtml, formatRelativeTime, formatDate, normalizePhone, debounce } from './utils.js';
 import { STATE, setState } from './app-state.js';
 import { supabaseFetch, licenseApi } from './api.js';
-import { updateSidebarBadges } from './navigation.js';
+import { updateSidebarBadges } from './navigation.js?v=20260812i';
 import { formatExpiry } from './license-core.js';
 
 // app_type → produk (HANYA metadata: prefix/ikon/label).
@@ -28,8 +28,6 @@ export const APP_META = {
 const metaFor = (at) => APP_META[at] || { prefix: '', icon: '📦', label: (at || 'Lain') };
 
 let clients = [];
-let current = null; // klien yang terbuka di sheet
-let currentMeta = null;
 
 const DAYS = 30 * 24 * 60 * 60 * 1000;
 const isActive = (c) => c.last_seen && (Date.now() - new Date(c.last_seen).getTime()) < DAYS;
@@ -38,12 +36,6 @@ const isActive = (c) => c.last_seen && (Date.now() - new Date(c.last_seen).getTi
 export async function initClients() {
   document.getElementById('clientsSearch')?.addEventListener('input', renderAll);
   document.getElementById('clientsAppFilter')?.addEventListener('change', renderAll);
-  document.getElementById('backFromClient')?.addEventListener('click', () => window.backFromClient());
-
-  // Toggle view Analitik / Kelola
-  document.querySelectorAll('.client-view-btn[data-view]').forEach((btn) => {
-    btn.addEventListener('click', () => switchClientView(btn.dataset.view));
-  });
 
   window.addEventListener('screen:change', (e) => {
     if (e.detail?.screen === 'klien') { loadClients(); }
@@ -83,11 +75,6 @@ function stageMeta(status) {
   return PIPELINE_STAGES.find((s) => s.key === status) || { key: status, label: status || 'Tanpa status', tone: 'gray' };
 }
 
-function statusBadge(status) {
-  const m = stageMeta(status);
-  return `<span class="badge ${m.tone}">${m.label}</span>`;
-}
-
 /** Aksen kartu mengikuti konteks status */
 function statusAccent(status) {
   return 'kb-acc-' + stageMeta(status).tone;
@@ -115,14 +102,17 @@ function statusCtxHtml(c, esc) {
 /** Tombol utama kartu, berubah sesuai konteks status */
 function statusCta(c, esc) {
   const id = esc(c.id);
+  // Buka akordeon kartu + sekaligus sub-akordeon "Kelola Klien"
+  const open = `toggleCardDetail(this.closest('.kanban-card').querySelector('.kb-head'));` +
+               `toggleKbManage(this.closest('.kanban-card').querySelector('.kb-manage-t'));`;
   switch (c.status) {
     case 'baru': return `<button type="button" class="btn btn-primary btn-sm" onclick="moveStage('${id}','next')">📞 Hubungi</button>`;
     case 'dihubungi': return `<button type="button" class="btn btn-primary btn-sm" onclick="moveStage('${id}','next')">💡 Tawarkan</button>`;
     case 'tertarik': return `<button type="button" class="btn btn-primary btn-sm" onclick="moveStage('${id}','next')">⏳ Minta Verifikasi</button>`;
-    case 'menunggu_verifikasi': return `<button type="button" class="btn btn-primary btn-sm" onclick="openClientById('${id}')">🔍 Verifikasi</button>`;
-    case 'aktif': return `<button type="button" class="btn btn-primary btn-sm" onclick="openClientById('${id}')">⚙️ Kelola</button>`;
-    case 'batal': return `<button type="button" class="btn btn-outline btn-sm" onclick="openClientById('${id}')">↩️ Pulihkan</button>`;
-    default: return `<button type="button" class="btn btn-outline btn-sm" onclick="openClientById('${id}')">Buka</button>`;
+    case 'menunggu_verifikasi': return `<button type="button" class="btn btn-primary btn-sm" onclick="${open}">🔍 Verifikasi</button>`;
+    case 'aktif': return `<button type="button" class="btn btn-primary btn-sm" onclick="${open}">⚙️ Kelola</button>`;
+    case 'batal': return `<button type="button" class="btn btn-outline btn-sm" onclick="${open}">↩️ Pulihkan</button>`;
+    default: return `<button type="button" class="btn btn-outline btn-sm" onclick="${open}">Buka</button>`;
   }
 }
 
@@ -164,6 +154,7 @@ let kanbanTab = 'semua';
 function renderKanban() {
   const host = document.getElementById('kanbanBoard');
   if (!host) return;
+  host.hidden = false; // pastikan board tampil (bisa ke-set true oleh flow openClient)
   const q = (document.getElementById('clientsSearch')?.value || '').toLowerCase();
   const qNorm = (c) => [c.nama_warung, c.nama_pemilik, c.device_code, c.no_whatsapp, c.email, c.kabkota, c.provinsi, c.unit_id, c.serial]
     .some((v) => (v || '').toLowerCase().includes(q));
@@ -212,12 +203,14 @@ function renderKanban() {
   host.querySelectorAll('.kb-bukti').forEach((el) => {
     el.addEventListener('click', (e) => { e.stopPropagation(); const u = el.dataset.bukti; if (u) window.open(u, '_blank'); });
   });
-  // Klik kartu = buka detail (tombol/menu di dalam kartu diabaikan)
+  // Klik kartu = buka akordeon detail (tombol/menu/head di dalam kartu diabaikan)
   host.querySelectorAll('.kanban-card').forEach((card) => {
     card.addEventListener('click', (e) => {
-      if (e.target.closest('button') || e.target.closest('.kb-card-menu-pop')) return;
-      const id = card.dataset.clientId;
-      if (id) openClientById(id);
+      if (e.target.closest('button') || e.target.closest('.kb-card-menu-pop') || e.target.closest('.kb-head')) return;
+      const head = card.querySelector('.kb-head');
+      if (head && !card.querySelector('.kb-detail')?.classList.contains('open')) {
+        toggleCardDetail(head);
+      }
     });
   });
   host.querySelectorAll('.kb-menu-btn').forEach((btn) => {
@@ -230,9 +223,10 @@ function renderKanban() {
       document.querySelectorAll('.kb-card-menu-pop.open').forEach((p) => p.classList.remove('open'));
     });
   }
-}
+    maybeOpenPending();
+  }
 
-/** Toggle popup menu aksi kartu */
+  /** Toggle popup menu aksi kartu */
 function toggleKbMenu(btn) {
   const card = btn.closest('.kanban-card');
   if (!card) return;
@@ -270,45 +264,236 @@ function kanbanCardHtml(c) {
   if (c.verified_at) licLine.push('<span class="kb-lic">🔎 Verifikasi ' + esc(formatDate(c.verified_at)) + '</span>');
   const licHtml = licLine.length ? `<div class="kb-card-lic">${licLine.join('')}</div>` : '';
 
+  // Fakta kunci (label + nilai) — tampil hanya bila tersedia
+  const facts = [];
+  if (c.nama_pemilik) facts.push(`<div class="kb-fact"><span class="kb-fact-l">Pemilik</span><span class="kb-fact-v">${esc(c.nama_pemilik)}</span></div>`);
+  if (contact) facts.push(`<div class="kb-fact"><span class="kb-fact-l">Kontak</span><span class="kb-fact-v">${contact}</span></div>`);
+  if (wil) facts.push(`<div class="kb-fact kb-fact-wide"><span class="kb-fact-l">Lokasi</span><span class="kb-fact-v">${esc(wil)}</span></div>`);
+
+  // Prefix ID unik per kartu agar input/tombol tidak bentrok antar kartu
+  const u = 'kc' + Math.random().toString(36).slice(2, 8);
+
   return `
     <div class="kanban-card ${statusAccent(c.status)}${isBatal ? ' kb-card-batal' : ''}" data-client-id="${esc(c.id)}">
       <div class="kb-progress" style="width:${progressPct}%"></div>
-      <div class="kb-card-top">
+      <div class="kb-head" role="button" tabindex="0" aria-expanded="false" onclick="toggleCardDetail(this)">
         <span class="client-avatar">${m.icon}</span>
-        <div class="kb-card-main">
+        <div class="kb-title">
           <strong class="kb-card-name">${esc(c.nama_warung || '—')}</strong>
-          <small class="kb-card-sub">${esc(m.label)}${c.device_code ? ' · ' + esc(c.device_code) : ''}</small>
+          <span class="kb-card-sub">${esc(m.label)}${c.device_code ? ' · ' + esc(c.device_code) : ''}</span>
         </div>
-        ${kanbanTab === 'semua' ? `<span class="badge ${sm.tone} kb-card-status">${sm.label}</span>` : ''}
+        <span class="kb-status ${sm.tone}">${sm.label}</span>
+        <span class="kb-chev">▾</span>
       </div>
-      ${c.source ? `<span class="badge tone-gray kb-card-src">${esc(c.source)}</span>` : ''}
-      <div class="kb-card-meta">
-        ${c.nama_pemilik ? `<span>👤${esc(c.nama_pemilik)}</span>` : ''}
-        ${contact}
-        ${wil ? `<span>📍${esc(wil)}</span>` : ''}
-      </div>
-      ${statusCtxHtml(c, esc)}
-      <div class="kb-card-deal">
-        <span class="kb-card-price">${harga ? '💰 Rp ' + harga.toLocaleString('id-ID') : '💰 —'}</span>
-        ${serial ? `<span class="kb-card-serial">🔑 ${esc(serial.slice(0, 12))}…</span>` : `<span class="kb-card-age">🕑 ${formatLeadAge(c.first_seen)}</span>`}
-      </div>
-      ${licHtml}
-      <div class="kb-card-foot">
-        <span class="text-xs kb-card-time">🕒 ${formatRelativeTime(c.last_seen)}</span>
-        <div class="kb-card-actions">
-          ${statusCta(c, esc)}
-          <div class="kb-card-menu">
-            <button type="button" class="btn btn-ghost btn-sm kb-menu-btn" title="Aksi lain" aria-label="Menu aksi">⋯</button>
-            <div class="kb-card-menu-pop">
-              <button type="button" data-act="open" onclick="openClientById('${esc(c.id)}')">👁️ Buka Detail</button>
-              <button type="button" data-act="prev" ${idx <= 0 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','prev')">⬅️ Status sebelumnya</button>
-              <button type="button" data-act="next" ${idx < 0 || idx >= PIPELINE_STAGES.length - 1 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','next')">➡️ Status berikutnya</button>
+      ${c.source ? `<div class="kb-src">${esc(c.source)}</div>` : ''}
+      <div class="kb-ctx">${statusCtxHtml(c, esc)}</div>
+            <div class="kb-cta kb-cta-card">${statusCta(c, esc)}</div>
+            <div class="kb-detail">
+              <div class="kb-detail-inner">
+                <div class="kb-cta kb-cta-open">${statusCta(c, esc)}</div>
+                ${facts.length ? `<div class="kb-facts">${facts.join('')}</div>` : ''}
+          <div class="kb-deal">
+            <span class="kb-price">${harga ? 'Rp ' + harga.toLocaleString('id-ID') : 'Harga —'}</span>
+            <span class="kb-deal-side">${serial ? `<span class="kb-serial">🔑 ${esc(serial.slice(0, 12))}…</span>` : `<span class="kb-age">🕑 ${formatLeadAge(c.first_seen)}</span>`}</span>
+          </div>
+          ${licHtml}
+
+          <!-- Kelola Klien: info baca doang + aksi lisensi (scoped per kartu) -->
+          <div class="kb-manage">
+            <button type="button" class="kb-manage-t" aria-expanded="false" onclick="toggleKbManage(this)">
+              <span>⚙️ Detail & Aksi</span><span class="kb-chev">▾</span>
+            </button>
+            <div class="kb-manage-b">
+
+              <!-- Info baca doang (tanpa kotak isian) -->
+              <div class="section-label">📋 Data Klien</div>
+              <div class="kb-info">
+                ${c.unit_id !== undefined && c.unit_id !== null && c.unit_id !== '' ? `<div class="kb-info-r"><span class="kb-info-l">Unit ID</span><span class="kb-info-v mono">${esc(c.unit_id)}</span></div>` : ''}
+                <div class="kb-info-r"><span class="kb-info-l">Aplikasi</span><span class="kb-info-v">${m.icon} ${esc(m.label)}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Device Code</span><span class="kb-info-v mono">${esc(c.device_code || '—')}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Nama Usaha</span><span class="kb-info-v">${esc(c.nama_warung || '—')}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Nama Pemilik</span><span class="kb-info-v">${esc(c.nama_pemilik || '—')}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Kontak</span><span class="kb-info-v">${c.no_whatsapp ? '💬' + esc(c.no_whatsapp) : (c.email ? '✉️' + esc(c.email) : '—')}</span></div>
+                ${c.alamat_detail ? `<div class="kb-info-r"><span class="kb-info-l">Alamat</span><span class="kb-info-v">${esc(c.alamat_detail)}${wil ? ' · ' + esc(wil) : ''}</span></div>` : (wil ? `<div class="kb-info-r"><span class="kb-info-l">Wilayah</span><span class="kb-info-v">${esc(wil)}</span></div>` : '')}
+                ${harga ? `<div class="kb-info-r"><span class="kb-info-l">Harga Deal</span><span class="kb-info-v">Rp ${harga.toLocaleString('id-ID')}</span></div>` : ''}
+                <div class="kb-info-r"><span class="kb-info-l">Dilihat</span><span class="kb-info-v">🕒 ${formatRelativeTime(c.last_seen)}</span></div>
+              </div>
+
+              <div class="section-label mt16">⚡ Generate Lisensi</div>
+              <div class="field-grid mt8">
+                <div class="field"><label class="field-label">Masa Aktif</label>
+                  <select data-kf="days">
+                    <option value="30">1 Bulan</option>
+                    <option value="90">3 Bulan</option>
+                    <option value="180">6 Bulan</option>
+                    <option value="365" selected>1 Tahun</option>
+                    <option value="730">2 Tahun</option>
+                    <option value="99">Seumur Hidup</option>
+                  </select>
+                </div>
+                <div class="field field-span-2"><label class="field-label">Hasil Serial</label>
+                  <textarea data-kf="serialOut" readonly rows="2" class="input-mono" placeholder="Serial muncul di sini"></textarea>
+                  <div class="btn-block-row mt8">
+                    <button type="button" class="btn btn-primary" onclick="genCardSerial(this)">🔑 Generate</button>
+                    <button type="button" class="btn btn-outline" onclick="copyCardSerial(this)">📋 Copy</button>
+                    <button type="button" class="btn btn-outline" onclick="sendCardSerialWA(this)">💬 Kirim WA</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section-label mt16">🔎 Verifikasi Serial</div>
+              <div class="field-grid mt8">
+                <div class="field field-span-2"><label class="field-label">Serial Number</label>
+                  <input type="text" data-kf="ver" class="input-mono" placeholder="Serial yang akan dicek" value="${esc(serial || '')}">
+                </div>
+                <div class="field field-span-2">
+                  <button type="button" class="btn btn-outline" onclick="verifyCardSerial(this)">✅ Verifikasi</button>
+                  <div class="verify-box mt8" data-kf="verRes" hidden></div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="kb-foot">
+            <span class="kb-time">🕒 ${formatRelativeTime(c.last_seen)}</span>
+            <div class="kb-actions">
+              <div class="kb-card-menu">
+                <button type="button" class="btn btn-ghost btn-sm kb-menu-btn" title="Aksi lain" aria-label="Menu aksi">⋯</button>
+                <div class="kb-card-menu-pop">
+                  <button type="button" data-act="manage" onclick="toggleKbManage(this.closest('.kanban-card').querySelector('.kb-manage-t'))">⚙️ Kelola Klien</button>
+                  <button type="button" data-act="prev" ${idx <= 0 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','prev')">⬅️ Status sebelumnya</button>
+                  <button type="button" data-act="next" ${idx < 0 || idx >= PIPELINE_STAGES.length - 1 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','next')">➡️ Status berikutnya</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>`;
 }
+
+/** Toggle sub-akordeon "Kelola Klien" pada kartu */
+window.toggleKbManage = function (btn) {
+  const mb = btn && btn.nextElementSibling;
+  if (!mb) return;
+  const isOpen = mb.classList.toggle('kb-manage-open');
+  btn.setAttribute('aria-expanded', String(isOpen));
+  if (isOpen && mb.scrollIntoView) mb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+};
+
+/** Ambil kartu + data klien dari sebuah tombol/elemen di dalam kartu */
+function kbPer(btn) {
+  const card = btn.closest('.kanban-card');
+  const id = card && card.getAttribute('data-client-id');
+  const c = clients.find((x) => x.id === id) || null;
+  return { card, c };
+}
+function kbVal(card, key) {
+  const el = card && card.querySelector(`[data-kf="${key}"]`);
+  return el ? el.value.trim() : '';
+}
+function kbSet(card, key, value) {
+  const el = card && card.querySelector(`[data-kf="${key}"]`);
+  if (el) el.value = value;
+}
+
+/** Generate serial untuk klien di kartu ini */
+window.genCardSerial = async function (btn) {
+  const { card, c } = kbPer(btn);
+  if (!c) return;
+  const m = metaFor(c.app_type);
+  if (!m.prefix) { showToast('Produk klien belum dikenal / belum ada prefix', 2000, 'warning'); return; }
+  const rawDevice = c.device_code || '';
+  if (!rawDevice) { showToast('Device Code kosong', 2000, 'warning'); return; }
+  const days = parseInt(kbVal(card, 'days') || '365', 10);
+  let expCode = '99';
+  if (days <= 30) expCode = '01';
+  else if (days <= 90) expCode = '03';
+  else if (days <= 180) expCode = '06';
+  else if (days <= 365) expCode = '12';
+  else if (days <= 730) expCode = '24';
+  else if (days <= 1095) expCode = '36';
+  else if (days <= 1825) expCode = '60';
+  const res = await licenseApi('generate', { prefix: m.prefix, deviceCode: rawDevice, expCode });
+  if (!res.ok) {
+    const msg = res.data?.error || `Gagal generate (${res.status})`;
+    showToast('Gagal membuat serial: ' + msg, 3000, 'error');
+    return;
+  }
+  kbSet(card, 'serialOut', res.data.serial);
+  showToast('✅ Serial berhasil dibuat!', 2000, 'success');
+};
+
+/** Copy serial dari kartu ini */
+window.copyCardSerial = async function (btn) {
+  const { card } = kbPer(btn);
+  const v = kbVal(card, 'serialOut');
+  if (!v) { showToast('Generate dulu', 2000, 'warning'); return; }
+  try {
+    await navigator.clipboard.writeText(v);
+    showToast('Serial disalin', 2000, 'success');
+  } catch { showToast('Gagal menyalin', 2000, 'error'); }
+};
+
+/** Verifikasi serial klien di kartu ini (server-side HMAC) */
+window.verifyCardSerial = async function (btn) {
+  const { card, c } = kbPer(btn);
+  if (!c) return;
+  const m = metaFor(c.app_type);
+  if (!m.prefix) { showToast('Produk klien belum dikenal / belum ada prefix', 2000, 'warning'); return; }
+  const serial = kbVal(card, 'ver');
+  if (!serial) { showToast('Masukkan serial yang ingin diverifikasi', 2000, 'warning'); return; }
+  const deviceCode = c.device_code || '';
+  if (!deviceCode) { showToast('Device Code kosong', 2000, 'warning'); return; }
+  const res = await licenseApi('verify', { prefix: m.prefix, serial, deviceCode });
+  const box = card.querySelector('[data-kf="verRes"]');
+  const verMsg = (cls, html) => {
+    if (box) { box.innerHTML = html; box.className = 'verify-box mt8 ' + cls; box.hidden = false; }
+  };
+  if (!res.ok || !res.data) {
+    const msg = res.data?.error || `Gagal verifikasi (${res.status})`;
+    verMsg('verify-error', `<div class="verify-badge error">❌ ERROR</div><div class="verify-detail">${esc(msg)}</div>`);
+    showToast('Error saat verifikasi: ' + msg, 3000, 'error');
+    return;
+  }
+  const result = res.data;
+  const pname = m.label;
+  if (result.valid && !result.expired) {
+    verMsg('verify-success', `<div class="verify-badge success">✅ VALID</div><div class="verify-detail">Produk: ${esc(pname)}<br>Device Code: ${esc(result.deviceCode)}<br>Masa Berlaku: ${esc(result.expiryText || formatExpiry(result.expCode))}<br><small>Status: Aktif</small></div>`);
+    showToast('Serial valid', 2000, 'success');
+  } else if (result.valid && result.expired) {
+    verMsg('verify-warning', `<div class="verify-badge warning">⚠️ KADALUARSA</div><div class="verify-detail">Produk: ${esc(pname)}<br>Device Code: ${esc(result.deviceCode)}<br>Kadaluarsa: ${esc(result.expiryText || formatExpiry(result.expCode))}<br><small>Serial valid tapi masa berlaku habis</small></div>`);
+    showToast('Serial kadaluarsa', 2500, 'warning');
+  } else {
+    verMsg('verify-error', `<div class="verify-badge error">❌ TIDAK VALID</div><div class="verify-detail">Serial tidak cocok dengan Device Code atau salt produk.<br>Periksa kembali input Anda.</div>`);
+    showToast('Serial tidak valid', 2000, 'error');
+  }
+};
+
+/** Kirim serial ke WhatsApp merchant */
+window.sendCardSerialWA = function (btn) {
+  const { card, c } = kbPer(btn);
+  if (!c) return;
+  const serial = kbVal(card, 'serialOut');
+  if (!serial) { showToast('Generate dulu', 2000, 'warning'); return; }
+  const nama = c.nama_warung || 'Usaha Anda';
+  const text = `Halo *${nama}*,\nIni kode lisensi Kasir Solo Anda:\n\n*${serial}*\n\nAktifkan di aplikasi pada menu Lisensi. Terima kasih 🙏\n— PT Mesin Kasir Solo`;
+  const wa = normalizePhone(c.no_whatsapp || '');
+  const target = wa || '628816566935';
+  window.open('https://wa.me/' + encodeURIComponent(target) + '?text=' + encodeURIComponent(text), '_blank');
+};
+
+/** Toggle akordeon detail kartu kanban */
+window.toggleCardDetail = function (headEl) {
+  const card = headEl.closest('.kanban-card');
+  if (!card) return;
+  const detail = card.querySelector('.kb-detail');
+  if (!detail) return;
+  const isOpen = detail.classList.toggle('open');
+  card.classList.toggle('expanded', isOpen);
+  headEl.setAttribute('aria-expanded', String(isOpen));
+};
 
 /** Umur lead dalam teks ramah (dari first_seen / created_at) */
 function formatLeadAge(firstSeen) {
@@ -343,25 +528,53 @@ function moveStage(id, dir) {
 }
 window.moveStage = moveStage;
 
-/** Buka detail klien dari kartu via id */
-function openClientById(id) {
-  const idx = clients.findIndex((c) => c.id === id);
-  if (idx >= 0) openClient(idx);
+/** Open client accordion dari dashboard: pindah ke view Kelola + buka akordeon kartu tsb */
+let pendingOpenId = null;
+window.openClientAccordion = async function (id) {
+  pendingOpenId = id;
+  try { if (window.showScreen) window.showScreen('klien', 'kelola'); } catch { try { window.showScreen('klien'); } catch {} }
+  // tunggu semua load asinkron (coalesced) selesai supaya render final punya kartu terbaru
+  await loadClients();
+  // set ulang pending SETELAH render asinkron, lalu render sekali lagi agar terbuka & ter-scroll
+  pendingOpenId = id;
+  if (typeof renderKanban === 'function') renderKanban();
+  openPendingCard();
+};
+
+/** Buka kartu pendingOpenId setelah DOM dirender (dipanggil dari renderKanban) */
+function maybeOpenPending() {
+  if (!pendingOpenId) return;
+  const id = pendingOpenId;
+  const card = document.querySelector(`.kanban-card[data-client-id="${CSS.escape(id)}"]`);
+  if (!card) return; // kartu belum ada — tetap pending, akan coba lagi setelah load asinkron
+  pendingOpenId = null;
+  // pastikan tab "Semua" / tab berisi kartu tsb
+  kanbanTab = 'semua';
+  const head = card.querySelector('.kb-head');
+  if (head && !card.querySelector('.kb-detail')?.classList.contains('open')) toggleCardDetail(head);
+  requestAnimationFrame(() => card.scrollIntoView({ block: 'center', behavior: 'smooth' }));
 }
-window.openClientById = openClientById;
+function openPendingCard() {
+  maybeOpenPending();
+}
 
 /** Load all clients from Supabase */
 async function loadClients() {
-  try {
-    const res = await supabaseFetch('/rest/v1/clients?order=last_seen.desc');
-    clients = res.ok ? (res.data || []) : [];
-  } catch (e) {
-    clients = [];
-    console.error('load clients', e);
-  }
-  renderAll();
-  updateSidebarBadges({ clients: clients.length });
-  setState('clients', clients);
+  if (loadClients._inflight) return loadClients._inflight;
+  const p = (async () => {
+    try {
+      const res = await supabaseFetch('/rest/v1/clients?order=last_seen.desc');
+      clients = res.ok ? (res.data || []) : [];
+    } catch (e) {
+      clients = [];
+      console.error('load clients', e);
+    }
+    renderAll();
+    updateSidebarBadges({ clients: clients.length });
+    setState('clients', clients);
+  })();
+  loadClients._inflight = p;
+  try { return await p; } finally { loadClients._inflight = null; }
 }
 window.refreshClients = loadClients;
 
@@ -458,276 +671,3 @@ function renderAnalytics() {
     </div>
   `;
 }
-
-/** Open client detail (HALAMAN PENUH, bukan modal) */
-export function openClient(i) {
-  current = clients[i];
-  if (!current) return;
-  currentMeta = metaFor(current.app_type);
-  const host = document.getElementById('clientDetailBody');
-  if (!host) return;
-  const board = document.getElementById('kanbanBoard');
-  const head = document.getElementById('kanbanViewHead');
-  host.hidden = false;
-  if (board) board.hidden = true;
-  if (head) head.hidden = true;
-  const wilayah = [current.desa, current.kecamatan, current.kabkota, current.provinsi].filter(Boolean).join(', ');
-  host.innerHTML = `
-    <div class="panel-head cd-head">
-      <div class="cd-title">
-        <span class="client-avatar">${currentMeta.icon}</span>
-        <div>
-          <h3 class="panel-t">${escapeHtml(current.nama_warung || 'Klien')}</h3>
-          <span class="panel-sub">${escapeHtml(currentMeta.label)}${current.device_code ? ' · ' + escapeHtml(current.device_code) : ''}</span>
-        </div>
-      </div>
-      ${statusBadge(current.status)}
-    </div>
-    <div class="panel-body">
-
-      <div class="section-label">📋 Data Klien</div>
-      <div class="field-grid">
-        <div class="field"><label class="field-label">Unit ID</label><input type="text" id="clUnitId" value="${escapeHtml(current.unit_id || '')}" readonly class="input-readonly"></div>
-        <div class="field"><label class="field-label">Aplikasi</label><input type="text" value="${escapeHtml(currentMeta.label)}" readonly class="input-readonly"></div>
-        <div class="field"><label class="field-label">Device Code</label><input type="text" id="clDevice" value="${escapeHtml(current.device_code || '')}" class="input-mono"></div>
-        <div class="field"><label class="field-label">Nama Usaha</label><input type="text" id="clNama" value="${escapeHtml(current.nama_warung || '')}"></div>
-        <div class="field"><label class="field-label">Nama Pemilik</label><input type="text" id="clOwner" value="${escapeHtml(current.nama_pemilik || '')}"></div>
-        <div class="field"><label class="field-label">No. WhatsApp</label><input type="tel" id="clWa" value="${escapeHtml(current.no_whatsapp || '')}"></div>
-        <div class="field field-span-2"><label class="field-label">Wilayah</label><input type="text" value="${escapeHtml(wilayah || '—')}" readonly class="input-readonly"></div>
-        <div class="field field-span-2"><label class="field-label">Alamat Detail</label><input type="text" id="clAlamat" value="${escapeHtml(current.alamat_detail || '')}"></div>
-      </div>
-
-      <div class="section-label mt16">⚡ Generate Lisensi</div>
-      <div class="field-grid mt8">
-        <div class="field"><label class="field-label">Produk</label><input type="text" value="${escapeHtml(currentMeta.prefix || '—')} · ${escapeHtml(currentMeta.label)}" readonly class="input-readonly"></div>
-        <div class="field"><label class="field-label">Masa Aktif</label>
-          <select id="clDays">
-            <option value="30">1 Bulan</option>
-            <option value="90">3 Bulan</option>
-            <option value="180">6 Bulan</option>
-            <option value="365" selected>1 Tahun</option>
-            <option value="730">2 Tahun</option>
-            <option value="99">Seumur Hidup</option>
-          </select>
-        </div>
-        <div class="field field-span-2"><label class="field-label">Hasil Serial</label>
-          <textarea id="clSerialOut" readonly rows="2" class="input-mono" placeholder="Serial muncul di sini"></textarea>
-          <div class="btn-block-row mt8">
-            <button class="btn btn-primary" onclick="generateClientSerial()">🔑 Generate</button>
-            <button class="btn btn-outline" onclick="copyClientSerial()">📋 Copy</button>
-            <button class="btn btn-outline" onclick="sendClientSerialWA()">💬 Kirim WA</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="section-label mt16">🔎 Verifikasi Serial</div>
-      <div class="field-grid mt8">
-        <div class="field field-span-2"><label class="field-label">Serial Number</label>
-          <input type="text" id="clVerifySerial" class="input-mono" placeholder="Serial yang akan dicek" value="${escapeHtml(current.serial || '')}">
-        </div>
-        <div class="field field-span-2">
-          <button class="btn btn-outline" onclick="verifyClientSerial()">✅ Verifikasi</button>
-          <div id="clVerifyResult" class="verify-box mt8" hidden></div>
-        </div>
-      </div>
-
-      <div class="btn-block-row mt16">
-        <button class="btn btn-outline" onclick="backFromClient()">← Kembali</button>
-        <button class="btn btn-primary" onclick="saveClient()">💾 Simpan</button>
-        <button class="btn btn-danger" onclick="deleteClient()">🗑️ Hapus</button>
-      </div>
-    </div>
-  `;
-  // Detail tampil inline di dalam panel Kelola Klien (board & head disembunyikan di atas)
-}
-
-/** Kembali dari detail klien ke daftar kartu */
-window.backFromClient = function () {
-  const board = document.getElementById('kanbanBoard');
-  const head = document.getElementById('kanbanViewHead');
-  const host = document.getElementById('clientDetailBody');
-  if (host) host.hidden = true;
-  if (head) head.hidden = false;
-  if (board) {
-    board.hidden = false;
-    renderKanban();
-  }
-  document.body.style.overflow = '';
-};
-
-/** Alias lama — tetap dipakai saveClient/deleteClient */
-window.closeClientSheet = window.backFromClient;
-
-/** Generate serial untuk klien yang terbuka */
-window.generateClientSerial = async function () {
-  if (!current || !currentMeta?.prefix) {
-    showToast('Produk klien ini belum dikenal / belum ada prefix', 2000, 'warning');
-    return;
-  }
-  const rawDevice = document.getElementById('clDevice')?.value || current.device_code || '';
-  if (!rawDevice) { showToast('Device Code kosong', 2000, 'warning'); return; }
-  const days = parseInt(document.getElementById('clDays')?.value || '365', 10);
-  let expCode = '99';
-  if (days <= 30) expCode = '01';
-  else if (days <= 90) expCode = '03';
-  else if (days <= 180) expCode = '06';
-  else if (days <= 365) expCode = '12';
-  else if (days <= 730) expCode = '24';
-  else if (days <= 1095) expCode = '36';
-  else if (days <= 1825) expCode = '60';
-  const res = await licenseApi('generate', {
-    prefix: currentMeta.prefix,
-    deviceCode: rawDevice,
-    expCode
-  });
-  if (!res.ok) {
-    const msg = res.data?.error || `Gagal generate (${res.status})`;
-    showToast('Gagal membuat serial: ' + msg, 3000, 'error');
-    return;
-  }
-  const serial = res.data.serial;
-  const out = document.getElementById('clSerialOut');
-  if (out) { out.value = serial; out.style.display = 'block'; }
-  showToast('✅ Serial berhasil dibuat!', 2000, 'success');
-};
-
-/** Copy serial */
-window.copyClientSerial = async function () {
-  const v = document.getElementById('clSerialOut')?.value;
-  if (!v) { showToast('Generate dulu', 2000, 'warning'); return; }
-  try {
-    await navigator.clipboard.writeText(v);
-    showToast('Serial disalin', 2000, 'success');
-  } catch { showToast('Gagal menyalin', 2000, 'error'); }
-};
-
-/** Verifikasi serial klien yang terbuka (server-side HMAC via /api/license) */
-window.verifyClientSerial = async function () {
-  if (!current || !currentMeta?.prefix) {
-    showToast('Produk klien ini belum dikenal / belum ada prefix', 2000, 'warning');
-    return;
-  }
-  const serial = document.getElementById('clVerifySerial')?.value?.trim();
-  if (!serial) { showToast('Masukkan serial yang ingin diverifikasi', 2000, 'warning'); return; }
-  const deviceCode = document.getElementById('clDevice')?.value?.trim() || current.device_code || '';
-  if (!deviceCode) { showToast('Device Code kosong', 2000, 'warning'); return; }
-
-  const res = await licenseApi('verify', {
-    prefix: currentMeta.prefix,
-    serial,
-    deviceCode
-  });
-  const box = document.getElementById('clVerifyResult');
-  if (!res.ok || !res.data) {
-    const msg = res.data?.error || `Gagal verifikasi (${res.status})`;
-    if (box) {
-      box.innerHTML = `<div class="verify-badge error">❌ ERROR</div><div class="verify-detail">${escapeHtml(msg)}</div>`;
-      box.className = 'verify-box mt8 error';
-      box.hidden = false;
-    }
-    showToast('Error saat verifikasi: ' + msg, 3000, 'error');
-    return;
-  }
-  const result = res.data;
-  const productName = currentMeta.label;
-  if (result.valid && !result.expired) {
-    if (box) {
-      box.innerHTML = `
-        <div class="verify-badge success">✅ VALID</div>
-        <div class="verify-detail">
-          Produk: ${escapeHtml(productName)}<br>
-          Device Code: ${escapeHtml(result.deviceCode)}<br>
-          Masa Berlaku: ${escapeHtml(result.expiryText || formatExpiry(result.expCode))}<br>
-          <small>Status: Aktif</small>
-        </div>`;
-      box.className = 'verify-box mt8 success';
-      box.hidden = false;
-    }
-    showToast('Serial valid', 2000, 'success');
-  } else if (result.valid && result.expired) {
-    if (box) {
-      box.innerHTML = `
-        <div class="verify-badge warning">⚠️ KADALUARSA</div>
-        <div class="verify-detail">
-          Produk: ${escapeHtml(productName)}<br>
-          Device Code: ${escapeHtml(result.deviceCode)}<br>
-          Kadaluarsa: ${escapeHtml(result.expiryText || formatExpiry(result.expCode))}<br>
-          <small>Serial valid tapi masa berlaku habis</small>
-        </div>`;
-      box.className = 'verify-box mt8 warning';
-      box.hidden = false;
-    }
-    showToast('Serial kadaluarsa', 2500, 'warning');
-  } else {
-    if (box) {
-      box.innerHTML = `
-        <div class="verify-badge error">❌ TIDAK VALID</div>
-        <div class="verify-detail">
-          Serial tidak cocok dengan Device Code atau salt produk.<br>
-          Periksa kembali input Anda.
-        </div>`;
-      box.className = 'verify-box mt8 error';
-      box.hidden = false;
-    }
-    showToast('Serial tidak valid', 2000, 'error');
-  }
-};
-
-/** Kirim serial ke WhatsApp merchant */
-window.sendClientSerialWA = function () {
-  const serial = document.getElementById('clSerialOut')?.value;
-  if (!serial) { showToast('Generate dulu', 2000, 'warning'); return; }
-  const nama = document.getElementById('clNama')?.value || current?.nama_warung || 'Usaha Anda';
-  const text = `Halo *${nama}*,\nIni kode lisensi Kasir Solo Anda:\n\n*${serial}*\n\nAktifkan di aplikasi pada menu Lisensi. Terima kasih 🙏\n— PT Mesin Kasir Solo`;
-  const wa = normalizePhone(document.getElementById('clWa')?.value || current?.no_whatsapp || '');
-  const target = wa || '628816566935';
-  window.open('https://wa.me/' + encodeURIComponent(target) + '?text=' + encodeURIComponent(text), '_blank');
-};
-
-/** Simpan perubahan data klien */
-window.saveClient = async function () {
-  if (!current) return;
-  const id = current.id;
-  const payload = {
-    device_code:  (document.getElementById('clDevice')?.value || '').toUpperCase().trim(),
-    nama_warung:  document.getElementById('clNama')?.value?.trim() || '',
-    nama_pemilik: document.getElementById('clOwner')?.value?.trim() || '',
-    no_whatsapp:  document.getElementById('clWa')?.value?.trim() || '',
-    alamat_detail: document.getElementById('clAlamat')?.value?.trim() || ''
-  };
-  try {
-    const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      data: payload,
-      headers: { Prefer: 'return=representation' }
-    });
-    if (!res.ok) throw new Error(String(res.status));
-    showToast('✅ Klien disimpan', 2000, 'success');
-    closeClientSheet();
-    await loadClients();
-  } catch (e) {
-    console.error(e);
-    showToast('Gagal menyimpan', 2000, 'error');
-  }
-};
-
-/** Hapus klien (hati-hati) */
-window.deleteClient = async function () {
-  if (!current) return;
-  if (!confirm('Hapus klien ini dari daftar?')) return;
-  const id = current.id;
-  try {
-    const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
-    if (res.ok || res.status === 204) {
-      showToast('Klien dihapus', 2000, 'success');
-      closeClientSheet();
-      await loadClients();
-    } else throw new Error(String(r.status));
-  } catch (e) {
-    console.error(e);
-    showToast('Gagal menghapus', 2000, 'error');
-  }
-};
-
-// Wire openClient to window for inline onclick handlers
-window.openClient = openClient;
