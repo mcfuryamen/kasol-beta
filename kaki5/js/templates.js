@@ -175,27 +175,22 @@ export const TEMPLATES = {
     </div>
 
     <div class="card">
-    <div style="display:flex;gap:16px;align-items:flex-start">
-    <img src="assets/icon-old.png" style="width:64px;height:64px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0" alt="Logo">
-    <div style="flex:1">
-    <div style="font-weight:800;color:var(--text);font-size:18px">Kasir Solo - Kaki Lima</div>
-        <div style="font-size:13px;color:var(--text2);margin-top:2px">Versi 1.0</div>
-        <div id="licUnit" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
-    </div>
-    </div>
-    <button class="btn btn-primary" style="margin-top:16px;width:100%;text-align:center" onclick="window._ksr_openLicenseSheet()">🎫 Kelola Lisensi</button>
-    <!-- syncStatusText: status sinkronisasi profil ke Supabase (di-render oleh settings.js loadSettings()) -->
-    <div id="syncStatusText" style="margin-top:12px;font-size:12px;color:var(--text2);text-align:center"></div>
-    </div>
-
-    <div style="margin-top:16px;text-align:center">
-    <div style="font-weight:600;color:var(--text2);font-size:12px">PT Mesin Kasir Solo</div>
-    <div style="margin-top:8px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-    <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none;font-weight:600;font-size:12px">📱 0881-6566-935</a>
-    <a href="https://kasirsolo.app" target="_blank" style="color:var(--blue);text-decoration:none;font-weight:600;font-size:12px">🌐 kasirsolo.app</a>
-    </div>
-    </div>
-  `,
+        <!-- syncStatusText: status sinkronisasi profil ke Supabase (di-render oleh settings.js loadSettings()) -->
+                <div id="syncStatusText" style="margin-top:12px;font-size:12px;color:var(--text2);text-align:center"></div>
+        </div>
+        <!-- ====== Footer Info Aplikasi (di luar kartu, paling bawah) ====== -->
+            <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:20px">
+            <img src="assets/icon-old.png" style="width:64px;height:64px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0" alt="Logo">
+            <div style="font-weight:800;color:var(--text);font-size:18px;margin-top:10px">Kasir Solo - Kaki Lima</div>
+            <div style="font-weight:600;color:var(--text2);font-size:12px;margin-top:12px">PT Mesin Kasir Solo</div>
+            <div style="margin-top:8px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+            <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none;font-weight:600;font-size:12px">📱 0881-6566-935</a>
+            <a href="https://kasirsolo.app" target="_blank" style="color:var(--blue);text-decoration:none;font-weight:600;font-size:12px">🌐 kasirsolo.app</a>
+            </div>
+            <div style="font-size:13px;color:var(--text2);margin-top:12px">Versi 1.0</div>
+            <div id="licUnit" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+            </div>
+          `,
 
   bantuan: () => `
     <div class="card">

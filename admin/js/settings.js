@@ -6,6 +6,30 @@
 import { STATE, subscribe, setState } from './app-state.js';
 import { storage } from './storage.js';
 import { showToast } from './toast.js';
+import { supabaseFetch, supabaseStorageUpload } from './api.js';
+
+function escapeAttribute(value) {
+  return String(value || '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
+const MAX_QRIS_SIZE = 5 * 1024 * 1024;
+const QRIS_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+
+const MOCK_PAYMENT_SETTINGS = {
+  qrisUrl: '',
+  bank: '',
+  accountNumber: '',
+  accountName: ''
+};
+
+function getPaymentSettings(settings = STATE.settings || {}) {
+  return {
+    ...MOCK_PAYMENT_SETTINGS,
+    ...(settings.payment || {})
+  };
+}
 
 /**
  * Initialize settings module
@@ -17,6 +41,7 @@ export function initSettings() {
   
   // Initial render
   renderSettingsForm();
+  syncPaymentSettingsFromSupabase();
 
   // Bind save buttons
   const saveBizBtn = document.querySelector('button[onclick="saveBizSettings()"]');
@@ -24,6 +49,12 @@ export function initSettings() {
 
   const saveLandingBtn = document.querySelector('button[onclick="saveLandingSettings()"]');
   if (saveLandingBtn) saveLandingBtn.addEventListener('click', saveLandingSettings);
+
+  const savePaymentBtn = document.querySelector('button[onclick="savePaymentSettings()"]');
+  if (savePaymentBtn) savePaymentBtn.addEventListener('click', savePaymentSettings);
+
+  const qrisUpload = document.getElementById('setQrisUpload');
+  if (qrisUpload) qrisUpload.addEventListener('change', handleQrisUpload);
 }
 
 /**
@@ -54,6 +85,34 @@ export function renderSettingsForm() {
     setHeroDesc: s.heroDesc || '',
     setHeroCta: s.heroCta || ''
   };
+
+  const payment = getPaymentSettings(s);
+  const paymentFields = {
+    setQrisUrl: payment.qrisUrl,
+    setBankName: payment.bank,
+    setAccountNumber: payment.accountNumber,
+    setAccountName: payment.accountName
+  };
+
+  Object.entries(paymentFields).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+  });
+
+  const qrisPreview = document.getElementById('qrisUploadPreview');
+  if (qrisPreview) {
+    qrisPreview.innerHTML = payment.qrisUrl
+      ? `<img src="${escapeAttribute(payment.qrisUrl)}" alt="Preview QRIS merchant" loading="lazy"><span>QRIS tersimpan</span>`
+      : '';
+    qrisPreview.hidden = !payment.qrisUrl;
+  }
+
+  const paymentStatus = document.getElementById('paymentSettingsStatus');
+  if (paymentStatus) {
+    const configured = payment.qrisUrl || payment.bank || payment.accountNumber || payment.accountName;
+    paymentStatus.textContent = configured ? 'Siap dipakai' : 'Mode demo';
+    paymentStatus.classList.toggle('is-ready', !!configured);
+  }
 
   Object.entries(landingFields).forEach(([id, value]) => {
     const el = document.getElementById(id);
@@ -101,6 +160,103 @@ window.saveBizSettings = async function() {
 /**
  * Save landing page config
  */
+async function syncPaymentSettingsFromSupabase() {
+  try {
+    const res = await supabaseFetch('/rest/v1/settings?key=in.(qris_url,bank_info)&select=key,value');
+    if (!res.ok || !Array.isArray(res.data) || !res.data.length) return;
+    const fromCloud = { ...getPaymentSettings() };
+    res.data.forEach((row) => {
+      const value = typeof row.value === 'string' ? (() => { try { return JSON.parse(row.value); } catch { return {}; } })() : (row.value || {});
+      if (row.key === 'qris_url') fromCloud.qrisUrl = value.url || '';
+      if (row.key === 'bank_info') {
+        fromCloud.bank = value.bank || '';
+        fromCloud.accountNumber = value.account_number || '';
+        fromCloud.accountName = value.account_name || '';
+      }
+    });
+    const merged = { ...(STATE.settings || {}), payment: fromCloud };
+    await storage.set('settings', merged);
+    setState('settings', merged);
+  } catch (error) {
+    console.warn('Payment settings sync skipped:', error);
+  }
+}
+
+async function handleQrisUpload(event) {
+  const file = event.target.files?.[0];
+  const preview = document.getElementById('qrisUploadPreview');
+  if (!file) return;
+  if (!QRIS_TYPES.has(file.type)) {
+    showToast('Format QRIS harus PNG, JPG, atau WebP', 2500, 'warning');
+    event.target.value = '';
+    return;
+  }
+  if (file.size > MAX_QRIS_SIZE) {
+    showToast('Ukuran gambar QRIS maksimal 5 MB', 2500, 'warning');
+    event.target.value = '';
+    return;
+  }
+
+  const localUrl = URL.createObjectURL(file);
+  if (preview) {
+    preview.innerHTML = `<img src="${escapeAttribute(localUrl)}" alt="Preview QRIS yang dipilih"><span>Meng-upload QRIS…</span>`;
+    preview.hidden = false;
+  }
+
+  const upload = await supabaseStorageUpload('qris', file);
+  if (!upload.ok || !upload.data?.publicUrl) {
+    showToast(upload.data?.error || 'Upload QRIS gagal. Coba lagi.', 3000, 'error');
+    return;
+  }
+  const urlInput = document.getElementById('setQrisUrl');
+  if (urlInput) urlInput.value = upload.data.publicUrl;
+  if (preview) preview.innerHTML = `<img src="${escapeAttribute(upload.data.publicUrl)}" alt="Preview QRIS merchant"><span>QRIS berhasil di-upload</span>`;
+  showToast('QRIS berhasil di-upload. Klik Simpan untuk menerapkan.', 3000, 'success');
+}
+
+window.savePaymentSettings = async function() {
+  const payment = {
+    qrisUrl: (document.getElementById('setQrisUrl')?.value || '').trim(),
+    bank: (document.getElementById('setBankName')?.value || '').trim(),
+    accountNumber: (document.getElementById('setAccountNumber')?.value || '').trim(),
+    accountName: (document.getElementById('setAccountName')?.value || '').trim()
+  };
+
+  if (payment.qrisUrl && !/^https?:\/\//i.test(payment.qrisUrl)) {
+    showToast('URL QRIS harus diawali http:// atau https://', 2500, 'warning');
+    return;
+  }
+  const hasBankDetails = payment.bank || payment.accountNumber || payment.accountName;
+  if (hasBankDetails && (!payment.bank || !payment.accountNumber || !payment.accountName)) {
+    showToast('Lengkapi semua detail rekening atau kosongkan semuanya', 2500, 'warning');
+    return;
+  }
+
+  const cloudRows = [
+    { key: 'qris_url', value: { url: payment.qrisUrl } },
+    { key: 'bank_info', value: { bank: payment.bank, account_number: payment.accountNumber, account_name: payment.accountName } }
+  ];
+  const cloudRes = await supabaseFetch('/rest/v1/settings?on_conflict=key', {
+    method: 'POST',
+    data: cloudRows,
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }
+  });
+  if (!cloudRes.ok) {
+    showToast('Gagal menyimpan pembayaran ke Supabase', 2500, 'error');
+    return;
+  }
+
+  const newSettings = { ...(STATE.settings || {}), payment };
+  const success = await storage.set('settings', newSettings);
+  if (success) {
+    setState('settings', newSettings);
+    showToast('Pengaturan pembayaran Kaki5 disimpan', 2000, 'success');
+  } else {
+    showToast('Gagal menyimpan pengaturan pembayaran', 2000, 'error');
+    renderSettingsForm();
+  }
+};
+
 window.saveLandingSettings = async function() {
   const newSettings = {
     ...(STATE.settings || {}),

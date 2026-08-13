@@ -23,20 +23,14 @@ export function initAuth() {
   loginError = document.getElementById('loginError');
   logoutBtn = document.getElementById('logoutBtn');
 
-  if (!loginScreen || !appEl) {
-    console.warn('Auth elements not found');
+  if (!appEl) {
+    console.warn('Admin app shell not found');
     return;
   }
 
-  loginBtn?.addEventListener('click', doLogin);
-  loginPass?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') doLogin();
-  });
+  // Login sengaja dinonaktifkan: dashboard selalu langsung tersedia.
+  // Jangan aktifkan showLoginScreen() tanpa permintaan eksplisit pengguna.
   logoutBtn?.addEventListener('click', doLogout);
-
-  // CHECKPOINT: Login page di-bypass (user request "skip, jangan ditampilin").
-  // Modul kredensial (auth/login proper + JWT admin) ditunda — lihat audit-admin-kasirsolo.md (BACKLOG).
-  // Saat modul kredensial dikerjakan, aktifkan lagi showLoginScreen() di bawah.
   showApp();
 }
 
@@ -44,18 +38,22 @@ export function initAuth() {
  * Show login screen
  */
 export function showLoginScreen() {
-  loginScreen.style.display = 'flex';
-  appEl.classList.remove('show');
-  loginPass.value = '';
-  loginError.style.display = 'none';
-  loginPass.focus();
+  if (!loginScreen) return;
+  loginScreen.hidden = true;
+  loginScreen.style.display = 'none';
+  loginScreen.setAttribute('aria-hidden', 'true');
+  showApp();
 }
 
 /**
  * Show app (after successful login)
  */
 export function showApp() {
-  loginScreen.style.display = 'none';
+  if (loginScreen) {
+    loginScreen.hidden = true;
+    loginScreen.style.display = 'none';
+    loginScreen.setAttribute('aria-hidden', 'true');
+  }
   appEl.classList.add('show');
   // Dispatch event for other modules to initialize
   window.dispatchEvent(new CustomEvent('app:ready'));
@@ -85,7 +83,7 @@ function doLogin() {
  */
 function doLogout() {
   showApp();
-  showToast('Login sementara di-bypass', 2000, 'info');
+  showToast('Dashboard tetap terbuka', 2000, 'info');
 }
 
 /**

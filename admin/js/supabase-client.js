@@ -18,7 +18,7 @@ window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
  */
 async function fetchProductsFromSupabase() {
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/products?visible=eq.true&order=order_index.asc`, {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/products?select=id,kode_produk,app_type,icon,name,description,price_label,order_index,visible&visible=eq.true&order=order_index.asc`, {
       method: 'GET',
       headers: {
         'apikey': SUPABASE_ANON_KEY,
@@ -37,6 +37,7 @@ async function fetchProductsFromSupabase() {
     // Transform Supabase schema → landing catalog format
     return products.map(p => ({
       id: p.app_type || p.id,
+      kodeProduk: p.kode_produk || '',
       icon: p.icon || '📦',
       name: p.name,
       desc: p.description || '',

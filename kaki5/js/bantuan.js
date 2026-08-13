@@ -233,16 +233,16 @@ const TUTORIALS = [
         <p><b>Masa Coba Gratis:</b></p>
         <p style="padding-left:20px;margin:8px 0">
           Saat pertama pakai kamu otomatis dapat <b>masa coba 7 hari</b>. Status terlihat di chip
-          <b>TRIAL</b> pojok kanan atas, atau di <b>Pengaturan → "🎫 Kelola Lisensi"</b>.
+                  <b>TRIAL</b> pojok kanan atas.
         </p>
         <p style="margin-top:16px"><b>Tambah 1 Hari Gratis (Berbagi):</b></p>
         <ol style="padding-left:20px;margin:8px 0">
-          <li>Buka <b>Pengaturan → Kelola Lisensi</b></li>
+                  <li>Tekan chip <b>"TRIAL"</b> di pojok kanan atas untuk buka panel lisensi</li>
           <li>Tekan <b>"🎁 Tambah 1 Hari Gratis"</b>, bagikan ke teman (maksimal 20 kali)</li>
         </ol>
         <p style="margin-top:16px"><b>Aktivasi Kode Lisensi Resmi:</b></p>
         <ol style="padding-left:20px;margin:8px 0">
-          <li>Buka <b>Pengaturan → Kelola Lisensi</b></li>
+                  <li>Tekan chip <b>"TRIAL"</b> di pojok kanan atas untuk buka panel lisensi</li>
           <li>Beli kode via <b>"💬 Beli Lisensi"</b> (hubungi WhatsApp kami)</li>
           <li>Masukkan kode berformat <b>KK5-XXXX-XXXX-XX-XXXXXX</b> → tekan <b>"🔓 Aktifkan"</b></li>
         </ol>

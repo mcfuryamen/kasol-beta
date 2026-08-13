@@ -19,7 +19,7 @@ let addAppBtn = null;
  */
 async function fetchProductsFromSupabase() {
   try {
-    const res = await supabaseFetch('/rest/v1/products?order=order_index.asc');
+    const res = await supabaseFetch('/rest/v1/products?select=id,kode_produk,app_type,icon,name,description,price_label,order_index,visible,status,store_url,vercel_url&order=order_index.asc');
     if (!res.ok) {
       console.error('Supabase fetch failed:', res.status, res.text);
       return [];
@@ -31,6 +31,7 @@ async function fetchProductsFromSupabase() {
     return products.map(p => ({
       id: p.id,
       appType: p.app_type,
+      kodeProduk: p.kode_produk || '',
       icon: p.icon || '📦',
       name: p.name,
       desc: p.description || '',
@@ -117,7 +118,7 @@ export function renderCatalog() {
       <div class="catalog-card-cover">${escapeHtml(app.icon || '📦')}</div>
       <div class="catalog-card-title">${escapeHtml(app.name || 'Aplikasi Baru')}</div>
       <div class="catalog-card-desc">${escapeHtml(app.desc || '')}</div>
-      <div class="catalog-card-meta">${formatRupiah(app.price || 0)}</div>
+      <div class="catalog-card-meta">${escapeHtml(app.kodeProduk || app.appType || '—')} · ${formatRupiah(app.price || 0)}</div>
       <div class="catalog-card-category">${getCategoryLabel(app.category)}</div>
             <div class="catalog-card-domain">
               ${statusChip(app)}
@@ -196,6 +197,7 @@ window.openCatalogSheet = function(idx = null) {
     category: 'bisnis',
     hot: false,
     appType: '',
+    kodeProduk: '',
     status: 'development',
     storeUrl: '',
     vercelUrl: '',
@@ -217,6 +219,10 @@ window.openCatalogSheet = function(idx = null) {
       <div class="field">
         <label class="field-label">App Type (ID)</label>
         <input type="text" id="catAppType" value="${escapeHtml(app.appType || '')}" placeholder="rosok" ${isEdit ? 'readonly' : ''}>
+      </div>
+      <div class="field">
+        <label class="field-label">Kode Produk</label>
+        <input type="text" id="catKodeProduk" value="${escapeHtml(app.kodeProduk || '')}" placeholder="KSR">
       </div>
       <div class="field">
         <label class="field-label">Ikon Emoji</label>
@@ -304,6 +310,7 @@ window.closeCatalogSheet = function() {
  */
 window.saveCatalogApp = async function(idx = null) {
   const appType = document.getElementById('catAppType')?.value.trim() || '';
+  const kodeProduk = (document.getElementById('catKodeProduk')?.value.trim() || appType).toUpperCase();
   const icon = document.getElementById('catIcon')?.value.trim().slice(0, 4) || '📦';
   const name = document.getElementById('catName')?.value.trim() || 'Aplikasi Baru';
   const desc = document.getElementById('catDesc')?.value.trim() || '';
@@ -324,6 +331,7 @@ window.saveCatalogApp = async function(idx = null) {
 
   const payload = {
     app_type: appType,
+    kode_produk: kodeProduk || null,
     name: name,
     tagline: `${name} - Sistem Terbaik`,
     description: desc,

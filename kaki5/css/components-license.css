@@ -33,12 +33,30 @@
 .badge.compact { font-size: 13px; padding: 6px 14px; }
 
 /* License card */
-.license-card-active { text-align: center; padding: 16px; }
+.license-state-card { border: 1px solid rgba(191,54,12,.12); box-shadow: 0 8px 24px rgba(90,45,10,.08); padding: 18px; }
+.license-card-active { text-align: center; padding: 18px; border-color: rgba(46,125,50,.2); }
 .license-card-active .license-icon { font-size: 40px; margin-bottom: 8px; }
 .license-card-active .license-key { font-size: 13px; color: var(--text3); margin-top: 8px; margin-bottom: 0; word-break: break-all; }
 .license-card-active .license-expiry { font-size: 12px; color: var(--text3); margin: 4px 0 8px; }
-.license-card-active .license-desc { font-size: 11.5px; color: var(--text3); margin-top: 8px; line-height: 1.4; }
+.license-card-active .license-desc { font-size: 12px; color: var(--text3); margin-top: 8px; line-height: 1.4; }
 .license-card-trial { text-align: center; }
+.license-steps { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 18px; color: var(--text3); font-size: 10px; font-weight: 700; }
+.license-step { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 40px; }
+.license-step-dot { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: #f1f1f1; color: var(--text3); }
+.license-step.is-current { color: var(--primary-dark); }
+.license-step.is-current .license-step-dot { background: var(--primary-dark); color: #fff; box-shadow: 0 0 0 4px rgba(191,54,12,.12); }
+.license-step.is-done { color: var(--green); }
+.license-step.is-done .license-step-dot { background: var(--green-bg); color: var(--green); }
+.license-step-line { flex: 1; max-width: 30px; height: 2px; background: #e5e5e5; margin-bottom: 16px; }
+.license-actions-primary { grid-template-columns: 1.25fr 1fr; }
+.license-secondary-actions { text-align: center; margin-top: 8px; }
+.license-secondary-actions .btn { font-size: 12px; }
+.license-active-actions { margin-top: 14px; }
+.license-active-actions .btn { width: 100%; }
+.license-progress { height: 6px; border-radius: 99px; background: #f3eadf; overflow: hidden; margin: 16px 0 4px; }
+.license-progress span { display: block; width: 66%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary-light), var(--primary)); animation: licenseProgress 1.6s ease-in-out infinite alternate; }
+@keyframes licenseProgress { from { width: 54%; } to { width: 78%; } }
+.license-hint { color: var(--text3); font-size: 11px; margin-top: 10px; }
 
 .license-header { margin-bottom: 12px; }
 .license-header .badge { margin-left: 6px; }
@@ -117,4 +135,7 @@
 .license-card-pending .license-icon { font-size: 40px; margin-bottom: 8px; }
 .license-card-pending .license-title { font-size: 15px; }
 .license-card-pending .license-description { font-size: 13px; color: var(--text2); line-height: 1.5; }
-.manual-key-toggle { font-size: 12px; color: var(--text3); }
+.manual-key-toggle { font-size: 12px; color: var(--text3); text-align: center; margin-top: 14px; }
+.manual-key-toggle a { color: var(--text3); text-decoration: underline; }
+.manual-key-wrap { display: none; margin-top: 10px; text-align: left; }
+.manual-key-wrap .btn { width: 100%; margin-top: 8px; }

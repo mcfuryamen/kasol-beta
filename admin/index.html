@@ -201,6 +201,44 @@
           </div>
         </div>
 
+        <div class="panel mt16 payment-settings-panel">
+          <div class="panel-head">
+            <div>
+              <h3 class="panel-t">Pembayaran Kaki5</h3>
+              <p class="panel-sub">Info ini tampil di layar pembelian lisensi Kaki5.</p>
+            </div>
+            <span class="settings-status" id="paymentSettingsStatus">Belum diatur</span>
+          </div>
+          <div class="panel-body">
+            <div class="field-grid-2">
+              <div class="field">
+                <label class="field-label" for="setQrisUpload">Upload gambar QRIS merchant</label>
+                <input id="setQrisUpload" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="qrisUploadHint">
+                <small id="qrisUploadHint" class="field-hint">PNG, JPG, atau WebP — maksimal 5 MB. File akan disimpan aman di storage QRIS.</small>
+                <div id="qrisUploadPreview" class="qris-upload-preview" hidden></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="setQrisUrl">URL gambar QRIS (opsional)</label>
+                <input id="setQrisUrl" type="url" placeholder="https://.../qris.png">
+              </div>
+              <div class="field">
+                <label class="field-label" for="setBankName">Nama bank</label>
+                <input id="setBankName" placeholder="Contoh: BCA">
+              </div>
+              <div class="field">
+                <label class="field-label" for="setAccountNumber">Nomor rekening</label>
+                <input id="setAccountNumber" inputmode="numeric" placeholder="Nomor rekening bisnis">
+              </div>
+              <div class="field">
+                <label class="field-label" for="setAccountName">Nama pemilik rekening</label>
+                <input id="setAccountName" placeholder="Nama sesuai rekening">
+              </div>
+            </div>
+            <div class="payment-settings-note">Kosongkan jika belum siap. Kaki5 akan menampilkan preview demo dan mencegah pengiriman bukti pembayaran palsu.</div>
+            <button class="btn btn-primary" onclick="savePaymentSettings()">Simpan Pembayaran</button>
+          </div>
+        </div>
+
         <div class="panel mt16">
           <div class="panel-head"><h3 class="panel-t">Backup & Reset</h3></div>
           <div class="panel-body">
@@ -261,19 +299,8 @@
 <div id="toast" class="toast-host" role="status" aria-live="polite"></div>
 
 <!-- ===================== LOGIN ===================== -->
-<div id="loginScreen" class="login">
-  <div class="login-card">
-    <div class="login-brand"><img src="assets/logo.png" alt="KASIRSOLO"></div>
-    <h1 class="login-title">KASIRSOLO Console</h1>
-    <p class="login-sub">Masukkan password untuk mengakses dashboard.</p>
-    <div class="field">
-      <label class="field-label" for="loginPass">Password</label>
-      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
-    </div>
-    <div id="loginError" class="login-error" hidden>Password salah</div>
-    <button class="btn btn-primary login-btn" id="loginBtn">🔓 Masuk</button>
-  </div>
-</div>
+<!-- Login intentionally disabled: dashboard opens directly until explicitly requested. -->
+<div id="loginScreen" class="login" hidden aria-hidden="true"></div>
 
 <!-- APP MODULE -->
 <script type="module" src="js/app.js?v=20260812j"></script>

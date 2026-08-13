@@ -68,13 +68,19 @@ export async function openPurchaseSheet() {
   
   // Get payment info from Supabase `settings` (qris_url + bank_info) & `products` harga
   const sb = getSupabaseClient();
-  let payInfo = { qrisUrl: '', bank: '', accountNumber: '', accountName: '', priceLabel: '' };
+  let payInfo = { qrisUrl: '', bank: '', accountNumber: '', accountName: '', priceLabel: '', productName: '', kodeProduk: '', isDemo: false };
+  const demoPayment = {
+    bank: 'Belum dikonfigurasi',
+    accountNumber: '—',
+    accountName: 'Atur di Admin Console'
+  };
 
   try {
+    if (!sb) throw new Error('Supabase client belum siap');
     const [qrisRes, bankRes, prodRes] = await Promise.all([
       sb.from('settings').select('value').eq('key', 'qris_url').maybeSingle(),
       sb.from('settings').select('value').eq('key', 'bank_info').maybeSingle(),
-      sb.from('products').select('price_label').eq('app_type', APP_TYPE).maybeSingle()
+      sb.from('products').select('app_type,kode_produk,name,price_label,visible').eq('app_type', APP_TYPE).eq('visible', true).limit(1).maybeSingle()
     ]);
 
     const parseVal = (d) => {
@@ -92,19 +98,24 @@ export async function openPurchaseSheet() {
       bank: bankVal.bank || '',
       accountNumber: bankVal.account_number || '',
       accountName: bankVal.account_name || '',
-      priceLabel: prodRes.data?.price_label || ''
+      priceLabel: prodRes.data?.price_label || '',
+      productName: prodRes.data?.name || 'Kaki Lima',
+      kodeProduk: prodRes.data?.kode_produk || ''
     };
+    if (prodRes.error) console.warn('Harga produk Kaki5 tidak tersedia:', prodRes.error.message);
+    payInfo.isDemo = !payInfo.qrisUrl && !payInfo.bank && !payInfo.accountNumber && !payInfo.accountName;
   } catch (e) { console.error('Failed to load payment info', e); }
 
   const hasQris = !!payInfo.qrisUrl;
-  
   const qrisHtml = hasQris
     ? `<img src="${payInfo.qrisUrl}" style="width:100%;max-width:300px;border-radius:12px;margin-bottom:12px" alt="QRIS">
        <div style="text-align:center;margin-bottom:12px">
          <a href="${payInfo.qrisUrl}" download="qris-kasirsolo.png" class="btn btn-ghost btn-sm">⤓ Unduh QRIS</a>
        </div>`
-    : `<div style="text-align:center;padding:20px;color:var(--text2)">
-         QRIS sedang dalam konfigurasi. Hubungi admin untuk informasi pembayaran.
+    : `<div style="text-align:center;padding:20px;border:1px dashed var(--line,var(--border));border-radius:12px;color:var(--text2)">
+         <div style="font-size:30px;margin-bottom:6px">▦</div>
+         <strong>Preview QRIS demo</strong>
+         <div style="font-size:12px;margin-top:4px">QRIS asli belum diatur di Admin Console.</div>
        </div>`;
 
   const bankHtml = (payInfo.bank || payInfo.accountNumber || payInfo.accountName)
@@ -123,21 +134,26 @@ export async function openPurchaseSheet() {
       </div>`
     : `
       <div style="background:var(--bg2);border-radius:12px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--text2)">
-        💳 Pembayaran bisa langsung ditransfer. No. rekening info akan tampil di sini setelah admin mengatur lewat dashboard.
+        💳 <strong>Mode demo:</strong> detail pembayaran belum dikonfigurasi. Jangan transfer sebelum admin mengisi QRIS dan rekening di Admin Console.
       </div>`;
 
+  const productCode = payInfo.kodeProduk || APP_TYPE.toUpperCase();
   const priceRow = payInfo.priceLabel
     ? `
-      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border-radius:12px;padding:12px 14px;margin-bottom:16px">
-        <span style="font-size:14px;color:var(--text2)">Harga Lisensi</span>
-        <span style="font-size:18px;font-weight:800;color:var(--accent,var(--success,#16a34a))">${payInfo.priceLabel}</span>
+      <div style="background:var(--bg2);border-radius:12px;padding:12px 14px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:14px">
+          <span style="color:var(--text2)">Produk</span><span style="font-weight:700">${payInfo.productName || 'Kaki Lima'} · ${productCode}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:14px;color:var(--text2)">Harga Lisensi</span>
+          <span style="font-size:18px;font-weight:800;color:var(--accent,var(--success,#16a34a))">${payInfo.priceLabel}</span>
+        </div>
       </div>`
     : '';
 
   // STEP 1 — info pembayaran + tombol "Kirim Bukti Bayar"
   body.innerHTML = `
     <div style="margin-bottom:16px">
-      <h3 style="margin:0 0 8px 0;font-size:16px">💳 Beli Lisensi Kasir Solo</h3>
       <p style="margin:0;color:var(--text2);font-size:14px">
         Transfer sesuai nominal, lalu kirim bukti pembayaran. Admin akan memverifikasi & mengaktifkan lisensi secara otomatis.
       </p>
@@ -152,23 +168,14 @@ export async function openPurchaseSheet() {
       <div style="font-family:monospace;font-size:14px;font-weight:600">${unit_id}</div>
     </div>
 
-    <button class="btn btn-primary" style="width:100%" onclick="window._ksr_purchaseShowUpload()">
-      🧾 Kirim Bukti Bayar
-    </button>
-
-    <!-- STEP 2 — form upload bukti (tersembunyi sampai tombol Kirim Bukti diklik) -->
-    <div id="purchaseUploadStep" style="display:none;margin-top:16px">
-      <div style="margin-bottom:16px">
-        <label style="font-size:13px;color:var(--text2);display:block;margin-bottom:4px">Upload Bukti Transfer</label>
-        <input type="file" id="buktiInput" accept="image/*" style="display:none" onchange="window._ksr_handleBuktiUpload(event)">
-        <button class="btn btn-primary" style="width:100%" onclick="document.getElementById('buktiInput').click()">
-          📷 Pilih Foto Bukti
-        </button>
-        <div id="buktiPreview" style="margin-top:8px;text-align:center"></div>
+    <div id="purchaseUploadStep" style="margin-top:16px">
+      <input type="file" id="buktiInput" accept="image/png,image/jpeg,image/webp" capture="environment" style="display:none" onchange="window._ksr_handleBuktiUpload(event)">
+      <div id="buktiPlaceholder" style="margin-bottom:10px;padding:14px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--text2);font-size:13px">
+        📎 Bukti pembayaran belum dipilih
       </div>
-
-      <button class="btn btn-primary" style="width:100%" onclick="window._ksr_submitPurchase('${unit_id}', '${device_code}')" id="submitPurchaseBtn" disabled>
-        🚀 Kirim Bukti Pembayaran
+      <div id="buktiPreview" style="margin-bottom:10px;text-align:center"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="document.getElementById('buktiInput').click()" ${payInfo.isDemo ? 'disabled title="Menunggu konfigurasi pembayaran admin"' : ''} id="submitPurchaseBtn">
+        🧾 ${payInfo.isDemo ? 'Pembayaran belum siap' : 'Kirim Bukti Bayar'}
       </button>
     </div>
 
@@ -176,12 +183,14 @@ export async function openPurchaseSheet() {
       <strong>📋 Cara Pembayaran:</strong><br>
       1. Scan QRIS di atas atau transfer ke rekening yang tertera<br>
       2. Transfer sesuai nominal (${payInfo.priceLabel || 'lihat info harga'})<br>
-      3. Klik "Kirim Bukti Bayar" lalu upload bukti transfer<br>
+      3. Klik "Kirim Bukti Bayar" untuk memilih foto, lalu klik lagi untuk mengirim<br>
       4. Admin akan memverifikasi & mengaktifkan lisensi Anda
     </div>
   `;
   
   window._ksr_currentBuktiFile = null;
+  window._ksr_purchaseUnitId = unit_id;
+  window._ksr_purchaseDeviceCode = device_code;
   window._ksr_currentPrice = parsePriceToNumber(payInfo.priceLabel) || null;
 
   // Tampilkan sheet
@@ -210,18 +219,24 @@ export async function handleBuktiUpload(event) {
   window._ksr_currentBuktiFile = file;
   
   const preview = document.getElementById('buktiPreview');
+  const placeholder = document.getElementById('buktiPlaceholder');
+  if (placeholder) placeholder.textContent = `✅ ${file.name}`;
   if (preview) {
     const reader = new FileReader();
     reader.onload = (e) => {
-      preview.innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:200px;border-radius:8px">
-                           <div style="font-size:12px;color:var(--text2);margin-top:4px">${file.name}</div>`;
+      preview.innerHTML = `<img src="${e.target.result}" alt="Preview bukti pembayaran" style="max-width:100%;max-height:200px;border-radius:8px">
+                           <div style="font-size:12px;color:var(--text2);margin-top:4px">Siap dikirim</div>`;
     };
     reader.readAsDataURL(file);
   }
   
   // Enable submit button
   const btn = document.getElementById('submitPurchaseBtn');
-  if (btn) btn.disabled = false;
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🚀 Kirim Bukti Pembayaran';
+    btn.onclick = () => window._ksr_submitPurchase(window._ksr_purchaseUnitId, window._ksr_purchaseDeviceCode);
+  }
 }
 
 /** Submit purchase to Supabase */
@@ -256,7 +271,7 @@ export async function submitPurchase(unitId, deviceCode) {
     // lama sudah dikonsolidasi). Update/Upsert baris clients supaya status
     // pipeline jadi 'menunggu_verifikasi' + simpan bukti_url + harga.
     // RLS clients: auth.uid() = user_id → pastikan ada session anon & kirim user_id.
-    const { data: sessData } = await sb.auth.getSession();
+    let { data: sessData } = await sb.auth.getSession();
     let userId = sessData?.session?.user?.id || null;
     if (!userId) {
       const { data: anon, error: auErr } = await sb.auth
@@ -264,19 +279,28 @@ export async function submitPurchase(unitId, deviceCode) {
       if (auErr) throw auErr;
       userId = anon?.user?.id;
     }
-    const harga = window._ksr_currentPrice || null;
+
+    // Klaim ulang baris perangkat lama sebelum upsert. RLS mengizinkan update
+    // hanya untuk owner saat ini; device_known memindahkan owner secara aman
+    // setelah sesi anonim tersedia (termasuk saat browser/storage berganti).
+    const { error: claimError } = await sb.rpc('device_known', {
+      p_unit_id: unitId,
+      p_device_code: deviceCode,
+      p_app_type: APP_TYPE
+    });
+    if (claimError) throw claimError;
+
     const { error: insertError } = await sb
       .from('clients')
-      .upsert({
-        unit_id: unitId,
+      .update({
         app_type: APP_TYPE,
         device_code: deviceCode,
         user_id: userId,
         status: 'menunggu_verifikasi',
         bukti_url: urlData?.publicUrl || '',
-        harga,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'unit_id' });
+      })
+      .eq('unit_id', unitId);
     
     if (insertError) throw insertError;
     

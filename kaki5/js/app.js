@@ -450,7 +450,7 @@ async function boot() {
     const { unit_id } = await ensureUnitId();
     subscribeToLicenseUpdates(unit_id);
   } catch (e) {
-    console.log('Realtime subscription skipped:', e.message);
+    console.log('Realtime subscription skipped:', e?.message || e);
   }
 }
 

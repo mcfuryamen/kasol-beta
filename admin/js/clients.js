@@ -12,7 +12,7 @@
 import { showToast } from './toast.js';
 import { escapeHtml, formatRelativeTime, formatDate, normalizePhone, debounce } from './utils.js';
 import { STATE, setState } from './app-state.js';
-import { supabaseFetch, licenseApi } from './api.js';
+import { supabaseFetch, supabaseStorageSign, licenseApi } from './api.js';
 import { updateSidebarBadges } from './navigation.js?v=20260812i';
 import { formatExpiry } from './license-core.js';
 
@@ -25,7 +25,17 @@ export const APP_META = {
   gerobak:{ prefix: 'GBK', icon: '🛒', label: 'Gerobak' },
   retail: { prefix: 'RTL', icon: '🏪', label: 'Retail' }
 };
-const metaFor = (at) => APP_META[at] || { prefix: '', icon: '📦', label: (at || 'Lain') };
+const catalogProductFor = (at) => (STATE.catalog || []).find((p) => p.appType === at) || null;
+const metaFor = (at) => {
+  const product = catalogProductFor(at);
+  const fallback = APP_META[at] || { prefix: '', icon: '📦', label: (at || 'Lain') };
+  return {
+    ...fallback,
+    icon: product?.icon || fallback.icon,
+    label: product?.name || fallback.label,
+    kodeProduk: product?.kodeProduk || fallback.prefix || ''
+  };
+};
 
 let clients = [];
 
@@ -182,7 +192,9 @@ function renderKanban() {
 
   const shown = kanbanTab === 'semua' ? rows : rows.filter((c) => c.status === kanbanTab);
   const shownMeta = kanbanTab === 'semua' ? null : stageMeta(kanbanTab);
-  const subtotal = shown.reduce((a, c) => a + (Number(c.harga) || 0), 0);
+  const productPrices = STATE.catalog || [];
+  const priceForClient = (c) => Number(productPrices.find((p) => p.appType === c.app_type)?.price) || 0;
+  const subtotal = shown.reduce((a, c) => a + priceForClient(c), 0);
 
   const cards = shown.length
     ? shown.map(kanbanCardHtml).join('')
@@ -201,7 +213,29 @@ function renderKanban() {
     t.addEventListener('click', () => { kanbanTab = t.dataset.stage; renderKanban(); });
   });
   host.querySelectorAll('.kb-bukti').forEach((el) => {
-    el.addEventListener('click', (e) => { e.stopPropagation(); const u = el.dataset.bukti; if (u) window.open(u, '_blank'); });
+    el.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const raw = el.dataset.bukti;
+      if (!raw) return;
+      try {
+        el.textContent = '⏳ Membuka bukti…';
+        const marker = '/storage/v1/object/';
+        const idx = raw.indexOf(marker);
+        if (idx < 0) throw new Error('URL bukti tidak valid');
+        const tail = raw.slice(idx + marker.length);
+        const parts = tail.split('/').filter(Boolean);
+        const visibility = parts.shift();
+        const bucket = visibility === 'public' || visibility === 'sign' ? parts.shift() : visibility;
+        const objectPath = parts.join('/');
+        if (bucket !== 'bukti' || !objectPath || objectPath.includes('..')) throw new Error('Path bukti tidak valid');
+        const signed = await supabaseStorageSign(bucket, objectPath);
+        if (!signed.ok || !signed.data?.url) throw new Error('Gagal membuat link bukti');
+        window.open(signed.data.url, '_blank', 'noopener');
+      } catch (err) {
+        console.error(err);
+        showToast('Foto bukti tidak dapat dibuka', 2200, 'error');
+      } finally { el.textContent = '🧾 Lihat Bukti'; }
+    });
   });
   // Klik kartu = buka akordeon detail (tombol/menu/head di dalam kartu diabaikan)
   host.querySelectorAll('.kanban-card').forEach((card) => {
@@ -248,7 +282,7 @@ function kanbanCardHtml(c) {
   const wil = [c.desa, c.kecamatan, c.kabkota].filter(Boolean).join(', ');
   const idx = PIPELINE_STAGES.findIndex((s) => s.key === c.status);
   const isBatal = c.status === 'batal';
-  const harga = Number(c.harga) || 0;
+  const harga = Number(catalogProductFor(c.app_type)?.price) || 0;
   const serial = c.serial ? String(c.serial) : '';
   const lic = (c.license_status || '').toLowerCase();
   // Progress posisi di pipeline (persen dari urutan stage)
@@ -280,7 +314,7 @@ function kanbanCardHtml(c) {
         <span class="client-avatar">${m.icon}</span>
         <div class="kb-title">
           <strong class="kb-card-name">${esc(c.nama_warung || '—')}</strong>
-          <span class="kb-card-sub">${esc(m.label)}${c.device_code ? ' · ' + esc(c.device_code) : ''}</span>
+          <span class="kb-card-sub">${esc(m.label)}${m.kodeProduk ? ' · ' + esc(m.kodeProduk) : ''}${c.device_code ? ' · ' + esc(c.device_code) : ''}</span>
         </div>
         <span class="kb-status ${sm.tone}">${sm.label}</span>
         <span class="kb-chev">▾</span>
@@ -309,7 +343,7 @@ function kanbanCardHtml(c) {
               <div class="section-label">📋 Data Klien</div>
               <div class="kb-info">
                 ${c.unit_id !== undefined && c.unit_id !== null && c.unit_id !== '' ? `<div class="kb-info-r"><span class="kb-info-l">Unit ID</span><span class="kb-info-v mono">${esc(c.unit_id)}</span></div>` : ''}
-                <div class="kb-info-r"><span class="kb-info-l">Aplikasi</span><span class="kb-info-v">${m.icon} ${esc(m.label)}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Aplikasi</span><span class="kb-info-v">${m.icon} ${esc(m.label)}${m.kodeProduk ? ' · ' + esc(m.kodeProduk) : ''}</span></div>
                 <div class="kb-info-r"><span class="kb-info-l">Device Code</span><span class="kb-info-v mono">${esc(c.device_code || '—')}</span></div>
                 <div class="kb-info-r"><span class="kb-info-l">Nama Usaha</span><span class="kb-info-v">${esc(c.nama_warung || '—')}</span></div>
                 <div class="kb-info-r"><span class="kb-info-l">Nama Pemilik</span><span class="kb-info-v">${esc(c.nama_pemilik || '—')}</span></div>
@@ -600,12 +634,13 @@ function renderAnalytics() {
   const total = rows.length;
   const active = rows.filter(isActive).length;
   const aktifDeal = rows.filter((c) => c.status === 'aktif').length;
-  const potensi = rows.reduce((a, c) => a + (Number(c.harga) || 0), 0);
+  const priceForClient = (c) => Number((STATE.catalog || []).find((p) => p.appType === c.app_type)?.price) || 0;
+  const potensi = rows.reduce((a, c) => a + priceForClient(c), 0);
 
   // Per status pipeline
   const perStatus = PIPELINE_STAGES.map((st) => {
     const list = rows.filter((c) => c.status === st.key);
-    return { ...st, n: list.length, rev: list.reduce((a, c) => a + (Number(c.harga) || 0), 0) };
+    return { ...st, n: list.length, rev: list.reduce((a, c) => a + priceForClient(c), 0) };
   });
   const maxStage = Math.max(1, ...perStatus.map((s) => s.n));
 

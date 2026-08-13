@@ -34,74 +34,72 @@ export function closeOverlay(id) {
 export function closeSheet(id) { closeOverlay(id); }
 
 // ── License status HTML template (cloud-first) ────────────────────────
-// Flow utama: Beli Lisensi (QRIS) → admin verifikasi → aktivasi OTOMATIS via
-// Supabase Realtime. Input serial manual hanya fallback tersembunyi.
+// Flow utama: trial → beli → verifikasi → aktif. Tiap state punya satu CTA utama.
+function licenseSteps(activeStep) {
+  const steps = [['1', 'Trial'], ['2', 'Beli'], ['3', 'Proses'], ['4', 'Aktif']];
+  return `<div class="license-steps" aria-label="Tahapan lisensi">${steps.map(([number, label], index) => `
+    <div class="license-step ${index + 1 < activeStep ? 'is-done' : ''} ${index + 1 === activeStep ? 'is-current' : ''}">
+      <span class="license-step-dot">${index + 1 < activeStep ? '✓' : number}</span><span>${label}</span>
+    </div>${index < steps.length - 1 ? '<span class="license-step-line"></span>' : ''}`).join('')}</div>`;
+}
+
 export function licenseStatusHtml(left, extUsed, inputId) {
   return `
-    <div class="card license-card-trial">
+    <div class="card license-card-trial license-state-card">
+      ${licenseSteps(1)}
       <div class="license-header">
         <div class="license-icon">⏰</div>
         <div class="license-title">Masa Coba Gratis</div>
         <span class="badge ${left > 2 ? 'orange' : 'red'}">${left > 0 ? left + ' hari tersisa' : 'Sudah habis'}</span>
       </div>
-      <div class="license-description">
-        Beli lisensi resmi dan admin akan mengaktifkannya <b>otomatis</b> setelah pembayaran diverifikasi — tidak perlu mengetik kode manual.
-      </div>
+      <div class="license-description">Nikmati trial sekarang. Saat siap, beli lisensi dan admin akan mengaktifkannya otomatis setelah pembayaran diverifikasi.</div>
       <div class="license-extend-section">
-        ${extUsed < MAX_EXTENSIONS ? `<button class="btn-extend mt12" onclick="window._ksr_openExtendFlow()">🎁 Tambah 1 Hari Gratis</button>` : `<div class="hint mt12">Jatah perpanjangan gratis sudah habis (maks ${MAX_EXTENSIONS}x). Silakan beli lisensi resmi.</div>`}\n        <div class="license-usage">Perpanjangan dipakai <b>${extUsed}/${MAX_EXTENSIONS}</b>x</div>
+        ${extUsed < MAX_EXTENSIONS ? `<button class="btn-extend" onclick="window._ksr_openExtendFlow()">🎁 Tambah 1 Hari Gratis</button>` : `<div class="hint">Jatah perpanjangan gratis sudah habis (maks ${MAX_EXTENSIONS}x).</div>`}
+        <div class="license-usage">Perpanjangan dipakai <b>${extUsed}/${MAX_EXTENSIONS}</b>x</div>
       </div>
     </div>
-    <div class="license-actions" style="margin-top:14px">
+    <div class="license-actions license-actions-primary">
       <button class="btn-buy-wa" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
       <button class="btn btn-outline" onclick="window._ksr_checkLicenseStatus()">🔄 Cek Status</button>
-      <button class="btn btn-outline" onclick="window._ksr_contactViaWA()">💬 WA Admin</button>
     </div>
-    <div class="manual-key-toggle" style="margin-top:14px;text-align:center">
-      <a href="javascript:void(0)" onclick="window._ksr_toggleManualKey('${inputId}')" style="font-size:12px;color:var(--text3);text-decoration:underline">Sudah punya kode? Aktivasi manual</a>
-      <div id="manualKeyWrap-${inputId}" style="display:none;margin-top:8px;text-align:left">
-        <div class="field"><input type="text" id="${inputId}" placeholder="KK5-XXXX-XXXX-XX-XXXXXX" class="form-input uppercase"></div>
-        <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="window._ksr_activateLicense('${inputId}')">🔑 Aktifkan Kode</button>
-      </div>
-    </div>
+    <div class="license-secondary-actions"><button class="btn btn-ghost" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button></div>
+    ${manualKeyHtml(inputId)}
   `;
+}
+
+function manualKeyHtml(inputId) {
+  return `<div class="manual-key-toggle"><a href="javascript:void(0)" onclick="window._ksr_toggleManualKey('${inputId}')">Sudah punya kode? Aktivasi manual</a>
+    <div id="manualKeyWrap-${inputId}" class="manual-key-wrap">
+      <div class="field"><input type="text" id="${inputId}" placeholder="KK5-XXXX-XXXX-XX-XXXXXX" class="form-input uppercase"></div>
+      <button class="btn btn-primary" onclick="window._ksr_activateLicense('${inputId}')">🔑 Aktifkan Kode</button>
+    </div></div>`;
 }
 
 // ── Cloud status cards ────────────────────────────────────────────────
 function activeLicenseCardHtml(serial, expTxt) {
   return `
-    <div class="card license-card-active">
+    <div class="card license-card-active license-state-card">
+      ${licenseSteps(4)}
       <div class="license-icon">✅</div>
       <div class="badge green compact">✓ Lisensi Aktif</div>
       <p class="license-key"><b>${escapeHtml(serial || '-')}</b></p>
       <p class="license-expiry">${expTxt}</p>
-      <p class="license-desc">Lisensi diaktifkan otomatis dari server dan membuka semua fitur tanpa batasan.</p>
+      <p class="license-desc">Semua fitur sudah terbuka. Terima kasih sudah memakai Kaki5.</p>
+      <div class="license-active-actions"><button class="btn btn-outline" onclick="window._ksr_checkLicenseStatus()">🔄 Refresh Status</button></div>
     </div>`;
 }
 
 function pendingVerificationHtml(inputId) {
-  const manualRow = `
-    <div class="manual-key-toggle" style="margin-top:14px;text-align:center">
-      <a href="javascript:void(0)" onclick="window._ksr_toggleManualKey('${inputId}')" style="font-size:12px;color:var(--text3);text-decoration:underline">Sudah punya kode? Aktivasi manual</a>
-      <div id="manualKeyWrap-${inputId}" style="display:none;margin-top:8px;text-align:left">
-        <div class="field"><input type="text" id="${inputId}" placeholder="KK5-XXXX-XXXX-XX-XXXXXX" class="form-input uppercase"></div>
-        <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="window._ksr_activateLicense('${inputId}')">🔑 Aktifkan Kode</button>
-      </div>
-    </div>`;
   return `
-    <div class="card license-card-pending">
-      <div class="license-header">
-        <div class="license-icon">⏳</div>
-        <div class="license-title">Menunggu Verifikasi Admin</div>
-        <span class="badge amber">Diverifikasi</span>
-      </div>
-      <div class="license-description">
-        Bukti pembayaran Anda sudah terkirim. Admin akan memverifikasi dan mengaktifkan lisensi <b>otomatis</b> — Anda tidak perlu melakukan apa pun.
-      </div>
-      <div class="license-actions" style="margin-top:14px">
-        <button class="btn btn-outline" style="width:100%" onclick="window._ksr_checkLicenseStatus()">🔄 Cek Status</button>
-      </div>
+    <div class="card license-card-pending license-state-card">
+      ${licenseSteps(3)}
+      <div class="license-header"><div class="license-icon">⏳</div><div class="license-title">Aktivasi sedang diproses</div><span class="badge amber">Menunggu admin</span></div>
+      <div class="license-description">Bukti pembayaran sudah diterima. Lisensi akan aktif otomatis setelah verifikasi selesai.</div>
+      <div class="license-progress"><span></span></div>
+      <div class="license-actions license-actions-primary"><button class="btn btn-primary" onclick="window._ksr_checkLicenseStatus()">🔄 Cek Status Sekarang</button></div>
+      <div class="license-hint">Tidak perlu kirim ulang bukti pembayaran.</div>
     </div>
-    ${manualRow}
+    ${manualKeyHtml(inputId)}
   `;
 }
 
@@ -129,7 +127,7 @@ export async function renderLicenseStatusArea(targetId, inputId) {
     return true;
   }
 
-  if (cloud && (cloud.license_status === 'menunggu_verifikasi' || cloud.license_status === 'belum')) {
+  if (cloud && cloud.license_status === 'menunggu_verifikasi') {
     el.innerHTML = pendingVerificationHtml(inputId);
     return false;
   }

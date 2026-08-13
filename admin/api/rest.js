@@ -23,7 +23,7 @@
  * Environment (Vercel): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_API_KEY
  */
 
-const ALLOWED_REST_TABLES = new Set(['clients', 'products']);
+const ALLOWED_REST_TABLES = new Set(['clients', 'products', 'settings']);
 const ALLOWED_FUNCTIONS = new Set(['activate-license']);
 
 import { checkAdminGate } from './_gate.js';
@@ -46,6 +46,51 @@ export default async function handler(req, res) {
     body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
   } catch {
     return res.status(400).json({ error: 'bad_json' });
+  }
+
+  if (body.storageSign === true) {
+    const bucket = String(body.bucket || '');
+    const objectPath = String(body.path || '').replace(/^\/+/, '');
+    const baseUrl = process.env.SUPABASE_URL || '';
+    const svc = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+    if (bucket !== 'bukti' || !objectPath || objectPath.includes('..')) return res.status(400).json({ error: 'invalid_storage_path' });
+    if (!baseUrl || !svc) return res.status(500).json({ error: 'server_not_configured' });
+    try {
+      const upstream = await fetch(`${baseUrl.replace(/\/$/, '')}/storage/v1/object/sign/${bucket}/${encodeURIComponent(objectPath).replace(/%2F/g, '/')}`, {
+        method: 'POST',
+        headers: { apikey: svc, Authorization: `Bearer ${svc}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expiresIn: 900 })
+      });
+      const result = await upstream.json();
+      if (!upstream.ok) return res.status(upstream.status).json({ error: 'storage_sign_failed', detail: result });
+      const signed = result.signedURL || result.signedUrl;
+      return res.status(200).json({ url: signed && signed.startsWith('http') ? signed : `${baseUrl.replace(/\/$/, '')}/storage/v1${signed}` });
+    } catch (e) { return res.status(502).json({ error: 'upstream_error', detail: String((e && e.message) || e) }); }
+  }
+
+  if (body.storage === true) {
+    const bucket = String(body.bucket || '');
+    const filename = String(body.filename || '');
+    const contentType = String(body.contentType || '');
+    const encoded = String(body.data || '');
+    if (bucket !== 'qris' || !/^merchant-qris\.(png|jpe?g|webp)$/i.test(filename) || !/^image\/(png|jpeg|webp)$/.test(contentType) || !encoded) {
+      return res.status(400).json({ error: 'invalid_storage_upload' });
+    }
+    const baseUrl = process.env.SUPABASE_URL || '';
+    const svc = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+    if (!baseUrl || !svc) return res.status(500).json({ error: 'server_not_configured' });
+    try {
+      const target = `${baseUrl.replace(/\/$/, '')}/storage/v1/object/${bucket}/${filename}`;
+      const upstream = await fetch(target, {
+        method: 'POST',
+        headers: { apikey: svc, Authorization: `Bearer ${svc}`, 'Content-Type': contentType, 'x-upsert': 'true' },
+        body: Buffer.from(encoded, 'base64')
+      });
+      if (!upstream.ok) return res.status(upstream.status).json({ error: 'storage_upload_failed', detail: await upstream.text() });
+      return res.status(200).json({ publicUrl: `${baseUrl.replace(/\/$/, '')}/storage/v1/object/public/${bucket}/${filename}` });
+    } catch (e) {
+      return res.status(502).json({ error: 'upstream_error', detail: String((e && e.message) || e) });
+    }
   }
 
   const { method = 'GET', path = '', data, headers = {} } = body;

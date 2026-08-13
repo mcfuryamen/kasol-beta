@@ -3,7 +3,7 @@
 // v7: Removed license card from settings page, added skipWaiting + claim
 // v8: Fix unresolved Response (return valid fallback instead of undefined) so SW
 //     doesn't throw "Failed to convert value to 'Response'" when fetch fails offline.
-// v22: bump cache untuk memaksa update aset PWA (style.css, clients.js) di device
+
 const CACHE_NAME = 'kasir-admin-v22';
 const STATIC_ASSETS = [
   '/',

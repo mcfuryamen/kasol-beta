@@ -125,9 +125,22 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
       userId = anon?.user?.id;
     }
     const payload = await buildPayload(unitId);
-    const { error: upErr } = await sb
+    // Klaim device lama lebih dulu agar update profil tidak mentok RLS
+    // saat browser/storage anonim berubah.
+    const { error: claimErr } = await sb.rpc('device_known', {
+      p_unit_id: unitId,
+      p_device_code: payload.device_code,
+      p_app_type: APP_TYPE
+    });
+    if (claimErr) throw claimErr;
+    const { data: existing } = await sb
       .from('clients')
-      .upsert({ ...payload, user_id: userId }, { onConflict: 'unit_id' });
+      .select('unit_id')
+      .eq('unit_id', unitId)
+      .maybeSingle();
+    const { error: upErr } = existing
+      ? await sb.from('clients').update({ ...payload, user_id: userId }).eq('unit_id', unitId)
+      : await sb.from('clients').insert({ ...payload, user_id: userId });
     if (upErr) throw upErr;
     // Pipeline marketing kini ada DI clients (leads/pembelian lama sudah
     // dikonsolidasi). Profil tidak boleh me-reset status yang sudah dimajukan
