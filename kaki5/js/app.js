@@ -11,6 +11,7 @@ console.log('[APP] Starting...');
 
 import { navigateTo, initRouter, getCurrentPage } from './navigation.js';
 import { getSetting, setSetting } from './db.js';
+import { validatePhone, formatPhoneDisplay } from './helpers.js';
 import { renderPlatformCarousel, platGoTo } from './carousel.js';
 import { debounce } from './helpers.pure.js';
 import { ensureSynced } from './sync.js';
@@ -197,13 +198,16 @@ window._ksr_proceedToTC = async () => {
     if (msg) { msg.textContent = 'Mohon isi Nomor WhatsApp terlebih dahulu.'; msg.style.display = 'block'; }
     return;
   }
-  // Format: pastikan diawali 62 atau 0, hapus karakter non-digit
-  const cleanWa = wa.replace(/\D/g, '');
-  const formattedWa = cleanWa.startsWith('62') ? '0' + cleanWa.slice(2) : cleanWa.startsWith('0') ? cleanWa : '0' + cleanWa;
+  // Validate with strict Indonesian WhatsApp format
+  const res = validatePhone(wa);
+  if (!res.valid) {
+    if (msg) { msg.textContent = res.message; msg.style.display = 'block'; }
+    return;
+  }
   if (wa) {
-    await setSetting('noWhatsapp', formattedWa);
+    await setSetting('noWhatsapp', res.normalized);
     const nw = document.getElementById('settingWa');
-    if (nw) nw.textContent = formattedWa;
+    if (nw) nw.textContent = formatPhoneDisplay(res.normalized);
   }
   document.getElementById('tcModal')?.classList.add('show'); // STEP 2
 };
