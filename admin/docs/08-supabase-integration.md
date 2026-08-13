@@ -55,9 +55,10 @@ CREATE TABLE products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   app_type TEXT NOT NULL,
   name TEXT NOT NULL,
+  kode_produk TEXT,          -- NEW 2026-08-13: kode lisensi (KK5/KSR/GBK/RTL/dll), UNIQUE
   tagline TEXT,
   description TEXT,
-  price_label TEXT,
+  price_label TEXT,          -- source of truth harga (satu-satunya; clients.harga DI-DROP)
   features JSONB DEFAULT '[]',
   icon TEXT,
   color TEXT,
@@ -70,6 +71,7 @@ CREATE TABLE products (
 -- Indexes
 CREATE INDEX idx_products_visible ON products(visible);
 CREATE INDEX idx_products_order ON products(order_index);
+CREATE UNIQUE INDEX products_kode_produk_key ON products(kode_produk);
 ```
 
 ### Tabel `clients` (CRM — Sinkron Profil Klien)
@@ -160,6 +162,23 @@ CREATE POLICY "service_role_all_products" ON products
 
 ---
 
+## 🖼️ Bukti Pembayaran (Bucket `bukti`) & Signed URL
+
+Buckets: `qris` **public** (QRIS merchant), `bukti` **private** (foto bukti transfer user).
+
+- Foto bukti di-upload user via **smart button** "Kirim Bukti Bayar" (kaki5) — klik
+  langsung buka file picker, preview + nama file muncul, tombol berubah jadi submit
+  → satu aksi, tanpa dobel-step.
+- `clients.bukti_url` menyimpan **path objek** (mis. `{unit_id}/{ts}.jpg`), BUKAN URL publik.
+- Karena bucket `bukti` privat, admin TIDAK bisa langsung buka via URL biasa → butuh
+  **signed URL** (15 menit). Di-generate server-side lewat handler `storageSign`
+  (`admin/api/rest.js` serverless & `admin/server.js` local dev) memakai service_role;
+  helper `admin/js/api.js` → `supabaseStorageSign()`.
+- Error `Bucket not found` / `Path bukti tidak valid` / `Gagal membuat link bukti`
+  muncul saat bukti_url kosong atau berisi path non-objek — guard di `clients.js`.
+
+---
+
 ## 🔧 Client Implementation
 
 ### Admin Dashboard Files
@@ -168,8 +187,8 @@ CREATE POLICY "service_role_all_products" ON products
 |------|---------|
 | `js/env-loader.js` | Load env vars ke `window` (SUPABASE_URL, ANON_KEY, ADMIN_API_KEY gate) — **GENERATED at build**; TIDAK pernah berisi SERVICE_KEY |
 | `js/supabase-client.js` | Supabase REST client untuk landing (anon key) |
-| `js/api.js` | Helper `supabaseFetch()` — semua operasi data lewat Vercel Serverless `/api/rest` |
-| `api/rest.js` | **Vercel Serverless Proxy** — satu-satunya tempat service_role key (server-side); whitelist tabel `clients`/`products` (leads & pembelian di-drop 2026-08-11) + fn activate-license |
+| `js/api.js` | Helper `supabaseFetch()` — semua operasi data lewat Vercel Serverless `/api/rest`; plus `supabaseStorageSign()` untuk **signed URL** bukti bayar (bucket `bukti` privat) |
+| `api/rest.js` | **Vercel Serverless Proxy** — satu-satunya tempat service_role key (server-side); whitelist tabel `clients`/`products` (leads & pembelian di-drop 2026-08-11) + fn activate-license + handler `storageSign` (signed URL bukti) |
 | `js/catalog.js` | CRUD products via `supabaseFetch()` (service key di server) |
 | `js/clients.js` | **CRM Klien** — baca/tulis `clients` via `supabaseFetch()`, generate lisensi. Data dari onboarding + update profil app klien. |
 | `js/license-core.js` | Pure logic HMAC-SHA256 + Base32 (portable ke client apps) |
@@ -385,6 +404,9 @@ curl -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/datab
 - [x] Update kaki5 `sync.js` (anonymous auth + upsert unit_id)
 - [x] Embed anon key di kaki5 `supabase-config.js`
 - [x] Fix API wilayah Indonesia → raw GitHub (support sampai desa)
+- [x] **Drop `clients.harga`** (2026-08-13) — harga di-resolve dari `products.price_label` (`migration-drop-clients-harga.sql`)
+- [x] **Add `products.kode_produk`** (2026-08-13) + backfill + unique index (`migration-add-kode-produk-to-products.sql`)
+- [x] **Signed URL bukti** (`storageSign`, bucket `bukti` privat) — admin bisa lihat foto bukti
 - [ ] **Migrate `settings` ke Supabase** (rencana)
 - [ ] **Migrate `stats` ke Supabase** (rencana)
 - [ ] **Security Hardening: Auth + RLS / Serverless Proxy** (prioritas tinggi)

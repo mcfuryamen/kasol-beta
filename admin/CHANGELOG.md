@@ -3,6 +3,31 @@
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
 
+## [1.6.0] - (2026-08-13: Harga Pusat di products + Signed URL Bukti)
+
+> Suites audit Kaki5 → sinkronisasi arsitektur harga + perbaikan bukti bayar.
+
+### 💰 Arsitektur Harga Disentralisasi
+- **`clients.harga` DI-DROP** — harga tidak lagi disimpan per klien. Nominal di-resolve
+  dinamis dari tabel `products` (kolom `price_label`) berdasar `app_type` via
+  `STATE.catalog` saat render kartu/detail (`clients.js`). Satu-satunya source of truth
+  harga = `products`.
+- **`products.kode_produk` ditambahkan** + backfill (kaki5→KK5, rosok→KSR, gerobak→GBK,
+  retail→RTL, dll = upper(app_type)) + unique index. Diintegrasikan ke katalog admin
+  (load/edit/save/kartu) & flow pembelian kaki5.
+- Migrasi: `supabase/migration-drop-clients-harga.sql`, `supabase/migration-add-kode-produk-to-products.sql`.
+
+### 🖼️ Bukti Bayar (Bucket `bukti`)
+- **Fixed:** admin tak bisa lihat foto bukti (`Bucket not found` / `Path bukti tidak valid`).
+  Kini ada **signed URL** (15 menit) via handler `storageSign` (`api/rest.js` serverless +
+  `server.js` local) + helper `supabaseStorageSign()` (`api.js`).
+- `clients.js` guard path tak valid → error "Gagal membuat link bukti" ditangani.
+
+### 🔘 Smart Button "Kirim Bukti Bayar" (kaki5)
+- Klik langsung buka file picker foto → preview + nama file → tombol berubah jadi submit
+  (satu aksi, tanpa dobel-step). Di-dokumentasikan di CHANGELOG kaki5.
+
+
 ## [1.5.2] - (Polish Kartu Klien: Info Lisensi & Verifikasi)
 
 ### 🎨 Kartu lebih informatif & komprehensif (design polish)

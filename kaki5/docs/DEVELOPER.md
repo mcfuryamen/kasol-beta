@@ -431,6 +431,25 @@ Setiap field punya:
 
 ---
 
+## 8.5. Pembelian Lisensi & Harga (2026-08-13)
+
+Flow beli lisensi di `js/purchase.js`:
+
+- **Harga & kode produk dari Supabase `products`** — fetch `products` (filter
+  `app_type=eq.kaki5&visible=eq.true`), baca `price_label` (source of truth harga)
+  & `kode_produk` (mis. `KK5`). Tidak ada lagi kolom `harga` lokal/`clients` — harga
+  selalu di-resolve dinamis dari `products`. Sinkronisasi harga dilakukan lewat
+  table `products` (bukan kontanta hardcode).
+- **Smart Button "Kirim Bukti Bayar"** — klik langsung memicu `input[type=file]`
+  (hidden) memilih foto dari perangkat → preview + nama file tampil → tombol berubah
+  jadi submit (`submitPurchaseBtn`). Satu aksi, tanpa dobel-step. Objek placeholder
+  lama dihapus, diganti preview bukti.
+- **Upload ke bucket `bukti`** (private) → simpan path objek di `clients.bukti_url`
+  (bukan URL publik). Update status ke `menunggu_verifikasi`.
+- Admin membuka foto via **signed URL** (15 menit, `storageSign`) — liat docs admin.
+
+---
+
 ## 9. Sinkronisasi Profil ke Supabase (CRM) — `js/sync.js`
 
 > **Self-host supabase-js (2026-08-11, P5/K6)**: client lib dimuat dari `js/supabase.min.js` (v2.112.2, UMD) — **bukan** CDN. Ini membuatnya same-origin (`response.type === 'basic'`) sehingga SW bisa `cache.addAll` ke precache (saat CDN cross-origin, fetch handler yang cuma cache `basic` tidak pernah menyimpannya → sync tak tersedia offline). Pesan versi baru/update bundle: unduh dari jsdelivr, pin versi, commit ulang, lalu **bump `CACHE_NAME` di `sw.js` + `?v=` di `index.html`/`README.md`** (rule P4).

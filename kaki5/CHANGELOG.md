@@ -2,6 +2,16 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-13 (P8: Smart Button Bukti Bayar + Harga dari products)
+- **🔘 "Kirim Bukti Bayar" jadi smart button** — klik langsung buka file picker foto
+  perangkat (hidden input), tampil preview + nama file, lalu tombol berubah jadi submit.
+  Satu aksi, tanpa dobel-step (sebelumnya harus pilih file dulu baru kirim).
+- **Harga & kode produk dari `products`** — pembelian tidak lagi mengirim/menyimpan
+  kolom `harga`; harga diambil dari `products.price_label` & `kode_produk` (filter
+  `app_type=eq.kaki5&visible=eq.true`), dikirim ke `clients` (kolom `harga` sudah di-drop).
+- **Upload bukti** ke bucket `bukti` (privat) → `bukti_url` simpannya path objek.
+  Admin lihat via signed URL (15 menit).
+
 ## 2026-08-11 (P7: Seragamkan window-wiring — semua handler di app.js)
 - Hapus **self-wire** di modul: `purchase.js` (5 handler), `settings.sync.js` &
   `settings.js` (`_ksr_syncNow`, duplikat), `bantuan.js` (`initBantuan`,

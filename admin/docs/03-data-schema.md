@@ -164,7 +164,15 @@ CREATE TABLE businesses (
 
 Kolom pipeline: `status` (baru/dihubungi/tertarik/menunggu_verifikasi/aktif/batal),
 `source` (asal mis. `app-kaki5`), `lead_source`, plus kolom pembayaran yang dulu ada
-di `pembelian`: `harga`, `bukti_url`, `nama_pembayar`, `verified_at`, `activated_at`.
+di `pembelian`: `bukti_url`, `nama_pembayar`, `verified_at`, `activated_at`.
+
+> 🔻 **2026-08-13:** Kolom `harga` di `clients` **DI-DROP**. Harga kini **bukan
+> disimpan per klien** — di-resolve dinamis dari tabel `products` (kolom
+> `price_label`) berdasarkan `app_type` saat menampilkan kartu/detail. Satu-satunya
+> source of truth harga = `products` (lihat `migration-drop-clients-harga.sql`).
+> `bukti_url` menyimpan path objek di bucket `bukti` (private) — untuk dibuka,
+> admin butuh signed URL via `storageSign` (bukan URL publik).
+
 Kolom lengkap & urutan pipeline lihat CHANGELOG 1.4.0 / `01-overview.md`.
 
 ### Tabel `products`
@@ -172,16 +180,28 @@ Kolom lengkap & urutan pipeline lihat CHANGELOG 1.4.0 / `01-overview.md`.
 ```sql
 CREATE TABLE products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  app_type TEXT NOT NULL,          -- kaki5 | rosok | gerobak | retail | konveksi | ...
+  kode_produk TEXT,                -- NEW 2026-08-13: kode lisensi (KK5/KSR/GBK/RTL/dll)
   name TEXT NOT NULL,
   icon TEXT,
+  tagline TEXT,
   description TEXT,
-  price INTEGER NOT NULL,
-  category TEXT CHECK (category IN ('bisnis','institusi','kesehatan')),
-  is_hot BOOLEAN DEFAULT false,
+  price_label TEXT,                -- harga (string, kode negara/tampilan) — source of truth harga
+  features JSONB DEFAULT '[]',
+  color TEXT,
+  order_index INTEGER DEFAULT 0,
+  visible BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- NEW 2026-08-13: kode_produk unik per app_type
+CREATE UNIQUE INDEX products_kode_produk_key ON products(kode_produk);
 ```
+
+> `kode_produk` ditambahkan via `supabase/migration-add-kode-produk-to-products.sql`
+> (backfill: kaki5→KK5, rosok→KSR, gerobak→GBK, retail→RTL, lainnya = upper(app_type)),
+> diintegrasikan ke katalog admin (view/edit/save) & flow pembelian kaki5.
 
 ### Tabel `licenses`
 

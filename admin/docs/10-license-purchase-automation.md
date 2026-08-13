@@ -2,8 +2,10 @@
 
 > ⚠️ **SUPERSEDED (2026-08-11):** Proposal ini memakai tabel `pembelian` yang sudah
 > di-DROP. Verifikasi pembayaran kini ditangani stage `menunggu_verifikasi` di tabel
-> `clients` (kolom `harga`, `bukti_url`, `verified_at`, `activated_at`). Disimpan
-> sebagai catatan riwayat.
+> `clients` (kolom `bukti_url`, `verified_at`, `activated_at`).
+> > **2026-08-13:** Kolom `harga` di `clients` juga **DI-DROP** — nominal dibaca
+> > dinamis dari `products.price_label` (source of truth), bukan disimpan per klien.
+> > Disimpan sebagai catatan riwayat.
 
 ## Konsep
 
