@@ -191,16 +191,16 @@ window._ksr_contactViaWA     = contactViaWA;
 window._ksr_proceedToTC = async () => {
   const msg = document.getElementById('onboardMsg');
   if (msg) msg.style.display = 'none';
-  const nama = document.getElementById('onboardName')?.value.trim() || '';
-  const existing = await getSetting('namaWarung', '');
-  if (!nama && !existing) {
-    if (msg) { msg.textContent = 'Mohon isi Nama Usaha terlebih dahulu.'; msg.style.display = 'block'; }
+  const wa = document.getElementById('onboardWa')?.value.trim() || '';
+  const existing = await getSetting('noWhatsapp', '');
+  if (!wa && !existing) {
+    if (msg) { msg.textContent = 'Mohon isi Nomor WhatsApp terlebih dahulu.'; msg.style.display = 'block'; }
     return;
   }
-  if (nama) {
-    await setSetting('namaWarung', nama);
-    const nw = document.getElementById('namaWarung');
-    if (nw) nw.textContent = nama;
+  if (wa) {
+    await setSetting('noWhatsapp', wa);
+    const nw = document.getElementById('settingWa');
+    if (nw) nw.textContent = wa;
   }
   document.getElementById('tcModal')?.classList.add('show'); // STEP 2
 };
@@ -365,9 +365,9 @@ async function init() {
       await renderGate(status);
       if (gate) gate.style.display = 'flex';
       if (status.status === 'none') {
-        const existing = await getSetting('namaWarung', '');
-        const nameEl = document.getElementById('onboardName');
-        if (nameEl && existing) nameEl.value = existing;
+        const existing = await getSetting('noWhatsapp', '');
+        const waEl = document.getElementById('onboardWa');
+        if (waEl && existing) waEl.value = existing;
       }
     }
     await checkLicenseGate();
