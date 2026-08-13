@@ -8,7 +8,7 @@ import { STATE, subscribe, setState } from './app-state.js';
 import { formatRupiah, escapeHtml } from './utils.js';
 import { showToast } from './toast.js';
 import { supabaseFetch } from './api.js';
-import { updateSidebarBadges } from './navigation.js';
+import { updateSidebarBadges } from './navigation.js?v=20260812i';
 
 let catalogGrid = null;
 let catalogEmpty = null;

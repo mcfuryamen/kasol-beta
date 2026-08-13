@@ -189,7 +189,7 @@ function renderRecentActivity() {
   container.innerHTML = `
     <div class="compact-list">
       ${recent.map(c => `
-        <div class="row-item" onclick="openClientById('${escapeHtml(c.id)}')" data-open-client="${escapeHtml(c.id)}" role="button" tabindex="0">
+        <div class="row-item" onclick="openClientAccordion('${escapeHtml(c.id)}')" data-open-client="${escapeHtml(c.id)}" role="button" tabindex="0">
           <div class="row-icon">${getStatusIcon(c.status)}</div>
           <div class="row-body">
             <div class="row-title">${escapeHtml(c.nama_warung || '—')}</div>

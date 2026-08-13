@@ -40,6 +40,8 @@ function inject(file, regex, make) {
 
 // index.html: <script type="module" src="js/app.js?v=MODULAR"></script>
 inject(indexHtml, /(src="js\/app\.js\?v=)[^"]*(")/g, (m, a, b) => `${a}${ver}${b}`);
+// index.html: <script src="js/env-loader.js?v=..."> (ditulis build-env-loader) — bump biar ga stale
+inject(indexHtml, /(src="js\/env-loader\.js\?v=)[^"]*(")/g, (m, a, b) => `${a}${ver}${b}`);
 
 // app.js: semua import './x.js?v=...'  ->  './x.js?v=<ver>'
 inject(appJs, /(\.\/[A-Za-z0-9_/.-]+\.js\?v=)[^'"]*/g, (m) => m.replace(/(\.js\?v=)[^'"]*/, `$1${ver}`));

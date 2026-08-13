@@ -19,7 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="dexie.min.js"></script>
-<script src="js/env-loader.js"></script>
+<script src="js/env-loader.js?v=20260812b"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Langsung ke konten</a>
@@ -46,10 +46,21 @@
         <span class="nav-ic">◧</span><span class="nav-tx">Katalog</span>
         <span class="nav-count" id="sideCountCatalog">0</span>
       </button>
-      <button class="nav-link" data-screen="klien">
+      <button class="nav-link nav-parent" data-screen="klien" data-submenu="submenuKlien" aria-expanded="false">
         <span class="nav-ic">◍</span><span class="nav-tx">Klien</span>
         <span class="nav-count" id="sideCountClients">0</span>
+        <span class="nav-arrow">▾</span>
       </button>
+      <div class="nav-sub-wrap" id="submenuKlien">
+        <div class="nav-sub-box">
+          <button class="nav-link nav-sub" data-screen="klien" data-client-view="analitik">
+            <span class="nav-tx">Analitik</span>
+          </button>
+          <button class="nav-link nav-sub" data-screen="klien" data-client-view="kelola">
+            <span class="nav-tx">Kelola Klien</span>
+          </button>
+        </div>
+      </div>
       <button class="nav-link" data-screen="settings">
         <span class="nav-ic">⚙</span><span class="nav-tx">Pengaturan</span>
       </button>
@@ -90,13 +101,6 @@
 
       <!-- ============ DASHBOARD ============ -->
       <section class="screen active" id="screen-dashboard" aria-label="Dashboard">
-        <div class="page-head">
-          <div>
-            <h2 class="page-h">Ringkasan</h2>
-            <p class="page-d">Performa leads, katalog, dan lisensi secara real-time.</p>
-          </div>
-        </div>
-
         <div class="kpi-grid" id="statCards"></div>
 
         <div class="grid-2col">
@@ -124,35 +128,20 @@
 
       <!-- ============ KATALOG ============ -->
       <section class="screen" id="screen-catalog" aria-label="Katalog">
-        <div class="page-head">
-          <div>
-            <h2 class="page-h">Katalog Aplikasi</h2>
-            <p class="page-d">Produk yang tampil di landing page. Sync otomatis ke Supabase.</p>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="openCatalogSheet()">＋ Tambah</button>
-        </div>
         <div class="catalog-grid" id="catalogList"></div>
         <div class="empty-state" id="catalogEmpty" hidden>
           <div class="empty-ic">◧</div>
           <div class="empty-t">Belum ada aplikasi</div>
           <div class="empty-d">Tambah aplikasi pertama untuk ditampilkan di landing page.</div>
         </div>
+
+        <!-- Floating action button (Tambah Aplikasi) -->
+        <button class="fab" id="fabCatalog" onclick="openCatalogSheet()" aria-label="Tambah aplikasi" title="Tambah aplikasi">＋</button>
       </section>
 
       <!-- ============ KLIEN ============ -->
       <section class="screen" id="screen-klien" aria-label="Klien">
-        <div class="page-head">
-          <div>
-            <h2 class="page-h">Klien</h2>
-            <p class="page-d">Outlet (merchant aktif) & calon pelanggan dari landing. Generate lisensi langsung dari sini.</p>
-          </div>
-        </div>
-
         <div class="toolbar-inline" style="gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <div class="seg" role="group" aria-label="Mode tampilan">
-            <button type="button" class="client-view-btn active" data-view="analitik" aria-pressed="true">📊 Analitik</button>
-            <button type="button" class="client-view-btn" data-view="kelola" aria-pressed="false">🗂 Kelola Klien</button>
-          </div>
           <div style="flex:1"></div>
           <input class="search" id="clientsSearch" aria-label="Cari outlet" placeholder="Cari nama / WA / wilayah / unit">
           <select class="select" id="clientsAppFilter" aria-label="Filter aplikasi">
@@ -177,19 +166,11 @@
             <span class="panel-sub">Tab per status — geser kartu antar tahap pakai tombol ‹ ›</span>
           </div>
           <div class="kanban-board" id="kanbanBoard"></div>
-          <div class="panel-body" id="clientDetailBody" hidden></div>
         </div>
       </section>
 
       <!-- ============ PENGATURAN ============ -->
       <section class="screen" id="screen-settings" aria-label="Pengaturan">
-        <div class="page-head">
-          <div>
-            <h2 class="page-h">Pengaturan</h2>
-            <p class="page-d">Info usaha, konfigurasi landing, dan backup data.</p>
-          </div>
-        </div>
-
         <div class="grid-2col">
           <div class="panel">
             <div class="panel-head"><h3 class="panel-t">Info Usaha</h3></div>
@@ -295,6 +276,6 @@
 </div>
 
 <!-- APP MODULE -->
-<script type="module" src="js/app.js?v=MODULAR"></script>
+<script type="module" src="js/app.js?v=20260812j"></script>
 </body>
 </html>
