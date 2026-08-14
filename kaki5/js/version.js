@@ -12,4 +12,4 @@ export const APP_VERSION_LABEL = 'Versi ' + APP_VERSION;
 
 // Cache-busting value used for <script>/<link> URLs and documented in README.
 // A single bump forces browsers to refetch assets after a release.
-export const CACHE_BUST = 'v51';
+export const CACHE_BUST = 'v52';

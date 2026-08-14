@@ -27,6 +27,9 @@ function getSupabaseClient() {
   return window._ksrSupabaseClient;
 }
 
+/** Export client supabase anon (dipakai modul lain seperti app-link). */
+export { getSupabaseClient };
+
 /** Sync local license state to Supabase (cloud target). */
 export async function syncLicenseStatus() {
   await ensureSynced({ force: true });
