@@ -108,6 +108,10 @@ export async function enforceRevoked() {
   await markLicenseRevoked('admin');
   const lock = document.getElementById('lockOverlay');
   if (lock) lock.classList.add('show');
+  const title = document.getElementById('lockOverlayTitle');
+  if (title) title.textContent = 'Lisensi Dicabut';
+  const desc = document.getElementById('lockOverlayDesc');
+  if (desc) desc.style.display = 'none';
   const area = document.getElementById('lockLicenseStatusArea');
   if (area) area.innerHTML = revokedLicenseCardHtml();
   if (_updateTrialChip) _updateTrialChip();
