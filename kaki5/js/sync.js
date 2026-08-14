@@ -13,7 +13,7 @@
 //    anonim tsb (RLS auth.uid() = user_id). Tiap device cuma bisa ubah barisnya.
 
 import { getSetting, setSetting } from './db.js';
-import { showToast } from './helpers.js';
+import { showToast, getDeviceInfo } from './helpers.js';
 import { getUnitId, getDeviceCode, getInstallId } from './license.js';
 
 const APP_TYPE = 'kaki5';
@@ -78,6 +78,20 @@ async function buildPayload(unitId) {
     alamat_detail: alamat,
     last_seen:    new Date().toISOString()
   };
+
+  // Capture tipe browser & jenis perangkat -> update di tiap sync (bukan cuma
+  // onboarding), jadi info di CRM selalu fresh walau user pindah browser/device.
+  try {
+    const dev = getDeviceInfo();
+    payload.browser = dev.browser;
+    payload.os = dev.os;
+    payload.device_type = dev.deviceType;
+    payload.user_agent = dev.userAgent;
+    // Simpan lokal juga biar terakhir-terlihat (tanpa nunggu sync berikutnya)
+    await setSetting('deviceInfo', dev).catch(() => {});
+  } catch (_devErr) {
+    // detection gagal -> biarkan kosong, jangan blokir sync
+  }
   return payload;
 }
 
