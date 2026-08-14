@@ -372,6 +372,11 @@ export function subscribeToLicenseUpdates(unitId) {
         if (window._ksr_updateTrialChip) window._ksr_updateTrialChip();
         if (window._ksr_checkLicenseGate) window._ksr_checkLicenseGate();
         if (window._ksr_renderLicenseInfoCard) window._ksr_renderLicenseInfoCard();
+      } else if (payload.new.license_status === 'batal' || payload.new.license_status === 'nonaktif') {
+        // Realtime revoke: kunci app segera tanpa menunggu reload.
+        console.warn('License revoked via realtime!', payload.new);
+        if (window._ksr_enforceRevoked) window._ksr_enforceRevoked();
+        else if (window._ksr_checkLicenseGate) window._ksr_checkLicenseGate();
       }
     }
   );

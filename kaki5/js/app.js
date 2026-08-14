@@ -162,7 +162,7 @@ window.setPlatAutoTimer   = setPlatAutoTimer;
 
 // ==================== LICENSE GATE ====================
 // Expose license actions to the gate UI (index.html)
-import { setLicenseRefs, updateTrialChip, renderLicenseInfoCard, checkLicenseGate, openExtendFlow, grantExtension, openLicenseSheet, getLicenseStatus, startTrial, activateSerial, activateLicense, contactViaWA, checkCloudStatusAndUnlock, toggleManualKey, fetchLicenseStatusFromCloud, isDeviceKnownOnCloud, saveLicense, getDeviceIdentity, decodeExpiryLabel } from './license.js';
+import { setLicenseRefs, updateTrialChip, renderLicenseInfoCard, checkLicenseGate, openExtendFlow, grantExtension, openLicenseSheet, getLicenseStatus, startTrial, activateSerial, activateLicense, contactViaWA, checkCloudStatusAndUnlock, toggleManualKey, fetchLicenseStatusFromCloud, isDeviceKnownOnCloud, saveLicense, getDeviceIdentity, decodeExpiryLabel, enforceRevoked } from './license.js';
 import { ensureUnitId, isOnboarded, markOnboarded } from './license.logic.js';
 
 setLicenseRefs({
@@ -185,6 +185,7 @@ window._ksr_handleBuktiUpload = handleBuktiUpload;
 window._ksr_submitPurchase   = submitPurchase;
 window._ksr_pollLicenseStatus = pollLicenseStatus;
 window._ksr_subscribeToLicenseUpdates = subscribeToLicenseUpdates;
+window._ksr_enforceRevoked = enforceRevoked;
 window._ksr_closeSheet       = (id) => document.getElementById(id)?.classList.remove('show');
 window._ksr_contactViaWA     = contactViaWA;
 // --- Syarat & Ketentuan 2-STEP onboarding (user gaptek friendly) ---

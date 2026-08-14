@@ -21,7 +21,7 @@ export {
   getUnitId, ensureUnitId,
   isLicensed, trialEndDate, daysLeft,
   getLicense, saveLicense, grantExtensionLogic,
-  isOnboarded, markOnboarded
+  isOnboarded, markOnboarded, markLicenseRevoked, clearLocalLicense
 } from './license.logic.js';
 
 // Re-export UI functions
@@ -31,7 +31,8 @@ export {
   licenseStatusHtml,
   renderLicenseStatusArea, checkCloudStatusAndUnlock, toggleManualKey,
   checkLicenseGate, updateTrialChip, openLicenseSheet, renderLicenseInfoCard,
-  contactViaWA, openExtendFlow, tryShare, grantExtension, activateLicense
+  contactViaWA, openExtendFlow, tryShare, grantExtension, activateLicense,
+  enforceRevoked
 } from './license.ui.js';
 
 // Re-export sync functions

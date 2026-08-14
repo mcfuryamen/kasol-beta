@@ -186,6 +186,25 @@ async function saveLicense(lic) {
 
 export { getLicense, saveLicense };
 
+// Tandai lisensi sudah dicabut (revoke) oleh admin. State lokal dipertahankan
+// supaya app terkunci ("Lisensi Dinonaktifkan") walau offline — bukan jatuh ke
+// trial/onboarding lagi.
+export async function markLicenseRevoked(reason) {
+  const lic = await getLicense();
+  await saveLicense({
+    status: 'revoked',
+    deviceCode: lic.deviceCode || (await getDeviceIdentity()).deviceCode,
+    serial: lic.serial || '',
+    revokedAt: new Date().toISOString(),
+    revokedReason: reason || 'admin'
+  });
+}
+
+// Cabut lisensi & hapus state lisensi lokal sepenuhnya (fallback ekstrem).
+export async function clearLocalLicense() {
+  await setSetting('license', {});
+}
+
 // Start a fresh 7-day trial (only if not already activated)
 export async function startTrial() {
   const lic = await getLicense();
@@ -227,8 +246,11 @@ export async function getLicenseStatus() {
     if (expired) return { status: 'expired', deviceCode: lic.deviceCode, protocol: 'licensed-expired' };
     return { status: 'active', deviceCode: lic.deviceCode, serial: lic.serial, expCode: lic.expCode, expiryLabel: lic.expiryLabel };
   }
-  if (lic.status === 'trial') {
-    const end = trialEndDate(lic);
+  if (lic.status === 'revoked') {
+      return { status: 'revoked', deviceCode: lic.deviceCode || deviceCode, revokedAt: lic.revokedAt };
+    }
+    if (lic.status === 'trial') {
+      const end = trialEndDate(lic);
     const left = Math.ceil((end.getTime() - Date.now()) / 86400000);
     if (left <= 0) return { status: 'expired', deviceCode: lic.deviceCode, trialExpired: true, daysLeft: left };
     return { status: 'trial', deviceCode: lic.deviceCode, daysLeft: left, extensionsUsed: lic.extensionsUsed || 0, endDate: end.toISOString() };
