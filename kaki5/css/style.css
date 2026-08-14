@@ -179,6 +179,8 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 /* TOAST */
 .toast{position:fixed;top:calc(var(--header-h) + 12px);left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:30px;font-size:14px;font-weight:600;z-index:620;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:1}
+.toast.show{pointer-events:auto}
+.toast .toast-action{pointer-events:auto;margin-left:10px;background:#fff;color:#333;border:none;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
 

@@ -1,5 +1,6 @@
 // ==================== PWA SUPPORT (ESM) ====================
 import { showToast } from './helpers.js';
+import { notifyUpdateAvailable } from './update.js';
 
 let deferredPrompt = null;
 let isPWAInstalled = false;
@@ -49,8 +50,8 @@ export function setupPWA() {
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New version available, show update toast
-              showToast('🔄 Versi baru tersedia. Refresh untuk update.', 'info', 8000);
+              // Versi baru tersedia -> toast + tombol Refresh (bukan auto reload)
+              notifyUpdateAvailable('🔄 Versi baru tersedia!');
             }
           });
         }

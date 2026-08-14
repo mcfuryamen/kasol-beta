@@ -62,12 +62,34 @@ export function dayName(str) {
   return days[new Date(str+'T00:00:00').getDay()];
 }
 
-export function showToast(msg, type='success') {
+export function showToast(msg, type='success', opts) {
   const t = document.getElementById('toast');
   if (!t) return;
-  t.textContent = msg;
+  // Backward compat: param ke-3 bisa angka (durasi ms) seperti pemanggil lama.
+  let duration = 2500;
+  if (typeof opts === 'number') duration = opts;
+  else if (opts && typeof opts === 'object') duration = opts.duration ?? 2500;
+
+  clearTimeout(t._toastTimer);
+
+  if (opts && typeof opts === 'object' && opts.actionLabel) {
+    // Toast dengan tombol aksi (mis. tombol "Refresh" saat ada update baru).
+    t.innerHTML = '<span></span><button class="toast-action" type="button"></button>';
+    t.firstElementChild.textContent = msg;
+    const btn = t.querySelector('.toast-action');
+    btn.textContent = opts.actionLabel;
+    btn.onclick = () => {
+      t.className = 'toast';
+      if (typeof opts.onAction === 'function') opts.onAction();
+    };
+    if (duration !== Infinity) {
+      t._toastTimer = setTimeout(() => t.className = 'toast', duration);
+    }
+  } else {
+    t.textContent = msg;
+    t._toastTimer = setTimeout(() => t.className = 'toast', duration);
+  }
   t.className = 'toast show ' + type;
-  setTimeout(() => t.className = 'toast', 2500);
 }
 
 // ---- Loading state + error boundary helpers (P3) ----

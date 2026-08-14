@@ -25,6 +25,7 @@ import { showExpenseDetail } from './expensedetail.js';
 import { subscribeToLicenseUpdates, openPurchaseSheet, purchaseShowUpload, handleBuktiUpload, submitPurchase, pollLicenseStatus } from './purchase.js';
 import { syncNow as _ksrSyncNow } from './settings.sync.js';
 import { APP_VERSION, APP_VERSION_LABEL } from './version.js';
+import { startUpdateWatcher } from './update.js';
 import { setReportPeriod, setReportDate, setCustomStart, setCustomEnd, setPosCat, setCurrentPage, setCart, setSelectedTrxId, setLastSaleId, setPlatCurrentSlide, setPlatAutoTimer } from './app-state.js';
 
 // Lazy-loaded modules (wired to window when page is first visited)
@@ -492,6 +493,10 @@ initRouter();
 
 // Start the app
 init();
+
+// Deteksi update jalan di SEMUA state lisensi (aktif/trial/expired/locked),
+// bukan cuma di boot() yang hanya dipanggil saat lisensi aktif/trial.
+startUpdateWatcher();
 
 // ---- Version (P1/N7): single source of truth wired to window + DOM ----
 window.APP_VERSION = APP_VERSION;
