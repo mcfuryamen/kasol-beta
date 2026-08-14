@@ -1,6 +1,6 @@
 // ==================== LICENSE UI (ESM) ====================
 // DOM operations only. NO crypto, NO direct DB access.
-import { getLicense, daysLeft, isLicensed, MAX_EXTENSIONS } from './license.logic.js';
+import { getLicense, daysLeft, isLicensed, MAX_EXTENSIONS, activateSerial } from './license.logic.js';
 import { escapeHtml } from './helpers.js';
 
 // ----- UI wiring (refs injected by app.js to avoid circular imports) -----
@@ -117,7 +117,14 @@ export async function renderLicenseStatusArea(targetId, inputId) {
   const cloud = await fetchLicenseStatusFromCloud();
 
   if (cloud && cloud.license_status === 'aktif') {
-    const lic = await getLicense();
+      // Pastikan lisensi (serial dari cloud) tersimpan di local store supaya
+      // chip banner & status konsisten setelah reload / saat offline.
+      const local = await getLicense();
+      if (cloud.license_serial && local?.status !== 'active') {
+        const persisted = await activateSerial(cloud.license_serial);
+        if (persisted?.valid) void persisted;
+      }
+      const lic = await getLicense();
     const expTxt = lic?.expiryLabel ? 'Masa berlaku: ' + escapeHtml(lic.expiryLabel) : 'Berlaku seumur hidup';
     el.innerHTML = activeLicenseCardHtml(cloud.license_serial || lic?.serial, expTxt);
     document.getElementById('lockOverlay')?.classList.remove('show');
@@ -183,16 +190,22 @@ export async function checkLicenseGate() {
     if (lock) lock.classList.remove('show');
     return;
   }
-  // not licensed (trial running or expired)
+  // not licensed (trial running or expired) - cloud-first always sync
+  const lockArea = document.getElementById('lockLicenseStatusArea');
+  if (lockArea) {
+    // Cloud aktif -> persist local + unlock otomatis (berlaku juga saat trial berjalan).
+    const active = await renderLicenseStatusArea('lockLicenseStatusArea', 'lockLicenseInput');
+    if (active) {
+      if (_updateTrialChip) _updateTrialChip();
+      if (_renderLicenseInfoCard) _renderLicenseInfoCard();
+      const lock = document.getElementById('lockOverlay');
+      if (lock) lock.classList.remove('show');
+      return;
+    }
+  }
   if (_updateTrialChip) _updateTrialChip();
   if (_renderLicenseInfoCard) _renderLicenseInfoCard();
   if (left <= 0) {
-      const area = document.getElementById('lockLicenseStatusArea');
-      if (area) {
-        // Cloud-first: aktif → unlock otomatis; menunggu verifikasi → card pending.
-        const active = await renderLicenseStatusArea('lockLicenseStatusArea', 'lockLicenseInput');
-        if (active) return; // sudah unlock di dalam, jangan pop lock
-      }
       const lock = document.getElementById('lockOverlay');
       if (lock) lock.classList.add('show');
     }
