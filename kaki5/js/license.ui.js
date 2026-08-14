@@ -1,6 +1,6 @@
 // ==================== LICENSE UI (ESM) ====================
 // DOM operations only. NO crypto, NO direct DB access.
-import { getLicense, daysLeft, isLicensed, MAX_EXTENSIONS, activateSerial } from './license.logic.js';
+import { getLicense, daysLeft, isLicensed, MAX_EXTENSIONS, activateSerial, markLicenseRevoked } from './license.logic.js';
 import { escapeHtml } from './helpers.js';
 
 // ----- UI wiring (refs injected by app.js to avoid circular imports) -----
@@ -89,6 +89,31 @@ function activeLicenseCardHtml(serial, expTxt) {
     </div>`;
 }
 
+function revokedLicenseCardHtml() {
+  return `
+    <div class="card license-card-revoked license-state-card">
+      <div class="license-icon">🚫</div>
+      <div class="badge red compact">✖ Lisensi Dinonaktifkan</div>
+      <div class="license-title" style="margin-top:8px">Lisensi Dicabut</div>
+      <p class="license-desc">Lisensi untuk perangkat ini telah <b>dinonaktifkan</b> oleh admin. Aplikasi tidak dapat digunakan sampai lisensi dipulihkan.</p>
+      <div class="license-actions license-actions-primary">
+        <button class="btn btn-primary" onclick="window._ksr_contactViaWA()">💬 Hubungi Admin</button>
+        <button class="btn btn-outline" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
+      </div>
+    </div>`;
+}
+
+/** Enforce revoke: tandai local license revoked + tampilkan lock/kartu revoked. */
+export async function enforceRevoked() {
+  await markLicenseRevoked('admin');
+  const lock = document.getElementById('lockOverlay');
+  if (lock) lock.classList.add('show');
+  const area = document.getElementById('lockLicenseStatusArea');
+  if (area) area.innerHTML = revokedLicenseCardHtml();
+  if (_updateTrialChip) _updateTrialChip();
+  if (_renderLicenseInfoCard) _renderLicenseInfoCard();
+}
+
 function pendingVerificationHtml(inputId) {
   return `
     <div class="card license-card-pending license-state-card">
@@ -134,6 +159,16 @@ export async function renderLicenseStatusArea(targetId, inputId) {
     return true;
   }
 
+  // Lisensi dicabut / nonaktif oleh admin -> kunci app (tidak jatuh ke trial).
+  if (cloud && (cloud.license_status === 'batal' || cloud.license_status === 'nonaktif')) {
+    el.innerHTML = revokedLicenseCardHtml();
+    await markLicenseRevoked('admin');
+    const lock = document.getElementById('lockOverlay');
+    if (lock) lock.classList.add('show');
+    if (_updateTrialChip) _updateTrialChip();
+    return false;
+  }
+
   if (cloud && cloud.license_status === 'menunggu_verifikasi') {
     el.innerHTML = pendingVerificationHtml(inputId);
     return false;
@@ -162,9 +197,14 @@ export async function checkCloudStatusAndUnlock() {
     showToast('🎉 Lisensi berhasil diaktifkan!', 3000, 'success');
     return true;
   }
-  showToast('Lisensi belum aktif. Pembayaran menunggu verifikasi admin.', 3000, 'info');
-  return false;
-}
+    if (cloud && (cloud.license_status === 'batal' || cloud.license_status === 'nonaktif')) {
+      await enforceRevoked();
+      showToast('Lisensi telah dinonaktifkan oleh admin.', 3000, 'error');
+      return false;
+    }
+    showToast('Lisensi belum aktif. Pembayaran menunggu verifikasi admin.', 3000, 'info');
+    return false;
+  }
 
 /**
  * Toggle input serial manual (fallback tersembunyi).
@@ -183,6 +223,15 @@ export async function checkLicenseGate() {
 
   const lic = await getLicense();
   const left = daysLeft(lic);
+  // Revoke lokal (offline-first): tetap terkunci walau tidak ada koneksi cloud.
+  if (lic.status === 'revoked') {
+    const lock = document.getElementById('lockOverlay');
+    if (lock) lock.classList.add('show');
+    const area = document.getElementById('lockLicenseStatusArea');
+    if (area) area.innerHTML = revokedLicenseCardHtml();
+    if (_updateTrialChip) _updateTrialChip();
+    return;
+  }
   if (await isLicensed()) {
     if (_updateTrialChip) _updateTrialChip();
     if (_renderLicenseInfoCard) _renderLicenseInfoCard();
