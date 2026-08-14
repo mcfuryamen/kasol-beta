@@ -58,6 +58,12 @@ export async function navigateTo(page) {
     return;
   }
 
+  // Pindah halaman / klik navbar -> tutup semua modal yang terbuka.
+  // (lockOverlay = hard lock gate; dijaga supaya gak bisa ditutup via navigasi.)
+  document.querySelectorAll('.modal-overlay.show').forEach((o) => {
+    if (o.id !== 'lockOverlay') o.classList.remove('show');
+  });
+
   const prev = currentPage;
   setCurrentPage(page);
 

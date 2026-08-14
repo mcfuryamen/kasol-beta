@@ -338,11 +338,29 @@ if (_gateEl) {
 
 // ==================== INIT ====================
 async function init() {
-  // Close modals on overlay click
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.classList.remove('show');
-    });
+  // Close modals: klik di luar (backdrop) tutup modal itu; klik navbar tutup semua.
+  // Pakai event delegation di document supaya berlaku juga untuk modal yang
+  // dibuat/dirender dinamis setelah init (bukan hanya yang ada saat load).
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    // 1) Klik langsung pada backdrop `.modal-overlay` -> tutup modal tsb.
+    //    (Konten modal adalah child, jadi klik konten tidak tertutup.)
+    // lockOverlay = hard lock gate (trial habis / lisensi invalid), TIDAK boleh
+    // ditutup lewat klik backdrop atau navbar supaya gate-nya gak bisa dilewati.
+    const closeOverlays = () =>
+      document.querySelectorAll('.modal-overlay.show').forEach((o) => {
+        if (o.id !== 'lockOverlay') o.classList.remove('show');
+      });
+    // 1) Klik langsung pada backdrop `.modal-overlay` -> tutup modal tsb.
+    //    (Konten modal adalah child, jadi klik konten tidak tertutup.)
+    if (t instanceof Element && t.classList?.contains('modal-overlay') && t.classList.contains('show')) {
+      if (t.id !== 'lockOverlay') t.classList.remove('show');
+      return;
+    }
+    // 2) Klik menu navigasi (navbar bawah) -> tutup semua modal.
+    if (t instanceof Element && t.closest?.('.nav-item')) {
+      closeOverlays();
+    }
   });
 
   // License gate first (blocks app until trial starts or a valid serial is entered)
