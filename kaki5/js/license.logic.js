@@ -11,7 +11,7 @@ const PRODUCT_PREFIX = 'KK5';
 // license.sync.js + CLOUD-ROADMAP.md). Offline PWA can never be truly un-forgeable.
 function buildProductSalt() {
   const a = 'KASIR' + 'SOLO';
-  const b = 'KAKI' + '-' + '5';
+  const b = 'KAKI' + '5';
   const c = 'HMAC' + '-' + 'V2';
   return [a, b, c].join('-');
 }
