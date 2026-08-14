@@ -83,6 +83,33 @@ export async function isDeviceKnownOnCloud() {
 }
 
 /**
+ * Ambil nilai sebuah key dari tabel `settings` (key/value, lihat
+ * migration-license-qris.sql). Nilai tersimpan sebagai jsonb; dikembalikan
+ * sebagai objek/string hasil parse. Return null bila gagal/offline.
+ * Dipakai utk hal-hal global seperti `app_links` (link per aplikasi klien).
+ */
+export async function fetchSetting(key) {
+  const sb = getSupabaseClient();
+  if (!sb) return null;
+  try {
+    const { data, error } = await sb
+      .from('settings')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
+    if (error || !data) return null;
+    const v = data.value;
+    if (typeof v === 'string') {
+      try { return JSON.parse(v); } catch { return v; }
+    }
+    return v || null;
+  } catch (e) {
+    console.warn('fetchSetting:', e?.message || e);
+    return null;
+  }
+}
+
+/**
  * Cek status lisensi langsung ke Supabase (tabel `clients`).
  * Mengembalikan { license_status, license_serial, license_expires_at } bila
  * baris ditemukan, atau null bila gagal / tidak ada (pakai state lokal).

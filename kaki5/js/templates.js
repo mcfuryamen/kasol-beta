@@ -185,7 +185,7 @@ export const TEMPLATES = {
             <div style="font-weight:600;color:var(--text2);font-size:12px;margin-top:12px">PT Mesin Kasir Solo</div>
             <div style="margin-top:8px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
             <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none;font-weight:600;font-size:12px">📱 0881-6566-935</a>
-            <a href="https://kasirsolo.app" target="_blank" style="color:var(--blue);text-decoration:none;font-weight:600;font-size:12px">🌐 kasirsolo.app</a>
+            <a id="appSiteLink" href="https://kasirsolo.app" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;font-weight:600;font-size:12px">🌐 kasirsolo.app</a>
             </div>
             <div style="font-size:13px;color:var(--text2);margin-top:12px">Versi 1.0</div>
             <div id="licUnit" style="font-size:11px;color:var(--text3);margin-top:2px"></div>

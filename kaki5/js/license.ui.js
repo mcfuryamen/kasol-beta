@@ -267,7 +267,9 @@ export async function openExtendFlow() {
   const lic = await getLicense();
   const extUsed = lic.extensionsUsed || 0;
   if (extUsed >= MAX_EXTENSIONS) { showToast('Jatah perpanjangan sudah habis', 'error'); return; }
-  const shareText = 'Halo! Saya pakai *Kasir Solo - Kaki Lima* buat catat jualan saya, gampang & ringan banget. *PT Mesin Kasir Solo* juga menyediakan beragam aplikasi khusus sesuai kebutuhan bisnismu. Info lengkap: WA 0881-6566-935 atau email owner.kasirsolo@gmail.com.\n\nCoba langsung di: https://kasirsolo.app';
+  const { getAppLink } = await import('./app-link.js');
+  const appLink = await getAppLink();
+  const shareText = `Halo! Saya pakai *Kasir Solo - Kaki Lima* buat catat jualan saya, gampang & ringan banget. *PT Mesin Kasir Solo* juga menyediakan beragam aplikasi khusus sesuai kebutuhan bisnismu. Info lengkap: WA 0881-6566-935 atau email owner.kasirsolo@gmail.com.\n\nCoba langsung di: ${appLink}`;
   if ('contacts' in navigator && 'ContactsManager' in window) {
     try {
       const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });

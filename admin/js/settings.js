@@ -107,6 +107,19 @@ export function renderSettingsForm() {
     qrisPreview.hidden = !payment.qrisUrl;
   }
 
+  // Link aplikasi klien
+  const appLinks = (STATE.settings?.appLinks) || {};
+  ['kaki5', 'gerobak', 'rosok', 'retail', 'fnb'].forEach((t) => {
+    const el = document.getElementById('appLink_' + t);
+    if (el) el.value = appLinks[t] || '';
+  });
+  const appLinksStatus = document.getElementById('appLinksStatus');
+  if (appLinksStatus) {
+    const configured = Object.values(appLinks).some(Boolean);
+    appLinksStatus.textContent = configured ? 'Siap dipakai' : 'Belum diatur';
+    appLinksStatus.classList.toggle('is-ready', !!configured);
+  }
+
   const paymentStatus = document.getElementById('paymentSettingsStatus');
   if (paymentStatus) {
     const configured = payment.qrisUrl || payment.bank || payment.accountNumber || payment.accountName;
@@ -162,9 +175,10 @@ window.saveBizSettings = async function() {
  */
 async function syncPaymentSettingsFromSupabase() {
   try {
-    const res = await supabaseFetch('/rest/v1/settings?key=in.(qris_url,bank_info)&select=key,value');
+    const res = await supabaseFetch('/rest/v1/settings?key=in.(qris_url,bank_info,app_links)&select=key,value');
     if (!res.ok || !Array.isArray(res.data) || !res.data.length) return;
     const fromCloud = { ...getPaymentSettings() };
+    const appLinks = { ...(STATE.settings?.appLinks || {}) };
     res.data.forEach((row) => {
       const value = typeof row.value === 'string' ? (() => { try { return JSON.parse(row.value); } catch { return {}; } })() : (row.value || {});
       if (row.key === 'qris_url') fromCloud.qrisUrl = value.url || '';
@@ -173,8 +187,9 @@ async function syncPaymentSettingsFromSupabase() {
         fromCloud.accountNumber = value.account_number || '';
         fromCloud.accountName = value.account_name || '';
       }
+      if (row.key === 'app_links' && typeof value === 'object') Object.assign(appLinks, value);
     });
-    const merged = { ...(STATE.settings || {}), payment: fromCloud };
+    const merged = { ...(STATE.settings || {}), payment: fromCloud, appLinks };
     await storage.set('settings', merged);
     setState('settings', merged);
   } catch (error) {
@@ -253,6 +268,39 @@ window.savePaymentSettings = async function() {
     showToast('Pengaturan pembayaran Kaki5 disimpan', 2000, 'success');
   } else {
     showToast('Gagal menyimpan pengaturan pembayaran', 2000, 'error');
+    renderSettingsForm();
+  }
+};
+
+window.saveAppLinks = async function() {
+  const APP_TYPES = ['kaki5', 'gerobak', 'rosok', 'retail', 'fnb'];
+  const appLinks = {};
+  for (const t of APP_TYPES) {
+    const v = (document.getElementById('appLink_' + t)?.value || '').trim();
+    if (v && !/^https?:\/\//i.test(v)) {
+      showToast('URL ' + t + ' harus diawali http:// atau https://', 2500, 'warning');
+      return;
+    }
+    appLinks[t] = v;
+  }
+
+  const cloudRes = await supabaseFetch('/rest/v1/settings?on_conflict=key', {
+    method: 'POST',
+    data: [{ key: 'app_links', value: appLinks }],
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }
+  });
+  if (!cloudRes.ok) {
+    showToast('Gagal menyimpan link aplikasi ke Supabase', 2500, 'error');
+    return;
+  }
+
+  const newSettings = { ...(STATE.settings || {}), appLinks };
+  const success = await storage.set('settings', newSettings);
+  if (success) {
+    setState('settings', newSettings);
+    showToast('Link aplikasi klien disimpan', 2000, 'success');
+  } else {
+    showToast('Gagal menyimpan link aplikasi', 2000, 'error');
     renderSettingsForm();
   }
 };

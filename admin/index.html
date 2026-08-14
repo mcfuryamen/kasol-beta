@@ -240,6 +240,26 @@
         </div>
 
         <div class="panel mt16">
+          <div class="panel-head">
+            <div>
+              <h3 class="panel-t">Link Aplikasi Klien</h3>
+              <p class="panel-sub">Link situs tiap aplikasi. Aplikasi klien menampilkan link miliknya lewat data ini.</p>
+            </div>
+            <span class="settings-status" id="appLinksStatus">Belum diatur</span>
+          </div>
+          <div class="panel-body">
+            <div class="field-grid-2">
+              <div class="field"><label class="field-label" for="appLink_kaki5">Kaki5</label><input id="appLink_kaki5" type="url" placeholder="https://kasirsolo.app"></div>
+              <div class="field"><label class="field-label" for="appLink_gerobak">Gerobak</label><input id="appLink_gerobak" type="url" placeholder="https://kasirsolo.app/gerobak"></div>
+              <div class="field"><label class="field-label" for="appLink_rosok">Rosok</label><input id="appLink_rosok" type="url" placeholder="https://kasirsolo.app/rosok"></div>
+              <div class="field"><label class="field-label" for="appLink_retail">Retail</label><input id="appLink_retail" type="url" placeholder="https://kasirsolo.app/retail"></div>
+              <div class="field"><label class="field-label" for="appLink_fnb">FNB</label><input id="appLink_fnb" type="url" placeholder="https://kasirsolo.app/fnb"></div>
+            </div>
+            <button class="btn btn-primary" onclick="saveAppLinks()">Simpan Link Aplikasi</button>
+          </div>
+        </div>
+
+        <div class="panel mt16">
           <div class="panel-head"><h3 class="panel-t">Backup & Reset</h3></div>
           <div class="panel-body">
             <div class="row-actions">

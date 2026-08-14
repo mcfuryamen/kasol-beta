@@ -51,6 +51,21 @@ export async function loadSettings() {
     }
   }
 
+  // Link situs aplikasi — ambil dari Supabase (settings.app_links) utk
+  // aplikasi aktif ini, bukan hardcoded. Fallback tetap kasirsolo.app.
+  try {
+    const { getAppLink } = await import('./app-link.js');
+    const url = await getAppLink();
+    const linkEl = document.getElementById('appSiteLink');
+    if (linkEl && /^https?:\/\//i.test(url)) {
+      linkEl.href = url;
+      const label = url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '');
+      linkEl.textContent = '🌐 ' + label;
+    }
+  } catch (e) {
+    console.warn('appSiteLink:', e?.message || e);
+  }
+
   checkProfileNotification();
 }
 
