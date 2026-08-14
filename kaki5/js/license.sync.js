@@ -91,11 +91,13 @@ export async function fetchLicenseStatusFromCloud() {
   const sb = getSupabaseClient();
   if (!sb) return null;
   try {
-    const unit_id = await getUnitId();
+    // Match by device_code (fingerprint hardware stabil) — unit_id bisa
+    // berubah antar-versi/browser, sedangkan device_code tetap & deterministik.
+    const device_code = await getDeviceCode();
     const { data, error } = await sb
       .from('clients')
       .select('license_status, license_serial, license_expires_at')
-      .eq('unit_id', unit_id)
+      .eq('device_code', device_code)
       .maybeSingle();
     if (error || !data) return null;
     return data;
