@@ -34,33 +34,10 @@ export function buildSafeHtml(strings, ...values) {
   return out;
 }
 
-export function todayStr() {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
 
-export function formatRp(n) {
-  if (n === undefined || n === null || isNaN(n)) return 'Rp 0';
-  return 'Rp ' + Math.round(n).toLocaleString('id-ID');
-}
 
-export function formatDate(str) {
-  if (!str) return '';
-  const [y,m,d] = str.split('-');
-  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-  return parseInt(d) + ' ' + months[parseInt(m)-1] + ' ' + y;
-}
 
-export function formatTime(ts) {
-  if (!ts) return '';
-  const d = new Date(ts);
-  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-}
 
-export function dayName(str) {
-  const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-  return days[new Date(str+'T00:00:00').getDay()];
-}
 
 export function showToast(msg, type='success', opts) {
   const t = document.getElementById('toast');
@@ -127,87 +104,18 @@ export function withPageLoading(containerId, fn, skeletonLines) {
   };
 }
 
-export function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 11) return 'Selamat pagi! ☀️';
-  if (h < 15) return 'Selamat siang! 🌤️';
-  if (h < 18) return 'Selamat sore! 🌅';
-  return 'Selamat malam! 🌙';
-}
 
-export function addDays(dateStr, n) {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + n);
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
 
-export function getWeekRange(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
-  const day = d.getDay();
-  const mon = new Date(d); mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-  const fmt = dt => dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
-  return { start: fmt(mon), end: fmt(sun) };
-}
 
-export function getMonthRange(dateStr) {
-  const [y,m] = dateStr.split('-');
-  const start = y + '-' + m + '-01';
-  const last = new Date(parseInt(y), parseInt(m), 0).getDate();
-  const end = y + '-' + m + '-' + String(last).padStart(2,'0');
-  return { start, end };
-}
 
-// ==================== PHONE / WHATSAPP VALIDATION ====================
-// Strict Indonesian phone / WhatsApp rules.
-//   1. Allowed input chars while typing: digits, '+', space, dash.
-//   2. Must be an Indonesian number: local '08…' or intl '+62' / '62'.
-//   3. After normalization to digits (no +/space/dash): 10–15 digits total,
-//      country code 62, body starts with 8 (mobile/WhatsApp operator prefix).
-//   4. Stored normalized WITHOUT '+': e.g. '628123456789' (also wa.me-ready).
-export function sanitizePhoneInput(raw) {
-  if (!raw) return '';
-  // keep digits, '+', whitespace and dash only
-  return String(raw).replace(/[^\d+\s-]/g, '');
-}
+import { todayStr, formatRp, formatDate, formatTime, dayName, getGreeting, addDays, getWeekRange, getMonthRange, sanitizePhoneInput, validatePhone, formatPhoneDisplay } from './helpers.pure.js';
 
-export function validatePhone(raw) {
-  const cleaned = sanitizePhoneInput(raw).replace(/[\s-]/g, '');
-  if (!cleaned) return { valid: false, normalized: '', message: 'Nomor WhatsApp tidak boleh kosong!' };
-
-  let digits;
-  if (cleaned.startsWith('+62')) {
-    digits = '62' + cleaned.slice(3);
-  } else if (cleaned.startsWith('62') && cleaned.length > 2 && cleaned[2] !== '0') {
-    // '+62' typed without the plus, or '62' intl form (not '6208…')
-    digits = cleaned;
-  } else if (cleaned.startsWith('0')) {
-    digits = '62' + cleaned.slice(1); // local '08…' -> intl
-  } else {
-    return { valid: false, normalized: '', message: 'Nomor harus diawali 08 (lokal) atau +62 / 62 (internasional).' };
-  }
-
-  // everything after normalization must be numeric
-  if (!/^\d+$/.test(digits)) {
-    return { valid: false, normalized: '', message: 'Nomor hanya boleh berisi angka, +, spasi, dan tanda hubung.' };
-  }
-
-  const body = digits.slice(2); // strip country code '62'
-  if (body.length < 9 || body.length > 13) {
-    return { valid: false, normalized: '', message: 'Panjang nomor tidak valid (harus 10–15 digit termasuk kode negara).' };
-  }
-  if (body[0] !== '8') {
-    return { valid: false, normalized: '', message: 'Bukan nomor HP/WhatsApp Indonesia yang valid (harus diawali 08…).' };
-  }
-
-  return { valid: true, normalized: digits, message: '' };
-}
-
-// Pretty-print a normalized '62812…' number back to local '0812…' for display.
-export function formatPhoneDisplay(normalized) {
-  if (!normalized || !normalized.startsWith('62')) return normalized || '—';
-  return '0' + normalized.slice(2);
-}
+// Re-export fungsi pure agar konsumen `import ... from './helpers.js'` tetap
+// valid (dipindah ke helpers.pure.js saat dedupe — tanpa baris ini 19 modul
+// gagal load: "does not provide an export named 'todayStr'").
+// Definisi lokal eksplisit (escapeHtml, buildSafeHtml) menang atas nama
+// serupa dari star-export, jadi tidak konflik.
+export * from './helpers.pure.js';
 
 // ---- Deteksi tipe browser & jenis perangkat (utk CRM / detail klien) ----
 // Ramah offline: murni parse navigator.userAgent, tanpa dependensi eksternal.

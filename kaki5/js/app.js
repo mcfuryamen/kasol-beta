@@ -14,7 +14,8 @@ import { getSetting, setSetting } from './db.js';
 import { validatePhone, formatPhoneDisplay } from './helpers.js';
 import { renderPlatformCarousel, platGoTo } from './carousel.js';
 import { debounce } from './helpers.pure.js';
-import { ensureSynced } from './sync.js';
+import { ensureSynced, startSyncRetryLoop } from './sync.js';
+import { openSyncDiag, copySyncDiag, closeSyncDiag } from './sync.health.js';
 import { syncLicenseStatus } from './license.sync.js';
 import { showConfirm, closeConfirm } from './confirm.js';
 import { exportData, importData, confirmClearAll } from './backup.js';
@@ -130,6 +131,9 @@ window.exportData         = exportData;
 window.importData         = importData;
 window.confirmClearAll    = confirmClearAll;
 window.checkOnboarding    = checkOnboarding;
+window.openSyncDiag       = openSyncDiag;
+window.copySyncDiag       = copySyncDiag;
+window.closeSyncDiag      = closeSyncDiag;
 window.connectBTPrinter   = connectBTPrinter;
 window.disconnectBTPrinter= disconnectBTPrinter;
 window.printNota          = printNota;
@@ -328,7 +332,10 @@ window._ksr_extendGate = async () => {
 setInterval(() => { checkLicenseGate(); }, 60000);
 
 // License sync is event-driven: startup, reconnect, and foreground visibility.
-window.addEventListener('online', () => { runLicenseSync().then(() => checkLicenseGate()); });
+window.addEventListener('online', () => {
+  runLicenseSync().then(() => checkLicenseGate());
+  ensureSynced({ silent: true }).catch(() => {}); // retry profil saat kembali online
+});
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') runLicenseSync().then(() => checkLicenseGate());
 });
@@ -411,13 +418,13 @@ async function init() {
   }
 
   // Perangkat FISIK yang sama sudah pernah dipakai (data lokal bersih karena ganti
-    // browser/re-install). Lewati onboarding: kalau lisensi aktif di cloud -> sinkron
-    // local license + unlock & masuk; selain itu lanjutkan masa coba perangkat tsb.
+  // browser/re-install). Lewati onboarding: kalau lisensi aktif di cloud -> sinkron
+  // local license + unlock & masuk; selain itu lanjutkan masa coba perangkat tsb.
   async function continueKnownDevice() {
-    const gate = document.getElementById('licenseGate');
-    try {
-      const cloud = await fetchLicenseStatusFromCloud();
-      if (cloud && cloud.license_status === 'aktif') {
+      const gate = document.getElementById('licenseGate');
+      try {
+        const cloud = await fetchLicenseStatusFromCloud();
+        if (cloud && cloud.license_status === 'aktif') {
           await saveLicenseFromCloud(cloud);
           if (gate) gate.style.display = 'none';
           document.getElementById('lockOverlay')?.classList.remove('show');
@@ -478,10 +485,15 @@ async function runLicenseSync() {
 async function boot() {
   await runLicenseSync();
   await ensureUnitId();
-  await loadBeranda();
-  await checkOnboarding();
-  // Backfill otomatis: user yang sudah pakai (data cuma lokal) di-push sekali
-  ensureSynced({ silent: true }); // non-blocking, retry saat online berikutnya
+  // Boot harus tahan banting: satu langkah gagal tidak boleh mematikan sync
+  // profil (dulu loadBeranda error = ensureSynced tak pernah terpanggil).
+  try { await loadBeranda(); } catch (e) { console.error('[BOOT] loadBeranda gagal:', e); }
+  try { await checkOnboarding(); } catch (e) { console.error('[BOOT] checkOnboarding gagal:', e); }
+  // Backfill otomatis: user yang sudah pakai (data cuma lokal) di-push sekali.
+  // Self-healing (T29): flag "synced" diverifikasi ke server — baris hilang
+  // otomatis di-push ulang. Gagal → status pending → retry loop tiap 5 menit.
+  ensureSynced({ silent: true }).catch(e => console.warn('[BOOT] sync profil:', e?.message || e));
+  startSyncRetryLoop();
   await _settingsReady; // tunggu settings module ke-wire sebelum pakai checkProfileNotification
   await checkProfileNotification(); // banner "lengkapi profil" bila profil belum lengkap
   setupPWA();

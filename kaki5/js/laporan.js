@@ -5,6 +5,56 @@ import { reportPeriod, setReportPeriod, reportDate, setReportDate, customStart, 
 
 let _customPickerOpen = false;
 
+// ── Delegasi klik laporan (CSP-friendly, tanpa inline onclick) ──
+// Render memakai atribut data-* (data-date, data-start-date, data-month-date,
+// data-catid, .expense-detail-item/.trx-detail-item dengan data-id). Satu
+// listener per kontainer, dipasang sekali oleh loadReport().
+let _reportDelegationAttached = false;
+function ensureReportDelegation() {
+  if (_reportDelegationAttached) return;
+  const nav = document.getElementById('reportDateNav');
+  const content = document.getElementById('reportContent');
+  if (!nav || !content) return;
+  const handler = async (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    try {
+      const el =
+        t.closest('.toggle-custom-picker-btn') ||
+        t.closest('[data-delta]') ||
+        t.closest('[data-custom-date]') ||
+        t.closest('[data-date]') ||
+        t.closest('[data-start-date]') ||
+        t.closest('[data-month-date]') ||
+        t.closest('[data-catid]') ||
+        t.closest('.expense-detail-item[data-id]') ||
+        t.closest('.trx-detail-item[data-id]');
+      if (!el) return;
+      if (el.classList.contains('toggle-custom-picker-btn')) return toggleCustomPicker();
+      if (el.dataset.delta) return navReportDate(Number(el.dataset.delta));
+      if (el.dataset.customDate) return pickCustomDate(el.dataset.side || 'start', el.dataset.customDate);
+      if (el.dataset.date) return pickDate(el.dataset.date);
+      if (el.dataset.startDate) return pickWeek(el.dataset.startDate);
+      if (el.dataset.monthDate) return pickMonth(el.dataset.monthDate);
+      if (el.dataset.catid) return toggleExpenseCat(el.dataset.catid);
+      const id = Number(el.dataset.id);
+      if (!Number.isFinite(id)) return;
+      if (el.classList.contains('expense-detail-item')) {
+        const m = await import('./expensedetail.js');
+        m.showExpenseDetail(id);
+      } else if (el.classList.contains('trx-detail-item')) {
+        const m = await import('./trxdetail.js');
+        m.showTrxDetail(id);
+      }
+    } catch (err) {
+      console.error('[LAPORAN] click delegation:', err?.message || err);
+    }
+  };
+  nav.addEventListener('click', handler);
+  content.addEventListener('click', handler);
+  _reportDelegationAttached = true;
+}
+
 export function setReportPeriodUI(p) {
   setReportPeriod(p);
   document.querySelectorAll('.report-tab').forEach(t => {
@@ -14,6 +64,7 @@ export function setReportPeriodUI(p) {
 }
 
 export async function loadReport() {
+  ensureReportDelegation();
   await renderReportDateNav();
   const load = showLoading('reportContent', 6); // skeleton while querying chart data
   try {
@@ -132,7 +183,7 @@ export async function loadReport() {
       
       // Category header (clickable to expand/collapse)
       html += `<div>
-        <div onclick="toggleExpenseCat('${catId}')" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer">
+        <div data-catid="${catId}" class="expense-cat-item" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer">
           <span style="font-size:20px">${escapeHtml(catEmoji[cat]||'📦')}</span>
           <div style="flex:1">
             <div style="font-weight:600;font-size:14px">${escapeHtml(cat)}</div>
@@ -152,7 +203,7 @@ export async function loadReport() {
       // Transaction list for this category (sorted by time, newest first)
       if (reportPeriod === 'harian') {
         expCatItems[cat].sort((a,b) => b.waktu - a.waktu).forEach(e => {
-          html += `<div class="trx-item" onclick="showExpenseDetail(${e.id})" style="padding:10px 0;gap:10px">
+          html += `<div class="trx-item expense-detail-item" data-id="${e.id}" style="padding:10px 0;gap:10px">
             <div style="width:12px;height:12px;background:var(--red-light);border-radius:50%;flex-shrink:0"></div>
             <div class="trx-info" style="flex:1">
               <div class="trx-title" style="font-size:13px">${escapeHtml(e.keterangan)}</div>
@@ -190,7 +241,7 @@ export async function loadReport() {
         </div>`;
       items.forEach(s => {
         const itemNames = s.items ? s.items.map(i => `${escapeHtml(i.nama)}×${i.qty}`).join(', ') : '';
-        html += `<div class="trx-item" onclick="showTrxDetail(${s.id})">
+        html += `<div class="trx-item trx-detail-item" data-id="${s.id}">
           <div class="trx-icon sale">🛒</div>
           <div class="trx-info"><div class="trx-title">${itemNames}</div><div class="trx-sub">${escapeHtml(formatTime(s.waktu))}</div></div>
           <div class="trx-amount green">${formatRp(s.totalHarga)}</div>
@@ -288,7 +339,7 @@ function buildDayCalendar() {
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const cls = 'cal-cell' + (d === sel ? ' sel' : '') + (ds === today ? ' today' : '');
-    cells += `<div class="${cls}" onclick="pickDate('${ds}')">${d}</div>`;
+    cells += `<div class="${cls}" data-date="${ds}">${d}</div>`;
   }
   const dayHeaders = ['Mn','Sn','Rb','Km','Jm','Sb','Mg'].map(h => `<div class="cal-head">${h}</div>`).join('');
   return `<div class="cal-title">${months[m-1]} ${y}</div><div class="cal-grid">${dayHeaders}${cells}</div>`;
@@ -310,7 +361,7 @@ function buildWeekOptions() {
   const active = getWeekRange(reportDate).start;
   return weeks.map(w => {
     const a = w.start === active ? ' sel' : '';
-    return `<button class="week-opt${a}" onclick="pickWeek('${w.start}')"><b>Minggu ${w.n}</b><span>${formatDate(w.start)} - ${formatDate(w.end)}</span></button>`;
+    return `<button class="week-opt${a}" data-start-date="${w.start}"><b>Minggu ${w.n}</b><span>${formatDate(w.start)} - ${formatDate(w.end)}</span></button>`;
   }).join('');
 }
 
@@ -321,7 +372,7 @@ function buildMonthOptions() {
   const opts = months.map((mn, i) => {
     const mnum = i + 1;
     const a = mnum === cur ? ' sel' : '';
-    return `<button class="month-opt${a}" onclick="pickMonth('${y}-${String(mnum).padStart(2,'0')}-01')"><b>${mn}</b><span>${y}</span></button>`;
+    return `<button class="month-opt${a}" data-month-date="${y}-${String(mnum).padStart(2,'0')}-01"><b>${mn}</b><span>${y}</span></button>`;
   }).join('');
   return `<div class="month-grid">${opts}</div>`;
 }
@@ -337,7 +388,7 @@ function buildMonthCal(year, month, selDate, rangeStart, rangeEnd, side) {
     const ds = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const inRange = rangeStart && rangeEnd && ds > rangeStart && ds < rangeEnd;
     const cls = 'cal-cell' + (ds === selDate ? ' sel' : '') + (inRange ? ' inrange' : '') + (ds === today ? ' today' : '');
-    cells += `<div class="${cls}" onclick="pickCustomDate('${side}','${ds}')">${d}</div>`;
+    cells += `<div class="${cls}" data-side="${side}" data-custom-date="${ds}">${d}</div>`;
   }
   const dayHeaders = ['Mn','Sn','Rb','Km','Jm','Sb','Mg'].map(h => `<div class="cal-head">${h}</div>`).join('');
   return `<div class="cal-title">${months[month-1]} ${year}</div><div class="cal-grid">${dayHeaders}${cells}</div>`;
@@ -395,10 +446,10 @@ async function renderReportDateNav() {
   }
 
   const navArea = isCustom
-    ? `<div class="date-label${_customPickerOpen ? ' active' : ''}" onclick="toggleCustomPicker()" style="flex:1;text-align:center;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none">${label}</div>`
-    : `<button class="date-btn" onclick="navReportDate(${prevDelta})">‹</button>
-       <div class="date-label${_customPickerOpen ? ' active' : ''}" onclick="toggleCustomPicker()" style="flex:1;text-align:center;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none">${label}</div>
-       <button class="date-btn" onclick="navReportDate(${nextDelta})">›</button>`;
+    ? `<div class="date-label${_customPickerOpen ? ' active' : ''} toggle-custom-picker-btn" style="flex:1;text-align:center;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none">${escapeHtml(label)}</div>`
+    : `<button class="date-btn nav-report-date-btn" data-delta="${prevDelta}">‹</button>
+       <div class="date-label${_customPickerOpen ? ' active' : ''} toggle-custom-picker-btn" style="flex:1;text-align:center;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none">${escapeHtml(label)}</div>
+       <button class="date-btn nav-report-date-btn" data-delta="${nextDelta}">›</button>`;
 
   box.innerHTML = `
     <div style="width:100%;display:flex;flex-direction:column;gap:8px">
@@ -467,14 +518,15 @@ export function navReportDate(delta) {
   loadReport();
 }
 
-// Custom period: dipanggil saat user memilih tanggal mulai/selesai di input date
-export function setCustomDate(w) {
-  const sEl = document.getElementById('customStartInput');
-  const eEl = document.getElementById('customEndInput');
-  const s = sEl ? sEl.value : customStart;
-  const e = eEl ? eEl.value : customEnd;
-  if (w === 'start' && s) setCustomStart(s);
-  if (w === 'end' && e) setCustomEnd(e);
+// Custom period: set tanggal mulai/selesai eksplisit (dipakai kalender/picker).
+// Catatan: versi lama membaca input #customStartInput/#customEndInput yang tidak
+// pernah dirender (orphan ref, ketahuan test-html-refs) — kini nilai diterima
+// langsung sebagai argumen dari picker, tanpa DOM lookup.
+export function setCustomDate(w, value) {
+  const s = w === 'start' && value ? value : customStart;
+  const e = w === 'end' && value ? value : customEnd;
+  if (w === 'start' && value) setCustomStart(value);
+  if (w === 'end' && value) setCustomEnd(value);
   // Jika picker dibuka dari periode non-custom, pilih tanggal = switch ke custom period
   if (reportPeriod !== 'custom') setReportPeriod('custom');
   // Validasi: mulai harus <= selesai (user bisa hubungi ulang setelah diperbaiki)

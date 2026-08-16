@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kasir Solo">
 <meta name="description" content="Aplikasi kasir untuk pedagang kaki lima. Catat jualan, pengeluaran, dan lihat untung tiap hari!">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://hhywrvedlwljawgxzpkq.supabase.co https://raw.githubusercontent.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <link rel="icon" type="image/png" href="assets/icon.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="manifest" href="manifest.json">
@@ -30,8 +31,10 @@
 <script src="dexie.min.js"></script>
 <!-- Disable PWA cache during development -->
 <script>
-  // Auto-unregister service worker for development
-  if (navigator.serviceWorker) {
+  // DEV ONLY: auto-unregister service worker saat develop lokal, biar gak
+  // nabrak cache lama. Dijaga hostname supaya TIDAK jalan di produksi —
+  // di produksi SW harus tetap terpasang (janji offline-first PWA).
+  if (navigator.serviceWorker && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     navigator.serviceWorker.getRegistrations().then(function(registrations) {
       for (let registration of registrations) {
         registration.unregister();
@@ -218,6 +221,11 @@
 <div class="setting-info"><div class="s-title">Pulihkan Data</div><div class="s-desc">Ambil data dari file cadangan</div></div>
 <div class="setting-arrow">›</div>
 <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+</div>
+<div class="setting-item" onclick="openSyncDiag()">
+<div class="setting-icon" style="background:var(--orange-bg)">🩺</div>
+<div class="setting-info"><div class="s-title">Diagnosa Sinkronisasi</div><div class="s-desc">Cek kenapa profil belum masuk ke server</div></div>
+<div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" onclick="confirmClearAll()">
 <div class="setting-icon" style="background:var(--red-bg)">🗑️</div>
@@ -500,6 +508,22 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- SYNC DIAGNOSTICS MODAL -->
+<div class="modal-overlay" id="syncDiagModal">
+<div class="modal">
+<div class="modal-handle"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div class="modal-title">🩺 Diagnosa Sinkronisasi</div>
+<button class="btn btn-icon btn-ghost" style="padding:8px;width:40px;height:40px;border-radius:8px;flex-shrink:0" onclick="closeSyncDiag()">✕</button>
+</div>
+<div id="syncDiagContent" style="font-size:13px"></div>
+<div class="btn-row" style="margin-top:14px">
+<button class="btn btn-secondary" onclick="copySyncDiag()">📋 Salin Hasil</button>
+<button class="btn btn-primary" onclick="openSyncDiag()">🔄 Ulangi</button>
+</div>
+</div>
+</div>
+
 <!-- ONBOARDING / LICENSE GATE OVERLAY (single step: nama usaha + S&K → mulai percobaan) -->
 <div id="licenseGate" style="display:none;position:fixed;inset:0;background:#fff;z-index:500;align-items:center;justify-content:center;padding:24px;overflow-y:auto">
 <div id="gateOnboarding" style="max-width:440px;width:100%;text-align:center">
@@ -576,7 +600,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <script>
 (() => { console.log("Kaki5 ESM loaded"); })();
 </script>
-  <script type="module" src="js/app.js?v=53"></script>
+  <script type="module" src="js/app.js?v=54"></script>
 <script src="js/supabase.min.js"></script>
 <script src="js/supabase-config.js"></script>
 </body>

@@ -7,8 +7,15 @@
 //  * DUA SKENARIO:
 //     - User BARU → dipanggil setelah selesai onboarding / aktivasi.
 //     - User LAMA (data cuma lokal, belum pernah sync) → di boot otomatis di-push
-//       SEKALI lewat flag lokal `sync` (none → synced / pending). Inilah "backfill".
-//  * Dedupe: ON CONFLICT (unit_id) DO UPDATE → sync ulang = update, bukan duplikat.
+//       lewat flag lokal `sync` (none → synced / pending). Inilah "backfill".
+//  * SELF-HEALING (T29, 2026-08-17): flag `synced` TIDAK dipercaya buta. Minimal
+//    1x/hari flag diverifikasi ke server (select murah); kalau baris ternyata
+//    tidak ada (mis. pernah "sukses" di era pipeline lama), profil di-push ulang
+//    otomatis. Ini menutup kasus "perangkat online tapi profil tak pernah masuk".
+//  * OBSERVABILITY: tiap kegagalan nyata dicatat lokal (maks 5 terakhir, untuk
+//    panel Diagnosa) DAN dikirim ke tabel `sync_errors` (insert-only via RLS)
+//    supaya pola kegagalan lintas perangkat kelihatan dari dashboard.
+//  * Dedupe: baris dikenali lewat unit_id; update bila sudah ada, insert bila baru.
 //  * Keamanan: pakai Supabase anonymous sign-in; baris `clients` dimiliki user
 //    anonim tsb (RLS auth.uid() = user_id). Tiap device cuma bisa ubah barisnya.
 
@@ -17,6 +24,8 @@ import { showToast, getDeviceInfo } from './helpers.js';
 import { getUnitId, getDeviceCode, getInstallId } from './license.js';
 
 const APP_TYPE = 'kaki5';
+// Flag "synced" di-cache selama ini lama; lewat dari itu WAJIB verifikasi server.
+const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
 
 // Placeholder anon key menghasilkan JWT yang gagal auth → semua sync/purchase
 // reject RLS. Deteksi pola placeholder umum (bintang, 'PASTE_', '...', 'xxxx').
@@ -49,8 +58,46 @@ export function isSyncConfigured() {
   return !!getClient();
 }
 
-async function getSyncState() {
+/** Snapshot konfigurasi untuk panel Diagnosa (tanpa menjalankan sync). */
+export function getSyncClientDebug() {
+  return {
+    globalLoaded: !!window.supabase,
+    url: window.KASIRSOLO_SUPABASE_URL || null,
+    keyPresent: !!window.KASIRSOLO_SUPABASE_ANON_KEY,
+    keyLooksReal: !isPlaceholderKey(window.KASIRSOLO_SUPABASE_ANON_KEY),
+    clientReady: !!getClient(),
+    online: navigator.onLine
+  };
+}
+
+export async function getSyncState() {
   return (await getSetting('sync', null)) || { status: 'none' };
+}
+
+/**
+ * Catat kegagalan sync: lokal (untuk panel Diagnosa) + kirim ke `sync_errors`
+ * (fire-and-forget). Tidak boleh melempar — pelaporan tidak boleh bikin sync crash.
+ */
+async function reportSyncError(stage, err) {
+  const message = String(err?.message || err || 'unknown');
+  try {
+    const st = await getSyncState();
+    const errs = Array.isArray(st.recentErrors) ? st.recentErrors : [];
+    errs.unshift({ stage, message, at: new Date().toISOString() });
+    await setSetting('sync', { ...st, recentErrors: errs.slice(0, 5) });
+  } catch (_) { /* penyimpanan lokal gagal — tidak ada yang bisa dilakukan */ }
+  try {
+    const sb = getClient();
+    if (!sb || !navigator.onLine) return;
+    const unitId = await getUnitId();
+    await sb.from('sync_errors').insert({
+      unit_id: unitId,
+      app_type: APP_TYPE,
+      stage,
+      error: message.slice(0, 500),
+      user_agent: String(navigator.userAgent || '').slice(0, 300)
+    });
+  } catch (_) { /* server tak terjangkau — sudah tercatat lokal */ }
 }
 
 async function buildPayload(unitId) {
@@ -95,25 +142,62 @@ async function buildPayload(unitId) {
   return payload;
 }
 
+/** Verifikasi murah: apakah baris unit ini memang ada di server? */
+async function serverRowExists(sb, unitId) {
+  const { data, error } = await sb
+    .from('clients')
+    .select('unit_id')
+    .eq('unit_id', unitId)
+    .maybeSingle();
+  if (error) throw error;
+  return !!data;
+}
+
 /**
  * Sinkronkan profil ke Supabase.
- * @returns Promise<{ok, reason}>
+ * @returns Promise<{ok, reason?, stage?, error?}>
  */
 export async function ensureSynced({ force = false, silent = false } = {}) {
   const sb = getClient();
   if (!sb) {
-    if (!silent) showToast('Sinkronisasi belum dikonfigurasi (isip anon key)', 'warning');
-    return { ok: false, reason: 'no-config' };
+    // Komponen/config tidak termuat — kegagalan struktural, hanya catat lokal
+    // (tidak bisa kirim ke server karena client-nya memang tidak ada).
+    reportSyncError('config', new Error('supabase client tidak tersedia (script/key)'));
+    if (!silent) showToast('Komponen sinkronisasi tidak termuat — muat ulang halaman.', 'warning');
+    return { ok: false, reason: 'no-config', stage: 'config' };
   }
-  const state = await getSyncState();
-  if (!force && state.status === 'synced') {
-    return { ok: true, reason: 'already-synced' };
-  }
-  // jangan push kalau profil belum diisi
-  if (!(await getSetting('namaWarung', ''))) {
-    return { ok: false, reason: 'no-profile' };
+  if (!navigator.onLine) {
+    return { ok: false, reason: 'offline', stage: 'online' };
   }
 
+  const state = await getSyncState();
+  if (!force && state.status === 'synced') {
+    // SELF-HEALING: flag lokal hanya cache. Kalau belum diverifikasi >24 jam,
+    // cek ke server — baris hilang = push ulang, jangan percaya flag buta.
+    const verifiedAtMs = state.verifiedAt ? new Date(state.verifiedAt).getTime() : 0;
+    if (Date.now() - verifiedAtMs < VERIFY_TTL_MS) {
+      return { ok: true, reason: 'already-synced' };
+    }
+    try {
+      const unitId = await getUnitId();
+      if (await serverRowExists(sb, unitId)) {
+        await setSetting('sync', { ...state, verifiedAt: new Date().toISOString() });
+        return { ok: true, reason: 'already-synced' };
+      }
+      // Baris tidak ada padahal flag bilang synced → lanjut push (self-heal).
+      console.warn('[SYNC] Flag lokal "synced" tetapi baris tidak ada di server — push ulang.');
+    } catch (e) {
+      // Verifikasi gagal (network/RLS) — biarkan proses push di bawah yang bicara.
+      await reportSyncError('verify', e);
+    }
+  }
+
+  // jangan push kalau profil belum diisi
+  if (!(await getSetting('namaWarung', ''))) {
+    return { ok: false, reason: 'no-profile', stage: 'profile' };
+  }
+
+  let stage = 'session';
   try {
     // Pakai session yang sudah ada kalau ada (persistSession=true di client config),
     // jangan signIn baru tiap kali — itu bikin user anonim baru & RLS auth.uid() mismatch.
@@ -141,12 +225,14 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
     const payload = await buildPayload(unitId);
     // Klaim device lama lebih dulu agar update profil tidak mentok RLS
     // saat browser/storage anonim berubah.
+    stage = 'claim';
     const { error: claimErr } = await sb.rpc('device_known', {
       p_unit_id: unitId,
       p_device_code: payload.device_code,
       p_app_type: APP_TYPE
     });
     if (claimErr) throw claimErr;
+    stage = 'write';
     const { data: existing } = await sb
       .from('clients')
       .select('unit_id')
@@ -180,16 +266,47 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
     } catch (_leadErr) {
       console.warn('pipeline seed skipped (clients):', _leadErr?.message || _leadErr);
     }
-    await setSetting('sync', { status: 'synced', syncedAt: new Date().toISOString() });
+    stage = 'readback';
+    if (!(await serverRowExists(sb, unitId))) {
+      // Tulis "sukses" tapi baris tak terbaca (indikasi RLS write silently
+      // dibuang atau race) — jangan tandai synced.
+      throw new Error('baris tidak terbaca setelah tulis (RLS?)');
+    }
+    await setSetting('sync', {
+      status: 'synced',
+      syncedAt: new Date().toISOString(),
+      verifiedAt: new Date().toISOString(),
+      recentErrors: []
+    });
     if (!silent) showToast('✅ Profil tersinkron ke server');
     return { ok: true };
   } catch (e) {
+    const message = String(e?.message || e);
     await setSetting('sync', {
       status: 'pending',
-      lastError: String(e?.message || e),
+      lastError: message,
+      lastStage: stage,
       lastTryAt: new Date().toISOString()
     });
-    if (!silent) showToast('Gagal sinkron (cek internet)', 'error');
-    return { ok: false, reason: 'offline' };
+    await reportSyncError(stage, e);
+    if (!silent) showToast('Gagal sinkron (' + stage + '): ' + message.slice(0, 120), 'error', { duration: 5000 });
+    return { ok: false, reason: 'error', stage, error: message };
   }
+}
+
+// ── Retry otomatis (T29): pending dicoba ulang berkala selama online ──
+let _retryTimer = null;
+const RETRY_INTERVAL_MS = 5 * 60 * 1000;
+
+export function startSyncRetryLoop() {
+  if (_retryTimer) return;
+  _retryTimer = setInterval(async () => {
+    try {
+      if (!navigator.onLine) return;
+      const st = await getSyncState();
+      if (st.status === 'pending') {
+        await ensureSynced({ silent: true });
+      }
+    } catch (_) { /* retry loop tidak boleh crash */ }
+  }, RETRY_INTERVAL_MS);
 }

@@ -2,6 +2,17 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-17 (v54: Fase 0 + Sync Robust — hasil audit 2026-08-17)
+- **T8/H3 Fix false-revoke** (`license.sync.js`): baris clients yang tak terlihat RLS (user_id NULL / milik session lain) tidak lagi otomatis dianggap "terhapus" → dibuat session ber-metadata `unit_id` lalu **dibaca ulang**; revoke hanya jika benar-benar hilang. Revoke lama bertanda `not-found` yang barisnya ternyata ada **otomatis dipulihkan**. (Bug ini kejadian nyata: fresh install di perangkat dikenal cloud langsung terkunci "Lisensi Dicabut".)
+- **T29 Sync robust** (`sync.js`, `sync.health.js` baru): flag `synced` diverifikasi ke server max 1×/24 jam — baris hilang otomatis di-push ulang (self-heal); retry loop 5 menit saat pending + trigger `online`; toast alasan spesifik per tahap; tabel `sync_errors` (RLS insert-only, migration `supabase/migration-sync-errors.sql`); panel **🩺 Diagnosa Sinkronisasi** (10 langkah + Salin Hasil) di Pengaturan → Data & Cadangan.
+- **T1**: navigasi laporan tanpa inline onclick — delegasi klik via `data-*` (`data-date/start-date/month-date/catid`, `.trx-detail-item/.expense-detail-item`).
+- **T2**: pulihkan `.license-lock-card` (hapus `display:none !important` yang bikin layar kunci kosong).
+- **T3**: CSP `connect-src` + `https://raw.githubusercontent.com` (region picker emsifa tidak lagi diblokir).
+- **T4**: script unregister SW di-guard hostname (localhost/127.0.0.1) — produksi tidak lagi membongkar SW tiap load (offline-first hidup kembali).
+- **Perbaikan fondasi**: re-export `helpers.pure.js` dari `helpers.js` (tanpa ini 19 modul gagal load), bersihkan orphan ref `customStartInput/customEndInput`, `boot()` tahan banting (try/catch per langkah, sync tetap jalan), stub MutationObserver di test-shim.
+- Versi: `APP_VERSION 1.0.3` · `CACHE_BUST v54` · `CACHE_NAME v54` · `?v=54` · `version.json` — sinkron.
+- Validasi: `test-modules.js` 41/41 + DOM id 0 orphan, `test-imports.js` 41/41, `test_validate` 14/14, `test_pos` 6/6; end-to-end browser: onboarding → trial → isi profil → baris `clients` ter-update → Diagnosa 10/10 ✅.
+
 ## 2026-08-13 (P8: Smart Button Bukti Bayar + Harga dari products)
 - **🔘 "Kirim Bukti Bayar" jadi smart button** — klik langsung buka file picker foto
   perangkat (hidden input), tampil preview + nama file, lalu tombol berubah jadi submit.

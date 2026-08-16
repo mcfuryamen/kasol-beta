@@ -71,22 +71,71 @@ function getSupabaseClient() {
 /** Export client supabase anon (dipakai modul lain seperti app-link). */
 export { getSupabaseClient };
 
+/**
+ * Pastikan ada session anonim yang membawa claim unit_id di metadata, lalu
+ * baca ulang baris clients. Return 'found' | 'missing' | 'error'.
+ *
+ * Latar (H3, kejadian nyata 2026-08-17): baris clients dengan user_id NULL /
+ * milik session lain TIDAK terlihat oleh select RLS tanpa session bermetadata.
+ * syncLicenseStatus dulu menyamakan "tidak terlihat" dengan "terhapus" lalu
+ * me-revoke perangkat yang barinya sebenarnya ada — termasuk install baru.
+ * Policy "clients hybrid" punya cabang kedua: jwt.user_metadata.unit_id =
+ * unit_id, jadi setelah session dibuat dengan metadata yang benar, baris
+ * harusnya terbaca. Kalau SETELAH itu masih hilang, baru boleh revoke.
+ */
+async function recheckRowWithSession(sb, deviceCode) {
+  try {
+    const unitId = await getUnitId();
+    const { data: sessData } = await sb.auth.getSession();
+    if (!sessData?.session?.user?.id) {
+      const { error: auErr } = await sb.auth
+        .signInAnonymously({ options: { data: { unit_id: unitId } } });
+      if (auErr) return 'error';
+    } else {
+      const metaUnit = sessData.session.user.user_metadata?.unit_id;
+      if (!metaUnit || metaUnit !== unitId) {
+        try {
+          await sb.auth.updateUser({ data: { unit_id: unitId } });
+        } catch (_) { /* metadata opsional — cabang user_id policy masih jalan */ }
+      }
+    }
+    const re = await readLicenseRow(sb, deviceCode);
+    if (re.kind === 'ok') return 'found';
+    if (re.kind === 'not-found') return 'missing';
+    return 'error';
+  } catch (_) {
+    return 'error';
+  }
+}
+
 /** Sync local license state to Supabase and apply only authoritative results. */
 export async function syncLicenseStatus() {
   const sb = getSupabaseClient();
   if (!sb || !navigator.onLine) return { ok: false, reason: 'network' };
   const deviceCode = await getDeviceCode();
-  const result = await readLicenseRow(sb, deviceCode);
+  let result = await readLicenseRow(sb, deviceCode);
   if (result.kind === 'not-found') {
     const known = await isKnownDevice(sb, deviceCode);
     const local = await getLicense();
     // A missing row is authoritative only for a device already known locally
     // or confirmed by the claim RPC; a first-ever device must not be revoked.
     if (known === true || local.status === 'active' || local.status === 'revoked') {
-      await markLicenseRevoked('not-found');
-      return { ok: false, reason: 'not-found', revoked: true };
+      // "Tidak terlihat oleh RLS" ≠ "terhapus". Coba lihat sebagai session
+      // bermetadata unit_id dulu (baris user_id NULL / session lain); revoke
+      // HANYA kalau setelah itu barisnya memang tidak ada.
+      const recheck = await recheckRowWithSession(sb, deviceCode);
+      if (recheck === 'found') {
+        result = await readLicenseRow(sb, deviceCode);
+      } else if (recheck === 'missing') {
+        await markLicenseRevoked('not-found');
+        return { ok: false, reason: 'not-found', revoked: true };
+      } else {
+        // recheck error (network dsb.) — JANGAN revoke dari ketidakpastian.
+        return { ok: false, reason: 'network' };
+      }
+    } else {
+      return { ok: false, reason: 'not-found' };
     }
-    return { ok: false, reason: 'not-found' };
   }
   if (result.kind !== 'ok') return { ok: false, reason: 'network' };
 
@@ -95,6 +144,17 @@ export async function syncLicenseStatus() {
   if (status === 'batal' || status === 'nonaktif' || status === 'revoked') {
     await markLicenseRevoked('admin');
     return { ok: false, reason: 'revoked', revoked: true };
+  }
+  // Pemulihan revoke palsu (H3): revoke bertanda 'not-found' yang ternyata
+  // barisnya ADA dan tidak dicabut admin → hapus state revoked lokal supaya
+  // perangkat bisa trial/aktivasi normal. Revoke admin asli tidak tersentuh
+  // (mereka tertangani cabang status batal/nonaktif di atas).
+  {
+    const local = await getLicense();
+    if (local.status === 'revoked' && local.revokedReason === 'not-found') {
+      const { clearLocalLicense } = await import('./license.logic.js');
+      await clearLocalLicense();
+    }
   }
   if (status === 'aktif' && cloud.license_serial) {
     const local = await getLicense();

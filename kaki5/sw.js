@@ -1,7 +1,7 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Cache-first strategy with network fallback for offline support
 
-const CACHE_NAME = 'kasir-solo-kaki5-v53';
+const CACHE_NAME = 'kasir-solo-kaki5-v54';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -37,6 +37,7 @@ const ASSETS_TO_CACHE = [
   './js/supabase-config.js',
   './js/supabase.min.js',
   './js/sync.js',
+  './js/sync.health.js',
   './js/pwa.js',
   './js/backup.js',
   './js/printer.js',
