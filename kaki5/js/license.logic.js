@@ -175,13 +175,31 @@ export async function validateSerial(rawSerial, myDeviceCode, activationDate) {
 // license = { status: 'trial'|'active'|'expired', startedAt, serial?, deviceCode?,
 //             expCode? , extensionsUsed?, lastExtensionAt? }
 
+const LICENSE_BACKUP_KEY = 'kasirsolo:kaki5:license';
+const ONBOARDED_BACKUP_KEY = 'kasirsolo:kaki5:onboarded';
+
+function readLocalBackup(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : JSON.parse(raw);
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function writeLocalBackup(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) { /* storage unavailable */ }
+}
+
 async function getLicense() {
-  const lic = await getSetting('license', null) || {};
-  return lic;
+  const stored = await getSetting('license', null);
+  const lic = stored && typeof stored === 'object' ? stored : readLocalBackup(LICENSE_BACKUP_KEY, {});
+  return lic || {};
 }
 
 async function saveLicense(lic) {
   await setSetting('license', lic);
+  writeLocalBackup(LICENSE_BACKUP_KEY, lic);
 }
 
 export { getLicense, saveLicense };
@@ -285,13 +303,15 @@ export async function isLicensed() {
 // Begitu user selesai onboarding (mulai trial), kita tandai 'onboarded';
 // jika pernah trial/aktif juga sudah dianggap onboarded (backfill).
 export async function isOnboarded() {
-  const lic = await getSetting('license', null) || {};
+  const lic = await getLicense();
   if (lic.status) return true; // pernah trial/aktif/expired = sudah lewat onboarding
-  return !!(await getSetting('onboarded', false));
+  const stored = await getSetting('onboarded', null);
+  return stored === true || readLocalBackup(ONBOARDED_BACKUP_KEY, false) === true;
 }
 
 export async function markOnboarded() {
   await setSetting('onboarded', true);
+  writeLocalBackup(ONBOARDED_BACKUP_KEY, true);
 }
 
 // ----- unitId (global DNA) -----

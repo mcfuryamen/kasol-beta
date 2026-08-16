@@ -221,10 +221,10 @@ window._ksr_acceptTC = async () => {
   const msg = document.getElementById('onboardMsg');
   if (msg) msg.style.display = 'none';
   await startTrial();
-    await markOnboarded(); // onboarding selesai sekali -> jangan tampil lagi di perangkat ini
-    await resolveLicenseGate();
-    await boot();
-  };
+  await markOnboarded(); // onboarding selesai sekali -> jangan tampil lagi di perangkat ini
+  await resolveLicenseGate();
+  await boot();
+};
 window._ksr_onboardInput = () => {
   const msg = document.getElementById('onboardMsg');
   if (msg) msg.style.display = 'none';

@@ -174,11 +174,7 @@ export const TEMPLATES = {
     </div>
     </div>
 
-    <div class="card">
-        <!-- syncStatusText: status sinkronisasi profil ke Supabase (di-render oleh settings.js loadSettings()) -->
-                <div id="syncStatusText" style="margin-top:12px;font-size:12px;color:var(--text2);text-align:center"></div>
-        </div>
-        <!-- ====== Footer Info Aplikasi (di luar kartu, paling bawah) ====== -->
+    <!-- ====== Footer Info Aplikasi (di luar kartu, paling bawah) ====== -->
             <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:20px">
             <img src="assets/icon-old.png" style="width:64px;height:64px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0" alt="Logo">
             <div style="font-weight:800;color:var(--text);font-size:18px;margin-top:10px">Kasir Solo - Kaki Lima</div>

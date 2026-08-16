@@ -60,10 +60,8 @@ export function licenseStatusHtml(left, extUsed, inputId) {
     </div>
     <div class="license-actions license-actions-primary">
       <button class="btn-buy-wa" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
-      <button class="btn btn-outline" onclick="window._ksr_checkLicenseStatus()">🔄 Cek Status</button>
     </div>
     <div class="license-secondary-actions"><button class="btn btn-ghost" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button></div>
-    ${manualKeyHtml(inputId)}
   `;
 }
 

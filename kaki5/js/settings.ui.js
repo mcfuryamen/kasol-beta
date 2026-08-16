@@ -38,19 +38,6 @@ export async function loadSettings() {
   const lic = await getLicenseStatus();
   if (unitEl) unitEl.textContent = lic.deviceCode ? ('ID Perangkat: ' + lic.deviceCode) : '';
 
-  // Status sinkronisasi
-  const syncText = document.getElementById('syncStatusText');
-  if (syncText) {
-    if (!isSyncConfigured()) {
-      syncText.textContent = 'Status: belum dikonfigurasi (anon key)';
-    } else {
-      const s = data.sync || { status: 'none' };
-      const map = { none: 'Belum pernah', pending: 'Menunggu (offline)', synced: '✅ Tersinkron' };
-      syncText.innerHTML = 'Status: ' + (map[s.status] || s.status) +
-        (s.syncedAt ? '<br><small>Terakhir: ' + new Date(s.syncedAt).toLocaleString('id-ID') + '</small>' : '');
-    }
-  }
-
   // Link situs aplikasi — ambil dari Supabase (settings.app_links) utk
   // aplikasi aktif ini, bukan hardcoded. Fallback tetap kasirsolo.app.
   try {
