@@ -362,7 +362,7 @@ export async function openExtendFlow() {
   if (extUsed >= MAX_EXTENSIONS) { showToast('Jatah perpanjangan sudah habis', 'error'); return; }
   const { getAppLink } = await import('./app-link.js');
   const appLink = await getAppLink();
-  const shareText = `Halo! Saya pakai *Kasir Solo - Kaki Lima* buat catat jualan saya, gampang & ringan banget.\n\nCoba langsung di: ${appLink}`;
+  const shareText = `Halo! Saya pakai *Kasir Solo - Kaki Lima* buat catat jualan saya, gampang & ringan banget. Bayar cuman *SEKALI*, pakai *SELAMANYA* — Coba langsung di: ${appLink}`;
   // Langsung buka WHATSAPP (permintaan pemilik 2026-08-17). Dulu: contact
   // picker / share sheet OS — membingungkan user ("kok ke kontak?").
   await tryShare(shareText);
