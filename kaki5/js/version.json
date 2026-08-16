@@ -1,7 +1,7 @@
 {
-  "version": "1.0.8",
-  "cacheBust": "v59",
+  "version": "1.0.9",
+  "cacheBust": "v60",
   "notes": [
-    "💰 Kotak kembalian kini selalu tampil di layar pembayaran — makin jelas saat melayani pembeli"
+    "📋 Rincian pengeluaran kini bisa dibuka di semua periode — mingguan, bulanan, dan custom, lengkap dengan tanggalnya"
   ]
 }

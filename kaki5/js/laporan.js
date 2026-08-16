@@ -200,19 +200,22 @@ export async function loadReport() {
         
         <div id="${catId}" style="display:none;padding-left:32px;border-bottom:1px solid var(--border)">`;
       
-      // Transaction list for this category (sorted by time, newest first)
-      if (reportPeriod === 'harian') {
-        expCatItems[cat].sort((a,b) => b.waktu - a.waktu).forEach(e => {
-          html += `<div class="trx-item expense-detail-item" data-id="${e.id}" style="padding:10px 0;gap:10px">
+        // Daftar transaksi kategori ini — SEMUA periode. (Dulu hanya dirender
+        // untuk 'harian'; di mingguan/bulanan/custom panel terbuka tapi kosong
+        // sehingga akordeon tampak tidak mau membuka. Laporan user 2026-08-17.)
+        expCatItems[cat]
+          .sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')) || (b.waktu || 0) - (a.waktu || 0))
+          .forEach(e => {
+            const sub = (reportPeriod !== 'harian' && e.tanggal ? formatDate(e.tanggal) + ' · ' : '') + formatTime(e.waktu);
+            html += `<div class="trx-item expense-detail-item" data-id="${e.id}" style="padding:10px 0;gap:10px">
             <div style="width:12px;height:12px;background:var(--red-light);border-radius:50%;flex-shrink:0"></div>
             <div class="trx-info" style="flex:1">
               <div class="trx-title" style="font-size:13px">${escapeHtml(e.keterangan)}</div>
-              <div class="trx-sub" style="font-size:11px">${escapeHtml(formatTime(e.waktu))}</div>
+              <div class="trx-sub" style="font-size:11px">${escapeHtml(sub)}</div>
             </div>
             <div class="trx-amount red" style="font-size:13px">-${formatRp(e.jumlah)}</div>
           </div>`;
-        });
-      }
+          });
       
       html += `</div></div>`;
     });
