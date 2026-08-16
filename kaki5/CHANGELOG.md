@@ -2,6 +2,14 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-17 (v56: Fase 1 — integritas data cadangan)
+- **T6/H4 — Restore transaksional**: clear+insert dibungkus `DB.transaction('rw', …)` — gagal di tabel mana pun = rollback total, data lama tetap utuh (dulu: clear duluan tanpa transaksi, file rusak di tengah = data lenyap).
+- **T6 — Validasi dua lapis**: selain bentuk array, kini field per tabel divalidasi (nama/harga menu, tanggal-transaksi format, total, items, jumlah pengeluaran, key settings) + id wajib positive-integer + id tidak boleh ganda dalam satu tabel. File rusak ditolak DI DEPAN dengan pesan spesifik, bukan meledak di tengah restore.
+- **T7/H5 — Lisensi keluar dari file cadangan**: `sanitizeSettingsRows()` membuang `license`, `onboarded`, `sync`, `installId`, `unitId`, `deviceIdentity` dari ekspor DAN impor — file cadangan lama yang masih memuat license otomatis netral saat dipulihkan; kloning lisensi antar perangkat via file cadangan tertutup. Keputusan D2: buang total.
+- **Fix overlay force-update palsu**: `pwa.js` memanggil `notifyUpdateAvailable(string)` saat event SW `updatefound` (kontrak lama) → overlay muncul walau versi sama. Pemanggil dihapus (sumber kebenaran versi = version.json), dan `notifyUpdateAvailable` dikeraskan: abaikan pemanggil tanpa objek remote valid / versi sama. (Bug ketemu live saat uji v56.)
+- Validasi: `test_validate.js` diperluas 14 → 30 kasus (field rusak, id ganda, filtering) — 30/30.
+- Versi: `1.0.5` / `v56` sinkron 5 titik.
+
 ## 2026-08-17 (v55: Force Update Overlay)
 - **Notifikasi versi baru jadi overlay full-screen** (`#updateOverlay`, z-index 800 — menutup seluruh dashboard termasuk navbar; tidak bisa ditutup kecuali tombol). Toast lama jadi fallback.
 - **Catatan perubahan per rilis**: `version.json` kini punya field `notes` (array) — dirender sebagai daftar "Yang baru di versi ini" (di-escape, fallback default bila kosong).

@@ -1,6 +1,5 @@
 // ==================== PWA SUPPORT (ESM) ====================
 import { showToast } from './helpers.js';
-import { notifyUpdateAvailable } from './update.js';
 
 let deferredPrompt = null;
 let isPWAInstalled = false;
@@ -50,8 +49,12 @@ export function setupPWA() {
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // Versi baru tersedia -> toast + tombol Refresh (bukan auto reload)
-              notifyUpdateAvailable('🔄 Versi baru tersedia!');
+              // SW baru terpasang. TIDAK lagi memanggil notifyUpdateAvailable di
+              // sini: event ini menyala untuk SEMUA perubahan sw.js walau versi
+              // rilis sama, dan pemanggilan tanpa data remote memicu overlay
+              // force-update palsu (bug ketemu saat uji v56). Sumber kebenaran
+              // versi = update.js watcher (version.json), bukan event SW.
+              console.log('[SW] Service worker baru terpasang — menunggu reload berikutnya.');
             }
           });
         }

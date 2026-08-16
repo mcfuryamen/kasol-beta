@@ -63,8 +63,13 @@ const DEFAULT_NOTES = [
 
 // Tampilkan overlay full-screen versi baru (tidak bisa ditutup kecuali OKE).
 // Tombol OKE = pemicu refresh paksa -> aset baru + profil tersinkron ke server.
+// Kontrak: `remote` HARUS objek hasil fetchRemoteVersion (punya cacheBust).
+// Pemanggilan tanpa data remote / versi yang sama diabaikan — mencegah overlay
+// palsu dari event SW atau pemanggil lawas (bug ketemu saat uji v56).
 export function notifyUpdateAvailable(remote) {
   if (sessionStorage.getItem(RELOAD_FLAG)) return;
+  if (!remote || typeof remote !== 'object' || !remote.cacheBust) return;
+  if (remote.cacheBust === CACHE_BUST) return; // versi sama → tidak ada update
   const overlay = document.getElementById('updateOverlay');
   if (!overlay) {
     // Fallback (elemen overlay tidak ada — seharusnya tidak terjadi): toast lama.

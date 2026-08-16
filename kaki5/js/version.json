@@ -1,11 +1,8 @@
 {
-  "version": "1.0.4",
-  "cacheBust": "v55",
+  "version": "1.0.5",
+  "cacheBust": "v56",
   "notes": [
-    "✅ Profil usaha kamu kini selalu tersimpan aman ke server — bantuan jadi lebih cepat saat dibutuhkan",
-    "🩺 Menu baru Diagnosa Sinkronisasi di Pengaturan — cek kondisi data kapan saja",
-    "📅 Pemilih tanggal laporan (custom) kini lancar dipakai",
-    "📍 Pemilihan alamat Provinsi/Kota/Kecamatan/Desa kembali berfungsi",
-    "📶 Lebih andal dipakai tanpa internet"
+    "💾 Pemulihan cadangan data kini jauh lebih aman — data lama tidak mungkin hilang karena file rusak",
+    "🔐 File cadangan tidak lagi membawa data lisensi — aman dibagikan atau dipindah ke HP lain"
   ]
 }
