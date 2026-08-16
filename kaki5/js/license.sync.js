@@ -5,7 +5,7 @@
 // User TIDAK perlu request serial manual — cukup beli (QRIS) & tunggu
 // verifikasi admin. Input serial manual hanya fallback offline.
 import { ensureSynced } from './sync.js';
-import { getUnitId, getDeviceCode, getLicense, markLicenseRevoked } from './license.logic.js';
+import { getUnitId, getDeviceCode, getLicense, markLicenseRevoked, bumpClockAnchor } from './license.logic.js';
 import { getSetting, setSetting } from './db.js';
 
 const LICENSE_SYNC_KEY = 'licenseSync';
@@ -18,12 +18,16 @@ function classifyCloudError(error) {
   return 'network';
 }
 
-async function readLicenseRow(sb, deviceCode) {
+// Baca baris lisensi via unit_id — kunci natural yang stabil. (Dulu via
+// device_code; fingerprint V3/T14 bisa mengubah device_code pada perangkat
+// yang sama, sedangkan unit_id kekal — lihat getUnitId yang mempertahankan
+// nilai tersimpan. first_seen ikut dibaca untuk jangkar trial T12.)
+async function readLicenseRow(sb, unitId) {
   try {
     const { data, error } = await sb
       .from('clients')
-      .select('license_status, license_serial, license_expires_at')
-      .eq('device_code', deviceCode)
+      .select('license_status, license_serial, license_expires_at, first_seen')
+      .eq('unit_id', unitId)
       .eq('app_type', 'kaki5')
       .maybeSingle();
     if (error) return { kind: classifyCloudError(error), error };
@@ -83,7 +87,7 @@ export { getSupabaseClient };
  * unit_id, jadi setelah session dibuat dengan metadata yang benar, baris
  * harusnya terbaca. Kalau SETELAH itu masih hilang, baru boleh revoke.
  */
-async function recheckRowWithSession(sb, deviceCode) {
+async function recheckRowWithSession(sb) {
   try {
     const unitId = await getUnitId();
     const { data: sessData } = await sb.auth.getSession();
@@ -99,7 +103,7 @@ async function recheckRowWithSession(sb, deviceCode) {
         } catch (_) { /* metadata opsional — cabang user_id policy masih jalan */ }
       }
     }
-    const re = await readLicenseRow(sb, deviceCode);
+    const re = await readLicenseRow(sb, unitId);
     if (re.kind === 'ok') return 'found';
     if (re.kind === 'not-found') return 'missing';
     return 'error';
@@ -112,8 +116,9 @@ async function recheckRowWithSession(sb, deviceCode) {
 export async function syncLicenseStatus() {
   const sb = getSupabaseClient();
   if (!sb || !navigator.onLine) return { ok: false, reason: 'network' };
+  const unitId = await getUnitId();
   const deviceCode = await getDeviceCode();
-  let result = await readLicenseRow(sb, deviceCode);
+  let result = await readLicenseRow(sb, unitId);
   if (result.kind === 'not-found') {
     const known = await isKnownDevice(sb, deviceCode);
     const local = await getLicense();
@@ -123,9 +128,9 @@ export async function syncLicenseStatus() {
       // "Tidak terlihat oleh RLS" ≠ "terhapus". Coba lihat sebagai session
       // bermetadata unit_id dulu (baris user_id NULL / session lain); revoke
       // HANYA kalau setelah itu barisnya memang tidak ada.
-      const recheck = await recheckRowWithSession(sb, deviceCode);
+      const recheck = await recheckRowWithSession(sb);
       if (recheck === 'found') {
-        result = await readLicenseRow(sb, deviceCode);
+        result = await readLicenseRow(sb, unitId);
       } else if (recheck === 'missing') {
         await markLicenseRevoked('not-found');
         return { ok: false, reason: 'not-found', revoked: true };
@@ -164,6 +169,7 @@ export async function syncLicenseStatus() {
     }
   }
   await setSetting(LICENSE_SYNC_KEY, { lastSuccessfulSync: new Date().toISOString() });
+  await bumpClockAnchor(); // T13: sync sukses = bukti app hidup di momen ini
   return { ok: true, cloud };
 }
 
@@ -255,15 +261,16 @@ export async function fetchSetting(key) {
 }
 
 /**
- * Cek status lisensi langsung ke Supabase (tabel `clients`).
- * Mengembalikan { license_status, license_serial, license_expires_at } bila
- * baris ditemukan, atau null bila gagal / tidak ada (pakai state lokal).
+ * Cek status lisensi langsung ke Supabase (tabel `clients`), keyed by unit_id.
+ * Mengembalikan { license_status, license_serial, license_expires_at,
+ * first_seen } bila baris ditemukan, atau null bila gagal / tidak ada.
+ * first_seen dipakai sebagai jangkar trial (T12) oleh continueKnownDevice.
  */
 export async function fetchLicenseStatusFromCloud() {
   const sb = getSupabaseClient();
   if (!sb) return null;
-  const device_code = await getDeviceCode();
-  const result = await readLicenseRow(sb, device_code);
+  const unitId = await getUnitId();
+  const result = await readLicenseRow(sb, unitId);
   if (result.kind === 'ok') return result.data;
   if (result.kind === 'not-found') return null;
   console.warn('fetchLicenseStatusFromCloud:', result.error?.message || result.error || result.kind);

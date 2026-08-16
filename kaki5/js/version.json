@@ -1,8 +1,9 @@
 {
-  "version": "1.0.5",
-  "cacheBust": "v56",
+  "version": "1.0.6",
+  "cacheBust": "v57",
   "notes": [
-    "💾 Pemulihan cadangan data kini jauh lebih aman — data lama tidak mungkin hilang karena file rusak",
-    "🔐 File cadangan tidak lagi membawa data lisensi — aman dibagikan atau dipindah ke HP lain"
+    "🛡️ Masa coba kini tercatat aman di server — penggunaan jujur tetap terjaga",
+    "⏰ Perbaikan kecil: pengaturan waktu HP tidak lagi mengganggu masa aktif",
+    "📍 Ganti zona waktu / ukuran tampilan tidak lagi mengganggu lisensi kamu"
   ]
 }

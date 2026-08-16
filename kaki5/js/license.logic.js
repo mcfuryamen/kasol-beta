@@ -71,6 +71,11 @@ function fnv1a(joined) {
 
 // Fingerprint perangkat fisik, stabil lintas browser. Kembalikan 12-char base32.
 // Deterministik pada hardware yang sama → id sama walau ganti browser/re-install.
+// V3 (T14, audit 2026-08-17/M4): timezone & devicePixelRatio DIKELUARKAN — dua
+// sinyal itu berubah karena ulah OS (bepergian lintas zona waktu, setting zoom
+// display), bukan karena ganti perangkat, dan sempat mengusir user valid dengan
+// "Kode ini bukan untuk perangkat ini". Diperbolehkan karena belum ada serial
+// berbayar yang terbit (semua clients.license_status masih 'belum').
 export async function getDeviceFingerprint() {
   const parts = [];
   const nav = (typeof navigator !== 'undefined') ? navigator : {};
@@ -80,16 +85,13 @@ export async function getDeviceFingerprint() {
   parts.push(String(nav.hardwareConcurrency || ''));   // jumlah core CPU
   parts.push(String(nav.deviceMemory || ''));          // RAM (GiB)
   parts.push(String(nav.maxTouchPoints || 0));         // perangkat touchscreen?
-  parts.push(String(new Date().getTimezoneOffset()));  // zona waktu (OS)
-  try { parts.push(Intl.DateTimeFormat().resolvedOptions().timeZone || ''); } catch (e) { parts.push(''); }
 
   // Layar (hardware display) — stabil lintas browser
   try {
     parts.push(String(screen.width) + 'x' + String(screen.height));
-    if (typeof screen.devicePixelRatio !== 'undefined') parts.push(String(screen.devicePixelRatio));
   } catch (e) { parts.push('sc:na'); }
 
-  const joined = 'KK5-FP-V2|' + parts.join('|');
+  const joined = 'KK5-FP-V3|' + parts.join('|');
   let digest;
   if (crypto && crypto.subtle) {
     digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(joined)));
@@ -133,21 +135,45 @@ export async function hmacSignature(data) {
   return b32Encode(new Uint8Array(sig), 6);
 }
 
-export function checkExpired(expCode, activationDate) {
+export function checkExpired(expCode, activationDate, nowMs = Date.now()) {
   if (expCode === '99') return false;
   if (expCode.endsWith('D')) {
     const days = parseInt(expCode);
     const expiry = new Date(activationDate);
     expiry.setDate(expiry.getDate() + days);
-    return new Date() > expiry;
+    return nowMs > expiry.getTime();
   }
   const months = parseInt(expCode);
   if (!isNaN(months)) {
     const expiry = new Date(activationDate);
     expiry.setMonth(expiry.getMonth() + months);
-    return new Date() > expiry;
+    return nowMs > expiry.getTime();
   }
   return false;
+}
+
+// ── Anti-rollback jam (T13, audit 2026-08-17/M3) ──────────────────────────
+// clockAnchor = waktu tertinggi yang pernah app lihat dalam keadaan jalan
+// (diperbarui tiap cek lisensi & tiap sync cloud sukses). Kalau jam perangkat
+// tiba-tiba lebih kecil dari anchor - toleransi 2 hari → jam jelas dimundurkan
+// → pakai anchor sebagai "sekarang" supaya trial/lisensi yang sudah habis
+// tidak hidup lagi. (Wipe storage menghapus anchor — vektor itu ditutup T12
+// berjangkar first_seen cloud.)
+const CLOCK_TOLERANCE_MS = 2 * 24 * 60 * 60 * 1000;
+
+export async function getEffectiveNow() {
+  let anchor = 0;
+  try { anchor = Number(await getSetting('clockAnchor', 0)) || 0; } catch (_) { /* storage gagal */ }
+  const now = Date.now();
+  return (anchor && now < anchor - CLOCK_TOLERANCE_MS) ? anchor : now;
+}
+
+export async function bumpClockAnchor() {
+  try {
+    const anchor = Number(await getSetting('clockAnchor', 0)) || 0;
+    const now = Date.now();
+    if (now > anchor) await setSetting('clockAnchor', now);
+  } catch (_) { /* penyimpanan gagal → abaikan */ }
 }
 
 export function decodeExpiryLabel(expCode) {
@@ -223,13 +249,22 @@ export async function clearLocalLicense() {
   await setSetting('license', {});
 }
 
-// Start a fresh 7-day trial (only if not already activated)
-export async function startTrial() {
+// Start a fresh 7-day trial (only if not already activated).
+// T12 (audit 2026-08-17/M1): `anchorStartedAt` opsional = clients.first_seen
+// dari cloud. Bila diberikan, trial dihitung SEJAK perangkat pertama kali
+// dikenal server — hapus data lokal / install ulang lintas browser tidak
+// me-reset jatah trial (kalau sudah lewat 7 hari sejak first_seen, status
+// langsung expired oleh getLicenseStatus, bukan trial baru).
+export async function startTrial(anchorStartedAt) {
   const lic = await getLicense();
   if (lic.status === 'active') return { status: 'active' };
   const now = new Date().toISOString();
+  const anchorMs = anchorStartedAt ? new Date(anchorStartedAt).getTime() : NaN;
+  const startedAt = (!isNaN(anchorMs) && anchorMs > 0)
+    ? new Date(anchorMs).toISOString()
+    : (lic.startedAt || now);
   if (!lic.startedAt) {
-    const trial = { status: 'trial', startedAt: now, deviceCode: (await getDeviceIdentity()).deviceCode, extensionsUsed: 0 };
+    const trial = { status: 'trial', startedAt, deviceCode: (await getDeviceIdentity()).deviceCode, extensionsUsed: 0 };
     await saveLicense(trial);
     return trial;
   }
@@ -258,9 +293,11 @@ export async function activateSerial(rawSerial) {
 export async function getLicenseStatus() {
   const lic = await getLicense();
   const deviceCode = (await getDeviceIdentity()).deviceCode;
+  const nowMs = await getEffectiveNow();
+  if (nowMs === Date.now()) bumpClockAnchor(); // jam sehat → catat jadi anchor
   if (!lic || !lic.status) return { status: 'none', deviceCode };
   if (lic.status === 'active') {
-    const expired = lic.expCode === '99' ? false : checkExpired(lic.expCode || '99', lic.startedAt);
+    const expired = lic.expCode === '99' ? false : checkExpired(lic.expCode || '99', lic.startedAt, nowMs);
     if (expired) return { status: 'expired', deviceCode: lic.deviceCode, protocol: 'licensed-expired' };
     return { status: 'active', deviceCode: lic.deviceCode, serial: lic.serial, expCode: lic.expCode, expiryLabel: lic.expiryLabel };
   }
@@ -269,7 +306,7 @@ export async function getLicenseStatus() {
     }
     if (lic.status === 'trial') {
       const end = trialEndDate(lic);
-    const left = Math.ceil((end.getTime() - Date.now()) / 86400000);
+    const left = Math.ceil((end.getTime() - nowMs) / 86400000);
     if (left <= 0) return { status: 'expired', deviceCode: lic.deviceCode, trialExpired: true, daysLeft: left };
     return { status: 'trial', deviceCode: lic.deviceCode, daysLeft: left, extensionsUsed: lic.extensionsUsed || 0, endDate: end.toISOString() };
   }
@@ -295,7 +332,7 @@ export function daysLeft(lic) {
 export async function isLicensed() {
   const lic = await getLicense();
   if (lic.status !== 'active') return false;
-  return !checkExpired(lic.expCode || '99', lic.startedAt);
+  return !checkExpired(lic.expCode || '99', lic.startedAt, await getEffectiveNow());
 }
 
 // ----- Onboarding once-per-device -----

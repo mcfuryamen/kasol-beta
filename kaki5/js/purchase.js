@@ -323,15 +323,22 @@ export async function submitPurchase(unitId, deviceCode) {
   }
 }
 
-/** Poll license status until activated */
+/** Poll license status until activated.
+ * T16 (audit 2026-08-17/M6): memulai poll baru membatalkan rantai lama —
+ * submit berulang tidak lagi menumpuk beberapa timer paralel (request &
+ * toast ganda). */
+let _pollTimer = null;
+
 export async function pollLicenseStatus(unitId) {
   let attempts = 0;
   const maxAttempts = 60; // 5 minutes (30s intervals)
-  
+  if (_pollTimer) { clearTimeout(_pollTimer); _pollTimer = null; }
+
   const check = async () => {
     const status = await getCloudLicenseStatus();
     if (status?.license_status === 'aktif') {
       // License activated!
+      _pollTimer = null;
       showToast('🎉 Lisensi berhasil diaktifkan!', 3000, 'success');
       window._ksr_closeSheet('sheetPurchase');
       unlockGate();
@@ -340,17 +347,18 @@ export async function pollLicenseStatus(unitId) {
       if (window._ksr_checkLicenseGate) window._ksr_checkLicenseGate();
       return true;
     }
-    
+
     attempts++;
     if (attempts >= maxAttempts) {
+      _pollTimer = null;
       showToast('⏳ Verifikasi masih berlangsung. Kami akan mengaktifkan lisensi Anda segera.', 5000, 'info');
       return false;
     }
-    
+
     // Poll again in 30 seconds
-    setTimeout(check, 30000);
+    _pollTimer = setTimeout(check, 30000);
   };
-  
+
   check();
 }
 

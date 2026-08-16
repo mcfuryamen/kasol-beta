@@ -192,6 +192,12 @@ window._ksr_submitPurchase   = submitPurchase;
 window._ksr_pollLicenseStatus = pollLicenseStatus;
 window._ksr_subscribeToLicenseUpdates = subscribeToLicenseUpdates;
 window._ksr_enforceRevoked = enforceRevoked;
+// T15 (audit 2026-08-17/M5): callback refresh UI lisensi yang dipanggil
+// purchase.js (polling & realtime) — tanpa ini chip/kartu lisensi tidak
+// refresh setelah aktivasi sampai interval 60 detik.
+window._ksr_updateTrialChip = updateTrialChip;
+window._ksr_checkLicenseGate = checkLicenseGate;
+window._ksr_renderLicenseInfoCard = renderLicenseInfoCard;
 window._ksr_closeSheet       = (id) => document.getElementById(id)?.classList.remove('show');
 window._ksr_contactViaWA     = contactViaWA;
 // --- Syarat & Ketentuan 2-STEP onboarding (user gaptek friendly) ---
@@ -422,8 +428,9 @@ async function init() {
   // local license + unlock & masuk; selain itu lanjutkan masa coba perangkat tsb.
   async function continueKnownDevice() {
       const gate = document.getElementById('licenseGate');
+      let cloud = null;
       try {
-        const cloud = await fetchLicenseStatusFromCloud();
+        cloud = await fetchLicenseStatusFromCloud();
         if (cloud && cloud.license_status === 'aktif') {
           await saveLicenseFromCloud(cloud);
           if (gate) gate.style.display = 'none';
@@ -435,7 +442,11 @@ async function init() {
         console.warn('continueKnownDevice cloud check failed:', e?.message || e);
       }
       // Tidak ada lisensi aktif di cloud -> lanjutkan masa coba perangkat.
-      await startTrial();
+      // T12 (audit 2026-08-17/M1): trial berjangkar clients.first_seen dari
+      // server — hapus data lokal / install ulang TIDAK me-reset jatah trial.
+      // first_seen > 7 hari lalu → startTrial menulis startedAt lama →
+      // getLicenseStatus langsung menganggap expired → gate beli lisensi.
+      await startTrial(cloud?.first_seen);
       await resolveLicenseGate();
       await boot();
     }

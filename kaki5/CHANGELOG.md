@@ -2,6 +2,14 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-17 (v57: Fase 3 — robustness lisensi)
+- **T12/M1 — Trial berjangkar cloud**: `startTrial(anchorStartedAt)` menerima `clients.first_seen`; `continueKnownDevice` meneruskannya sehingga hapus data lokal / install ulang **tidak me-reset jatah trial** (first_seen > 7 hari → langsung gate beli lisensi, bukan trial baru).
+- **T13/M3 — Anti-rollback jam**: `clockAnchor` (waktu tertinggi yang pernah app lihat, diperbarui saat cek lisensi & sync sukses). Jam perangkat dimundurkan > 2 hari → "sekarang" efektif = anchor → trial/lisensi yang habis tidak hidup lagi. `checkExpired`/`getLicenseStatus`/`isLicensed` pakai `getEffectiveNow()`.
+- **T14/M4 — Fingerprint V3**: zona waktu & devicePixelRatio dikeluarkan dari komposit (ganti zona waktu/zoom display tidak lagi mengubah deviceCode → tidak ada lagi "kode bukan untuk perangkat ini" karena bepergian). Aman diterapkan sekarang karena belum ada serial berbayar terbit. Pendukung: `readLicenseRow` kini keyed by **unit_id** (kekal) bukan device_code; `unit_id` tersimpan dipertahankan sehingga baris cloud & identitas perangkat tetap tersambung, kolom device_code menyegarkan via sync.
+- **T15/M5 — Wire callback UI lisensi**: `window._ksr_updateTrialChip/_ksr_checkLicenseGate/_ksr_renderLicenseInfoCard` kini di-wire di app.js — refresh chip/kartu pasca-aktivasi realtime/polling tidak lagi menunggu interval 60 detik.
+- **T16/M6 — Polling ber-cancel token**: memulai poll baru membatalkan rantai lama (tidak lagi tumpuk timer paralel saat submit berulang).
+- Versi: `1.0.6` / `v57` sinkron 5 titik. Validasi: 41/41 modul, validate 30/30.
+
 ## 2026-08-17 (v56: Fase 1 — integritas data cadangan)
 - **T6/H4 — Restore transaksional**: clear+insert dibungkus `DB.transaction('rw', …)` — gagal di tabel mana pun = rollback total, data lama tetap utuh (dulu: clear duluan tanpa transaksi, file rusak di tengah = data lenyap).
 - **T6 — Validasi dua lapis**: selain bentuk array, kini field per tabel divalidasi (nama/harga menu, tanggal-transaksi format, total, items, jumlah pengeluaran, key settings) + id wajib positive-integer + id tidak boleh ganda dalam satu tabel. File rusak ditolak DI DEPAN dengan pesan spesifik, bukan meledak di tengah restore.
