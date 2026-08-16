@@ -21,6 +21,10 @@ const SALT_BY_APP = {
 
 const SB_URL = Deno.env.get('SUPABASE_URL') || '';
 const SB_KEY = Deno.env.get('SERVICE_ROLE_KEY') || '';
+// Auth endpoint ini: header x-admin-key harus cocok dengan secret ADMIN_API_KEY.
+// Fail-closed: tanpa secret terpasang, semua request ditolak (503) — jangan
+// sampai endpoint aktivasi lisensi bisa dipanggil siapa pun yang tahu URL.
+const ADMIN_KEY = Deno.env.get('ADMIN_API_KEY') || '';
 
 function b32Encode(bytes, length = 6) {
   let bits = 0, value = 0, out = '';
@@ -65,8 +69,8 @@ async function sbQuery(path, method = 'GET', body = null) {
   const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
     method,
     headers: {
-      apikey: ***
-      Authorization: *** ${SB_KEY}`,
+      apikey: SB_KEY,
+      Authorization: `Bearer ${SB_KEY}`,
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
     },
@@ -88,7 +92,11 @@ async function publishEvent(channel, event) {
 Deno.serve(async (req) => {
   try {
     if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
-    
+    if (!ADMIN_KEY) return json({ ok: false, error: 'ADMIN_API_KEY secret belum dipasang' }, 503);
+    if (req.headers.get('x-admin-key') !== ADMIN_KEY) {
+      return json({ ok: false, error: 'unauthorized' }, 401);
+    }
+
     const { unit_id, app_type, device_code } = await req.json();
     
     if (!unit_id || !app_type || !device_code) {
