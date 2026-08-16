@@ -272,67 +272,25 @@ async function renderGate(status) {
 }
 
 function gateLicenseHtml(status) {
-  const extUsed = status.extensionsUsed || 0;
   const isPaidExpired = status.protocol === 'licensed-expired';
   const intro = isPaidExpired
       ? '<p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Lisensi berbayar Anda sudah kedaluwarsa.<br>Beli lisensi baru dan admin akan mengaktifkannya otomatis setelah pembayaran diverifikasi.</p>'
       : '<p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Masa coba 7 hari Anda sudah berakhir.<br>Beli lisensi resmi — aktivasi otomatis oleh admin setelah pembayaran diverifikasi.</p>';
-  const extendLink = extUsed < 20
-    ? `<a href="javascript:void(0)" onclick="window._ksr_extendGate()" style="display:block;margin-top:14px;font-size:13px;color:var(--primary);font-weight:700;text-decoration:underline">Nikmati perpanjangan masa coba (+1 hari, gratis)</a><div style="font-size:12px;color:var(--text3);margin-top:4px">Perpanjangan dipakai ${extUsed}/20x</div>`
-      : `<div style="font-size:12px;color:var(--red);margin-top:10px">Jatah perpanjangan gratis sudah habis (20x). Silakan beli lisensi resmi.</div>`;
   return `
     <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px;border-radius:50%" alt="Logo">
     <div style="font-size:22px;font-weight:800;margin-bottom:4px">Kasir Solo</div><div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
     <div style="font-size:17px;font-weight:800;color:var(--red)">Masa Coba Gratis Habis</div>
     ${intro}
       <div class="license-actions license-actions-row">
-        <button class="btn-buy-wa" onclick="window._ksr_buyGate()">💳 Beli Lisensi (QRIS)</button>
-        <button class="btn btn-ghost" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
+        <button class="btn btn-primary" onclick="window._ksr_buyGate()">💳 Beli Lisensi</button>
+        <button class="btn btn-secondary" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
       </div>
       <div id="gateLicMsg" style="display:none;color:var(--red);font-size:13px;margin-top:8px"></div>
-      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
-        <a href="javascript:void(0)" onclick="window._ksr_toggleManualGate()" style="font-size:12px;color:var(--text3);font-weight:700;text-decoration:underline">Sudah punya kode? Aktivasi manual</a>
-        <div id="gateManualWrap" style="display:none;margin-top:8px;text-align:left">
-          <div class="field"><input type="text" id="gateSerial" class="form-input uppercase" placeholder="KK5-XXXX-XXXX-XX-XXXXXX"></div>
-          <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="window._ksr_activateGate()">🔑 Aktifkan Kode</button>
-        </div>
-      </div>
-      ${extendLink}
       <div style="font-size:12px;color:var(--text3);margin-top:14px">Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a></div>
     `;
   }
 
-window._ksr_buyGate = () => openPurchaseSheet(); // buka sheet QRIS (flow otomatis)
-window._ksr_toggleManualGate = () => {
-  const wrap = document.getElementById('gateManualWrap');
-  if (wrap) wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
-};
-window._ksr_activateGate = async () => {
-  const key = (document.getElementById('gateSerial')?.value || '').trim().toUpperCase();
-  const msg = document.getElementById('gateLicMsg');
-  if (!key) { if (msg){msg.textContent='Masukkan kode lisensi.';msg.style.display='block';} return; }
-  const res = await activateSerial(key);
-  if (res.valid) {
-    const gate = document.getElementById('licenseGate');
-    if (gate) gate.style.display = 'none';
-    document.getElementById('lockOverlay')?.classList.remove('show');
-    await boot();
-  } else {
-    if (msg){msg.textContent = res.message || 'Kode lisensi tidak valid.';msg.style.display='block';}
-  }
-};
-window._ksr_extendGate = async () => {
-  await openExtendFlow(); // share-to-extend: share + konfirmasi + grant
-  const st = await getLicenseStatus();
-  if (st.status === 'trial' || st.status === 'active') {
-    const gate = document.getElementById('licenseGate');
-    if (gate) gate.style.display = 'none';
-    document.getElementById('lockOverlay')?.classList.remove('show');
-    await boot();
-  } else {
-      await renderGate(st); // refresh (usage / habis)
-  }
-};
+window._ksr_buyGate = () => openPurchaseSheet();
 
 // Periodic license re-check (60s) -- updates trial chip/cards, shows lock on expiry
 setInterval(() => { checkLicenseGate(); }, 60000);

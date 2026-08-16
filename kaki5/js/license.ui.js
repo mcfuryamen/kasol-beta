@@ -59,8 +59,8 @@ export function licenseStatusHtml(left, extUsed, inputId) {
       </div>
     </div>
     <div class="license-actions license-actions-row">
-      <button class="btn-buy-wa" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
-      <button class="btn btn-ghost" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
+      <button class="btn btn-primary" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
+      <button class="btn btn-secondary" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
     </div>
   `;
 }
@@ -91,8 +91,8 @@ function revokedLicenseActionsHtml() {
   return `
     <div class="badge red compact">✖ Lisensi Dinonaktifkan</div>
     <div class="license-actions license-actions-row">
-      <button class="btn btn-primary" onclick="window._ksr_contactViaWA()">💬 Hubungi Admin</button>
-      <button class="btn btn-outline" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
+      <button class="btn btn-primary" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
+      <button class="btn btn-secondary" onclick="window._ksr_contactViaWA()">💬 Hubungi Admin</button>
     </div>`;
 }
 
@@ -104,8 +104,8 @@ function revokedLicenseCardHtml() {
       <div class="license-title" style="margin-top:8px">Lisensi Dicabut</div>
       <p class="license-desc">Lisensi untuk perangkat ini telah <b>dinonaktifkan</b> oleh admin. Aplikasi tidak dapat digunakan sampai lisensi dipulihkan.</p>
       <div class="license-actions license-actions-row">
-        <button class="btn btn-primary" onclick="window._ksr_contactViaWA()">💬 Hubungi Admin</button>
-        <button class="btn btn-outline" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
+        <button class="btn btn-primary" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
+        <button class="btn btn-secondary" onclick="window._ksr_contactViaWA()">💬 Hubungi Admin</button>
       </div>
     </div>`;
 }
@@ -124,7 +124,7 @@ function setLockMode(mode) {
 }
 
 // Halaman "Lisensi Dicabut" — struktur meniru gate lisensi (logo, judul,
-// tombol beli/tanya, aktivasi manual, footer WA) supaya pengalaman konsisten.
+// tombol beli/tanya, footer WA) supaya pengalaman konsisten.
 function revokedPageHtml() {
   return `
     <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px;border-radius:50%" alt="Logo">
@@ -133,15 +133,8 @@ function revokedPageHtml() {
     <div style="font-size:17px;font-weight:800;color:var(--red)">Lisensi Dinonaktifkan</div>
     <p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Lisensi untuk perangkat ini telah dicabut oleh admin.<br>Beli lisensi baru — aktivasi otomatis oleh admin setelah pembayaran diverifikasi.</p>
     <div class="license-actions license-actions-row">
-      <button class="btn-buy-wa" onclick="window._ksr_buyGate()">💳 Beli Lisensi (QRIS)</button>
-      <button class="btn btn-ghost" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
-    </div>
-    <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
-      <a href="javascript:void(0)" onclick="window._ksr_toggleManualKey('revSerial')" style="font-size:12px;color:var(--text3);font-weight:700;text-decoration:underline">Sudah punya kode baru? Aktivasi manual</a>
-      <div id="manualKeyWrap-revSerial" style="display:none;margin-top:8px;text-align:left">
-        <div class="field"><input type="text" id="revSerial" class="form-input uppercase" placeholder="KK5-XXXX-XXXX-XX-XXXXXX"></div>
-        <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="window._ksr_activateLicense('revSerial')">🔑 Aktifkan Kode</button>
-      </div>
+      <button class="btn btn-primary" onclick="window._ksr_buyGate()">💳 Beli Lisensi</button>
+      <button class="btn btn-secondary" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
     </div>
     <div style="font-size:12px;color:var(--text3);margin-top:14px">Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a></div>
   `;

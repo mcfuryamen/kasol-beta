@@ -68,11 +68,10 @@
 <div style="font-size:13px;color:var(--text3);font-weight:600;text-align:right" id="todayDate"></div>
 </div>
 
-<!-- Notifikasi lengkapi profil — CENTER LARGE IMMERSIVE -->
+<!-- Notifikasi lengkapi profil — CENTER LARGE IMMERSIVE (mandatory) -->
 <div id="profileBanner">
-<div class="prof-banner-backdrop" onclick="if(event.target===this)document.getElementById('profileBanner').classList.remove('show')"></div>
+<div class="prof-banner-backdrop"></div>
 <div class="prof-banner-card">
-<button class="prof-banner-close" onclick="document.getElementById('profileBanner').classList.remove('show')" aria-label="Tutup">✕</button>
 <div class="prof-emoji">📝</div>
 <div class="prof-banner-title">Lengkapi Profil Tokomu</div>
 <div class="prof-banner-sub">Isi info singkat biar pengalaman pakai Kasir Solo makin nyaman — kamu dapat bantuan lebih cepat, plus info promo &amp; tips yang pas buat usahamu.</div>
@@ -81,7 +80,6 @@
 <div><span>📍</span><span>Alamat toko — biar tips &amp; informasinya sesuai tempat usahamu</span></div>
 </div>
 <button class="prof-banner-cta" onclick="document.getElementById('profileBanner').classList.remove('show');window._ksr_navigateTo('pengaturan')">Isi Profil Sekarang</button>
-<button class="prof-banner-later" onclick="document.getElementById('profileBanner').classList.remove('show')">Nanti Saja</button>
 </div>
 </div>
 
