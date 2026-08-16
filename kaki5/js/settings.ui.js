@@ -19,6 +19,7 @@ import { getLicenseStatus } from './license.js';
 import { setupRegionPicker } from './region.js';
 import { showToast, formatPhoneDisplay } from './helpers.js';
 import { ensureSynced, isSyncConfigured } from './sync.js';
+import { currentPage } from './app-state.js';
 
 export async function loadSettings() {
   const data = await loadSettingsData();
@@ -62,9 +63,7 @@ export async function loadSettings() {
 export async function checkProfileNotification() {
   const banner = document.getElementById('profileBanner');
   if (!banner) return;
-  // Cegah circular import: baca currentPage lewat getter
-  const { getCurrentPage } = await import('./app-state.js');
-  if (getCurrentPage() === 'pengaturan') {
+  if (currentPage === 'pengaturan') {
     banner.classList.remove('show');
     return;
   }
