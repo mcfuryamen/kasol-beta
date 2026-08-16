@@ -2,6 +2,11 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-17 (v59: kotak kembalian selalu tampil)
+- **Kotak 💰 Kembalian kini SELALUS tampil** di layar pembayaran (sebelumnya tersembunyi sampai uang diterima diisi). Modal dibuka → "Rp 0" (uang pas); uang belum cukup → tetap "Rp 0"; cukup/lebih → angka kembalian. (Permintaan pemilik 2026-08-17.)
+- E2e: buka modal → box tampil Rp 0; preset 20.000 utk total 15.000 → Rp 5.000.
+- Versi: `1.0.8` / `v59` sinkron 5 titik.
+
 ## 2026-08-17 (v58: Fase 4-5 — UI & kebersihan, penutup audit 2026-08-17)
 - **T17/M7**: `bottom-nav` z-index 700 → **350** sesuai kontrak ekosistem (modal/gate/toast kini di atas nav; sebelumnya nav menutupi semuanya). Kontrak z-index CONTEXT.md diperbarui lengkap termasuk `#updateOverlay 800`.
 - **T18/M8**: tab kategori POS pakai `data-cat` + delegasi (mengganti interpolasi string mentah ke onclick — rapuh terhadap kategori dari cadangan buatan).

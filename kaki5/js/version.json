@@ -1,7 +1,7 @@
 {
-  "version": "1.0.7",
-  "cacheBust": "v58",
+  "version": "1.0.8",
+  "cacheBust": "v59",
   "notes": [
-    "✨ Perbaikan tampilan & kestabilan — aplikasi makin nyaman dipakai setiap hari"
+    "💰 Kotak kembalian kini selalu tampil di layar pembayaran — makin jelas saat melayani pembeli"
   ]
 }

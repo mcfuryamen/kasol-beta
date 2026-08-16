@@ -97,7 +97,9 @@ export function openCartModal() {
     `<button class="btn btn-sm btn-ghost" style="font-size:12px" onclick="setNominalBayar(${p})">${p.toLocaleString('id-ID')}</button>`
   ).join('');
 
-  document.getElementById('kembalianBox').style.display = 'none';
+  // Kotak kembalian SELALU tampil (permintaan pemilik 2026-08-17): saat modal
+  // dibuka uang diterima sudah terisi = total (uang pas) → kembalian Rp 0.
+  hitungKembalianUI(totalPrice, totalPrice);
   document.getElementById('cartModal').classList.add('show');
 }
 
@@ -107,12 +109,10 @@ export function closeCartModal() {
 
 export function hitungKembalianUI(total, bayar) {
   const box = document.getElementById('kembalianBox');
-  if (bayar >= total && bayar > 0) {
-    box.style.display = 'block';
-    document.getElementById('kembalianVal').textContent = formatRp(bayar - total);
-  } else {
-    box.style.display = 'none';
-  }
+  // Kotak tidak pernah disembunyikan — belum cukup/berubah uang → tampil Rp 0.
+  box.style.display = 'flex';
+  document.getElementById('kembalianVal').textContent =
+    (bayar >= total && bayar > 0) ? formatRp(bayar - total) : 'Rp 0';
 }
 
 export function formatBayarInputUI() {
