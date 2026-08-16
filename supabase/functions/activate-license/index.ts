@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     // 1. Generate serial
     const serial = await generateSerial(app_type, device_code);
     
-    // 2. Update clients.license_* (device-bound, service_role bypass RLS)
+    // 2. Update clients.license_* + pipeline (device-bound, service_role bypass RLS)
     await sbQuery(
       `clients?unit_id=eq.${encodeURIComponent(unit_id)}`, 
       'PATCH', 
@@ -109,22 +109,14 @@ Deno.serve(async (req) => {
         license_status: 'aktif',
         license_serial: serial,
         license_expires_at: null, // seumur hidup
-      }
-    );
-
-    // 3. Update pembelian yang pending untuk unit ini
-    await sbQuery(
-      `pembelian?unit_id=eq.${encodeURIComponent(unit_id)}&status=eq.menunggu_verifikasi`, 
-      'PATCH', 
-      {
-        status: 'aktif',
-        serial,
+        status: 'aktif', // pipeline
         activated_at: new Date().toISOString(),
-        license_status: 'aktif',
       }
     );
 
-    // 4. Broadcast via realtime (client akan detect perubahan di clients table)
+    // (fase lama: tabel pembelian sudah dikonsolidasi ke clients, tidak lagi di-update)
+
+    // 3. Broadcast via realtime (client akan detect perubahan di clients table)
     // Realtime Supabase akan otomatis broadcast perubahan ini ke subscriber
     
     return json({ 
