@@ -5,7 +5,48 @@
 // User TIDAK perlu request serial manual — cukup beli (QRIS) & tunggu
 // verifikasi admin. Input serial manual hanya fallback offline.
 import { ensureSynced } from './sync.js';
-import { getUnitId, getDeviceCode } from './license.logic.js';
+import { getUnitId, getDeviceCode, getLicense, markLicenseRevoked } from './license.logic.js';
+import { getSetting, setSetting } from './db.js';
+
+const LICENSE_SYNC_KEY = 'licenseSync';
+const NETWORK_GRACE_DAYS = 3;
+
+function classifyCloudError(error) {
+  const status = Number(error?.status || error?.statusCode || 0);
+  const code = String(error?.code || '').toUpperCase();
+  if (status === 404 || code === 'PGRST116') return 'not-found';
+  return 'network';
+}
+
+async function readLicenseRow(sb, deviceCode) {
+  try {
+    const { data, error } = await sb
+      .from('clients')
+      .select('license_status, license_serial, license_expires_at')
+      .eq('device_code', deviceCode)
+      .eq('app_type', 'kaki5')
+      .maybeSingle();
+    if (error) return { kind: classifyCloudError(error), error };
+    if (!data) return { kind: 'not-found' };
+    return { kind: 'ok', data };
+  } catch (error) {
+    return { kind: 'network', error };
+  }
+}
+
+async function isKnownDevice(sb, deviceCode) {
+  try {
+    const unitId = await getUnitId();
+    const { data, error } = await sb.rpc('device_known', {
+      p_unit_id: unitId, p_device_code: deviceCode, p_app_type: 'kaki5'
+    });
+    return error ? null : data === true;
+  } catch (_) {
+    return null;
+  }
+}
+
+export { NETWORK_GRACE_DAYS };
 
 // Placeholder anon key => JWT gagal auth => semua query reject RLS.
 function isPlaceholderKey(k) {
@@ -30,9 +71,50 @@ function getSupabaseClient() {
 /** Export client supabase anon (dipakai modul lain seperti app-link). */
 export { getSupabaseClient };
 
-/** Sync local license state to Supabase (cloud target). */
+/** Sync local license state to Supabase and apply only authoritative results. */
 export async function syncLicenseStatus() {
-  await ensureSynced({ force: true });
+  const sb = getSupabaseClient();
+  if (!sb || !navigator.onLine) return { ok: false, reason: 'network' };
+  const deviceCode = await getDeviceCode();
+  const result = await readLicenseRow(sb, deviceCode);
+  if (result.kind === 'not-found') {
+    const known = await isKnownDevice(sb, deviceCode);
+    const local = await getLicense();
+    // A missing row is authoritative only for a device already known locally
+    // or confirmed by the claim RPC; a first-ever device must not be revoked.
+    if (known === true || local.status === 'active' || local.status === 'revoked') {
+      await markLicenseRevoked('not-found');
+      return { ok: false, reason: 'not-found', revoked: true };
+    }
+    return { ok: false, reason: 'not-found' };
+  }
+  if (result.kind !== 'ok') return { ok: false, reason: 'network' };
+
+  const cloud = result.data;
+  const status = String(cloud.license_status || '').toLowerCase();
+  if (status === 'batal' || status === 'nonaktif' || status === 'revoked') {
+    await markLicenseRevoked('admin');
+    return { ok: false, reason: 'revoked', revoked: true };
+  }
+  if (status === 'aktif' && cloud.license_serial) {
+    const local = await getLicense();
+    if (local.status !== 'active' || local.serial !== cloud.license_serial) {
+      const { activateSerial } = await import('./license.logic.js');
+      await activateSerial(cloud.license_serial);
+    }
+  }
+  await setSetting(LICENSE_SYNC_KEY, { lastSuccessfulSync: new Date().toISOString() });
+  return { ok: true, cloud };
+}
+
+export async function getLicenseSyncState() {
+  return (await getSetting(LICENSE_SYNC_KEY, null)) || {};
+}
+
+export async function isWithinLicenseGracePeriod() {
+  const state = await getLicenseSyncState();
+  if (!state.lastSuccessfulSync) return false;
+  return Date.now() - new Date(state.lastSuccessfulSync).getTime() <= NETWORK_GRACE_DAYS * 86400000;
 }
 
 /**
@@ -120,19 +202,10 @@ export async function fetchSetting(key) {
 export async function fetchLicenseStatusFromCloud() {
   const sb = getSupabaseClient();
   if (!sb) return null;
-  try {
-    // Match by device_code (fingerprint hardware stabil) — unit_id bisa
-    // berubah antar-versi/browser, sedangkan device_code tetap & deterministik.
-    const device_code = await getDeviceCode();
-    const { data, error } = await sb
-      .from('clients')
-      .select('license_status, license_serial, license_expires_at')
-      .eq('device_code', device_code)
-      .maybeSingle();
-    if (error || !data) return null;
-    return data;
-  } catch (e) {
-    console.warn('fetchLicenseStatusFromCloud:', e?.message || e);
-    return null;
-  }
+  const device_code = await getDeviceCode();
+  const result = await readLicenseRow(sb, device_code);
+  if (result.kind === 'ok') return result.data;
+  if (result.kind === 'not-found') return null;
+  console.warn('fetchLicenseStatusFromCloud:', result.error?.message || result.error || result.kind);
+  return null;
 }

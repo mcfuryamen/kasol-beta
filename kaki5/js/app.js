@@ -15,6 +15,7 @@ import { validatePhone, formatPhoneDisplay } from './helpers.js';
 import { renderPlatformCarousel, platGoTo } from './carousel.js';
 import { debounce } from './helpers.pure.js';
 import { ensureSynced } from './sync.js';
+import { syncLicenseStatus } from './license.sync.js';
 import { showConfirm, closeConfirm } from './confirm.js';
 import { exportData, importData, confirmClearAll } from './backup.js';
 import { checkOnboarding } from './onboarding.js';
@@ -325,6 +326,12 @@ window._ksr_extendGate = async () => {
 // Periodic license re-check (60s) -- updates trial chip/cards, shows lock on expiry
 setInterval(() => { checkLicenseGate(); }, 60000);
 
+// License sync is event-driven: startup, reconnect, and foreground visibility.
+window.addEventListener('online', () => { runLicenseSync().then(() => checkLicenseGate()); });
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') runLicenseSync().then(() => checkLicenseGate());
+});
+
 // Sync body.gate-active dengan visibility #licenseGate
 // supaya navbar/header disembunyikan saat onboarding/gate full-screen aktif
 function syncGateBodyClass() {
@@ -365,6 +372,8 @@ async function init() {
     }
   });
 
+  // License sync first, but never block startup on a transient network failure.
+  await runLicenseSync();
   // License gate first (blocks app until trial starts or a valid serial is entered)
   const status = await getLicenseStatus();
   const gate = document.getElementById('licenseGate');
@@ -455,7 +464,18 @@ async function init() {
       return String(Math.ceil(days / 30));
     }
 
+let _licenseSyncInFlight = null;
+async function runLicenseSync() {
+  if (!navigator.onLine || _licenseSyncInFlight) return _licenseSyncInFlight;
+  _licenseSyncInFlight = syncLicenseStatus().then(async result => {
+    if (result?.revoked && window._ksr_enforceRevoked) await window._ksr_enforceRevoked();
+    return result;
+  }).catch(e => ({ ok: false, reason: 'network', error: e })).finally(() => { _licenseSyncInFlight = null; });
+  return _licenseSyncInFlight;
+}
+
 async function boot() {
+  await runLicenseSync();
   await ensureUnitId();
   await loadBeranda();
   await checkOnboarding();

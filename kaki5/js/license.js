@@ -38,6 +38,8 @@ export {
 // Re-export sync functions
 export {
   syncLicenseStatus,
+  getLicenseSyncState,
+  isWithinLicenseGracePeriod,
   activateLicenseCloud,
   fetchLicenseStatusFromCloud,
   isDeviceKnownOnCloud
