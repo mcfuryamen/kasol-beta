@@ -1,0 +1,16 @@
+# T10 (audit 2026-08-17/H6): app klien TIDAK boleh ikut membawa secret atau
+# artefak dev saat deploy via Vercel CLI dari folder ini. Deploy git-integration
+# memang tidak membawa yang di-gitignore, tapi CLI meng-upload apa adanya —
+# tanpa file ini satu `vercel --prod` bisa membocorkan .env.local.
+.env
+.env.*
+.env.local
+*.bak
+server.js
+test-*.js
+test-import.mjs
+docs/
+.workbuddy-ai/
+AUDIT-*.md
+PLAN-*.md
+SECURITY-AUDIT-*.md
