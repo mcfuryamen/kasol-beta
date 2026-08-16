@@ -1,7 +1,7 @@
 {
-  "version": "1.0.11",
-  "cacheBust": "v62",
+  "version": "1.0.12",
+  "cacheBust": "v63",
   "notes": [
-    "💬 Tombol \"Tambah 1 Hari Gratis\" kini langsung membuka WhatsApp — tinggal pilih teman atau grup untuk dibagikan"
+    "🔒 Halaman \"Lisensi Dinonaktifkan\" kini tampil jelas satu layar penuh — mudah menghubungi admin atau aktivasi kode baru"
   ]
 }

@@ -3,7 +3,7 @@
 // di bawah — komentar lama salah menyebut cache-first). HTML selalu segar saat
 // online; cache precache di bawah menjamin app tetap jalan offline penuh.
 
-const CACHE_NAME = 'kasir-solo-kaki5-v62';
+const CACHE_NAME = 'kasir-solo-kaki5-v63';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

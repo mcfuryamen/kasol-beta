@@ -609,12 +609,15 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <p class="license-desc" id="lockOverlayDesc" style="text-align:center">Silakan perpanjang masa coba dengan membagikan aplikasi ke teman, atau aktivasi lisensi resmi untuk melanjutkan.</p>
 <div id="lockLicenseStatusArea"></div>
 </div>
+<!-- Mode "Lisensi Dicabut": halaman penuh putih bergaya gate (diisi dinamis
+     renderRevokedLockOverlay); kartu di atas disembunyikan saat mode ini aktif. -->
+<div id="lockRevokedPage" style="display:none;max-width:440px;width:100%;text-align:center"></div>
 </div>
 
 <script>
 (() => { console.log("Kaki5 ESM loaded"); })();
 </script>
-  <script type="module" src="js/app.js?v=62"></script>
+  <script type="module" src="js/app.js?v=63"></script>
 <script src="js/supabase.min.js"></script>
 <script src="js/supabase-config.js"></script>
 </body>

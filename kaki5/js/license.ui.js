@@ -110,18 +110,52 @@ function revokedLicenseCardHtml() {
     </div>`;
 }
 
+// Mode tampilan lockOverlay: 'revoked' = halaman penuh putih bergaya gate
+// (permintaan pemilik 2026-08-17, konsisten dengan #gateLicenseBlock);
+// 'default' = kartu kecil untuk kondisi lain (trial habis).
+function setLockMode(mode) {
+  const lock = document.getElementById('lockOverlay');
+  const card = lock ? lock.querySelector('.license-lock-card') : null;
+  const page = document.getElementById('lockRevokedPage');
+  const revoked = mode === 'revoked';
+  if (lock) lock.classList.toggle('revoked-page', revoked);
+  if (card) card.style.display = revoked ? 'none' : '';
+  if (page) page.style.display = revoked ? '' : 'none';
+}
+
+// Halaman "Lisensi Dicabut" — struktur meniru gate lisensi (logo, judul,
+// tombol beli/tanya, aktivasi manual, footer WA) supaya pengalaman konsisten.
+function revokedPageHtml() {
+  return `
+    <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px;border-radius:50%" alt="Logo">
+    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Kasir Solo</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
+    <div style="font-size:17px;font-weight:800;color:var(--red)">Lisensi Dinonaktifkan</div>
+    <p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Lisensi untuk perangkat ini telah dicabut oleh admin.<br>Beli lisensi baru — aktivasi otomatis oleh admin setelah pembayaran diverifikasi.</p>
+    <div class="license-actions license-actions-row">
+      <button class="btn-buy-wa" onclick="window._ksr_buyGate()">💳 Beli Lisensi (QRIS)</button>
+      <button class="btn btn-ghost" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
+    </div>
+    <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+      <a href="javascript:void(0)" onclick="window._ksr_toggleManualKey('revSerial')" style="font-size:12px;color:var(--text3);font-weight:700;text-decoration:underline">Sudah punya kode baru? Aktivasi manual</a>
+      <div id="manualKeyWrap-revSerial" style="display:none;margin-top:8px;text-align:left">
+        <div class="field"><input type="text" id="revSerial" class="form-input uppercase" placeholder="KK5-XXXX-XXXX-XX-XXXXXX"></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="window._ksr_activateLicense('revSerial')">🔑 Aktifkan Kode</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-top:14px">Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a></div>
+  `;
+}
+
 function renderRevokedLockOverlay() {
   const lock = document.getElementById('lockOverlay');
+  setLockMode('revoked');
   if (lock) lock.classList.add('show');
-  const title = document.getElementById('lockOverlayTitle');
-  if (title) title.textContent = 'Lisensi Dicabut';
-  const desc = document.getElementById('lockOverlayDesc');
-  if (desc) {
-    desc.innerHTML = 'Lisensi untuk perangkat ini telah <b>dinonaktifkan</b> oleh admin. Aplikasi tidak dapat digunakan sampai lisensi dipulihkan.';
-    desc.style.display = 'block';
-  }
+  const page = document.getElementById('lockRevokedPage');
+  if (page) page.innerHTML = revokedPageHtml();
+  // lockLicenseStatusArea tidak dipakai di mode ini (halaman punya aksinya sendiri)
   const area = document.getElementById('lockLicenseStatusArea');
-  if (area) area.innerHTML = revokedLicenseActionsHtml();
+  if (area) area.innerHTML = '';
 }
 
 /** Enforce revoke: tandai local license revoked + tampilkan lock/kartu revoked. */
@@ -240,6 +274,9 @@ export async function checkLicenseGate() {
 
   const lic = await getLicense();
   const left = daysLeft(lic);
+  // Sinkronkan mode lockOverlay: revoked = halaman penuh putih, lainnya kartu
+  // default (supaya bekas mode revoked kembali normal setelah aktivasi/pemulihan).
+  setLockMode(lic.status === 'revoked' ? 'revoked' : 'default');
   // Revoke lokal (offline-first): tetap terkunci walau tidak ada koneksi cloud.
   if (lic.status === 'revoked') {
     renderRevokedLockOverlay();

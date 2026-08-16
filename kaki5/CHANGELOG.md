@@ -2,6 +2,12 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-17 (v63: halaman "Lisensi Dicabut" bergaya gate)
+- **Layar lisensi dicabut kini halaman penuh putih** dengan struktur persis halaman gate lisensi (permintaan pemilik 2026-08-17): logo + Kasir Solo/Kaki Lima Edition, judul merah "Lisensi Dinonaktifkan", tombol 💳 Beli Lisensi (QRIS) + 💬 Tanya Admin, tautan "Sudah punya kode baru? Aktivasi manual" (input serial → `activateLicense`), footer kontak WhatsApp. Mengganti kartu kecil di overlay gelap.
+- Implementasi: `#lockRevokedPage` baru di dalam `#lockOverlay` + kelas `.revoked-page` (latar putih penuh); mode di-sinkronkan di `checkLicenseGate` (`setLockMode`) sehingga kondisi lain (trial habis) tetap memakai kartu default.
+- E2e lengkap terverifikasi: cloud diset `batal` → halaman baru tampil → aktivasi via edge function `activate-license` (auth x-admin-key, serial KK5-00ZZ-O9VD-99-NHDRBL) → reload → auto-unlock "LISENSI ✓ Aktif".
+- Versi: `1.0.12` / `v63` sinkron 5 titik.
+
 ## 2026-08-17 (v62: tombol perpanjangan langsung ke WhatsApp)
 - **"🎁 Tambah 1 Hari Gratis" kini langsung membuka WhatsApp** (`wa.me` dengan teks promo + link aplikasi terisi; mobile → aplikasi WhatsApp, desktop → WhatsApp Web). Dulu: contact picker OS / share sheet — membingungkan ("kok ke kontak?"). Alur setelahnya tetap: konfirmasi "sudah dibagikan?" → +1 hari (maks 20x).
 - Versi: `1.0.11` / `v62` sinkron 5 titik. E2e: klik tombol → tab wa.me dengan teks terisi.

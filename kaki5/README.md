@@ -97,7 +97,7 @@ kaki5/
 
 **Arsitektur baru (v5):**
 1. `<script src="dexie.min.js">` (global)
-2. `<script type="module" src="js/app.js?v=62">` (ESM entry - lazy loading)
+2. `<script type="module" src="js/app.js?v=63">` (ESM entry - lazy loading)
 
 `app.js` melakukan:
 - Pre-wire critical modules (pos, beranda)
@@ -280,7 +280,7 @@ Setiap modul besar dipecah menjadi 3 layer terpisah:
     ↓
 [<script src="dexie.min.js">] ← Dexie global tersedia
     ↓
-[<script type="module" src="js/app.js?v=62">] ← ESM entry point
+[<script type="module" src="js/app.js?v=63">] ← ESM entry point
     ↓
 [app.js: Lazy load critical modules first]
     ├─ pos.js (PRE-WIRE)
