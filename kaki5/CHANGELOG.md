@@ -2,6 +2,12 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-17 (v55: Force Update Overlay)
+- **Notifikasi versi baru jadi overlay full-screen** (`#updateOverlay`, z-index 800 — menutup seluruh dashboard termasuk navbar; tidak bisa ditutup kecuali tombol). Toast lama jadi fallback.
+- **Catatan perubahan per rilis**: `version.json` kini punya field `notes` (array) — dirender sebagai daftar "Yang baru di versi ini" (di-escape, fallback default bila kosong).
+- **Tombol "OKE"** = pemicu `performForceUpdate()` (SW update → reload). Reload menjalankan boot() → profil tersinkron ke server — jadi setiap rilis baru otomatis jadi momen backfill profil user lama.
+- Versi: `1.0.4` / `v55` sinkron 5 titik.
+
 ## 2026-08-17 (v54: Fase 0 + Sync Robust — hasil audit 2026-08-17)
 - **T8/H3 Fix false-revoke** (`license.sync.js`): baris clients yang tak terlihat RLS (user_id NULL / milik session lain) tidak lagi otomatis dianggap "terhapus" → dibuat session ber-metadata `unit_id` lalu **dibaca ulang**; revoke hanya jika benar-benar hilang. Revoke lama bertanda `not-found` yang barisnya ternyata ada **otomatis dipulihkan**. (Bug ini kejadian nyata: fresh install di perangkat dikenal cloud langsung terkunci "Lisensi Dicabut".)
 - **T29 Sync robust** (`sync.js`, `sync.health.js` baru): flag `synced` diverifikasi ke server max 1×/24 jam — baris hilang otomatis di-push ulang (self-heal); retry loop 5 menit saat pending + trigger `online`; toast alasan spesifik per tahap; tabel `sync_errors` (RLS insert-only, migration `supabase/migration-sync-errors.sql`); panel **🩺 Diagnosa Sinkronisasi** (10 langkah + Salin Hasil) di Pengaturan → Data & Cadangan.

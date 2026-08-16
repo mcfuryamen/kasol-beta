@@ -184,6 +184,19 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
 
+/* FORCE UPDATE OVERLAY — menutup SELURUH dashboard (di atas nav 700 & sheet 640),
+   user wajib tekan OKE -> reload -> profil tersinkron & aset baru termuat. */
+#updateOverlay{position:fixed;inset:0;z-index:800;background:rgba(43,36,32,.94);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+#updateOverlay.show{display:flex}
+.update-card{background:#fff;border-radius:20px;padding:24px 20px;max-width:420px;width:100%;max-height:88vh;overflow-y:auto;text-align:center;animation:popIn .3s ease}
+.update-title{font-size:20px;font-weight:800;margin-top:4px}
+.update-version{display:inline-block;background:var(--orange-bg);color:var(--primary);font-weight:800;font-size:13px;border-radius:20px;padding:4px 14px;margin-top:8px}
+.update-sub{font-size:13.5px;color:var(--text2);line-height:1.6;margin-top:12px;text-align:left}
+.update-notes-title{font-size:13px;font-weight:800;margin-top:14px;text-align:left}
+.update-notes{list-style:none;padding:0;margin:8px 0 0;text-align:left;display:flex;flex-direction:column;gap:8px}
+.update-notes li{font-size:13px;color:var(--text);line-height:1.55;background:var(--paper);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+.update-hint{font-size:12px;color:var(--text3);margin-top:10px;line-height:1.5}
+
 /* EMPTY STATE */
 .empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
 .empty-state .empty-icon{font-size:60px;margin-bottom:12px;opacity:.5}

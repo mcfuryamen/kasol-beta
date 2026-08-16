@@ -2,9 +2,10 @@
 // Deteksi rilis baru via version.json — TANPA polling berkala ke server.
 // Cek dilakukan event-driven: sekali saat app boot, sekali tiap app balik ke
 // foreground (visibilitychange), dan saat koneksi kembali online. Saat versi
-// cache (CACHE_BUST) belum update, munculkan toast DENGAN TOMBOL REFRESH —
-// user yang memutuskan kapan memuat ulang. Sebelum reload, cache Service
-// Worker lama dibersihkan (via SW baru yang aktif).
+// cache (CACHE_BUST) belum update, tampilkan OVERLAY FULL-SCREEN (di atas
+// seluruh dashboard, tidak bisa ditutup) berisi catatan perubahan dari
+// version.json + satu tombol "OKE" sebagai pemicu refresh paksa. Refresh
+// memuat aset baru sekaligus menjalankan boot() -> profil terkirim ke server.
 
 import { CACHE_BUST } from './version.js';
 import { showToast } from './helpers.js';
@@ -15,7 +16,7 @@ const SW_WAIT_TIMEOUT_MS = 6000;
 const TOAST_DURATION_MS = 15000;
 
 let watcherStarted = false;
-let toastActive = false;
+let overlayWired = false;
 
 async function fetchRemoteVersion() {
   const res = await fetch(`${VERSION_URL}?t=${Date.now()}`, { cache: 'no-store' });
@@ -54,16 +55,49 @@ export async function performForceUpdate() {
   window.location.reload();
 }
 
-// Toast + tombol Refresh (bukan auto reload): user yang putuskan kapan muat ulang.
-export function notifyUpdateAvailable(msg) {
-  if (sessionStorage.getItem(RELOAD_FLAG) || toastActive) return;
-  toastActive = true;
-  showToast(msg || '🔄 Versi baru tersedia!', 'info', {
-    duration: TOAST_DURATION_MS,
-    actionLabel: '⟳ Refresh',
-    onAction: () => { toastActive = false; performForceUpdate(); }
-  });
-  setTimeout(() => { toastActive = false; }, TOAST_DURATION_MS);
+// Catatan perubahan default bila version.json tidak menyertakan `notes`.
+const DEFAULT_NOTES = [
+  '✅ Perbaikan & penyempurnaan agar aplikasi makin lancar dipakai setiap hari',
+  '🛡️ Data usahamu kini tersimpan lebih aman'
+];
+
+// Tampilkan overlay full-screen versi baru (tidak bisa ditutup kecuali OKE).
+// Tombol OKE = pemicu refresh paksa -> aset baru + profil tersinkron ke server.
+export function notifyUpdateAvailable(remote) {
+  if (sessionStorage.getItem(RELOAD_FLAG)) return;
+  const overlay = document.getElementById('updateOverlay');
+  if (!overlay) {
+    // Fallback (elemen overlay tidak ada — seharusnya tidak terjadi): toast lama.
+    showToast('🔄 Versi baru tersedia!', 'info', {
+      duration: TOAST_DURATION_MS,
+      actionLabel: '⟳ Refresh',
+      onAction: () => performForceUpdate()
+    });
+    return;
+  }
+
+  const verEl = document.getElementById('updateVersionLabel');
+  if (verEl) verEl.textContent = 'Versi ' + (remote?.version || remote?.cacheBust || 'Baru');
+
+  const listEl = document.getElementById('updateNotesList');
+  if (listEl) {
+    const notes = Array.isArray(remote?.notes) && remote.notes.length ? remote.notes : DEFAULT_NOTES;
+    listEl.innerHTML = notes.map(n => `<li>${escapeHtmlText(n)}</li>`).join('');
+  }
+
+  if (!overlayWired) {
+    overlayWired = true;
+    const btn = document.getElementById('updateOkBtn');
+    if (btn) btn.addEventListener('click', () => performForceUpdate());
+  }
+  overlay.classList.add('show');
+}
+
+// Escape ringan tanpa dependensi DOM helper (update.js minimal-dependency).
+function escapeHtmlText(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
 }
 
 // Event-driven cek update (bukan polling berkala): sekali saat boot, sekali tiap
@@ -74,7 +108,7 @@ async function checkForUpdate() {
     const remote = await fetchRemoteVersion();
     if (remote.cacheBust !== CACHE_BUST) {
       console.log(`[UPDATE] Versi baru ${remote.cacheBust} (lokal ${CACHE_BUST}).`);
-      notifyUpdateAvailable();
+      notifyUpdateAvailable(remote);
     }
   } catch (e) {
     console.log('[UPDATE] Cek versi gagal (mungkin offline):', e?.message || e);

@@ -505,6 +505,20 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 </div>
 
+<!-- FORCE UPDATE OVERLAY (versi baru wajib dimuat) -->
+<div id="updateOverlay">
+<div class="update-card">
+<img src="assets/icon.png" style="width:64px;height:64px;margin:0 auto 8px;border-radius:50%;display:block" alt="Logo">
+<div class="update-title">✨ Versi Baru Tersedia!</div>
+<div class="update-version" id="updateVersionLabel">Versi —</div>
+<div class="update-sub">Ada pembaruan penting supaya aplikasi makin lancar dan data usahamu makin aman. Tekan OKE untuk memuat versi terbaru.</div>
+<div class="update-notes-title">Yang baru di versi ini:</div>
+<ul class="update-notes" id="updateNotesList"></ul>
+<button class="btn btn-green" id="updateOkBtn" style="width:100%;margin-top:16px;font-size:16px">OKE</button>
+<div class="update-hint">Aplikasi akan dimuat ulang otomatis — data jualanmu aman, tidak ada yang hilang.</div>
+</div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -600,7 +614,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <script>
 (() => { console.log("Kaki5 ESM loaded"); })();
 </script>
-  <script type="module" src="js/app.js?v=54"></script>
+  <script type="module" src="js/app.js?v=55"></script>
 <script src="js/supabase.min.js"></script>
 <script src="js/supabase-config.js"></script>
 </body>

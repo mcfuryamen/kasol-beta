@@ -1,1 +1,11 @@
-{"version": "1.0.3", "cacheBust": "v54"}
+{
+  "version": "1.0.4",
+  "cacheBust": "v55",
+  "notes": [
+    "✅ Profil usaha kamu kini selalu tersimpan aman ke server — bantuan jadi lebih cepat saat dibutuhkan",
+    "🩺 Menu baru Diagnosa Sinkronisasi di Pengaturan — cek kondisi data kapan saja",
+    "📅 Pemilih tanggal laporan (custom) kini lancar dipakai",
+    "📍 Pemilihan alamat Provinsi/Kota/Kecamatan/Desa kembali berfungsi",
+    "📶 Lebih andal dipakai tanpa internet"
+  ]
+}
