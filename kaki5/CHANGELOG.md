@@ -3,7 +3,7 @@
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
 ## 2026-08-17 (v59: kotak kembalian selalu tampil)
-- **Kotak 💰 Kembalian kini SELALUS tampil** di layar pembayaran (sebelumnya tersembunyi sampai uang diterima diisi). Modal dibuka → "Rp 0" (uang pas); uang belum cukup → tetap "Rp 0"; cukup/lebih → angka kembalian. (Permintaan pemilik 2026-08-17.)
+- **Kotak 💰 Kembalian kini SELALU tampil** di layar pembayaran (sebelumnya tersembunyi sampai uang diterima diisi). Modal dibuka → "Rp 0" (uang pas); uang belum cukup → tetap "Rp 0"; cukup/lebih → angka kembalian. (Permintaan pemilik 2026-08-17.)
 - E2e: buka modal → box tampil Rp 0; preset 20.000 utk total 15.000 → Rp 5.000.
 - Versi: `1.0.8` / `v59` sinkron 5 titik.
 
