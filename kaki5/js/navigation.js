@@ -5,6 +5,7 @@
 
 import { setCurrentPage, currentPage } from './app-state.js';
 import { initPage, cleanupPage } from './templates.js';
+import { checkProfileNotification } from './settings.ui.js';
 
 // Lazy-loaded page modules (loaded on first navigation)
 const PAGE_MODULES = {
@@ -79,6 +80,18 @@ export async function navigateTo(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pageEl = document.getElementById('page-' + page);
   if (pageEl) pageEl.classList.add('active');
+
+  // Banner "lengkapi profil": tampil di semua halaman kecuali pengaturan
+  // (di pengaturan user mengisi profil, jadi banner disembunyikan agar tidak
+  // menutupi form — banner akan muncul lagi saat pindah halaman lain).
+  const profBanner = document.getElementById('profileBanner');
+  if (profBanner) {
+    if (page === 'pengaturan') {
+      profBanner.classList.remove('show');
+    } else {
+      await checkProfileNotification();
+    }
+  }
 
   // Cleanup previous page
   if (prev && prev !== page) {

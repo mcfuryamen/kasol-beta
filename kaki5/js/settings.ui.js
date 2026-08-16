@@ -56,10 +56,18 @@ export async function loadSettings() {
   checkProfileNotification();
 }
 
-/** Tampilkan/sembunyikan banner "lengkapi profil" di beranda */
+/** Tampilkan/sembunyikan banner "lengkapi profil".
+ *  Banner tampil di semua halaman kecuali halaman pengaturan
+ *  (saat user mengisi profil, banner disembunyikan agar tidak menutupi form). */
 export async function checkProfileNotification() {
   const banner = document.getElementById('profileBanner');
   if (!banner) return;
+  // Cegah circular import: baca currentPage lewat getter
+  const { getCurrentPage } = await import('./app-state.js');
+  if (getCurrentPage() === 'pengaturan') {
+    banner.classList.remove('show');
+    return;
+  }
   const incomplete = await checkProfileNotificationData();
   banner.classList.toggle('show', incomplete);
 }
