@@ -2,6 +2,10 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-17 (v60: fix akordeon rincian pengeluaran)
+- **Bug (laporan user):** akordeon kategori pengeluaran tidak membuka di filter Mingguan/Bulanan/Custom — daftar transaksi di dalam panel hanya dirender untuk periode Harian (panel terbuka tapi kosong). Kini semua periode menampilkan daftarnya; untuk periode lintas hari tiap baris menampilkan tanggal + jam (contoh: "17 Agu 2026 · 04:30").
+- Versi: `1.0.9` / `v60` sinkron 5 titik. E2e: klik kategori di Mingguan → panel terbuka berisi item.
+
 ## 2026-08-17 (v59: kotak kembalian selalu tampil)
 - **Kotak 💰 Kembalian kini SELALU tampil** di layar pembayaran (sebelumnya tersembunyi sampai uang diterima diisi). Modal dibuka → "Rp 0" (uang pas); uang belum cukup → tetap "Rp 0"; cukup/lebih → angka kembalian. (Permintaan pemilik 2026-08-17.)
 - E2e: buka modal → box tampil Rp 0; preset 20.000 utk total 15.000 → Rp 5.000.
