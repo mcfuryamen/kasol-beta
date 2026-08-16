@@ -275,9 +275,10 @@ function gateLicenseHtml(status) {
     <div style="font-size:22px;font-weight:800;margin-bottom:4px">Kasir Solo</div><div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
     <div style="font-size:17px;font-weight:800;color:var(--red)">Masa Coba Gratis Habis</div>
     ${intro}
-      <div class="license-actions" style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
-        <button class="btn-buy-wa" style="width:100%" onclick="window._ksr_buyGate()">💳 Beli Lisensi (QRIS)</button>
-    </div>
+      <div class="license-actions license-actions-row">
+        <button class="btn-buy-wa" onclick="window._ksr_buyGate()">💳 Beli Lisensi (QRIS)</button>
+        <button class="btn btn-ghost" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
+      </div>
       <div id="gateLicMsg" style="display:none;color:var(--red);font-size:13px;margin-top:8px"></div>
       <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
         <a href="javascript:void(0)" onclick="window._ksr_toggleManualGate()" style="font-size:12px;color:var(--text3);font-weight:700;text-decoration:underline">Sudah punya kode? Aktivasi manual</a>

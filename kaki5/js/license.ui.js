@@ -58,10 +58,10 @@ export function licenseStatusHtml(left, extUsed, inputId) {
         <div class="license-usage">Perpanjangan dipakai <b>${extUsed}/${MAX_EXTENSIONS}</b>x</div>
       </div>
     </div>
-    <div class="license-actions license-actions-primary">
+    <div class="license-actions license-actions-row">
       <button class="btn-buy-wa" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
+      <button class="btn btn-ghost" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
     </div>
-    <div class="license-secondary-actions"><button class="btn btn-ghost" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button></div>
   `;
 }
 
@@ -94,7 +94,7 @@ function revokedLicenseCardHtml() {
       <div class="badge red compact">✖ Lisensi Dinonaktifkan</div>
       <div class="license-title" style="margin-top:8px">Lisensi Dicabut</div>
       <p class="license-desc">Lisensi untuk perangkat ini telah <b>dinonaktifkan</b> oleh admin. Aplikasi tidak dapat digunakan sampai lisensi dipulihkan.</p>
-      <div class="license-actions license-actions-primary">
+      <div class="license-actions license-actions-row">
         <button class="btn btn-primary" onclick="window._ksr_contactViaWA()">💬 Hubungi Admin</button>
         <button class="btn btn-outline" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
       </div>

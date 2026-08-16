@@ -49,6 +49,8 @@
 .license-step.is-done .license-step-dot { background: var(--green-bg); color: var(--green); }
 .license-step-line { flex: 1; max-width: 30px; height: 2px; background: #e5e5e5; margin-bottom: 16px; }
 .license-actions-primary { grid-template-columns: 1.25fr 1fr; }
+.license-actions-row { grid-template-columns: 1.25fr 1fr; align-items: stretch; }
+.license-actions-row .btn-buy-wa, .license-actions-row .btn { min-height: 48px; padding: 13px 12px; font-size: 13px; }
 .license-secondary-actions { text-align: center; margin-top: 8px; }
 .license-secondary-actions .btn { font-size: 12px; }
 .license-active-actions { margin-top: 14px; }
@@ -111,6 +113,7 @@
   padding-bottom: calc(100px + env(safe-area-inset-bottom));
   animation: sheetUp .3s ease;
 }
+#sheetPurchase.show { z-index: 640; }
 @keyframes sheetUp {
   from { transform: translateY(40px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
