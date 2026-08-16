@@ -2,6 +2,10 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-17 (v62: tombol perpanjangan langsung ke WhatsApp)
+- **"🎁 Tambah 1 Hari Gratis" kini langsung membuka WhatsApp** (`wa.me` dengan teks promo + link aplikasi terisi; mobile → aplikasi WhatsApp, desktop → WhatsApp Web). Dulu: contact picker OS / share sheet — membingungkan ("kok ke kontak?"). Alur setelahnya tetap: konfirmasi "sudah dibagikan?" → +1 hari (maks 20x).
+- Versi: `1.0.11` / `v62` sinkron 5 titik. E2e: klik tombol → tab wa.me dengan teks terisi.
+
 ## 2026-08-17 (v61: panel kalender lebih kontras)
 - **Panel pemilih tanggal (#customPicker)** — kalender harian/custom, opsi minggu, opsi bulan — kini berlatar krem-oranye brand (`--orange-bg`), border oranye lembut, dan bayangan mengambang, sehingga jelas terbedakan dari kartu-kartu laporan di bawahnya. Sel tanggal, opsi minggu & bulan tetap putih agar terbaca. Style pindah dari inline (laporan.js) ke kelas CSS (`.date-nav .custom-picker`). (Permintaan pemilik 2026-08-17.)
 - Versi: `1.0.10` / `v61` sinkron 5 titik.

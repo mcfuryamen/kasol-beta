@@ -333,30 +333,18 @@ export async function openExtendFlow() {
   const { getAppLink } = await import('./app-link.js');
   const appLink = await getAppLink();
   const shareText = `Halo! Saya pakai *Kasir Solo - Kaki Lima* buat catat jualan saya, gampang & ringan banget. *PT Mesin Kasir Solo* juga menyediakan beragam aplikasi khusus sesuai kebutuhan bisnismu. Info lengkap: WA 0881-6566-935 atau email owner.kasirsolo@gmail.com.\n\nCoba langsung di: ${appLink}`;
-  if ('contacts' in navigator && 'ContactsManager' in window) {
-    try {
-      const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
-      if (contacts && contacts.length >= 1) {
-        await tryShare(shareText);
-        if (_grantExtension) _grantExtension();
-        return;
-      }
-    } catch (err) {
-      // user cancelled — fall through
-    }
-  }
+  // Langsung buka WHATSAPP (permintaan pemilik 2026-08-17). Dulu: contact
+  // picker / share sheet OS — membingungkan user ("kok ke kontak?").
   await tryShare(shareText);
-  const ok = confirm('Apakah kamu berhasil membagikan info aplikasi ini ke kontak rekan atau media sosial? \n\nJika ya, kamu akan dapatkan 1 hari masa coba gratis tambahan.');
+  const ok = confirm('Apakah kamu berhasil membagikan info aplikasi ini ke rekan atau grup WhatsApp? \n\nJika ya, kamu akan dapatkan 1 hari masa coba gratis tambahan.');
   if (ok) { if (_grantExtension) _grantExtension(); }
-  else { showToast('Bagikan dulu ke kontak untuk klaim tambahan 1 hari', 'error'); }
+  else { showToast('Bagikan dulu lewat WhatsApp untuk klaim tambahan 1 hari', 'error'); }
 }
 
 export async function tryShare(text) {
-  if (navigator.share) {
-    try { await navigator.share({ title: 'Kasir Solo - Kaki Lima', text }); } catch (e) {}
-  } else {
-    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
-  }
+  // Selalu WhatsApp: wa.me tanpa nomor membuka aplikasi WhatsApp (mobile) /
+  // WhatsApp Web (desktop) dengan teks sudah terisi — user tinggal pilih chat.
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
 }
 
 export async function grantExtension() {
