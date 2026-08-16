@@ -87,6 +87,15 @@ function activeLicenseCardHtml(serial, expTxt) {
     </div>`;
 }
 
+function revokedLicenseActionsHtml() {
+  return `
+    <div class="badge red compact">✖ Lisensi Dinonaktifkan</div>
+    <div class="license-actions license-actions-row">
+      <button class="btn btn-primary" onclick="window._ksr_contactViaWA()">💬 Hubungi Admin</button>
+      <button class="btn btn-outline" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
+    </div>`;
+}
+
 function revokedLicenseCardHtml() {
   return `
     <div class="card license-card-revoked license-state-card">
@@ -101,17 +110,24 @@ function revokedLicenseCardHtml() {
     </div>`;
 }
 
-/** Enforce revoke: tandai local license revoked + tampilkan lock/kartu revoked. */
-export async function enforceRevoked() {
-  await markLicenseRevoked('admin');
+function renderRevokedLockOverlay() {
   const lock = document.getElementById('lockOverlay');
   if (lock) lock.classList.add('show');
   const title = document.getElementById('lockOverlayTitle');
   if (title) title.textContent = 'Lisensi Dicabut';
   const desc = document.getElementById('lockOverlayDesc');
-  if (desc) desc.style.display = 'none';
+  if (desc) {
+    desc.innerHTML = 'Lisensi untuk perangkat ini telah <b>dinonaktifkan</b> oleh admin. Aplikasi tidak dapat digunakan sampai lisensi dipulihkan.';
+    desc.style.display = 'block';
+  }
   const area = document.getElementById('lockLicenseStatusArea');
-  if (area) area.innerHTML = revokedLicenseCardHtml();
+  if (area) area.innerHTML = revokedLicenseActionsHtml();
+}
+
+/** Enforce revoke: tandai local license revoked + tampilkan lock/kartu revoked. */
+export async function enforceRevoked() {
+  await markLicenseRevoked('admin');
+  renderRevokedLockOverlay();
   if (_updateTrialChip) _updateTrialChip();
   if (_renderLicenseInfoCard) _renderLicenseInfoCard();
 }
@@ -163,10 +179,9 @@ export async function renderLicenseStatusArea(targetId, inputId) {
 
   // Lisensi dicabut / nonaktif oleh admin -> kunci app (tidak jatuh ke trial).
   if (cloud && (cloud.license_status === 'batal' || cloud.license_status === 'nonaktif')) {
-    el.innerHTML = revokedLicenseCardHtml();
+    if (targetId === 'lockLicenseStatusArea') renderRevokedLockOverlay();
+    else el.innerHTML = revokedLicenseCardHtml();
     await markLicenseRevoked('admin');
-    const lock = document.getElementById('lockOverlay');
-    if (lock) lock.classList.add('show');
     if (_updateTrialChip) _updateTrialChip();
     return false;
   }
@@ -227,10 +242,7 @@ export async function checkLicenseGate() {
   const left = daysLeft(lic);
   // Revoke lokal (offline-first): tetap terkunci walau tidak ada koneksi cloud.
   if (lic.status === 'revoked') {
-    const lock = document.getElementById('lockOverlay');
-    if (lock) lock.classList.add('show');
-    const area = document.getElementById('lockLicenseStatusArea');
-    if (area) area.innerHTML = revokedLicenseCardHtml();
+    renderRevokedLockOverlay();
     if (_updateTrialChip) _updateTrialChip();
     return;
   }
