@@ -2,6 +2,10 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-17 (v61: panel kalender lebih kontras)
+- **Panel pemilih tanggal (#customPicker)** — kalender harian/custom, opsi minggu, opsi bulan — kini berlatar krem-oranye brand (`--orange-bg`), border oranye lembut, dan bayangan mengambang, sehingga jelas terbedakan dari kartu-kartu laporan di bawahnya. Sel tanggal, opsi minggu & bulan tetap putih agar terbaca. Style pindah dari inline (laporan.js) ke kelas CSS (`.date-nav .custom-picker`). (Permintaan pemilik 2026-08-17.)
+- Versi: `1.0.10` / `v61` sinkron 5 titik.
+
 ## 2026-08-17 (v60: fix akordeon rincian pengeluaran)
 - **Bug (laporan user):** akordeon kategori pengeluaran tidak membuka di filter Mingguan/Bulanan/Custom — daftar transaksi di dalam panel hanya dirender untuk periode Harian (panel terbuka tapi kosong). Kini semua periode menampilkan daftarnya; untuk periode lintas hari tiap baris menampilkan tanggal + jam (contoh: "17 Agu 2026 · 04:30").
 - Versi: `1.0.9` / `v60` sinkron 5 titik. E2e: klik kategori di Mingguan → panel terbuka berisi item.

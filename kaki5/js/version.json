@@ -1,7 +1,7 @@
 {
-  "version": "1.0.9",
-  "cacheBust": "v60",
+  "version": "1.0.10",
+  "cacheBust": "v61",
   "notes": [
-    "📋 Rincian pengeluaran kini bisa dibuka di semua periode — mingguan, bulanan, dan custom, lengkap dengan tanggalnya"
+    "🎨 Panel kalender pemilih tanggal kini tampil lebih jelas — mudah dibedakan dari kartu laporan"
   ]
 }

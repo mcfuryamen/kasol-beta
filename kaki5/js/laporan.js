@@ -461,7 +461,7 @@ async function renderReportDateNav() {
       <div style="width:100%;display:flex;align-items:center;gap:8px;flex-wrap:nowrap">
         ${navArea}
       </div>
-      <div id="customPicker" class="custom-picker" style="${_customPickerOpen ? '' : 'display:none;'}width:100%;box-sizing:border-box;background:#fff;border:2px solid var(--border);border-radius:12px;padding:8px">
+      <div id="customPicker" class="custom-picker" style="${_customPickerOpen ? '' : 'display:none;'}">
         ${buildPickerBody()}
       </div>
     </div>

@@ -290,6 +290,19 @@ select.form-input {
 .date-nav .custom-date-input:focus { border-color: var(--primary); }
 
 /* ===== Kontekstual date picker (harian / mingguan / bulanan) ===== */
+/* Panel pemilih diberi latar krem-oranye + border + bayangan supaya jelas
+   terpisah dari kartu-kartu konten laporan di bawahnya (permintaan pemilik
+   2026-08-17: "atur warnanya agak kontras dengan warna di bawahnya"). */
+.date-nav .custom-picker {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--orange-bg);
+  border: 2px solid rgba(230, 81, 0, .35);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 8px 20px rgba(43, 36, 32, .14);
+}
+.date-nav .custom-picker .cal-cell { background: #fff; }
 .date-nav .cal-title {
   text-align: center;
   font-weight: 800;
