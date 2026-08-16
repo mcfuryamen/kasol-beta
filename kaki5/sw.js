@@ -1,7 +1,9 @@
 // Service Worker for Kasir Solo - Kaki Lima
-// Cache-first strategy with network fallback for offline support
+// Strategi fetch: NETWORK-FIRST dengan fallback ke cache (lihat handler fetch
+// di bawah — komentar lama salah menyebut cache-first). HTML selalu segar saat
+// online; cache precache di bawah menjamin app tetap jalan offline penuh.
 
-const CACHE_NAME = 'kasir-solo-kaki5-v57';
+const CACHE_NAME = 'kasir-solo-kaki5-v58';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -63,6 +65,7 @@ const ASSETS_TO_CACHE = [
   './js/settings.ui.js',
   './js/settings.sync.js',
   './js/version.js',
+  './js/version.json',
   './js/update.js'
 ];
 

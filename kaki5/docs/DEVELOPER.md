@@ -251,8 +251,8 @@ document.addEventListener('DOMContentLoaded', init);
 - `setupPWA()` **async**: fetch `assets/icon.png` → data URL → bangun manifest dinamis → pasang `<link rel="manifest">` → daftarkan `sw.js`.
 - Install prompt: `beforeinstallprompt` → banner → `installPWA()`.
 
-### `sw.js` — Service Worker (v31)
-- **Cache name**: `kasir-solo-kaki5-v31`
+### `sw.js` — Service Worker (versi mengikuti CACHE_NAME rilis)
+- **Cache name**: `kasir-solo-kaki5-vNN` (bump tiap rilis, sinkron 5 titik)
 - **Strategi**: *network-first, fallback cache* — selalu coba ambil versi terbaru dari network, kalau offline gunakan cache.
 - **Pentinge**: Setiap modifikasi `sw.js` atau penambahan modul baru, **wajib bump CACHE_NAME** agar browser refresh SW dan hapus cache lama.
 
@@ -634,7 +634,7 @@ npx http-server -p 8123
         ▼                                           ▼
    ┌────────────┐                         ┌──────────────────┐
    │ IndexedDB  │                         │ Service Worker   │
-   │ (Dexie)    │                         │ (sw.js v31)      │
+   │ (Dexie)    │                         │ (sw.js)      │
    │            │                         │                  │
    │ v3 schema: │                         │ • Pre-cache      │
    │ • menu     │                         │ • Network-first  │

@@ -303,7 +303,9 @@ async function renderChart(range, period, sales, expenses) {
     }
   }
 
-  const maxVal = Math.max(...incomeData, ...expenseData, 1);
+  // L6 (audit 2026-08-17): reduce, bukan spread ke Math.max — spread bisa
+  // menabrak batas argument count pada dataset laporan sangat besar.
+  const maxVal = [...incomeData, ...expenseData, 1].reduce((a, b) => (b > a ? b : a), 1);
   let barsHtml = '';
   for (let i = 0; i < labels.length; i++) {
     const incH = Math.max((incomeData[i] / maxVal) * 120, 4);

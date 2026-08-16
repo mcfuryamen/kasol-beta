@@ -145,8 +145,14 @@ export function checkExpired(expCode, activationDate, nowMs = Date.now()) {
   }
   const months = parseInt(expCode);
   if (!isNaN(months)) {
+    // L2 (audit 2026-08-17): clamp tanggal supaya 31 Jan + 1 bulan = 28/29 Feb
+    // (bukan rollover ke 3 Mar yang memperpanjang lisensi beberapa hari).
     const expiry = new Date(activationDate);
+    const day = expiry.getDate();
+    expiry.setDate(1);
     expiry.setMonth(expiry.getMonth() + months);
+    const lastDay = new Date(expiry.getFullYear(), expiry.getMonth() + 1, 0).getDate();
+    expiry.setDate(Math.min(day, lastDay));
     return nowMs > expiry.getTime();
   }
   return false;

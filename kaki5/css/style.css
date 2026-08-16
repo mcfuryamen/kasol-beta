@@ -23,7 +23,7 @@ body{display:flex;flex-direction:column}
 .main-content{flex:1;margin-top:var(--header-h);margin-bottom:var(--nav-h);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 20px}
 
 /* BOTTOM NAV */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:#fff;display:flex;border-top:2px solid var(--border);z-index:700;padding-bottom:env(safe-area-inset-bottom)}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:#fff;display:flex;border-top:2px solid var(--border);z-index:350;padding-bottom:env(safe-area-inset-bottom)}
 /* Gate onboarding/lisensi = full-screen blocker: sembunyikan navbar + header biar nggak nongol di atasnya */
 body.gate-active .bottom-nav,
 body.gate-active .app-header{display:none !important}

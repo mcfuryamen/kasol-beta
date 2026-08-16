@@ -1,9 +1,7 @@
 {
-  "version": "1.0.6",
-  "cacheBust": "v57",
+  "version": "1.0.7",
+  "cacheBust": "v58",
   "notes": [
-    "🛡️ Masa coba kini tercatat aman di server — penggunaan jujur tetap terjaga",
-    "⏰ Perbaikan kecil: pengaturan waktu HP tidak lagi mengganggu masa aktif",
-    "📍 Ganti zona waktu / ukuran tampilan tidak lagi mengganggu lisensi kamu"
+    "✨ Perbaikan tampilan & kestabilan — aplikasi makin nyaman dipakai setiap hari"
   ]
 }

@@ -505,8 +505,22 @@ async function boot() {
   // otomatis di-push ulang. Gagal → status pending → retry loop tiap 5 menit.
   ensureSynced({ silent: true }).catch(e => console.warn('[BOOT] sync profil:', e?.message || e));
   startSyncRetryLoop();
-  await _settingsReady; // tunggu settings module ke-wire sebelum pakai checkProfileNotification
-  await checkProfileNotification(); // banner "lengkapi profil" bila profil belum lengkap
+  // T19 (audit 2026-08-17/M9): settings module wajib ke-wire untuk banner
+  // profil, tapi boot TIDAK BOLEH menggantung selamanya kalau modul itu gagal
+  // dimuat (jaringan buruk sebelum SW aktif). Race dengan timeout 8 detik.
+  try {
+    await Promise.race([
+      _settingsReady,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('settings module timeout')), 8000))
+    ]);
+  } catch (e) {
+    console.error('[BOOT] settings module tidak termuat:', e?.message || e);
+    const { showToast } = await import('./helpers.js');
+    showToast('Sebagian fitur gagal dimuat — tutup dan buka ulang aplikasi.', 'error', { duration: 5000 });
+  }
+  if (typeof checkProfileNotification === 'function') {
+    await checkProfileNotification(); // banner "lengkapi profil" bila profil belum lengkap
+  }
   setupPWA();
   
   // Subscribe to realtime license updates

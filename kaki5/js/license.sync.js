@@ -6,10 +6,9 @@
 // verifikasi admin. Input serial manual hanya fallback offline.
 import { ensureSynced } from './sync.js';
 import { getUnitId, getDeviceCode, getLicense, markLicenseRevoked, bumpClockAnchor } from './license.logic.js';
-import { getSetting, setSetting } from './db.js';
+import { setSetting } from './db.js';
 
 const LICENSE_SYNC_KEY = 'licenseSync';
-const NETWORK_GRACE_DAYS = 3;
 
 function classifyCloudError(error) {
   const status = Number(error?.status || error?.statusCode || 0);
@@ -50,7 +49,6 @@ async function isKnownDevice(sb, deviceCode) {
   }
 }
 
-export { NETWORK_GRACE_DAYS };
 
 // Placeholder anon key => JWT gagal auth => semua query reject RLS.
 function isPlaceholderKey(k) {
@@ -171,28 +169,6 @@ export async function syncLicenseStatus() {
   await setSetting(LICENSE_SYNC_KEY, { lastSuccessfulSync: new Date().toISOString() });
   await bumpClockAnchor(); // T13: sync sukses = bukti app hidup di momen ini
   return { ok: true, cloud };
-}
-
-export async function getLicenseSyncState() {
-  return (await getSetting(LICENSE_SYNC_KEY, null)) || {};
-}
-
-export async function isWithinLicenseGracePeriod() {
-  const state = await getLicenseSyncState();
-  if (!state.lastSuccessfulSync) return false;
-  return Date.now() - new Date(state.lastSuccessfulSync).getTime() <= NETWORK_GRACE_DAYS * 86400000;
-}
-
-/**
- * Activate license via Supabase (cloud target).
- * Aktivasi resmi dilakukan admin dari sisi server (edge fn activate-license).
- * Di klien: simpan serial yang diberikan lewat validasi HMAC lokal sebagai
- * otorisasi offline fallback (mis. admin sudah mengirim kode via WA).
- * Catatan: jalur normal = beli QRIS -> admin verifikasi -> realtime auto-aktif.
- */
-export async function activateLicenseCloud(serial, db) {
-  const { activateSerial } = await import('./license.logic.js');
-  return activateSerial(serial);
 }
 
 /**

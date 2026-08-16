@@ -36,11 +36,10 @@ export {
 } from './license.ui.js';
 
 // Re-export sync functions
+// (L8, audit 2026-08-17: getLicenseSyncState / isWithinLicenseGracePeriod /
+//  activateLicenseCloud dihapus — dead exports, tak pernah dipakai pemanggil.)
 export {
   syncLicenseStatus,
-  getLicenseSyncState,
-  isWithinLicenseGracePeriod,
-  activateLicenseCloud,
   fetchLicenseStatusFromCloud,
   isDeviceKnownOnCloud
 } from './license.sync.js';

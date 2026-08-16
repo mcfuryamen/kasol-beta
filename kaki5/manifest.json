@@ -25,7 +25,5 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "apple_touch_icon": "assets/icon-192.png",
-  "msapplication_tilecolor": "#E65100"
+  ]
 }

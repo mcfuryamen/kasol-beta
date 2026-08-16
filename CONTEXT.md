@@ -12,7 +12,7 @@
   │   LANDING PAGE  │  Marketing, funnel, lead gen
   │   (landing/)    │
   └────────┬────────┘
-           │ reads catalog/settings, writes leads/stats
+           │ reads catalog/settings, writes clients pipeline/stats
            ▼
   ┌─────────────────┐         ┌──────────────────────┐
   │  ADMIN DASHBOARD│────────►│   SUPABASE (cloud)   │
@@ -48,7 +48,8 @@ Sebelum jalanin preview/dev server, SELALU pakai port dari tabel ini. **Jangan n
 | Gerobak | `gerobak/` | **8083** | app klien |
 | Rosok | `rosok/` | **8084** | app klien (flagship) |
 | Retail | `retail/` | **8085** | app klien |
-| Kaki5 | `kaki5/` | **8086** | app klien |
+|| Kaki5 | `kaki5/` | **8086** | app klien |
+|| Grosir | `grosir/` | **8089** | app klien |
 
 **Aturan penomoran app klien baru:** aplikasi selanjutnya meneruskan urutan dari 8087,
 8088, dst (urutan app klien). Ekosistem (landing/admin) memegang 8081–8082 secara permanen.
@@ -300,15 +301,15 @@ narasi ramah, fungsi tersembunyi di balik tombol akses** — targetnya pengguna 
 
 | # | Fitur Standar | Kontrak / Detail |
 |---|---------------|------------------|
-| 1 | **Onboarding 2-langkah tanpa checkbox** | Step1 Nama Usaha → Step2 modal S&K (Batal/Setuju); trial mulai di Step2. Lihat section Smart Gate di atas. |
-| 2 | **Profil tersruktur (region picker)** | 4 field inti: Nama Usaha, Nama Pemilik, No WhatsApp, Alamat. Alamat pakai rantai dropdown **Provinsi → Kota/Kab → Kecamatan → Desa** (API emsifa, `js/region.js`) + detail. `id` + `nama` disimpan untuk CRM analitik. |
+| 1 | **Onboarding 2-langkah tanpa checkbox** | Step1 **Nomor WhatsApp** (tervalidasi strict ID) → Step2 modal S&K (Batal/Setuju); trial mulai di Step2. Nama Usaha diisi belakangan via profil/banner. Lihat section Smart Gate di atas. |
+| 2 | **Profil tersruktur (region picker)** | 4 field inti: Nama Usaha, Nama Pemilik, No WhatsApp, Alamat. Alamat pakai rantai dropdown **Provinsi → Kota/Kab → Kecamatan → Desa** (API emsifa, `js/region.js`) + detail. `id` + `nama` disimpan untuk CRM analitik. WAJIB izin `https://raw.githubusercontent.com` di CSP `connect-src`. |
 | 3 | **Auto-sync profil (background)** | Tiap simpan profil panggil `ensureSynced()` (di semua handler save). Offline-first tetap — retry saat online. JANGAN tampilkan kartu "Sinkronisasi" di layar (fungsi jalan otomatis). |
 | 4 | **Banner "Lengkapi Profil" (center-large immersive)** | `#profileBanner` `position:fixed;inset:0;z-index:520` + backdrop blur, kartu ~420px. Muncul saat profil belum lengkap (`!namaPemilik || !noWhatsapp || (!kabkota && !alamat)`). CTA → halaman Pengaturan; dismiss "Nanti Saja"/✕/klik backdrop. |
-| 5 | **Kontrak z-index** | `header 100 < bottom-nav 350 < gate #licenseGate 500 < modal-overlay 600 < confirm-overlay 610 < toast 620`. Modal SESUATU berada DI ATAS gate (jangan sampai tertutup). |
+| 5 | **Kontrak z-index** | `header 100 < bottom-nav 350 < gate #licenseGate 500 < banner profil 520 < modal-overlay 600 < confirm-overlay 610 < toast 620 < sheet pembelian 640 < #updateOverlay 800` (force-update overlay menutup SEMUA). Modal SESUATU berada DI ATAS gate (jangan sampai tertutup). |
 | 6 | **Copy benefit-driven (non-teknis)** | Narasi berfokus KEUNTUNGAN user (bantuan lebih cepat, tips sesuai daerah), bukan teknis (sinkronisasi, statistik, akurasi). Bahasa sederhana, ga pakai jargonya sistem. |
 | 7 | **Akorodion tutorial/Bantuan auto-close** | Halaman Bantuan pakai akordeon yang **hanya satu terbuka** (`toggleTutorial` menutup panel lain). Isi tutorial harus **akurat berdasar kode asli** (bukan karangan/perkiraan visual). |
-| 8 | **Pengaturan ramping** | Jangan penuhi layar pengaturan dengan kartu/fitur. Fungsi tersembunyi di balik **satu tombol akses** — mis. semua urusan lisensi (status/masa coba/kode/aktifkan/beli) cukup lewat **1 tombol "🎫 Kelola Lisensi"**. |
-| 9 | **PWA Install Detection** | Deteksi otomatis kalau PWA sudah terinstal (standalone display-mode, iOS standalone, SW controlling, localStorage flag). Tidak tampilkan banner install jika sudah terpasang. Persist flag ke localStorage, listen `display-mode` change. Notifikasi update SW versi baru. Referensi: `kaki5/js/pwa.js`. |
+| 8 | **Pengaturan ramping** | Jangan penuhi layar pengaturan dengan kartu/fitur. Fungsi tersembunyi di balik **satu tombol akses** — mis. semua urusan lisensi (status/masa coba/kode/aktifkan/beli) cukup lewat **1 tombol "🎫 Kelola Lisensi"**. Item "🩺 Diagnosa Sinkronisasi" wajib ada di kartu Data & Cadangan (referensi `kaki5/js/sync.health.js`). |
+| 9 | **PWA Install Detection** | Deteksi otomatis kalau PWA sudah terinstal (standalone display-mode, iOS standalone, SW controlling, localStorage flag). Tidak tampilkan banner install jika sudah terpasang. Persist flag ke localStorage, listen `display-mode` change. Update versi: **overlay force-update full-screen** (`#updateOverlay`) dengan catatan rilis dari `version.json.notes` + tombol OKE → `performForceUpdate()` (SW update → reload → profil tersinkron). Referensi: `kaki5/js/pwa.js`, `kaki5/js/update.js`. |
 
 **Pola kode wajib (dari kaki5):**
 - `settings.js` → `saveOwner/saveWa/saveAlamat/saveNamaWarung` semua akhiri dengan `ensureSynced(); checkProfileNotification();`.
@@ -458,7 +459,9 @@ curl -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/datab
 ### Service Worker (sw.js)
 
 Network-first untuk HTML, cache-first untuk aset statis.
-Naikkan `CACHE_VERSION` setiap rilis.
+Naikkan versi **5 titik serentak** tiap rilis: `APP_VERSION`+`CACHE_BUST` (`js/version.js`),
+`version`+`cacheBust`+`notes` (`js/version.json` — `notes` = catatan rilis untuk
+overlay force-update), `CACHE_NAME` (`sw.js`), `?v=` (`index.html` & README).
 
 ---
 

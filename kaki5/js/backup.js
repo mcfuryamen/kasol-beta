@@ -178,7 +178,9 @@ export async function importData(event) {
 }
 
 export function confirmClearAll() {
-  showConfirm('⚠️', 'SEMUA data akan dihapus dan tidak bisa dikembalikan! Yakin?', 'Ya, Hapus Semua', async () => {
+  // L5 (audit 2026-08-17): status lisensi perangkat SENGAJA dipertahankan
+  // (anti reset-trial) — teks menyebutnya jujur supaya tidak menyesatkan.
+  showConfirm('⚠️', 'SEMUA data usaha akan dihapus dan tidak bisa dikembalikan! Status lisensi perangkat tetap tersimpan. Yakin?', 'Ya, Hapus Semua', async () => {
     await DB.menu.clear();
     await DB.penjualan.clear();
     await DB.pengeluaran.clear();

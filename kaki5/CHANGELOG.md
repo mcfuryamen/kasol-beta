@@ -2,6 +2,20 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-17 (v58: Fase 4-5 — UI & kebersihan, penutup audit 2026-08-17)
+- **T17/M7**: `bottom-nav` z-index 700 → **350** sesuai kontrak ekosistem (modal/gate/toast kini di atas nav; sebelumnya nav menutupi semuanya). Kontrak z-index CONTEXT.md diperbarui lengkap termasuk `#updateOverlay 800`.
+- **T18/M8**: tab kategori POS pakai `data-cat` + delegasi (mengganti interpolasi string mentah ke onclick — rapuh terhadap kategori dari cadangan buatan).
+- **T19/M9**: `boot()` tidak menggantung selamanya saat settings module gagal termuat — race timeout 8 detik + toast + tetap lanjut (setupPWA, subscribe).
+- **T22/L2**: `checkExpired` clamp tanggal bulanan (31 Jan + 1 bln = 28/29 Feb, bukan 3 Mar).
+- **T23/L3**: `./js/version.json` masuk precache SW (cek versi kini jalan offline); komentar strategi SW dikoreksi (network-first).
+- **T25/L5**: teks "Hapus Semua Data" jujur menyebut status lisensi dipertahankan.
+- **T26/L6**: `Math.max(...arr)` di laporan → reduce (aman dataset ekstrem).
+- **T27/L8**: dead exports dihapus (`getLicenseSyncState`, `isWithinLicenseGracePeriod`, `activateLicenseCloud`, `NETWORK_GRACE_DAYS`).
+- **T28/L9**: manifest dibersihkan dari key non-standar; **T21**: file `*.bak` dihapus.
+- **T24/L4**: dokumen disinkronkan — README (?v=58), DEVELOPER.md (versi SW generik), CONTEXT.md (onboarding = Nomor WhatsApp, kontrak z-index + updateOverlay, aturan bump 5 titik + notes).
+- Versi: `1.0.7` / `v58` sinkron 5 titik. Validasi: 41/41 modul, validate 30/30, pos 6/6.
+- **STATUS PLAN: Fase 0-5 selesai.** Sisa backlog opsional: T20 self-host data wilayah, D4 validasi lisensi server-side (roadmap cloud).
+
 ## 2026-08-17 (v57: Fase 3 — robustness lisensi)
 - **T12/M1 — Trial berjangkar cloud**: `startTrial(anchorStartedAt)` menerima `clients.first_seen`; `continueKnownDevice` meneruskannya sehingga hapus data lokal / install ulang **tidak me-reset jatah trial** (first_seen > 7 hari → langsung gate beli lisensi, bukan trial baru).
 - **T13/M3 — Anti-rollback jam**: `clockAnchor` (waktu tertinggi yang pernah app lihat, diperbarui saat cek lisensi & sync sukses). Jam perangkat dimundurkan > 2 hari → "sekarang" efektif = anchor → trial/lisensi yang habis tidak hidup lagi. `checkExpired`/`getLicenseStatus`/`isLicensed` pakai `getEffectiveNow()`.

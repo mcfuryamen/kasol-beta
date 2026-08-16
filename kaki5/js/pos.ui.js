@@ -9,8 +9,30 @@ export function renderPOSCatTabsUI(menus) {
   const box = document.getElementById('posCatTabs');
   const cats = ['Semua', ...new Set(menus.map(m => m.kategori))];
   box.innerHTML = cats.map(c =>
-    `<div class="cat-tab ${c===posCat?'active':''}" onclick="selectPosCat('${c.replace(/'/g,"\\'")}')">${escapeHtml(c==='Semua'?'📋 Semua':c==='Makanan'?'🍚 Makanan':c==='Minuman'?'🥤 Minuman':c==='Snack'?'🍢 Snack':'📦 '+c)}</div>`
+    `<div class="cat-tab ${c===posCat?'active':''}" data-cat="${escapeHtml(c)}">${escapeHtml(c==='Semua'?'📋 Semua':c==='Makanan'?'🍚 Makanan':c==='Minuman'?'🥤 Minuman':c==='Snack'?'🍢 Snack':'📦 '+c)}</div>`
   ).join('');
+  ensurePosCatDelegation(box);
+}
+
+// T18 (audit 2026-08-17/M8): klik kategori via delegasi data-cat — mengganti
+// pola lama onclick="selectPosCat('...')" yang meng-interpolasi string mentah
+// ke atribut event (rapuh; cukup untuk merusak handler via kategori hasil
+// impor cadangan buatan).
+let _posCatDelegated = false;
+function ensurePosCatDelegation(box) {
+  if (_posCatDelegated) return;
+  _posCatDelegated = true;
+  box.addEventListener('click', async (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    const el = t && t.closest('.cat-tab[data-cat]');
+    if (!el) return;
+    try {
+      const { selectPosCat } = await import('./pos.js');
+      selectPosCat(el.dataset.cat || 'Semua');
+    } catch (err) {
+      console.error('[POS] cat tab delegation:', err?.message || err);
+    }
+  });
 }
 
 export function renderPOSMenuUI(menus) {
