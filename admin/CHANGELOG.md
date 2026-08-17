@@ -24,6 +24,10 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
   tombol aksi tetap di luar, baris terpisah di bawah kepala.
 - **Perbaikan:** tombol aksi duplikat di dalam akordeon detail (`kb-cta-open`)
   dihapus — hanya tersisa satu tombol per kartu, di kepala.
+- **Layout flat:** detail klien tidak lagi pakai sub-akordeon. Grid 3 kolom atas
+  (Pemilik · Kontak · Lokasi) langsung terlihat, baris info vertikal ke bawah,
+  lalu Generate/Verifikasi/Kelola Lisensi. Sub-akordeon `kb-manage` dan judul
+  "📋 Data Klien" dihapus.
 
 ### 🧹 Kode mati dibuang
 - `js/supabase-client.js` (tidak dipakai modul manapun) dihapus.
