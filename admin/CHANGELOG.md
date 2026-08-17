@@ -3,6 +3,39 @@
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
 
+## [1.6.1] - (2026-08-17: Perbaikan Audit P1)
+
+> Audit menyeluruh aplikasi admin → perbaikan bug fungsional & pembersihan kode mati.
+
+### 📊 Dashboard
+- **Fixed:** kartu "Potensial Revenue" selalu Rp0 — kini dihitung langsung dari data
+  klien + harga katalog (`dashboard.js`), sama dengan hitungan halaman Klien.
+
+### 🗂️ Klien / Kanban
+- **Fixed:** render dobel saat pindah view Klien (panggilan `switchClientView` ganda
+  dari dua jalur) — kini satu jalur + guard same-view.
+- Nomor WhatsApp tampil konsisten format `62xxxx` di kartu & detail.
+
+### 🧹 Kode mati dibuang
+- `js/supabase-client.js` (tidak dipakai modul manapun) dihapus.
+- `js/auth.js` dirampingkan: kode login mati + password hardcoded dihapus (login tetap
+  dinonaktifkan — upgrade ke Supabase Auth/JWT = backlog).
+- Blok `loadingOverlay` tanpa CSS/JS di `index.html` dihapus (teks "Memproses..."
+  nyasar), selector `addAppBtn` mati di `catalog.js` dihapus.
+
+### 🔁 Konsistensi
+- Format tanggal & label/ikon status kini satu sumber: `utils.js` (`formatDate`) dan
+  `PIPELINE_STAGES`/`stageMeta` dari `clients.js` — duplikasi di `dashboard.js` dihapus.
+
+### 📱 PWA
+- `sw.js` sekarang **terdaftar** dari `app.js` + strategi **network-first** untuk semua
+  aset (sebelumnya cache-first — rawan menampilkan versi/`env-loader.js` lama).
+  Cache bump `kasir-admin-v23`.
+
+### 🧮 Pengaturan
+- Nomor WhatsApp di Info Usaha dinormalisasi ke `62xxxx` saat disimpan.
+
+
 ## [1.6.0] - (2026-08-13: Harga Pusat di products + Signed URL Bukti)
 
 > Suites audit Kaki5 → sinkronisasi arsitektur harga + perbaikan bukti bayar.

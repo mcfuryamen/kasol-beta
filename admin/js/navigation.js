@@ -166,7 +166,10 @@ export function switchScreen(screen, clientView) {
   // Update topbar page title/subtitle
   setPageMeta(screen);
 
-  // Switch client view if provided
+  // Switch client view if provided — panggilan LANGSUNG (bukan lewat event)
+  // supaya hash awal (#klien-kelola) tetap jalan saat bootstrap, ketika
+  // listener screen:change belum terpasang. Render dobel dicegah oleh
+  // guard same-view di switchClientView.
   if (screen === 'klien' && clientView) {
     window.switchClientView(clientView);
   }

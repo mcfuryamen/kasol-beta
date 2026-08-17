@@ -133,7 +133,6 @@ admin/
 │   ├── app-state.js    # State management
 │   ├── storage.js      # Cache lokal (localStorage)
 │   ├── api.js          # Klien /api/rest & /api/license (proxy Supabase)
-│   ├── supabase-client.js # Legacy (tidak dipakai modul lain)
 │   ├── utils.js        # Shared utilities
 │   ├── toast.js        # Toast system
 │   ├── auth.js         # Auth gate (login dinonaktifkan)

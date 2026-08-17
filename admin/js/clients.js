@@ -10,7 +10,7 @@
  */
 
 import { showToast } from './toast.js';
-import { escapeHtml, formatRelativeTime, formatDate, normalizePhone, debounce } from './utils.js';
+import { escapeHtml, formatRelativeTime, formatDate, normalizePhone } from './utils.js';
 import { STATE, setState } from './app-state.js';
 import { supabaseFetch, supabaseStorageSign, licenseApi } from './api.js';
 import { updateSidebarBadges } from './navigation.js?v=20260812i';
@@ -56,12 +56,10 @@ export async function initClients() {
 /** View mode saat ini: 'analitik' | 'kelola' */
 let clientView = 'analitik';
 function switchClientView(view) {
+  // Guard: skip kalau view tidak berubah — mencegah render dobel saat
+  // switchClientView terpanggil dari beberapa jalur sekaligus.
+  if (clientView === view) return;
   clientView = view;
-  document.querySelectorAll('.client-view-btn[data-view]').forEach((btn) => {
-    const on = btn.dataset.view === view;
-    btn.classList.toggle('active', on);
-    btn.setAttribute('aria-pressed', String(on));
-  });
   const anEl = document.getElementById('analyticsView');
   const kanEl = document.getElementById('kanbanView');
   if (anEl) anEl.hidden = view !== 'analitik';
@@ -72,7 +70,7 @@ function switchClientView(view) {
 window.switchClientView = switchClientView;
 
 /** Pipeline stages — satu tabel `clients` */
-const PIPELINE_STAGES = [
+export const PIPELINE_STAGES = [
   { key: 'baru', label: '🆕 Baru', tone: 'blue' },
   { key: 'dihubungi', label: '📞 Dihubungi', tone: 'orange' },
   { key: 'tertarik', label: '💡 Tertarik', tone: 'amber' },
@@ -81,7 +79,7 @@ const PIPELINE_STAGES = [
   { key: 'batal', label: '❌ Batal', tone: 'red' },
 ];
 
-function stageMeta(status) {
+export function stageMeta(status) {
   return PIPELINE_STAGES.find((s) => s.key === status) || { key: status, label: status || 'Tanpa status', tone: 'gray' };
 }
 
@@ -349,7 +347,7 @@ function kanbanCardHtml(c) {
   // Progress posisi di pipeline (persen dari urutan stage)
   const progressPct = idx >= 0 ? Math.round(((idx + 0.5) / PIPELINE_STAGES.length) * 100) : 0;
   const contact = c.no_whatsapp
-    ? `<span>💬${esc(c.no_whatsapp)}</span>`
+    ? `<span>💬${esc(normalizePhone(c.no_whatsapp))}</span>`
     : (c.email ? `<span>✉️${esc(c.email)}</span>` : '');
 
   // Info lisensi / verifikasi (muncul hanya bila tersedia)
@@ -409,7 +407,7 @@ function kanbanCardHtml(c) {
                 ${c.device_type || c.browser ? `<div class="kb-info-r"><span class="kb-info-l">Perangkat</span><span class="kb-info-v">${deviceInfoHtml(c, esc)}</span></div>` : ''}
                 <div class="kb-info-r"><span class="kb-info-l">Nama Usaha</span><span class="kb-info-v">${esc(c.nama_warung || '—')}</span></div>
                 <div class="kb-info-r"><span class="kb-info-l">Nama Pemilik</span><span class="kb-info-v">${esc(c.nama_pemilik || '—')}</span></div>
-                <div class="kb-info-r"><span class="kb-info-l">Kontak</span><span class="kb-info-v">${c.no_whatsapp ? '💬' + esc(c.no_whatsapp) : (c.email ? '✉️' + esc(c.email) : '—')}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Kontak</span><span class="kb-info-v">${c.no_whatsapp ? '💬' + esc(normalizePhone(c.no_whatsapp)) : (c.email ? '✉️' + esc(c.email) : '—')}</span></div>
                 ${c.alamat_detail ? `<div class="kb-info-r"><span class="kb-info-l">Alamat</span><span class="kb-info-v">${esc(c.alamat_detail)}${wil ? ' · ' + esc(wil) : ''}</span></div>` : (wil ? `<div class="kb-info-r"><span class="kb-info-l">Wilayah</span><span class="kb-info-v">${esc(wil)}</span></div>` : '')}
                 ${harga ? `<div class="kb-info-r"><span class="kb-info-l">Harga Deal</span><span class="kb-info-v">Rp ${harga.toLocaleString('id-ID')}</span></div>` : ''}
                 <div class="kb-info-r"><span class="kb-info-l">Dilihat</span><span class="kb-info-v">🕒 ${formatRelativeTime(c.last_seen)}</span></div>

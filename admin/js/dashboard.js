@@ -4,8 +4,9 @@
  */
 
 import { STATE, subscribe } from './app-state.js';
-import { formatNumber, formatRupiah, escapeHtml } from './utils.js';
+import { formatNumber, formatRupiah, escapeHtml, formatDate, truncate } from './utils.js';
 import { showToast } from './toast.js';
+import { stageMeta } from './clients.js';
 
 /**
  * Initialize dashboard
@@ -56,7 +57,12 @@ export function renderOverview() {
   if (!container) return;
 
   const conversionPct = totalClients > 0 ? ((aktif / totalClients) * 100) : 0;
-  const potentialRevenue = STATE.stats?.potentialRevenue || 0;
+  // Hitung langsung dari data klien + harga katalog (sama dengan halaman Klien),
+  // supaya tidak bergantung field STATE.stats yang tidak pernah diisi.
+  const potentialRevenue = clients.reduce(
+    (sum, c) => sum + (Number((STATE.catalog || []).find((p) => p.appType === c.app_type)?.price) || 0),
+    0
+  );
 
   container.innerHTML = `
     <div class="summary-card brand">
@@ -145,18 +151,9 @@ function renderClientsByStatus() {
     return;
   }
 
-  const statusLabels = {
-    'baru': '🆕 Baru',
-    'dihubungi': '📞 Dihubungi',
-    'tertarik': '💡 Tertarik',
-    'menunggu_verifikasi': '⏳ Verifikasi',
-    'aktif': '✅ Aktif',
-    'batal': '❌ Batal'
-  };
-
   container.innerHTML = statusEntries.map(([st, count]) => `
     <div class="bar-row">
-      <span class="status-pill">${statusLabels[st] || st}</span>
+      <span class="status-pill">${stageMeta(st).label}</span>
       <div class="bar-track"><div class="bar-fill" style="width:${(count / maxStatus * 100).toFixed(0)}%"></div></div>
       <span class="bar-num">${count}</span>
     </div>
@@ -190,12 +187,12 @@ function renderRecentActivity() {
     <div class="compact-list">
       ${recent.map(c => `
         <div class="row-item" onclick="openClientAccordion('${escapeHtml(c.id)}')" data-open-client="${escapeHtml(c.id)}" role="button" tabindex="0">
-          <div class="row-icon">${getStatusIcon(c.status)}</div>
+          <div class="row-icon">${statusIcon(c.status)}</div>
           <div class="row-body">
             <div class="row-title">${escapeHtml(c.nama_warung || '—')}</div>
             <div class="row-sub">${escapeHtml(c.app_type || '—')} • ${formatDate(c.last_seen || c.created_at)}</div>
           </div>
-          <span class="badge ${getStatusBadgeClass(c.status)}">${getStatusLabel(c.status)}</span>
+          <span class="badge ${stageMeta(c.status).tone}">${statusLabel(c.status)}</span>
         </div>
       `).join('')}
     </div>
@@ -203,63 +200,17 @@ function renderRecentActivity() {
 }
 
 /**
- * Get status icon emoji
+ * Ikon emoji status (diambil dari label PIPELINE_STAGES di clients.js)
  */
-function getStatusIcon(status) {
-  const icons = {
-    'baru': '🆕',
-    'dihubungi': '📞',
-    'tertarik': '💡',
-    'menunggu_verifikasi': '⏳',
-    'aktif': '✅',
-    'batal': '❌'
-  };
-  return icons[status] || '📋';
+function statusIcon(status) {
+  return stageMeta(status).label.split(' ')[0] || '📋';
 }
 
 /**
- * Get status badge class
+ * Label status tanpa emoji (diambil dari PIPELINE_STAGES di clients.js)
  */
-function getStatusBadgeClass(status) {
-  const classes = {
-    'baru': 'blue',
-    'dihubungi': 'orange',
-    'tertarik': 'amber',
-    'menunggu_verifikasi': 'teal',
-    'aktif': 'green',
-    'batal': 'red'
-  };
-  return classes[status] || 'blue';
-}
-
-/**
- * Get status label
- */
-function getStatusLabel(status) {
-  const labels = {
-    'baru': 'Baru',
-    'dihubungi': 'Dihubungi',
-    'tertarik': 'Tertarik',
-    'menunggu_verifikasi': 'Verifikasi',
-    'aktif': 'Aktif',
-    'batal': 'Batal'
-  };
-  return labels[status] || status;
-}
-
-/**
- * Format date
- */
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
-/**
- * Truncate string
- */
-function truncate(str, maxLength = 50) {
-  if (!str || str.length <= maxLength) return str || '';
-  return str.slice(0, maxLength - 1) + '…';
+function statusLabel(status) {
+  const parts = stageMeta(status).label.split(' ');
+  parts.shift();
+  return parts.join(' ') || status;
 }

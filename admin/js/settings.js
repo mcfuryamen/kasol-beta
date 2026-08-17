@@ -7,6 +7,7 @@ import { STATE, subscribe, setState } from './app-state.js';
 import { storage } from './storage.js';
 import { showToast } from './toast.js';
 import { supabaseFetch, supabaseStorageUpload } from './api.js';
+import { normalizePhone } from './utils.js';
 
 function escapeAttribute(value) {
   return String(value || '').replace(/[&<>"']/g, (char) => ({
@@ -144,7 +145,7 @@ window.saveBizSettings = async function() {
     bizAddr: (document.getElementById('setBizAddr')?.value || '').trim(),
     bizPhone: (document.getElementById('setBizPhone')?.value || '').trim(),
     bizEmail: (document.getElementById('setBizEmail')?.value || '').trim(),
-    bizWa: (document.getElementById('setBizWa')?.value || '').trim(),
+    bizWa: normalizePhone((document.getElementById('setBizWa')?.value || '').trim()),
     bizIg: (document.getElementById('setBizIg')?.value || '').trim()
   };
 

@@ -12,7 +12,6 @@ import { updateSidebarBadges } from './navigation.js?v=20260812i';
 
 let catalogGrid = null;
 let catalogEmpty = null;
-let addAppBtn = null;
 
 /**
  * Fetch products from Supabase
@@ -67,11 +66,8 @@ function getCategoryFromAppType(appType) {
 export async function initCatalog() {
   catalogGrid = document.getElementById('catalogList');
   catalogEmpty = document.getElementById('catalogEmpty');
-  addAppBtn = document.querySelector('[onclick="openCatalogForm()"]');
 
   if (!catalogGrid) return;
-
-  addAppBtn?.addEventListener('click', () => openCatalogSheet());
 
   // Load catalog from Supabase
   const products = await fetchProductsFromSupabase();

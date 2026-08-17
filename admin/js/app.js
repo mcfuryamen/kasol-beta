@@ -50,15 +50,6 @@ async function bootstrap() {
     initSettings();
     initClients();
 
-    // Listen for screen changes to trigger specific renders if needed
-    window.addEventListener('screen:change', (e) => {
-      const { screen, clientView } = e.detail;
-      if (screen === 'klien' && clientView) {
-        window.switchClientView(clientView);
-      }
-      console.log('Screen changed to:', screen, clientView ? `(view: ${clientView})` : '');
-    });
-
     // Listen for app:ready (after login)
     window.addEventListener('app:ready', () => {
       // All modules already initialized, they'll render on state change
@@ -92,6 +83,16 @@ window.refreshCurrentScreen = function () {
 
 // Start the app
 bootstrap();
+
+// PWA: daftarkan service worker (mode offline). sw.js pakai strategi
+// network-first, jadi update app tidak pernah tertahan cache lama.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('SW registration failed:', err);
+    });
+  });
+}
 
 // Export for debugging
 window.AdminApp = { STATE, storage };
