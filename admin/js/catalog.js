@@ -18,7 +18,7 @@ let catalogEmpty = null;
  */
 async function fetchProductsFromSupabase() {
   try {
-    const res = await supabaseFetch('/rest/v1/products?select=id,kode_produk,app_type,icon,name,description,price_label,order_index,visible,status,store_url,vercel_url&order=order_index.asc');
+    const res = await supabaseFetch('/rest/v1/products?select=id,kode_produk,app_type,icon,name,description,price_label,price_before_label,order_index,visible,status,store_url,vercel_url&order=order_index.asc');
     if (!res.ok) {
       console.error('Supabase fetch failed:', res.status, res.text);
       return [];
@@ -35,6 +35,7 @@ async function fetchProductsFromSupabase() {
       name: p.name,
       desc: p.description || '',
       price: parseInt(p.price_label?.replace(/\D/g, '') || '0', 10),
+      priceBefore: parseInt(p.price_before_label?.replace(/\D/g, '') || '0', 10),
       category: getCategoryFromAppType(p.app_type),
       hot: p.order_index === 0,
       orderIndex: p.order_index,
@@ -190,6 +191,7 @@ window.openCatalogSheet = function(idx = null) {
     name: '',
     desc: '',
     price: 0,
+    priceBefore: 0,
     category: 'bisnis',
     hot: false,
     appType: '',
@@ -246,6 +248,10 @@ window.openCatalogSheet = function(idx = null) {
       <div class="field">
         <label class="field-label">Harga</label>
         <input type="number" id="catPrice" value="${app.price || 0}" min="0" step="10000" placeholder="0">
+      </div>
+      <div class="field">
+        <label class="field-label">Harga Coret (opsional — tampil tercoret di aplikasi)</label>
+        <input type="number" id="catPriceBefore" value="${app.priceBefore || 0}" min="0" step="10000" placeholder="Harga sebelum diskon">
       </div>
       <div class="field">
         <label class="field-label">
@@ -312,6 +318,7 @@ window.saveCatalogApp = async function(idx = null) {
   const desc = document.getElementById('catDesc')?.value.trim() || '';
   const category = document.getElementById('catCategory')?.value || 'bisnis';
   const price = parseInt(document.getElementById('catPrice')?.value) || 0;
+  const priceBefore = parseInt(document.getElementById('catPriceBefore')?.value) || 0;
   const hot = document.getElementById('catHot')?.checked || false;
   const orderIndex = parseInt(document.getElementById('catOrderIndex')?.value) || 0;
   const status = document.getElementById('catStatus')?.value || 'development';
@@ -332,6 +339,7 @@ window.saveCatalogApp = async function(idx = null) {
     tagline: `${name} - Sistem Terbaik`,
     description: desc,
     price_label: `Rp ${price.toLocaleString('id-ID')}`,
+    price_before_label: priceBefore > price ? `Rp ${priceBefore.toLocaleString('id-ID')}` : null,
     features: [],
     icon: icon,
     color: '#F5821F',

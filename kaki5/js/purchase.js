@@ -68,7 +68,7 @@ export async function openPurchaseSheet() {
   
   // Get payment info from Supabase `settings` (qris_url + bank_info) & `products` harga
   const sb = getSupabaseClient();
-  let payInfo = { qrisUrl: '', bank: '', accountNumber: '', accountName: '', priceLabel: '', productName: '', kodeProduk: '', isDemo: false };
+  let payInfo = { qrisUrl: '', bank: '', accountNumber: '', accountName: '', priceLabel: '', priceBeforeLabel: '', productName: '', kodeProduk: '', isDemo: false };
   const demoPayment = {
     bank: 'Belum dikonfigurasi',
     accountNumber: '—',
@@ -80,7 +80,7 @@ export async function openPurchaseSheet() {
     const [qrisRes, bankRes, prodRes] = await Promise.all([
       sb.from('settings').select('value').eq('key', 'qris_url').maybeSingle(),
       sb.from('settings').select('value').eq('key', 'bank_info').maybeSingle(),
-      sb.from('products').select('app_type,kode_produk,name,price_label,visible').eq('app_type', APP_TYPE).eq('visible', true).limit(1).maybeSingle()
+      sb.from('products').select('app_type,kode_produk,name,price_label,price_before_label,visible').eq('app_type', APP_TYPE).eq('visible', true).limit(1).maybeSingle()
     ]);
 
     const parseVal = (d) => {
@@ -99,6 +99,7 @@ export async function openPurchaseSheet() {
       accountNumber: bankVal.account_number || '',
       accountName: bankVal.account_name || '',
       priceLabel: prodRes.data?.price_label || '',
+      priceBeforeLabel: prodRes.data?.price_before_label || '',
       productName: prodRes.data?.name || 'Kaki Lima',
       kodeProduk: prodRes.data?.kode_produk || ''
     };
@@ -146,7 +147,10 @@ export async function openPurchaseSheet() {
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:14px;color:var(--text2)">Harga Lisensi</span>
-          <span style="font-size:18px;font-weight:800;color:var(--accent,var(--success,#16a34a))">${payInfo.priceLabel}</span>
+          <span style="display:inline-flex;align-items:baseline;gap:8px">
+            ${payInfo.priceBeforeLabel ? `<s style="font-size:13px;color:var(--text3,#999);font-weight:600">${payInfo.priceBeforeLabel}</s>` : ''}
+            <span style="font-size:18px;font-weight:800;color:var(--accent,var(--success,#16a34a))">${payInfo.priceLabel}</span>
+          </span>
         </div>
       </div>`
     : '';
