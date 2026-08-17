@@ -415,8 +415,8 @@ function kanbanCardHtml(c) {
               </div>
 
               <div class="section-label mt16">⚡ Generate Lisensi</div>
-              <div class="field-grid mt8">
-                <div class="field"><label class="field-label">Masa Aktif</label>
+              <div class="kb-field-grid mt8">
+                <div class="kb-field"><label class="field-label">Masa Aktif</label>
                   <select data-kf="days">
                     <option value="30">1 Bulan</option>
                     <option value="90">3 Bulan</option>
@@ -426,7 +426,7 @@ function kanbanCardHtml(c) {
                     <option value="99">Seumur Hidup</option>
                   </select>
                 </div>
-                <div class="field field-span-2"><label class="field-label">Hasil Serial</label>
+                <div class="kb-field kb-field-span-2"><label class="field-label">Hasil Serial</label>
                   <textarea data-kf="serialOut" readonly rows="2" class="input-mono" placeholder="Serial muncul di sini"></textarea>
                   <div class="btn-block-row mt8">
                     <button type="button" class="btn btn-primary" onclick="genCardSerial(this)">🔑 Generate</button>
@@ -436,12 +436,12 @@ function kanbanCardHtml(c) {
                 </div>
               </div>
 
-              <div class="section-label mt16">🔎 Verifikasi Serial</div>
-              <div class="field-grid mt8">
-                <div class="field field-span-2"><label class="field-label">Serial Number</label>
+            <div class="section-label mt16">🔎 Verifikasi Serial</div>
+              <div class="kb-field-grid mt8">
+                <div class="kb-field kb-field-span-2"><label class="field-label">Serial Number</label>
                   <input type="text" data-kf="ver" class="input-mono" placeholder="Serial yang akan dicek" value="${esc(serial || '')}">
                 </div>
-                <div class="field field-span-2">
+                <div class="kb-field kb-field-span-2">
                   <button type="button" class="btn btn-outline" onclick="verifyCardSerial(this)">✅ Verifikasi</button>
                   <div class="verify-box mt8" data-kf="verRes" hidden></div>
                 </div>
