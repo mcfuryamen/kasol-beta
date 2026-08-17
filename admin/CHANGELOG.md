@@ -20,6 +20,8 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
   konteks & tab per status.
 - **Layout baru:** baris atas kartu (konteks status + tombol aksi) kini sejajar
   horizontal (`flex: 1` untuk konteks, tombol ukurannya proporsional).
+- **Layout revisi:** konteks status masuk ke dalam kepala kartu (`.kb-head`) —
+  tombol aksi tetap di luar, baris terpisah di bawah kepala.
 
 ### 🧹 Kode mati dibuang
 - `js/supabase-client.js` (tidak dipakai modul manapun) dihapus.
