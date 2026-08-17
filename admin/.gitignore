@@ -1,2 +1,3 @@
 .vercel
 .env*
+js/env-loader.js

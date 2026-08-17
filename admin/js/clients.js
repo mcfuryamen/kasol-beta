@@ -11,7 +11,7 @@
 
 import { showToast } from './toast.js';
 import { escapeHtml, formatRelativeTime, formatDate, normalizePhone } from './utils.js';
-import { STATE, setState } from './app-state.js';
+import { STATE, setState, subscribe } from './app-state.js';
 import { supabaseFetch, supabaseStorageSign, licenseApi } from './api.js';
 import { updateSidebarBadges } from './navigation.js?v=20260812i';
 import { formatExpiry } from './license-core.js';
@@ -50,6 +50,11 @@ export async function initClients() {
   window.addEventListener('screen:change', (e) => {
     if (e.detail?.screen === 'klien') { loadClients(); }
   });
+
+  // Harga (STATE.catalog) bisa datang SETELAH klien selesai dimuat (race saat
+  // boot) — render ulang begitu katalog tiba supaya revenue tidak menampilkan Rp0.
+  subscribe('catalog', () => renderAll());
+
   await loadClients();
 }
 
