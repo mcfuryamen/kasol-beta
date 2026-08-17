@@ -370,7 +370,11 @@ function kanbanCardHtml(c) {
         <div class="kb-head-btn kb-lic-btn">
           ${(lic === 'aktif' || lic === 'active') && !isBatal
             ? `<button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation();revokeClientLicense('${esc(c.id)}')">🚫 Cabut</button>`
-            : `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();restoreClientLicense('${esc(c.id)}')">🟢 Aktifkan</button>`}
+            : isBatal
+              ? `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();restoreClientLicense('${esc(c.id)}')">↩️ Pulihkan</button>`
+              : c.status === 'menunggu_verifikasi'
+                ? `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();moveStage('${esc(c.id)}','next')">✅ Verifikasi</button>`
+                : ''}
         </div>
         <span class="kb-chev">▾</span>
       </div>
