@@ -277,7 +277,7 @@ function gateLicenseHtml(status) {
       ? '<p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Lisensi berbayar Anda sudah kedaluwarsa.<br>Beli lisensi baru dan admin akan mengaktifkannya otomatis setelah pembayaran diverifikasi.</p>'
       : '<p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Masa coba 7 hari Anda sudah berakhir.<br>Beli lisensi resmi — aktivasi otomatis oleh admin setelah pembayaran diverifikasi.</p>';
   return `
-    <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px;border-radius:50%" alt="Logo">
+    <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px" alt="Logo">
     <div style="font-size:22px;font-weight:800;margin-bottom:4px">Kasir Solo</div><div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
     <div style="font-size:17px;font-weight:800;color:var(--red)">Masa Coba Gratis Habis</div>
     ${intro}
