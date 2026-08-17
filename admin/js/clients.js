@@ -369,8 +369,14 @@ function kanbanCardHtml(c) {
           ${statusCtxHtml(c, esc)}
         </div>
         <div class="kb-head-btn">${statusCta(c, esc)}</div>
+        <div class="kb-head-btn kb-lic-btn">
+          ${(lic === 'aktif' || lic === 'active') && !isBatal
+            ? `<button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation();revokeClientLicense('${esc(c.id)}')">🚫 Cabut</button>`
+            : `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();restoreClientLicense('${esc(c.id)}')">🟢 Aktifkan</button>`}
+        </div>
         <span class="kb-chev">▾</span>
       </div>
+      <div class="kb-detail">
             <div class="kb-detail-inner">
               <!-- Grid info klien: label di atas, isi di bawah -->
               <div class="kb-info">
@@ -388,25 +394,11 @@ function kanbanCardHtml(c) {
 
               ${licHtml}
 
-              <!-- Aksi lisensi — generate/verifikasi manual sudah tidak dipakai
-                   (aktivasi otomatis dari aplikasi klien) -->
+              <!-- Aksi lisensi — satu tombol (revoke / pulihkan-aktifkan) -->
               <div class="kb-license-actions mt8">
                 ${(lic === 'aktif' || lic === 'active') && !isBatal
-                  ? `<button type="button" class="btn btn-danger btn-sm" onclick="revokeClientLicense('${esc(c.id)}')">🚫 Revoke Lisensi</button>`
-                  : `<button type="button" class="btn btn-primary btn-sm" onclick="restoreClientLicense('${esc(c.id)}')">↩️ Pulihkan / Aktifkan</button>`}
-              </div>
-
-            </div>
-
-          <div class="kb-foot">
-            <span class="kb-time">🕒 ${formatRelativeTime(c.last_seen)}</span>
-            <div class="kb-actions">
-              <div class="kb-card-menu">
-                <button type="button" class="btn btn-ghost btn-sm kb-menu-btn" title="Aksi lain" aria-label="Menu aksi">⋯</button>
-                <div class="kb-card-menu-pop">
-                  <button type="button" data-act="prev" ${idx <= 0 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','prev')">⬅️ Status sebelumnya</button>
-                  <button type="button" data-act="next" ${idx < 0 || idx >= PIPELINE_STAGES.length - 1 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','next')">➡️ Status berikutnya</button>
-                </div>
+                  ? `<button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation();revokeClientLicense('${esc(c.id)}')">🚫 Revoke Lisensi</button>`
+                  : `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();restoreClientLicense('${esc(c.id)}')">↩️ Pulihkan / Aktifkan</button>`}
               </div>
             </div>
           </div>

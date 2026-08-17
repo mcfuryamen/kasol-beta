@@ -847,6 +847,14 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
   .kb-info { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* Layout detail akordeon — collapse/expand di .kb-detail */
+.kb-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .28s var(--ease, ease); }
+.kb-detail.open { grid-template-rows: 1fr; }
+.kb-detail-inner { min-height: 0; overflow: hidden; }
+
+/* Tombol aksi lisensi di kepala kartu — margin lebih tipis */
+.kb-lic-btn { margin-left: 6px; }
+
 /* Aksi lisensi — satu tombol (revoke / pulihkan-aktifkan) */
 .kb-license-actions { display: flex; justify-content: flex-start; gap: 8px; }
 .kb-license-actions .btn { width: auto; }
