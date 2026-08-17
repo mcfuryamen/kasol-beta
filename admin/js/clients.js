@@ -398,10 +398,6 @@ function kanbanCardHtml(c) {
                 <div class="kb-info-r"><span class="kb-info-l">Dilihat</span><span class="kb-info-v">🕒 ${formatRelativeTime(c.last_seen)}</span></div>
               </div>
 
-              <div class="kb-deal">
-                <span class="kb-price">${harga ? 'Rp ' + harga.toLocaleString('id-ID') : 'Harga —'}</span>
-                <span class="kb-deal-side">${serial ? `<span class="kb-serial">🔑 ${esc(serial.slice(0, 12))}…</span>` : `<span class="kb-age">🕑 ${formatLeadAge(c.first_seen)}</span>`}</span>
-              </div>
               ${licHtml}
 
               <!-- Generate Lisensi -->
@@ -594,17 +590,6 @@ window.toggleCardDetail = function (headEl) {
   card.classList.toggle('expanded', isOpen);
   headEl.setAttribute('aria-expanded', String(isOpen));
 };
-
-/** Umur lead dalam teks ramah (dari first_seen / created_at) */
-function formatLeadAge(firstSeen) {
-  const t = firstSeen ? new Date(firstSeen).getTime() : null;
-  if (!t) return '—';
-  const d = Math.max(0, Math.floor((Date.now() - t) / 86400000));
-  if (d === 0) return 'baru';
-  if (d < 30) return d + ' hari';
-  const mo = Math.floor(d / 30);
-  return mo + ' bln';
-}
 
 /** Pindah kartu ke tahap lain — dir='prev'|'next' ATAU key stage langsung */
 function moveStage(id, dir) {
