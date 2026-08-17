@@ -18,10 +18,12 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 - Kartu kanban dirampingkan: badge sumber (`kb-src`, mis. "APP-KAKI5") dan pil
   status di kepala kartu (`kb-status`) dihapus — info status sudah ada di baris
   konteks & tab per status.
-- **Layout baru:** baris atas kartu (konteks status + tombol aksi) kini sejajar
-  horizontal (`flex: 1` untuk konteks, tombol ukurannya proporsional).
+- **Layout baru:** tombol aksi masuk ke dalam kepala kartu (`.kb-head`) via
+  kontainer `.kb-head-btn` dengan `margin-left: auto` agar selalu di kanan.
 - **Layout revisi:** konteks status masuk ke dalam kepala kartu (`.kb-head`) —
   tombol aksi tetap di luar, baris terpisah di bawah kepala.
+- **Perbaikan:** tombol aksi duplikat di dalam akordeon detail (`kb-cta-open`)
+  dihapus — hanya tersisa satu tombol per kartu, di kepala.
 
 ### 🧹 Kode mati dibuang
 - `js/supabase-client.js` (tidak dipakai modul manapun) dihapus.
