@@ -244,10 +244,6 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 .pr-prefix{font-size:11px;color:var(--ink-3);font-family:var(--mono);}
 .pr-salt{justify-self:stretch;font-size:11px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-xs);background:var(--bg-subtle);color:var(--ink-2);min-width:0;overflow:hidden;}
 .pr-price{font-size:13px;font-weight:800;color:var(--ink);white-space:nowrap;}
-.verify-box{margin-top:var(--s3);padding:var(--s4);border-radius:var(--r-sm);font-size:13px;line-height:1.6;border:1px solid var(--border);}
-.verify-box.verify-success{background:var(--green-bg);border-color:var(--green);}
-.verify-box.verify-warning{background:var(--orange-50);border-color:var(--primary);}
-.verify-box.verify-error{background:var(--red-bg);border-color:var(--red);}
 .verify-badge{font-weight:800;margin-bottom:var(--s2);}
 .verify-detail{font-size:12.5px;color:var(--ink-2);}
 .stat-mini{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);margin-bottom:var(--s3);}
@@ -837,10 +833,6 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 
 /* ===== Detail akordeon kartu (collapse/expand via grid) ===== */
 /* Fakta kunci — baris label + nilai */
-.kb-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px 12px; margin-top: 10px; }
-.kb-fact { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.kb-fact-l { font-size: 10.5px; font-weight: 700; color: var(--text3, #999); text-transform: uppercase; letter-spacing: .05em; }
-.kb-fact-v { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Baris deal — harga + serial/umur */
 
@@ -854,6 +846,10 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 @media (max-width: 520px) {
   .kb-info { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Aksi lisensi — satu tombol (revoke / pulihkan-aktifkan) */
+.kb-license-actions { display: flex; justify-content: flex-start; gap: 8px; }
+.kb-license-actions .btn { width: auto; }
 
 /* Panel Kelola Klien — sub-akordeon trigger */
 .kb-manage { margin-top: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg-card, var(--surface)); }

@@ -12,9 +12,8 @@
 import { showToast } from './toast.js';
 import { escapeHtml, formatRelativeTime, formatDate, normalizePhone } from './utils.js';
 import { STATE, setState, subscribe } from './app-state.js';
-import { supabaseFetch, supabaseStorageSign, licenseApi } from './api.js';
+import { supabaseFetch, supabaseStorageSign } from './api.js';
 import { updateSidebarBadges } from './navigation.js?v=20260812i';
-import { formatExpiry } from './license-core.js';
 
 // app_type → produk (HANYA metadata: prefix/ikon/label).
 // SECURITY (Fix C1): HMAC salt TIDAK lagi di client — generate/verify lisensi
@@ -115,9 +114,8 @@ function statusCtxHtml(c, esc) {
 /** Tombol utama kartu, berubah sesuai konteks status */
 function statusCta(c, esc) {
   const id = esc(c.id);
-  // Buka akordeon kartu + sekaligus sub-akordeon "Kelola Klien"
-  const open = `event?.stopPropagation(); toggleCardDetail(this.closest('.kanban-card').querySelector('.kb-head'));` +
-               `toggleKbManage(this.closest('.kanban-card').querySelector('.kb-manage-t'));`;
+  // Buka akordeon kartu (detail sekarang langsung tampil tanpa sub-akordeon)
+  const open = `event?.stopPropagation(); toggleCardDetail(this.closest('.kanban-card').querySelector('.kb-head'));`;
   switch (c.status) {
     case 'baru': return `<button type="button" class="btn btn-primary btn-sm" onclick="moveStage('${id}','next')">📞 Hubungi</button>`;
     case 'dihubungi': return `<button type="button" class="btn btn-primary btn-sm" onclick="moveStage('${id}','next')">💡 Tawarkan</button>`;
@@ -346,13 +344,9 @@ function kanbanCardHtml(c) {
   const idx = PIPELINE_STAGES.findIndex((s) => s.key === c.status);
   const isBatal = c.status === 'batal';
   const harga = Number(catalogProductFor(c.app_type)?.price) || 0;
-  const serial = c.serial ? String(c.serial) : '';
   const lic = (c.license_status || '').toLowerCase();
   // Progress posisi di pipeline (persen dari urutan stage)
   const progressPct = idx >= 0 ? Math.round(((idx + 0.5) / PIPELINE_STAGES.length) * 100) : 0;
-  const contact = c.no_whatsapp
-    ? `<span>💬${esc(normalizePhone(c.no_whatsapp))}</span>`
-    : (c.email ? `<span>✉️${esc(c.email)}</span>` : '');
 
   // Info lisensi / verifikasi (muncul hanya bila tersedia)
   const licLine = [];
@@ -360,12 +354,6 @@ function kanbanCardHtml(c) {
   else if (c.activated_at) licLine.push('<span class="kb-lic">✓ Diaktifkan ' + esc(formatDate(c.activated_at)) + '</span>');
   if (c.verified_at) licLine.push('<span class="kb-lic">🔎 Verifikasi ' + esc(formatDate(c.verified_at)) + '</span>');
   const licHtml = licLine.length ? `<div class="kb-card-lic">${licLine.join('')}</div>` : '';
-
-  // Fakta kunci (label + nilai) — tampil hanya bila tersedia
-  const facts = [];
-  if (c.nama_pemilik) facts.push(`<div class="kb-fact"><span class="kb-fact-l">Pemilik</span><span class="kb-fact-v">${esc(c.nama_pemilik)}</span></div>`);
-  if (contact) facts.push(`<div class="kb-fact"><span class="kb-fact-l">Kontak</span><span class="kb-fact-v">${contact}</span></div>`);
-  if (wil) facts.push(`<div class="kb-fact kb-fact-wide"><span class="kb-fact-l">Lokasi</span><span class="kb-fact-v">${esc(wil)}</span></div>`);
 
   // Prefix ID unik per kartu agar input/tombol tidak bentrok antar kartu
   const u = 'kc' + Math.random().toString(36).slice(2, 8);
@@ -400,53 +388,12 @@ function kanbanCardHtml(c) {
 
               ${licHtml}
 
-              <!-- Generate Lisensi -->
-              <div class="section-label mt16">⚡ Generate Lisensi</div>
-              <div class="kb-field-grid mt8">
-                <div class="kb-field"><label class="field-label">Masa Aktif</label>
-                  <select data-kf="days">
-                    <option value="30">1 Bulan</option>
-                    <option value="90">3 Bulan</option>
-                    <option value="180">6 Bulan</option>
-                    <option value="365" selected>1 Tahun</option>
-                    <option value="730">2 Tahun</option>
-                    <option value="99">Seumur Hidup</option>
-                  </select>
-                </div>
-                <div class="kb-field kb-field-span-2"><label class="field-label">Hasil Serial</label>
-                  <textarea data-kf="serialOut" readonly rows="2" class="input-mono" placeholder="Serial muncul di sini"></textarea>
-                  <div class="btn-block-row mt8">
-                    <button type="button" class="btn btn-primary" onclick="genCardSerial(this)">🔑 Generate</button>
-                    <button type="button" class="btn btn-outline" onclick="copyCardSerial(this)">📋 Copy</button>
-                    <button type="button" class="btn btn-outline" onclick="sendCardSerialWA(this)">💬 Kirim WA</button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Verifikasi Serial -->
-              <div class="section-label mt16">🔎 Verifikasi Serial</div>
-              <div class="kb-field-grid mt8">
-                <div class="kb-field kb-field-span-2"><label class="field-label">Serial Number</label>
-                  <input type="text" data-kf="ver" class="input-mono" placeholder="Serial yang akan dicek" value="${esc(serial || '')}">
-                </div>
-                <div class="kb-field kb-field-span-2">
-                  <button type="button" class="btn btn-outline" onclick="verifyCardSerial(this)">✅ Verifikasi</button>
-                  <div class="verify-box mt8" data-kf="verRes" hidden></div>
-                </div>
-              </div>
-
-              <!-- Kelola Lisensi -->
-              <div class="section-label mt16">🛡️ Kelola Lisensi</div>
-              <div class="kb-manage-lic mt8">
-                <div class="kb-lic-state">
-                  <span class="kb-lic ${lic === 'aktif' || lic === 'active' ? 'on' : ''}">${lic === 'aktif' || lic === 'active' ? '✓ Lisensi Aktif' : (isBatal ? '✖ Lisensi Nonaktif' : '— Tidak ada lisensi aktif')}</span>
-                </div>
-                <div class="btn-block-row mt8">
-                  ${(lic === 'aktif' || lic === 'active') && !isBatal
-                    ? `<button type="button" class="btn btn-danger btn-sm" onclick="revokeClientLicense('${esc(c.id)}')">🚫 Revoke Lisensi</button>`
-                    : `<button type="button" class="btn btn-primary btn-sm" onclick="restoreClientLicense('${esc(c.id)}')">↩️ Pulihkan / Aktifkan</button>`}
-                  <button type="button" class="btn btn-ghost btn-sm" onclick="genCardSerial(this)">🔑 Generate Ulang</button>
-                </div>
+              <!-- Aksi lisensi — generate/verifikasi manual sudah tidak dipakai
+                   (aktivasi otomatis dari aplikasi klien) -->
+              <div class="kb-license-actions mt8">
+                ${(lic === 'aktif' || lic === 'active') && !isBatal
+                  ? `<button type="button" class="btn btn-danger btn-sm" onclick="revokeClientLicense('${esc(c.id)}')">🚫 Revoke Lisensi</button>`
+                  : `<button type="button" class="btn btn-primary btn-sm" onclick="restoreClientLicense('${esc(c.id)}')">↩️ Pulihkan / Aktifkan</button>`}
               </div>
 
             </div>
@@ -457,7 +404,6 @@ function kanbanCardHtml(c) {
               <div class="kb-card-menu">
                 <button type="button" class="btn btn-ghost btn-sm kb-menu-btn" title="Aksi lain" aria-label="Menu aksi">⋯</button>
                 <div class="kb-card-menu-pop">
-                  <button type="button" data-act="manage" onclick="toggleKbManage(this.closest('.kanban-card').querySelector('.kb-manage-t'))">⚙️ Kelola Klien</button>
                   <button type="button" data-act="prev" ${idx <= 0 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','prev')">⬅️ Status sebelumnya</button>
                   <button type="button" data-act="next" ${idx < 0 || idx >= PIPELINE_STAGES.length - 1 ? 'disabled' : ''} onclick="moveStage('${esc(c.id)}','next')">➡️ Status berikutnya</button>
                 </div>
@@ -468,117 +414,6 @@ function kanbanCardHtml(c) {
       </div>
     </div>`;
 }
-
-/** Toggle sub-akordeon "Kelola Klien" pada kartu */
-window.toggleKbManage = function (btn) {
-  const mb = btn && btn.nextElementSibling;
-  if (!mb) return;
-  const isOpen = mb.classList.toggle('kb-manage-open');
-  btn.setAttribute('aria-expanded', String(isOpen));
-  if (isOpen && mb.scrollIntoView) mb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-};
-
-/** Ambil kartu + data klien dari sebuah tombol/elemen di dalam kartu */
-function kbPer(btn) {
-  const card = btn.closest('.kanban-card');
-  const id = card && card.getAttribute('data-client-id');
-  const c = clients.find((x) => x.id === id) || null;
-  return { card, c };
-}
-function kbVal(card, key) {
-  const el = card && card.querySelector(`[data-kf="${key}"]`);
-  return el ? el.value.trim() : '';
-}
-function kbSet(card, key, value) {
-  const el = card && card.querySelector(`[data-kf="${key}"]`);
-  if (el) el.value = value;
-}
-
-/** Generate serial untuk klien di kartu ini */
-window.genCardSerial = async function (btn) {
-  const { card, c } = kbPer(btn);
-  if (!c) return;
-  const m = metaFor(c.app_type);
-  if (!m.prefix) { showToast('Produk klien belum dikenal / belum ada prefix', 2000, 'warning'); return; }
-  const rawDevice = c.device_code || '';
-  if (!rawDevice) { showToast('Device Code kosong', 2000, 'warning'); return; }
-  const days = parseInt(kbVal(card, 'days') || '365', 10);
-  let expCode = '99';
-  if (days <= 30) expCode = '01';
-  else if (days <= 90) expCode = '03';
-  else if (days <= 180) expCode = '06';
-  else if (days <= 365) expCode = '12';
-  else if (days <= 730) expCode = '24';
-  else if (days <= 1095) expCode = '36';
-  else if (days <= 1825) expCode = '60';
-  const res = await licenseApi('generate', { prefix: m.prefix, deviceCode: rawDevice, expCode });
-  if (!res.ok) {
-    const msg = res.data?.error || `Gagal generate (${res.status})`;
-    showToast('Gagal membuat serial: ' + msg, 3000, 'error');
-    return;
-  }
-  kbSet(card, 'serialOut', res.data.serial);
-  showToast('✅ Serial berhasil dibuat!', 2000, 'success');
-};
-
-/** Copy serial dari kartu ini */
-window.copyCardSerial = async function (btn) {
-  const { card } = kbPer(btn);
-  const v = kbVal(card, 'serialOut');
-  if (!v) { showToast('Generate dulu', 2000, 'warning'); return; }
-  try {
-    await navigator.clipboard.writeText(v);
-    showToast('Serial disalin', 2000, 'success');
-  } catch { showToast('Gagal menyalin', 2000, 'error'); }
-};
-
-/** Verifikasi serial klien di kartu ini (server-side HMAC) */
-window.verifyCardSerial = async function (btn) {
-  const { card, c } = kbPer(btn);
-  if (!c) return;
-  const m = metaFor(c.app_type);
-  if (!m.prefix) { showToast('Produk klien belum dikenal / belum ada prefix', 2000, 'warning'); return; }
-  const serial = kbVal(card, 'ver');
-  if (!serial) { showToast('Masukkan serial yang ingin diverifikasi', 2000, 'warning'); return; }
-  const deviceCode = c.device_code || '';
-  if (!deviceCode) { showToast('Device Code kosong', 2000, 'warning'); return; }
-  const res = await licenseApi('verify', { prefix: m.prefix, serial, deviceCode });
-  const box = card.querySelector('[data-kf="verRes"]');
-  const verMsg = (cls, html) => {
-    if (box) { box.innerHTML = html; box.className = 'verify-box mt8 ' + cls; box.hidden = false; }
-  };
-  if (!res.ok || !res.data) {
-    const msg = res.data?.error || `Gagal verifikasi (${res.status})`;
-    verMsg('verify-error', `<div class="verify-badge error">❌ ERROR</div><div class="verify-detail">${esc(msg)}</div>`);
-    showToast('Error saat verifikasi: ' + msg, 3000, 'error');
-    return;
-  }
-  const result = res.data;
-  const pname = m.label;
-  if (result.valid && !result.expired) {
-    verMsg('verify-success', `<div class="verify-badge success">✅ VALID</div><div class="verify-detail">Produk: ${esc(pname)}<br>Device Code: ${esc(result.deviceCode)}<br>Masa Berlaku: ${esc(result.expiryText || formatExpiry(result.expCode))}<br><small>Status: Aktif</small></div>`);
-    showToast('Serial valid', 2000, 'success');
-  } else if (result.valid && result.expired) {
-    verMsg('verify-warning', `<div class="verify-badge warning">⚠️ KADALUARSA</div><div class="verify-detail">Produk: ${esc(pname)}<br>Device Code: ${esc(result.deviceCode)}<br>Kadaluarsa: ${esc(result.expiryText || formatExpiry(result.expCode))}<br><small>Serial valid tapi masa berlaku habis</small></div>`);
-    showToast('Serial kadaluarsa', 2500, 'warning');
-  } else {
-    verMsg('verify-error', `<div class="verify-badge error">❌ TIDAK VALID</div><div class="verify-detail">Serial tidak cocok dengan Device Code atau salt produk.<br>Periksa kembali input Anda.</div>`);
-    showToast('Serial tidak valid', 2000, 'error');
-  }
-};
-
-/** Kirim serial ke WhatsApp merchant */
-window.sendCardSerialWA = function (btn) {
-  const { card, c } = kbPer(btn);
-  if (!c) return;
-  const serial = kbVal(card, 'serialOut');
-  if (!serial) { showToast('Generate dulu', 2000, 'warning'); return; }
-  const nama = c.nama_warung || 'Usaha Anda';
-  const text = `Halo *${nama}*,\nIni kode lisensi Kasir Solo Anda:\n\n*${serial}*\n\nAktifkan di aplikasi pada menu Lisensi. Terima kasih 🙏\n— PT Mesin Kasir Solo`;
-  const wa = normalizePhone(c.no_whatsapp || '');
-  const target = wa || '628816566935';
-  window.open('https://wa.me/' + encodeURIComponent(target) + '?text=' + encodeURIComponent(text), '_blank');
-};
 
 /** Toggle akordeon detail kartu kanban */
 window.toggleCardDetail = function (headEl) {
