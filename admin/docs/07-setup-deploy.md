@@ -35,14 +35,14 @@ npx http-server -p 8082
 
 ### Login
 
-Password default: **`admin123`**
+Login **sengaja dinonaktifkan** — dashboard langsung terbuka tanpa layar login
+(lihat `js/auth.js`, fungsi `initAuth` langsung memanggil `showApp()`).
+Jangan aktifkan tanpa permintaan eksplisit, karena cek password di `auth.js`
+masih hardcoded dan belum aman.
 
-```javascript
-// Di js/auth.js
-export const ADMIN_PASSWORD = 'admin123';
-```
-
-> **Saran:** Untuk produksi, migrasikan ke Supabase Auth dengan RLS.
+> **Rencana:** Untuk produksi, migrasikan ke Supabase Auth + JWT admin
+> (`JWT_SECRET` sudah disiapkan di env) supaya `ADMIN_API_KEY` tidak perlu
+> lagi dikirim dari browser.
 
 ---
 
@@ -56,7 +56,7 @@ export const ADMIN_PASSWORD = 'admin123';
 4. Atur:
    - **Root Directory**: `admin/`
    - **Framework Preset**: Other
-   - **Build Command**: *(kosong)*
+   - **Build Command**: `node scripts/build-env-loader.mjs`
    - **Output Directory**: `.`
    - **Install Command**: *(kosong)*
 5. Klik **Deploy**
@@ -86,23 +86,22 @@ git push origin main
 ```json
 {
   "version": 2,
+  "framework": null,
+  "buildCommand": "node scripts/build-env-loader.mjs",
+  "outputDirectory": ".",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [
-    {
-      "source": "/sw.js",
-      "headers": [
-        { "key": "Service-Worker-Allowed", "value": "/" },
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/js/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    }
+    { "source": "/sw.js", "headers": [
+      { "key": "Service-Worker-Allowed", "value": "/" },
+      { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" } ] },
+    { "source": "/manifest.json", "headers": [
+      { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" } ] },
+    { "source": "/js/(.*)", "headers": [
+      { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" } ] },
+    { "source": "/assets/(.*)", "headers": [
+      { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" } ] }
   ]
 }
 ```
@@ -116,6 +115,8 @@ node_modules
 Thumbs.db
 *.md
 docs/
+.env*
+*.backup*
 ```
 
 ---
@@ -126,38 +127,45 @@ docs/
 admin/
 ├── index.html          # Entry (loads all modules via type=module)
 ├── style.css           # Full design system
-├── DESIGN.md          # Design tokens spec
+├── DESIGN.md           # Design tokens spec
 ├── js/
 │   ├── app.js          # Entry point
 │   ├── app-state.js    # State management
-│   ├── storage.js      # Storage abstraction (swap target for Supabase)
+│   ├── storage.js      # Cache lokal (localStorage)
+│   ├── api.js          # Klien /api/rest & /api/license (proxy Supabase)
+│   ├── supabase-client.js # Legacy (tidak dipakai modul lain)
 │   ├── utils.js        # Shared utilities
 │   ├── toast.js        # Toast system
-│   ├── auth.js         # Auth gate
+│   ├── auth.js         # Auth gate (login dinonaktifkan)
 │   ├── navigation.js   # Screen switching
 │   ├── license-core.js # Pure HMAC (reusable)
+│   ├── emoji-picker.js # Picker ikon katalog
+│   ├── overlay-a11y.js # Fokus trap & Esc untuk sheet
 │   ├── dashboard.js
 │   ├── clients.js
 │   ├── catalog.js
-│   ├── license-ui.js
 │   └── settings.js
+├── api/                # Serverless Vercel (proxy + gate)
+│   ├── _gate.js        # Cek ADMIN_API_KEY (fail-closed, constant-time)
+│   ├── rest.js         # Proxy Supabase (whitelist tabel)
+│   └── license.js      # Generate/verifikasi serial (salt server-side)
+├── scripts/            # build-env-loader.mjs (di-generate saat build)
+├── tests/              # license-integration.test.mjs
 ├── vercel.json         # Vercel config
 ├── .vercelignore       # Vercel ignore
 ├── manifest.json       # PWA
 ├── sw.js               # Service Worker
-└── docs/               # Dokumentasi (8 files)
+└── docs/               # Dokumentasi (12 files)
 ```
 
 ---
 
 ## 🔐 Mengubah Password
 
-Cari string `admin123` di `js/auth.js` dan ganti:
-
-```javascript
-// js/auth.js
-export const ADMIN_PASSWORD = 'admin123';  // ← GANTI password di sini
-```
+Login saat ini **dinonaktifkan** (layar login tidak dirender — lihat
+`js/auth.js`). Cek password di `auth.js` masih hardcoded (`'admin123'`),
+jadi jangan diaktifkan begitu saja. Jika suatu saat login dihidupkan,
+ganti dulu dengan Supabase Auth / JWT, jangan pakai password hardcoded.
 
 ---
 
@@ -242,6 +250,12 @@ Di `style.css`, tambahkan styling untuk komponen baru mengikuti design system.
 ---
 
 ## 🗺️ Langkah Migrasi ke Supabase
+
+> ✅ **Migrasi sudah SELESAI (2026-08).** Data kini tersimpan di Supabase dan
+> semua operasi lewat proxy serverless `api/rest.js` (service role key hanya
+> di server, whitelist tabel `clients`/`products`/`settings`). Fase-fase di
+> bawah adalah catatan historis saat migrasi dikerjakan — bukan langkah yang
+> perlu dijalankan lagi.
 
 ### Fase 1: Setup Supabase
 
@@ -368,12 +382,10 @@ export async function checkAuth() {
 
 ## ✅ Checklist Testing
 
-- [ ] Test login dengan password `admin123`
-- [ ] Test Dashboard: 6 KPI cards + bar charts
-- [ ] Test Leads: tabel 5 kolom, search, filter, export CSV
+- [ ] Test Dashboard: KPI cards + bar charts
+- [ ] Test Klien: analitik, pipeline kanban, detail klien, generate/verifikasi lisensi
 - [ ] Test Katalog: card grid responsif, tambah/edit/hapus, sheet modal
-- [ ] Test Lisensi: product registry, generate/verify serial
-- [ ] Test Pengaturan: forms, backup/restore
+- [ ] Test Pengaturan: forms, upload QRIS, backup/restore
 - [ ] Test Responsive: HP/Tablet/Desktop/Large
 - [ ] Test Sheets/Modals: HP bottom-sheet, Desktop center modal
 - [ ] Test Empty States: `hidden` attribute + semantic classes

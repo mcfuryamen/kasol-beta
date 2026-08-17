@@ -30,14 +30,19 @@
       "description": "Lihat ringkasan performa"
     },
     {
-      "name": "Leads",
-      "url": "/#leads",
-      "description": "Kelola leads & trial"
+      "name": "Katalog",
+      "url": "/#catalog",
+      "description": "Kelola aplikasi di landing page"
     },
     {
-      "name": "Lisensi",
-      "url": "/#license",
-      "description": "Generate & verifikasi lisensi"
+      "name": "Klien",
+      "url": "/#klien",
+      "description": "Analitik & pipeline klien"
+    },
+    {
+      "name": "Pengaturan",
+      "url": "/#settings",
+      "description": "Info usaha, landing, dan backup"
     }
   ]
 }
