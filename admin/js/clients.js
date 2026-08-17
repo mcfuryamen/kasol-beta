@@ -384,14 +384,11 @@ function kanbanCardHtml(c) {
         <span class="kb-chev">▾</span>
       </div>
             <div class="kb-detail-inner">
-              <!-- 3 kolom atas: pemilik · kontak · lokasi -->
-              <div class="kb-info kb-info-3col">
+              <!-- Grid info klien: label di atas, isi di bawah -->
+              <div class="kb-info">
                 <div class="kb-info-r"><span class="kb-info-l">Pemilik</span><span class="kb-info-v">${esc(c.nama_pemilik || '—')}</span></div>
                 <div class="kb-info-r"><span class="kb-info-l">Kontak</span><span class="kb-info-v">${c.no_whatsapp ? '💬 ' + esc(normalizePhone(c.no_whatsapp)) : (c.email ? '✉️ ' + esc(c.email) : '—')}</span></div>
                 <div class="kb-info-r"><span class="kb-info-l">Lokasi</span><span class="kb-info-v">${esc([c.desa, c.kecamatan, c.kabkota].filter(Boolean).join(', ') || c.kabkota || '—')}</span></div>
-              </div>
-              <!-- Baris info vertikal -->
-              <div class="kb-info kb-info-col">
                 ${c.unit_id !== undefined && c.unit_id !== null && c.unit_id !== '' ? `<div class="kb-info-r"><span class="kb-info-l">Unit ID</span><span class="kb-info-v mono">${esc(c.unit_id)}</span></div>` : ''}
                 <div class="kb-info-r"><span class="kb-info-l">Aplikasi</span><span class="kb-info-v">${m.icon} ${esc(m.label)}${m.kodeProduk ? ' · ' + esc(m.kodeProduk) : ''}</span></div>
                 <div class="kb-info-r"><span class="kb-info-l">Device Code</span><span class="kb-info-v mono">${esc(c.device_code || '—')}</span></div>
