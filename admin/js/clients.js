@@ -121,7 +121,7 @@ function statusCta(c, esc) {
     case 'dihubungi': return `<button type="button" class="btn btn-primary btn-sm" onclick="moveStage('${id}','next')">💡 Tawarkan</button>`;
     case 'tertarik': return `<button type="button" class="btn btn-primary btn-sm" onclick="moveStage('${id}','next')">⏳ Minta Verifikasi</button>`;
     case 'menunggu_verifikasi': return `<button type="button" class="btn btn-primary btn-sm" onclick="${open}">🔍 Verifikasi</button>`;
-    case 'aktif': return `<button type="button" class="btn btn-primary btn-sm" onclick="${open}">⚙️ Kelola</button>`;
+    case 'aktif': return ''; // aksi lisensi ditangani tombol Cabut di header
     case 'batal': return `<button type="button" class="btn btn-outline btn-sm" onclick="${open}">↩️ Pulihkan</button>`;
     default: return `<button type="button" class="btn btn-outline btn-sm" onclick="${open}">Buka</button>`;
   }
