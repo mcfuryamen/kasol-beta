@@ -49,6 +49,17 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 - Nomor WhatsApp di Info Usaha dinormalisasi ke `62xxxx` saat disimpan.
 
 
+## [1.6.1] - (2026-08-17: Perbaikan Audit P1)
+
+### 📊 Dashboard
+- **Fixed:** kartu "Potensial Revenue" selalu Rp0 — kini dihitung langsung dari data klien + harga katalog.
+- **Layout flat detail klien:** grid 3 kolom atas (Pemilik · Kontak · Lokasi) dengan judul di atas isi (vertikal), baris info ke bawah, sub-akordeon dihapus.
+
+### 💰 Harga Coret
+- Kolom baru `price_before_label` di tabel `products` (migrasi `supabase/migration-add-price-before-to-products.sql`, SUDAH diterapkan).
+- Form katalog admin: input "Harga Coret" opsional — hanya disimpan bila lebih besar dari harga jual.
+- Aplikasi kaki5 menampilkan harga coret (strikethrough) di samping harga lisensi.
+
 ## [1.6.0] - (2026-08-13: Harga Pusat di products + Signed URL Bukti)
 
 > Suites audit Kaki5 → sinkronisasi arsitektur harga + perbaikan bukti bayar.
@@ -320,7 +331,8 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 - Branch JS/CSS (fetch fallback) & branch default (network-first) sebelumnya bisa
   menghasilkan nilai undefined saat fetch gagal offline & tidak ada cache, sehingga
   browser melempar error SW tadi. Sekarang selalu fallback ke Response valid
-  (503/404) -- tidak pernah espondWith(undefined).
+  (503/404) -- tidak pernah 
+espondWith(undefined).
 - Cache name di-bump ke kasir-admin-v8 supaya browser meng-install SW baru dan
   membersihkan cache lama yang rusak.
 ## [1.3.3] - 2026-08-10 (Security Fix C3 - Closing remaining stored XSS)

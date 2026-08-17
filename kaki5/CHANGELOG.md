@@ -2,6 +2,9 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-17 (v64: harga coret di layar pembelian)
+- Layar Beli Lisensi menampilkan **harga coret** (harga sebelum diskon, strikethrough) bila `price_before_label` diisi di Admin Console — harga efektif tetap `price_label`.
+
 ## 2026-08-17 (v63: halaman "Lisensi Dicabut" bergaya gate)
 - **Layar lisensi dicabut kini halaman penuh putih** dengan struktur persis halaman gate lisensi (permintaan pemilik 2026-08-17): logo + Kasir Solo/Kaki Lima Edition, judul merah "Lisensi Dinonaktifkan", tombol 💳 Beli Lisensi (QRIS) + 💬 Tanya Admin, tautan "Sudah punya kode baru? Aktivasi manual" (input serial → `activateLicense`), footer kontak WhatsApp. Mengganti kartu kecil di overlay gelap.
 - Implementasi: `#lockRevokedPage` baru di dalam `#lockOverlay` + kelas `.revoked-page` (latar putih penuh); mode di-sinkronkan di `checkLicenseGate` (`setLockMode`) sehingga kondisi lain (trial habis) tetap memakai kartu default.
