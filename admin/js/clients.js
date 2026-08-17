@@ -116,7 +116,7 @@ function statusCtxHtml(c, esc) {
 function statusCta(c, esc) {
   const id = esc(c.id);
   // Buka akordeon kartu + sekaligus sub-akordeon "Kelola Klien"
-  const open = `toggleCardDetail(this.closest('.kanban-card').querySelector('.kb-head'));` +
+  const open = `event?.stopPropagation(); toggleCardDetail(this.closest('.kanban-card').querySelector('.kb-head'));` +
                `toggleKbManage(this.closest('.kanban-card').querySelector('.kb-manage-t'));`;
   switch (c.status) {
     case 'baru': return `<button type="button" class="btn btn-primary btn-sm" onclick="moveStage('${id}','next')">📞 Hubungi</button>`;
@@ -380,9 +380,9 @@ function kanbanCardHtml(c) {
           <span class="kb-card-sub">${esc(m.label)}${m.kodeProduk ? ' · ' + esc(m.kodeProduk) : ''}${c.device_code ? ' · ' + esc(c.device_code) : ''}</span>
           ${statusCtxHtml(c, esc)}
         </div>
+        <div class="kb-head-btn">${statusCta(c, esc)}</div>
         <span class="kb-chev">▾</span>
       </div>
-            <div class="kb-cta kb-cta-card">${statusCta(c, esc)}</div>
             <div class="kb-detail">
               <div class="kb-detail-inner">
                 <div class="kb-cta kb-cta-open">${statusCta(c, esc)}</div>
