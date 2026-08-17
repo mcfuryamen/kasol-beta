@@ -18,6 +18,8 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 - Kartu kanban dirampingkan: badge sumber (`kb-src`, mis. "APP-KAKI5") dan pil
   status di kepala kartu (`kb-status`) dihapus — info status sudah ada di baris
   konteks & tab per status.
+- **Layout baru:** baris atas kartu (konteks status + tombol aksi) kini sejajar
+  horizontal (`flex: 1` untuk konteks, tombol ukurannya proporsional).
 
 ### 🧹 Kode mati dibuang
 - `js/supabase-client.js` (tidak dipakai modul manapun) dihapus.
