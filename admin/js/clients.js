@@ -383,37 +383,31 @@ function kanbanCardHtml(c) {
         <div class="kb-head-btn">${statusCta(c, esc)}</div>
         <span class="kb-chev">▾</span>
       </div>
-            <div class="kb-detail">
-              <div class="kb-detail-inner">
-                ${facts.length ? `<div class="kb-facts">${facts.join('')}</div>` : ''}
-          <div class="kb-deal">
-            <span class="kb-price">${harga ? 'Rp ' + harga.toLocaleString('id-ID') : 'Harga —'}</span>
-            <span class="kb-deal-side">${serial ? `<span class="kb-serial">🔑 ${esc(serial.slice(0, 12))}…</span>` : `<span class="kb-age">🕑 ${formatLeadAge(c.first_seen)}</span>`}</span>
-          </div>
-          ${licHtml}
-
-          <!-- Kelola Klien: info baca doang + aksi lisensi (scoped per kartu) -->
-          <div class="kb-manage">
-            <button type="button" class="kb-manage-t" aria-expanded="false" onclick="toggleKbManage(this)">
-              <span>⚙️ Detail & Aksi</span><span class="kb-chev">▾</span>
-            </button>
-            <div class="kb-manage-b">
-
-              <!-- Info baca doang (tanpa kotak isian) -->
-              <div class="section-label">📋 Data Klien</div>
-              <div class="kb-info">
+            <div class="kb-detail-inner">
+              <!-- 3 kolom atas: pemilik · kontak · lokasi -->
+              <div class="kb-info kb-info-3col">
+                <div class="kb-info-r"><span class="kb-info-l">Pemilik</span><span class="kb-info-v">${esc(c.nama_pemilik || '—')}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Kontak</span><span class="kb-info-v">${c.no_whatsapp ? '💬 ' + esc(normalizePhone(c.no_whatsapp)) : (c.email ? '✉️ ' + esc(c.email) : '—')}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Lokasi</span><span class="kb-info-v">${esc([c.desa, c.kecamatan, c.kabkota].filter(Boolean).join(', ') || c.kabkota || '—')}</span></div>
+              </div>
+              <!-- Baris info vertikal -->
+              <div class="kb-info kb-info-col">
                 ${c.unit_id !== undefined && c.unit_id !== null && c.unit_id !== '' ? `<div class="kb-info-r"><span class="kb-info-l">Unit ID</span><span class="kb-info-v mono">${esc(c.unit_id)}</span></div>` : ''}
                 <div class="kb-info-r"><span class="kb-info-l">Aplikasi</span><span class="kb-info-v">${m.icon} ${esc(m.label)}${m.kodeProduk ? ' · ' + esc(m.kodeProduk) : ''}</span></div>
                 <div class="kb-info-r"><span class="kb-info-l">Device Code</span><span class="kb-info-v mono">${esc(c.device_code || '—')}</span></div>
                 ${c.device_type || c.browser ? `<div class="kb-info-r"><span class="kb-info-l">Perangkat</span><span class="kb-info-v">${deviceInfoHtml(c, esc)}</span></div>` : ''}
                 <div class="kb-info-r"><span class="kb-info-l">Nama Usaha</span><span class="kb-info-v">${esc(c.nama_warung || '—')}</span></div>
-                <div class="kb-info-r"><span class="kb-info-l">Nama Pemilik</span><span class="kb-info-v">${esc(c.nama_pemilik || '—')}</span></div>
-                <div class="kb-info-r"><span class="kb-info-l">Kontak</span><span class="kb-info-v">${c.no_whatsapp ? '💬' + esc(normalizePhone(c.no_whatsapp)) : (c.email ? '✉️' + esc(c.email) : '—')}</span></div>
-                ${c.alamat_detail ? `<div class="kb-info-r"><span class="kb-info-l">Alamat</span><span class="kb-info-v">${esc(c.alamat_detail)}${wil ? ' · ' + esc(wil) : ''}</span></div>` : (wil ? `<div class="kb-info-r"><span class="kb-info-l">Wilayah</span><span class="kb-info-v">${esc(wil)}</span></div>` : '')}
                 ${harga ? `<div class="kb-info-r"><span class="kb-info-l">Harga Deal</span><span class="kb-info-v">Rp ${harga.toLocaleString('id-ID')}</span></div>` : ''}
                 <div class="kb-info-r"><span class="kb-info-l">Dilihat</span><span class="kb-info-v">🕒 ${formatRelativeTime(c.last_seen)}</span></div>
               </div>
 
+              <div class="kb-deal">
+                <span class="kb-price">${harga ? 'Rp ' + harga.toLocaleString('id-ID') : 'Harga —'}</span>
+                <span class="kb-deal-side">${serial ? `<span class="kb-serial">🔑 ${esc(serial.slice(0, 12))}…</span>` : `<span class="kb-age">🕑 ${formatLeadAge(c.first_seen)}</span>`}</span>
+              </div>
+              ${licHtml}
+
+              <!-- Generate Lisensi -->
               <div class="section-label mt16">⚡ Generate Lisensi</div>
               <div class="kb-field-grid mt8">
                 <div class="kb-field"><label class="field-label">Masa Aktif</label>
@@ -436,7 +430,8 @@ function kanbanCardHtml(c) {
                 </div>
               </div>
 
-            <div class="section-label mt16">🔎 Verifikasi Serial</div>
+              <!-- Verifikasi Serial -->
+              <div class="section-label mt16">🔎 Verifikasi Serial</div>
               <div class="kb-field-grid mt8">
                 <div class="kb-field kb-field-span-2"><label class="field-label">Serial Number</label>
                   <input type="text" data-kf="ver" class="input-mono" placeholder="Serial yang akan dicek" value="${esc(serial || '')}">
@@ -447,21 +442,21 @@ function kanbanCardHtml(c) {
                 </div>
               </div>
 
-                              <div class="section-label mt16">🛡️ Kelola Lisensi</div>
-                              <div class="kb-manage-lic mt8">
-                                <div class="kb-lic-state">
-                                  <span class="kb-lic ${lic === 'aktif' || lic === 'active' ? 'on' : ''}">${lic === 'aktif' || lic === 'active' ? '✓ Lisensi Aktif' : (isBatal ? '✖ Lisensi Nonaktif' : '— Tidak ada lisensi aktif')}</span>
-                                </div>
-                                <div class="btn-block-row mt8">
-                                  ${(lic === 'aktif' || lic === 'active') && !isBatal
-                                    ? `<button type="button" class="btn btn-danger btn-sm" onclick="revokeClientLicense('${esc(c.id)}')">🚫 Revoke Lisensi</button>`
-                                    : `<button type="button" class="btn btn-primary btn-sm" onclick="restoreClientLicense('${esc(c.id)}')">↩️ Pulihkan / Aktifkan</button>`}
-                                  <button type="button" class="btn btn-ghost btn-sm" onclick="genCardSerial(this)">🔑 Generate Ulang</button>
-                                </div>
-                              </div>
+              <!-- Kelola Lisensi -->
+              <div class="section-label mt16">🛡️ Kelola Lisensi</div>
+              <div class="kb-manage-lic mt8">
+                <div class="kb-lic-state">
+                  <span class="kb-lic ${lic === 'aktif' || lic === 'active' ? 'on' : ''}">${lic === 'aktif' || lic === 'active' ? '✓ Lisensi Aktif' : (isBatal ? '✖ Lisensi Nonaktif' : '— Tidak ada lisensi aktif')}</span>
+                </div>
+                <div class="btn-block-row mt8">
+                  ${(lic === 'aktif' || lic === 'active') && !isBatal
+                    ? `<button type="button" class="btn btn-danger btn-sm" onclick="revokeClientLicense('${esc(c.id)}')">🚫 Revoke Lisensi</button>`
+                    : `<button type="button" class="btn btn-primary btn-sm" onclick="restoreClientLicense('${esc(c.id)}')">↩️ Pulihkan / Aktifkan</button>`}
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="genCardSerial(this)">🔑 Generate Ulang</button>
+                </div>
+              </div>
 
-                            </div>
-                          </div>
+            </div>
 
           <div class="kb-foot">
             <span class="kb-time">🕒 ${formatRelativeTime(c.last_seen)}</span>
