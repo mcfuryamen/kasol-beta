@@ -186,13 +186,12 @@ async function revokeClientLicense(id) {
   }
 }
 
-/** Pulihkan (re-activate) lisensi klien yang batal — set status/aktif kembali. */
+/** Aktifkan klien — langsung pindah ke status 'aktif' dari status mana pun. */
 async function restoreClientLicense(id) {
   const c = clients.find((x) => x.id === id);
   if (!c) return;
-  // Pulihkan status pipeline ke "aktif"; lisensi serial bisa digenerate ulang manual.
   await updateClientStatus(id, 'aktif');
-  showToast('↩️ Status dipulihkan ke Aktif. Generate ulang serial jika perlu.', 3000, 'info');
+  showToast('✅ Status diubah ke Aktif', 2000, 'success');
 }
 
 window.revokeClientLicense = revokeClientLicense;
@@ -370,11 +369,7 @@ function kanbanCardHtml(c) {
         <div class="kb-head-btn kb-lic-btn">
           ${c.status === 'aktif'
             ? `<button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation();revokeClientLicense('${esc(c.id)}')">🚫 Cabut</button>`
-            : isBatal
-              ? `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();restoreClientLicense('${esc(c.id)}')">↩️ Pulihkan</button>`
-              : c.status === 'menunggu_verifikasi'
-                ? `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();moveStage('${esc(c.id)}','next')">✅ Verifikasi</button>`
-                : ''}
+            : `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();restoreClientLicense('${esc(c.id)}')">🟢 Aktifkan</button>`}
         </div>
         <span class="kb-chev">▾</span>
       </div>
