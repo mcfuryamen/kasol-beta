@@ -385,7 +385,6 @@ function kanbanCardHtml(c) {
       </div>
             <div class="kb-detail">
               <div class="kb-detail-inner">
-                <div class="kb-cta kb-cta-open">${statusCta(c, esc)}</div>
                 ${facts.length ? `<div class="kb-facts">${facts.join('')}</div>` : ''}
           <div class="kb-deal">
             <span class="kb-price">${harga ? 'Rp ' + harga.toLocaleString('id-ID') : 'Harga —'}</span>
