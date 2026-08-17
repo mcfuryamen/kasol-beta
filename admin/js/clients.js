@@ -341,7 +341,6 @@ window.toggleKbMenu = toggleKbMenu;
 
 function kanbanCardHtml(c) {
   const m = metaFor(c.app_type);
-  const sm = stageMeta(c.status);
   const esc = escapeHtml;
   const wil = [c.desa, c.kecamatan, c.kabkota].filter(Boolean).join(', ');
   const idx = PIPELINE_STAGES.findIndex((s) => s.key === c.status);
@@ -380,10 +379,8 @@ function kanbanCardHtml(c) {
           <strong class="kb-card-name">${esc(c.nama_warung || '—')}</strong>
           <span class="kb-card-sub">${esc(m.label)}${m.kodeProduk ? ' · ' + esc(m.kodeProduk) : ''}${c.device_code ? ' · ' + esc(c.device_code) : ''}</span>
         </div>
-        <span class="kb-status ${sm.tone}">${sm.label}</span>
         <span class="kb-chev">▾</span>
       </div>
-      ${c.source ? `<div class="kb-src">${esc(c.source)}</div>` : ''}
       <div class="kb-ctx">${statusCtxHtml(c, esc)}</div>
             <div class="kb-cta kb-cta-card">${statusCta(c, esc)}</div>
             <div class="kb-detail">

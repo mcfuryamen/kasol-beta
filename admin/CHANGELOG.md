@@ -15,6 +15,9 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 - **Fixed:** render dobel saat pindah view Klien (panggilan `switchClientView` ganda
   dari dua jalur) — kini satu jalur + guard same-view.
 - Nomor WhatsApp tampil konsisten format `62xxxx` di kartu & detail.
+- Kartu kanban dirampingkan: badge sumber (`kb-src`, mis. "APP-KAKI5") dan pil
+  status di kepala kartu (`kb-status`) dihapus — info status sudah ada di baris
+  konteks & tab per status.
 
 ### 🧹 Kode mati dibuang
 - `js/supabase-client.js` (tidak dipakai modul manapun) dihapus.
