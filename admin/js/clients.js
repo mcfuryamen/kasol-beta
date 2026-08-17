@@ -368,7 +368,7 @@ function kanbanCardHtml(c) {
         </div>
         <div class="kb-head-btn">${statusCta(c, esc)}</div>
         <div class="kb-head-btn kb-lic-btn">
-          ${(lic === 'aktif' || lic === 'active') && !isBatal
+          ${c.status === 'aktif'
             ? `<button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation();revokeClientLicense('${esc(c.id)}')">🚫 Cabut</button>`
             : isBatal
               ? `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();restoreClientLicense('${esc(c.id)}')">↩️ Pulihkan</button>`
