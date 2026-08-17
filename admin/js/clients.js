@@ -378,13 +378,11 @@ function kanbanCardHtml(c) {
         <div class="kb-title">
           <strong class="kb-card-name">${esc(c.nama_warung || '—')}</strong>
           <span class="kb-card-sub">${esc(m.label)}${m.kodeProduk ? ' · ' + esc(m.kodeProduk) : ''}${c.device_code ? ' · ' + esc(c.device_code) : ''}</span>
+          ${statusCtxHtml(c, esc)}
         </div>
         <span class="kb-chev">▾</span>
       </div>
-      <div class="kb-top-row">
-        <div class="kb-ctx">${statusCtxHtml(c, esc)}</div>
-        <div class="kb-cta kb-cta-card">${statusCta(c, esc)}</div>
-      </div>
+            <div class="kb-cta kb-cta-card">${statusCta(c, esc)}</div>
             <div class="kb-detail">
               <div class="kb-detail-inner">
                 <div class="kb-cta kb-cta-open">${statusCta(c, esc)}</div>
