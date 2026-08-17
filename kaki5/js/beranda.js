@@ -12,8 +12,13 @@ export const loadBeranda = withPageLoading('recentTrx', async function () {
   if (namaEl) namaEl.textContent = nama;
 
   const tgl = todayStr();
-  const penjualan = await DB.penjualan.where('tanggal').equals(tgl).toArray();
-  const pengeluaran = await DB.pengeluaran.where('tanggal').equals(tgl).toArray();
+  // Tiga query independen dijalankan barengan (bukan ngantri) — total waktu =
+  // query terlama, bukan jumlahnya.
+  const [penjualan, pengeluaran, all] = await Promise.all([
+    DB.penjualan.where('tanggal').equals(tgl).toArray(),
+    DB.pengeluaran.where('tanggal').equals(tgl).toArray(),
+    DB.penjualan.orderBy('id').reverse().limit(5).toArray()
+  ]);
 
   const omzet = penjualan.reduce((s, p) => s + (p.totalHarga || 0), 0);
   const expense = pengeluaran.reduce((s, p) => s + (p.jumlah || 0), 0);
@@ -32,8 +37,7 @@ export const loadBeranda = withPageLoading('recentTrx', async function () {
   // Render platform carousel (PALING AWAL, selalu jalan walau belum ada transaksi)
   await renderPlatformCarousel();
 
-  // Recent transactions (recent 5)
-  const all = await DB.penjualan.orderBy('id').reverse().limit(5).toArray();
+  // Recent transactions (recent 5) — `all` sudah diambil di Promise.all di atas
   const recentEl = document.getElementById('recentTrx');
   if (!all.length) {
     recentEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">Belum ada transaksi hari ini.<br>Yuk mulai jualan!</div></div>';

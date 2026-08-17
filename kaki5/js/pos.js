@@ -59,8 +59,11 @@ const _debouncedRenderPOSMenu = debounce(renderPOSMenu, 300);
 
 export async function loadPOS() {
   await loadCart();
-  await renderPOSCatTabs();
-  renderPOSMenu();
+  // Ambil menu SEKALI, lalu pakai untuk tab kategori & grid — hindari 2x query DB.
+  const menus = await DB.menu.where('aktif').equals(1).toArray();
+  renderPOSCatTabsUI(menus);
+  const filtered = posCat !== 'Semua' ? menus.filter(m => m.kategori === posCat) : menus;
+  renderPOSMenuUI(filtered);
   renderCartBar();
 }
 

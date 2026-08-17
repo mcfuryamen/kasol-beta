@@ -452,7 +452,6 @@ async function runLicenseSync() {
 }
 
 async function boot() {
-  await runLicenseSync();
   await ensureUnitId();
   // Boot harus tahan banting: satu langkah gagal tidak boleh mematikan sync
   // profil (dulu loadBeranda error = ensureSynced tak pernah terpanggil).
