@@ -381,8 +381,10 @@ function kanbanCardHtml(c) {
         </div>
         <span class="kb-chev">▾</span>
       </div>
-      <div class="kb-ctx">${statusCtxHtml(c, esc)}</div>
-            <div class="kb-cta kb-cta-card">${statusCta(c, esc)}</div>
+      <div class="kb-top-row">
+        <div class="kb-ctx">${statusCtxHtml(c, esc)}</div>
+        <div class="kb-cta kb-cta-card">${statusCta(c, esc)}</div>
+      </div>
             <div class="kb-detail">
               <div class="kb-detail-inner">
                 <div class="kb-cta kb-cta-open">${statusCta(c, esc)}</div>
