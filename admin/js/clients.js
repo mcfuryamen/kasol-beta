@@ -203,16 +203,14 @@ window.restoreClientLicense = restoreClientLicense;
 const DEVICE_ICON = { mobile: '📱', tablet: '📟', desktop: '🖥️' };
 const OS_ICON = { Android: '🤖', iOS: '🍎', Windows: '🪟', macOS: '🍏', Linux: '🐧' };
 function deviceInfoHtml(c, esc) {
-  const icon = DEVICE_ICON[c.device_type] || '📱';
   const typeTxt = c.device_type ? (c.device_type[0].toUpperCase() + c.device_type.slice(1)) : '';
-  const bits = [
-      c.device_type ? `${icon}${typeTxt}` : '',
-    c.os ? ((OS_ICON[c.os] || '') + ' ' + c.os).trim() : '',
-    c.browser || ''
-  ].filter(Boolean);
+  const osTxt = c.os ? c.os : '';
+  const browserTxt = c.browser || '';
+  const bits = [typeTxt, osTxt, browserTxt].filter(Boolean);
   const full = bits.join(' · ');
   const title = c.user_agent ? `title="${esc(c.user_agent)}"` : '';
-  return `<span ${title}>${full || '—'}</span>`;}
+  return `<span ${title}>${full || '—'}</span>`;
+}
 
 function renderAll() {
   if (clientView === 'kelola') renderKanban();
@@ -381,25 +379,19 @@ function kanbanCardHtml(c) {
               <!-- Grid info klien: label di atas, isi di bawah -->
               <div class="kb-info">
                 <div class="kb-info-r"><span class="kb-info-l">Pemilik</span><span class="kb-info-v">${esc(c.nama_pemilik || '—')}</span></div>
-                <div class="kb-info-r"><span class="kb-info-l">Kontak</span><span class="kb-info-v">${c.no_whatsapp ? '💬 ' + esc(normalizePhone(c.no_whatsapp)) : (c.email ? '✉️ ' + esc(c.email) : '—')}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Kontak</span><span class="kb-info-v">${esc(normalizePhone(c.no_whatsapp) || c.email || '—')}</span></div>
                 <div class="kb-info-r"><span class="kb-info-l">Lokasi</span><span class="kb-info-v">${esc([c.desa, c.kecamatan, c.kabkota].filter(Boolean).join(', ') || c.kabkota || '—')}</span></div>
                 ${c.unit_id !== undefined && c.unit_id !== null && c.unit_id !== '' ? `<div class="kb-info-r"><span class="kb-info-l">Unit ID</span><span class="kb-info-v mono">${esc(c.unit_id)}</span></div>` : ''}
-                <div class="kb-info-r"><span class="kb-info-l">Aplikasi</span><span class="kb-info-v">${m.icon} ${esc(m.label)}${m.kodeProduk ? ' · ' + esc(m.kodeProduk) : ''}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Aplikasi</span><span class="kb-info-v">${esc(m.label)}${m.kodeProduk ? ' · ' + esc(m.kodeProduk) : ''}</span></div>
                 <div class="kb-info-r"><span class="kb-info-l">Device Code</span><span class="kb-info-v mono">${esc(c.device_code || '—')}</span></div>
                 ${c.device_type || c.browser ? `<div class="kb-info-r"><span class="kb-info-l">Perangkat</span><span class="kb-info-v">${deviceInfoHtml(c, esc)}</span></div>` : ''}
                 <div class="kb-info-r"><span class="kb-info-l">Nama Usaha</span><span class="kb-info-v">${esc(c.nama_warung || '—')}</span></div>
                 ${harga ? `<div class="kb-info-r"><span class="kb-info-l">Harga Deal</span><span class="kb-info-v">Rp ${harga.toLocaleString('id-ID')}</span></div>` : ''}
-                <div class="kb-info-r"><span class="kb-info-l">Dilihat</span><span class="kb-info-v">🕒 ${formatRelativeTime(c.last_seen)}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Dilihat</span><span class="kb-info-v">${formatRelativeTime(c.last_seen)}</span></div>
               </div>
 
               ${licHtml}
 
-              <!-- Aksi lisensi — satu tombol (revoke / pulihkan-aktifkan) -->
-              <div class="kb-license-actions mt8">
-                ${(lic === 'aktif' || lic === 'active') && !isBatal
-                  ? `<button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation();revokeClientLicense('${esc(c.id)}')">🚫 Revoke Lisensi</button>`
-                  : `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();restoreClientLicense('${esc(c.id)}')">↩️ Pulihkan / Aktifkan</button>`}
-              </div>
             </div>
           </div>
         </div>
