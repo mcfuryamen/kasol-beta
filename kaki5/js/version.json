@@ -1,7 +1,7 @@
 {
-  "version": "1.0.12",
-  "cacheBust": "v63",
+  "version": "1.0.13",
+  "cacheBust": "v65",
   "notes": [
-    "🔒 Halaman \"Lisensi Dinonaktifkan\" kini tampil jelas satu layar penuh — mudah menghubungi admin atau aktivasi kode baru"
+    "🔄 Folder kerja disinkronkan dengan mirror GitHub — restore dari C:\\Users\\Admin\\Documents\\GitHub\\kasol\\kaki5"
   ]
 }

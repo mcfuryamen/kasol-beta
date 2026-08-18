@@ -26,6 +26,17 @@ const SB_KEY = Deno.env.get('SERVICE_ROLE_KEY') || '';
 // sampai endpoint aktivasi lisensi bisa dipanggil siapa pun yang tahu URL.
 const ADMIN_KEY = Deno.env.get('ADMIN_API_KEY') || '';
 
+/**
+ * Constant-time string comparison (timing-safe) — sama dengan pola di admin/api/_gate.js.
+ * Mencegah timing side-channel attack pada ADMIN_API_KEY.
+ */
+function timingSafeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 function b32Encode(bytes, length = 6) {
   let bits = 0, value = 0, out = '';
   for (const byte of bytes) {
@@ -93,7 +104,7 @@ Deno.serve(async (req) => {
   try {
     if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
     if (!ADMIN_KEY) return json({ ok: false, error: 'ADMIN_API_KEY secret belum dipasang' }, 503);
-    if (req.headers.get('x-admin-key') !== ADMIN_KEY) {
+    if (!timingSafeCompare(req.headers.get('x-admin-key') || '', ADMIN_KEY)) {
       return json({ ok: false, error: 'unauthorized' }, 401);
     }
 

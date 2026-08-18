@@ -4,8 +4,8 @@
 // KEY TIDAK PERNAH DI-COMMIT — nilai asli hanya hadir pada OUTPUT build Vercel.
 //
 // Dipanggil oleh vercel.json -> buildCommand saat deploy.
-// Fail-safe: kalau env belum tersedia (misal build lokal), file yang sudah ada
-// TIDAK ditimpa dan proses tetap exit 0 supaya deploy tidak pernah gagal.
+// Fail-loud: kalau env belum tersedia (misal build lokal), tulis sentinel
+// dan EXIT CODE 1 — jangan deploy file stale dari workspace.
 //
 // SECURITY (Phase A): SERVICE_ROLE_KEY TIDAK PERNAH ditulis ke client.
 // Semua operasi Supabase lewat Vercel Serverless Proxy /api/rest (lihat api/rest.js).
@@ -62,8 +62,10 @@ const anon = pick('SUPABASE_ANON_KEY');
 const adminKey = pick('ADMIN_API_KEY');
 
 if (!url) {
-  console.log('[build-env-loader] SUPABASE_URL tidak ada di env — file dibiarkan apa adanya (deploy tidak gagal).');
-  process.exit(0);
+  const sentinel = `// BUILD FAILED: SUPABASE_URL env tidak terpasang di Vercel.\n// Cek Dashboard > Settings > Environment Variables.\nwindow.SUPABASE_URL = '';\nwindow.SUPABASE_ANON_KEY = '';\nwindow.SUPABASE_ADMIN_KEY = '';\n`;
+  writeFileSync(outPath, sentinel);
+  console.error('[build-env-loader] SUPABASE_URL kosong — sentinel ditulis. GAGAL DEPLOY.');
+  process.exit(1);
 }
 
 const content = `// GENERATED OTOMATIS oleh scripts/build-env-loader.mjs saat build Vercel.

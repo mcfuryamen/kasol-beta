@@ -102,6 +102,9 @@ x[1])*
 generator-lisensi-universal.html
 kasirsolo-kakilima-logo.png
 # Dev test harness (local-only, tidak di-track)
+kaki5/server.cjs
 kaki5/server.js
+kaki5/test_*.js
+kaki5/test_*.cjs
 kaki5/test-*.js
 kaki5/test-import.mjs
