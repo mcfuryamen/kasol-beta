@@ -310,3 +310,37 @@ export function startSyncRetryLoop() {
     } catch (_) { /* retry loop tidak boleh crash */ }
   }, RETRY_INTERVAL_MS);
 }
+
+// ============================================================================
+// C2 (2026-08-19): Pull cloud profile → lokal
+// Sebelum ini, ensureSynced() hanya push (lokal → cloud). Device baru /
+// install ulang / wipe IndexedDB kehilangan profil karena tidak ada reverse
+// flow. Fungsi ini membaca baris clients di Supabase (unit_id-based) lalu
+// menuliskan ke settings table lokal.
+// ============================================================================
+export async function pullCloudProfileTo(cloudClient) {
+  if (!cloudClient || typeof cloudClient !== 'object') return;
+  // Mapping kolom clients (snake_case) → key settings (camelCase)
+  const mapping = {
+    nama_warung:   'namaWarung',
+    nama_pemilik:  'namaPemilik',
+    no_whatsapp:   'noWhatsapp',
+    provinsi_id:   'provinsiId',
+    provinsi:      'provinsi',
+    kabkota_id:    'kabkotaId',
+    kabkota:       'kabkota',
+    kecamatan_id:  'kecamatanId',
+    kecamatan:     'kecamatan',
+    desa_id:       'desaId',
+    desa:          'desa',
+    alamat_detail: 'alamat'
+  };
+  let changed = 0;
+  for (const [col, key] of Object.entries(mapping)) {
+    const val = cloudClient[col];
+    if (val && val !== '') {
+      try { await setSetting(key, val); changed++; } catch (_) { /* abaikan */ }
+    }
+  }
+  if (changed > 0) console.log(`[C2] pullCloudProfileTo: ${changed} field profil di-sync dari cloud`);
+}

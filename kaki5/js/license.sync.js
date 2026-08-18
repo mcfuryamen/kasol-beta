@@ -4,7 +4,7 @@
 // `activate-license` (PATCH clients.license_*) + Supabase Realtime push.
 // User TIDAK perlu request serial manual — cukup beli (QRIS) & tunggu
 // verifikasi admin. Input serial manual hanya fallback offline.
-import { ensureSynced } from './sync.js';
+import { ensureSynced, pullCloudProfileTo } from './sync.js';
 import { getUnitId, getDeviceCode, getLicense, markLicenseRevoked, bumpClockAnchor } from './license.logic.js';
 import { setSetting } from './db.js';
 
@@ -110,6 +110,16 @@ async function recheckRowWithSession(sb) {
   }
 }
 
+// Lazy-import UI refresh (NO DOM in this module, but we need it post-pull)
+async function refreshSettingsUI() {
+  try {
+    const { loadSettings } = await import('./settings.js');
+    if (typeof loadSettings === 'function') await loadSettings();
+  } catch (e) {
+    console.warn('[C2] settings UI refresh skipped:', e?.message || e);
+  }
+}
+
 /** Sync local license state to Supabase and apply only authoritative results. */
 export async function syncLicenseStatus() {
   const sb = getSupabaseClient();
@@ -165,6 +175,11 @@ export async function syncLicenseStatus() {
       const { activateSerial } = await import('./license.logic.js');
       await activateSerial(cloud.license_serial);
     }
+    // C2: saat lisensi aktif, pull profil cloud → lokal (menutup gap device baru
+    // / install ulang yang kehilangan nama usaha, pemilik, dll).
+    await pullCloudProfileTo(cloud);
+    // Refresh UI agar profil yang baru di-pull langsung tampil (tanpa perlu navigasi ke Pengaturan)
+    await refreshSettingsUI();
   }
   await setSetting(LICENSE_SYNC_KEY, { lastSuccessfulSync: new Date().toISOString() });
   await bumpClockAnchor(); // T13: sync sukses = bukti app hidup di momen ini

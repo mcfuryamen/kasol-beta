@@ -5,6 +5,7 @@
 
 import { getUnitId, getDeviceCode } from './license.js';
 import { showToast } from './helpers.js';
+import { pullCloudProfileTo } from './sync.js';
 
 const QRIS_BUCKET_URL = 'https://hhywrvedlwljawgxzpkq.supabase.co/storage/v1/object/public/qris/';
 const BUKTI_BUCKET_URL = 'https://hhywrvedlwljawgxzpkq.supabase.co/storage/v1/object/bukti/';
@@ -41,14 +42,14 @@ function unlockGate() {
 export async function getCloudLicenseStatus() {
   const sb = getSupabaseClient();
   if (!SUPABASE_URL || !ANON_KEY || !sb) return null;
-  
+
   const { unit_id } = await getUnitIdWithDevice();
   const { data, error } = await sb
     .from('clients')
     .select('license_status, license_serial, license_expires_at')
     .eq('unit_id', unit_id)
     .maybeSingle();
-  
+
   if (error) return null;
   return data;
 }
@@ -65,7 +66,7 @@ export async function openPurchaseSheet() {
   const { unit_id, device_code } = await getUnitIdWithDevice();
   const body = document.getElementById('purchaseSheetBody');
   if (!body) return;
-  
+
   // Get payment info from Supabase `settings` (qris_url + bank_info) & `products` harga
   const sb = getSupabaseClient();
   let payInfo = { qrisUrl: '', bank: '', accountNumber: '', accountName: '', priceLabel: '', priceBeforeLabel: '', productName: '', kodeProduk: '', isDemo: false };
@@ -162,7 +163,7 @@ export async function openPurchaseSheet() {
         Transfer sesuai nominal, lalu kirim bukti pembayaran. Admin akan memverifikasi & mengaktifkan lisensi secara otomatis.
       </p>
     </div>
-    
+
     ${priceRow}
     <div style="text-align:center;margin-bottom:16px">${qrisHtml}</div>
     ${bankHtml}
@@ -191,7 +192,7 @@ export async function openPurchaseSheet() {
       4. Admin akan memverifikasi & mengaktifkan lisensi Anda
     </div>
   `;
-  
+
   window._ksr_currentBuktiFile = null;
   window._ksr_purchaseUnitId = unit_id;
   window._ksr_purchaseDeviceCode = device_code;
@@ -219,9 +220,9 @@ export function purchaseShowUpload() {
 export async function handleBuktiUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
-  
+
   window._ksr_currentBuktiFile = file;
-  
+
   const preview = document.getElementById('buktiPreview');
   const placeholder = document.getElementById('buktiPlaceholder');
   if (placeholder) placeholder.textContent = `✅ ${file.name}`;
@@ -233,7 +234,7 @@ export async function handleBuktiUpload(event) {
     };
     reader.readAsDataURL(file);
   }
-  
+
   // Enable submit button
   const btn = document.getElementById('submitPurchaseBtn');
   if (btn) {
@@ -250,9 +251,9 @@ export async function submitPurchase(unitId, deviceCode) {
     showToast('Pilih foto bukti transfer terlebih dahulu', 'error');
     return;
   }
-  
+
   showToast('⏳ Mengupload bukti...', 2000, 'info');
-  
+
   try {
     const sb = getSupabaseClient();
     if (!sb) throw new Error('Supabase client belum siap (cek anon key)');
@@ -263,16 +264,16 @@ export async function submitPurchase(unitId, deviceCode) {
     const { data: uploadData, error: uploadError } = await sb.storage
       .from('bukti')
       .upload(fileName, file, { upsert: false });
-    
+
     if (uploadError) throw uploadError;
-    
+
     // Get public URL
     const { data: urlData } = sb.storage
       .from('bukti')
       .getPublicUrl(fileName);
-    
-    // Insert purchase record — pipeline kini di tabel `clients` (leads/pembelian
-    // lama sudah dikonsolidasi). Update/Upsert baris clients supaya status
+
+    // Insert purchase record — pipeline kini di tabel `clients` (leads/pembelian lama sudah
+    // dikonsolidasi). Update/Upsert baris clients supaya status
     // pipeline jadi 'menunggu_verifikasi' + simpan bukti_url + harga.
     // RLS clients: auth.uid() = user_id → pastikan ada session anon & kirim user_id.
     let { data: sessData } = await sb.auth.getSession();
@@ -305,9 +306,9 @@ export async function submitPurchase(unitId, deviceCode) {
         updated_at: new Date().toISOString()
       })
       .eq('unit_id', unitId);
-    
+
     if (insertError) throw insertError;
-    
+
     showToast('✅ Bukti pembayaran dikirim! Tunggu verifikasi admin.', 3000, 'success');
     window._ksr_closeSheet('sheetPurchase');
 
@@ -317,10 +318,10 @@ export async function submitPurchase(unitId, deviceCode) {
       await renderLicenseStatusArea('licenseInfoCard', 'licenseKeyInputSettings');
       await renderLicenseStatusArea('lockLicenseStatusArea', 'lockLicenseInput');
     } catch (e) { /* UI sudah ditutup — aman */ }
-    
+
     // Start polling for license activation
     window._ksr_pollLicenseStatus(unitId);
-    
+
   } catch (e) {
     console.error('Submit purchase error:', e);
     showToast('Gagal mengirim bukti: ' + e.message, 3000, 'error');
@@ -370,16 +371,25 @@ export async function pollLicenseStatus(unitId) {
 export function subscribeToLicenseUpdates(unitId) {
   const sb = getSupabaseClient();
   if (!SUPABASE_URL || !ANON_KEY || !sb) return;
-  
+
   const channel = sb.channel(`license:${unitId}`);
-  
-  channel.on('postgres_changes', 
+
+  channel.on('postgres_changes',
     { event: 'UPDATE', schema: 'public', table: 'clients', filter: `unit_id=eq.${unitId}` },
     (payload) => {
       if (payload.new.license_status === 'aktif') {
         console.log('License activated via realtime!', payload.new);
         showToast('🎉 Lisensi berhasil diaktifkan!', 3000, 'success');
         unlockGate();
+        // C2: pull profil cloud → lokal saat lisensi aktif (device baru / install ulang)
+        pullCloudProfileTo(payload.new).catch(e => console.warn('[C2] realtime pull profil gagal:', e));
+        // Refresh UI agar profil yang baru di-pull langsung tampil
+        (async () => {
+          try {
+            const { loadSettings } = await import('./settings.js');
+            if (typeof loadSettings === 'function') await loadSettings();
+          } catch (_) { /* abaikan */ }
+        })();
         // Update local license
         if (window._ksr_updateTrialChip) window._ksr_updateTrialChip();
         if (window._ksr_checkLicenseGate) window._ksr_checkLicenseGate();
@@ -392,7 +402,7 @@ export function subscribeToLicenseUpdates(unitId) {
       }
     }
   );
-  
+
   channel.subscribe();
   console.log('Subscribed to license updates for', unitId);
 }
