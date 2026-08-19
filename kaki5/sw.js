@@ -1,9 +1,9 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v67 — ubah angka ini setiap swap service worker file.
+// Cache version v68 — ubah angka ini setiap swap service worker file.
 
-const CACHE_NAME = 'kasir-solo-kaki5-v67';
+const CACHE_NAME = 'kasir-solo-kaki5-v68';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
