@@ -354,30 +354,18 @@ async function init() {
     if (gate) gate.style.display = 'none';
     await boot();
   } else {
-      // SMART GATE: device baru -> onboarding; device dikenal -> langsung lanjut;
-      // trial habis / lisensi kedaluwarsa -> input lisensi.
+      // SMART GATE (ONBOARDING DISABLED): skip onboarding, langsung ke dashboard.
+      // If there's an active license in cloud -> sync it in; else start trial.
+      // Onboarding UI (gateOnboarding) tetap ada di HTML tapi tidak pernah ditampilkan.
+      // Device baru / reinstall tetap dapat trial 7 hari via continueKnownDevice().
       if (status.status === 'none') {
-        const onboardedLocal = await isOnboarded();
-        if (!onboardedLocal) {
-          // Belum dikenal lokal -> tanya cloud (perangkat fisik). Basis unit_id
-          // deterministik dari fingerprint, jadi sama walau ganti browser.
-          const known = await isDeviceKnownOnCloud();
-          if (known === true) {
-            await markOnboarded(); // skip onboarding utk perangkat fisik ini
-            await continueKnownDevice();
-            await checkLicenseGate();
-            return;
-          }
-          // known === false (device baru) atau null (offline) -> onboarding.
-        }
+        await continueKnownDevice();
+        await checkLicenseGate();
+        return;
       }
+      // Licensed expired / revoked -> tampilkan gate beli lisensi.
       await renderGate(status);
       if (gate) gate.style.display = 'flex';
-      if (status.status === 'none') {
-        const existing = await getSetting('noWhatsapp', '');
-        const waEl = document.getElementById('onboardWa');
-        if (waEl && existing) waEl.value = existing;
-      }
     }
     await checkLicenseGate();
   }
@@ -481,7 +469,7 @@ async function boot() {
   // Boot harus tahan banting: satu langkah gagal tidak boleh mematikan sync
   // profil (dulu loadBeranda error = ensureSynced tak pernah terpanggil).
   try { await loadBeranda(); } catch (e) { console.error('[BOOT] loadBeranda gagal:', e); }
-  try { await checkOnboarding(); } catch (e) { console.error('[BOOT] checkOnboarding gagal:', e); }
+  // try { await checkOnboarding(); } catch (e) { console.error('[BOOT] checkOnboarding gagal:', e); }
   // H1: pulihkan status printer tersimpan
   restorePrinterStatus();
   // C2v2: pull profil dari cloud SETIAP boot, berdasarkan unit_id/fingerprint.
