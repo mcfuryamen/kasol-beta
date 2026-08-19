@@ -4,19 +4,13 @@ on:
   push:
     branches: [preview]
 
-# Cancel in-progress deployments for the same branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Allow OIDC token for Vercel login (no permanent VERCEL_TOKEN needed)
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
   deploy:
-    name: Deploy to Vercel (Production)
+    name: Deploy to Vercel
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -27,22 +21,19 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      # OIDC: Vercel verifies the GitHub OIDC token directly
-      # No permanent VERCEL_TOKEN secret needed
       - name: Deploy to Vercel (Production)
         run: |
           vercel pull --yes --environment=production \
-            --token="${VERCEL_TOKEN}" \
-            --scope=mcfury 2>&1 || true
+            --token="$VERCEL_TOKEN" \
+            --scope="mcfury" \
+            --project="kaki5"
           vercel deploy --yes --prod \
-            --token="${VERCEL_TOKEN}" \
-            --scope=mcfury \
-            --cwd=kaki5
+            --token="$VERCEL_TOKEN" \
+            --scope="mcfury" \
+            --project="kaki5" \
+            --cwd="./kaki5"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Verify deployment
-        run: |
-          echo "✅ Preview deployed ke: https://kaki5.vercel.app"
-          echo "✅ Commit: ${{ github.sha }}"
-          echo "✅ Branch: ${{ github.ref_name }}"
+      - name: Show deployment URL
+        run: echo "✅ Deployed to https://kaki5.vercel.app"
