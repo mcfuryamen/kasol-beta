@@ -338,9 +338,36 @@ export async function pullCloudProfileTo(cloudClient) {
   let changed = 0;
   for (const [col, key] of Object.entries(mapping)) {
     const val = cloudClient[col];
-    if (val && val !== '') {
+    // C2v2: overwrite juga bila nilai kosong/'' — cloud bisa jadi sengaja
+    // membersihkan field (buffer profile). Jangan skip empty string.
+    if (val !== undefined && val !== null) {
       try { await setSetting(key, val); changed++; } catch (_) { /* abaikan */ }
     }
   }
   if (changed > 0) console.log(`[C2] pullCloudProfileTo: ${changed} field profil di-sync dari cloud`);
+}
+
+// ============================================================================
+// C2v2 (2026-08-19): Pull cloud profile on EVERY boot
+// Setiap kali app dimuat, cek apakah baris clients untuk unit_id ini ada di
+// cloud. Bila ada, pull profil ke IndexedDB sebelum UI pertama kali render.
+// Ini menutup kasus device baru / install ulang / wipe yang kehilangan profil.
+// Fire-and-forget: tidak menghalangi boot sequence.
+// ============================================================================
+export async function pullCloudProfileIfOnline() {
+  const sb = getClient();
+  if (!sb || !navigator.onLine) return;
+  try {
+    const unitId = await getUnitId();
+    const { data: client } = await sb
+      .from('clients')
+      .select('*')
+      .eq('unit_id', unitId)
+      .eq('app_type', APP_TYPE)
+      .maybeSingle();
+    if (!client) return;
+    await pullCloudProfileTo(client);
+  } catch (e) {
+    console.warn('[C2v2] pullCloudProfileIfOnline gagal:', e?.message || e);
+  }
 }

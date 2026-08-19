@@ -14,7 +14,7 @@ import { getSetting, setSetting } from './db.js';
 import { validatePhone, formatPhoneDisplay } from './helpers.js';
 import { renderPlatformCarousel, platGoTo } from './carousel.js';
 import { debounce } from './helpers.pure.js';
-import { ensureSynced, startSyncRetryLoop } from './sync.js';
+import { ensureSynced, startSyncRetryLoop, pullCloudProfileIfOnline } from './sync.js';
 import { openSyncDiag, copySyncDiag, closeSyncDiag } from './sync.health.js';
 import { syncLicenseStatus } from './license.sync.js';
 import { showConfirm, closeConfirm } from './confirm.js';
@@ -442,6 +442,8 @@ async function init() {
     }
 
 let _licenseSyncInFlight = null;
+let _pendingProfilePullRefresh = false; // C2v2: pending UI refresh after cloud pull
+
 async function runLicenseSync() {
   if (!navigator.onLine || _licenseSyncInFlight) return _licenseSyncInFlight;
   _licenseSyncInFlight = syncLicenseStatus().then(async result => {
@@ -457,6 +459,16 @@ async function boot() {
   // profil (dulu loadBeranda error = ensureSynced tak pernah terpanggil).
   try { await loadBeranda(); } catch (e) { console.error('[BOOT] loadBeranda gagal:', e); }
   try { await checkOnboarding(); } catch (e) { console.error('[BOOT] checkOnboarding gagal:', e); }
+  // C2v2: pull profil dari cloud SETIAP boot, berdasarkan unit_id/fingerprint.
+  // Device baru / install ulang / wipeIndexedDB akan otomatis dapat profil.
+  // Simpan flag pending refresh — akan dieksekusi saat settings module ready.
+  pullCloudProfileIfOnline().then(() => {
+    if (typeof loadSettings === 'function') {
+      loadSettings().catch(e => console.warn('[BOOT] settings refresh after pull gagal:', e));
+    } else {
+      _pendingProfilePullRefresh = true;
+    }
+  }).catch(e => console.warn('[BOOT] cloud profile pull gagal:', e?.message || e));
   // Backfill otomatis: user yang sudah pakai (data cuma lokal) di-push sekali.
   // Self-healing (T29): flag "synced" diverifikasi ke server — baris hilang
   // otomatis di-push ulang. Gagal → status pending → retry loop tiap 5 menit.
@@ -477,6 +489,12 @@ async function boot() {
   }
   if (typeof checkProfileNotification === 'function') {
     await checkProfileNotification(); // banner "lengkapi profil" bila profil belum lengkap
+  }
+  // C2v2: bila pull cloud profil selesai setelah settings module ready,
+  // lakukan refresh UI sekali lagi untuk menampilkan data terbaru.
+  if (_pendingProfilePullRefresh) {
+    _pendingProfilePullRefresh = false;
+    try { await loadSettings(); } catch (_) { /* abaikan */ }
   }
   setupPWA();
   
