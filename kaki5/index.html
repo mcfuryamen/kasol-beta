@@ -182,7 +182,7 @@
 </div>
 </div>
 <div class="card">
-<div class="card-title">🖨️ Printer Bluetooth</div>
+<div class="card-title">📱 Perangkat</div>
 <div class="setting-item" onclick="connectBTPrinter()" id="btPrinterConnectRow">
 <div class="setting-icon" style="background:var(--blue-bg)">📡</div>
 <div class="setting-info"><div class="s-title">Hubungkan Printer</div><div class="s-desc" id="btPrinterStatus">Belum terhubung</div></div>
@@ -196,6 +196,11 @@
 <div class="setting-item" onclick="disconnectBTPrinter()">
 <div class="setting-icon" style="background:var(--red-bg)">❌</div>
 <div class="setting-info"><div class="s-title">Putuskan Printer</div><div class="s-desc">Lepas koneksi Bluetooth</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<div class="setting-item" onclick="installPWA()" id="pwaInstallRow">
+<div class="setting-icon" style="background:var(--green-bg)">📲</div>
+<div class="setting-info"><div class="s-title" id="pwaInstallTitle">Pasang Aplikasi</div><div class="s-desc" id="pwaInstallDesc">Buka kayak app native di HP</div></div>
 <div class="setting-arrow">›</div>
 </div>
 </div>
@@ -227,13 +232,6 @@
 <div class="card">
 <!-- licenseInfoCard: status lisensi (aktif/trial/expired) di-render oleh license.ui.renderLicenseInfoCard() -->
 <div id="licenseInfoCard" style="margin-top:16px"></div>
-</div>
-<div class="card">
-<div class="card-title">📲 Aplikasi (PWA)</div>
-<div class="setting-item" onclick="installPWA()" id="pwaInstallRow">
-<div class="setting-icon" style="background:var(--green-bg)">📲</div>
-<div class="setting-info"><div class="s-title" id="pwaInstallTitle">Pasang Aplikasi</div><div class="s-desc" id="pwaInstallDesc">Buka kayak app native di HP</div></div>
-<div class="setting-arrow">›</div>
 </div>
 </div>
 <!-- ====== Footer Info Aplikasi (di luar kartu, paling bawah) ====== -->
