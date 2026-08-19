@@ -1,8 +1,9 @@
 // Service Worker for Kasir Solo - Kaki Lima
-// Strategi fetch: NETWORK-FIRST dengan fallback ke cache.
-// HTML navigasi di-cache agar app tetap jalan offline.
+// Strategi: API calls → network-only, HTML → cache-first (offline navigable),
+// static assets → network-first dengan fallback cache.
+// Cache version v67 — ubah angka ini setiap swap service worker file.
 
-const CACHE_NAME = 'kasir-solo-kaki5-v66';
+const CACHE_NAME = 'kasir-solo-kaki5-v67';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -23,7 +24,13 @@ const ASSETS_TO_CACHE = [
   './css/components-settings.css',
   './css/style.css',
   './assets/icon.png',
+  './assets/icon-48.png',
+  './assets/icon-72.png',
+  './assets/icon-96.png',
+  './assets/icon-144.png',
+  './assets/icon-152.png',
   './assets/icon-192.png',
+  './assets/icon-384.png',
   './assets/icon-512.png',
   './js/helpers.js',
   './js/helpers.pure.js',
