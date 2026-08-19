@@ -510,7 +510,10 @@ async function boot() {
     try { await loadSettings(); } catch (_) { /* abaikan */ }
   }
   setupPWA();
-  
+
+  // PWA: update install button state di settings
+  try { await updatePWAButton(); } catch (e) { console.warn('[BOOT] updatePWAButton gagal:', e); }
+
   // Subscribe to realtime license updates
   try {
     const { unit_id } = await ensureUnitId();
@@ -518,9 +521,6 @@ async function boot() {
   } catch (e) {
     console.log('Realtime subscription skipped:', e?.message || e);
   }
-
-  // PWA: update install button state di settings
-  try { await updatePWAButton(); } catch (e) { console.warn('[BOOT] updatePWAButton gagal:', e); }
 }
 
 // PWA (2026-08-19): Update tombol install di settings berdasarkan status PWA
