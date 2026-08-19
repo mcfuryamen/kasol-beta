@@ -21,7 +21,7 @@ import { showConfirm, closeConfirm } from './confirm.js';
 import { exportData, importData, confirmClearAll } from './backup.js';
 import { checkOnboarding } from './onboarding.js';
 import { setupPWA, installPWA } from './pwa.js';
-import { connectBTPrinter, disconnectBTPrinter, printNota, printLastNota, testPrint } from './printer.js';
+import { connectBTPrinter, disconnectBTPrinter, printNota, printLastNota, testPrint, getSavedPrinterName } from './printer.js';
 import { showTrxDetail, closeTrxDetail, hapusPenjualan } from './trxdetail.js';
 import { showExpenseDetail } from './expensedetail.js';
 import { subscribeToLicenseUpdates, openPurchaseSheet, purchaseShowUpload, handleBuktiUpload, submitPurchase, pollLicenseStatus } from './purchase.js';
@@ -136,6 +136,7 @@ window.copySyncDiag       = copySyncDiag;
 window.closeSyncDiag      = closeSyncDiag;
 window.connectBTPrinter   = connectBTPrinter;
 window.disconnectBTPrinter= disconnectBTPrinter;
+window.getSavedPrinterName= getSavedPrinterName;
 window.printNota          = printNota;
 window.printLastNota      = printLastNota;
 window.testPrint          = testPrint;
@@ -453,12 +454,36 @@ async function runLicenseSync() {
   return _licenseSyncInFlight;
 }
 
+// H1 (2026-08-19): Pulih status printer tersimpan dari localStorage
+async function restorePrinterStatus() {
+  try {
+    const saved = getSavedPrinterName();
+    const el = document.getElementById('btPrinterStatus');
+    const row = document.getElementById('btPrinterConnectRow');
+    if (saved && el) {
+      el.textContent = '✅ ' + saved + ' (tersimpan)';
+      if (row) {
+        const titleEl = row.querySelector('.s-title');
+        if (titleEl) titleEl.textContent = 'Sambungkan Kembali';
+      }
+    } else if (el) {
+      el.textContent = 'Belum terhubung';
+      if (row) {
+        const titleEl = row.querySelector('.s-title');
+        if (titleEl) titleEl.textContent = 'Hubungkan Printer';
+      }
+    }
+  } catch (e) { console.warn('[BOOT] restorePrinterStatus gagal:', e); }
+}
+
 async function boot() {
   await ensureUnitId();
   // Boot harus tahan banting: satu langkah gagal tidak boleh mematikan sync
   // profil (dulu loadBeranda error = ensureSynced tak pernah terpanggil).
   try { await loadBeranda(); } catch (e) { console.error('[BOOT] loadBeranda gagal:', e); }
   try { await checkOnboarding(); } catch (e) { console.error('[BOOT] checkOnboarding gagal:', e); }
+  // H1: pulihkan status printer tersimpan
+  restorePrinterStatus();
   // C2v2: pull profil dari cloud SETIAP boot, berdasarkan unit_id/fingerprint.
   // Device baru / install ulang / wipeIndexedDB akan otomatis dapat profil.
   // Simpan flag pending refresh — akan dieksekusi saat settings module ready.
