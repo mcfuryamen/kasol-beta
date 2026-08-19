@@ -530,6 +530,27 @@ async function boot() {
   } catch (e) {
     console.log('Realtime subscription skipped:', e?.message || e);
   }
+
+  // PWA: update install button state di settings
+  try { await updatePWAButton(); } catch (e) { console.warn('[BOOT] updatePWAButton gagal:', e); }
+}
+
+// PWA (2026-08-19): Update tombol install di settings berdasarkan status PWA
+async function updatePWAButton() {
+  const installed = checkPWAInstalled();
+  const titleEl = document.getElementById('pwaInstallTitle');
+  const descEl = document.getElementById('pwaInstallDesc');
+  const row = document.getElementById('pwaInstallRow');
+  if (!titleEl) return;
+  if (installed) {
+    titleEl.textContent = '✅ Sudah Terpasang';
+    descEl.textContent = 'Aplikasi sudah berjalan di layar utama';
+    if (row) row.style.opacity = '0.6';
+  } else {
+    titleEl.textContent = 'Pasang Aplikasi';
+    descEl.textContent = 'Buka kayak app native di HP';
+    if (row) row.style.opacity = '1';
+  }
 }
 
 // Error boundary for nav setup: guard so a DOM/nav issue never blocks the router below.

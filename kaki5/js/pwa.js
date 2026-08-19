@@ -4,7 +4,7 @@ import { showToast } from './helpers.js';
 let deferredPrompt = null;
 let isPWAInstalled = false;
 
-// Check if app is already installed/running as PWA
+// ── Check PWA installed state ────────────────────────────────────────────────
 function checkPWAInstalled() {
   // 1. Standalone display mode (Android Chrome, Edge, Firefox, Safari PWA)
   if (window.matchMedia('(display-mode: standalone)').matches ||
@@ -12,48 +12,39 @@ function checkPWAInstalled() {
       window.matchMedia('(display-mode: minimal-ui)').matches) {
     return true;
   }
-  
+
   // 2. iOS Safari standalone (legacy)
   if (window.navigator.standalone === true) {
     return true;
   }
-  
+
   // 3. Check if service worker is controlling this page (strong indicator)
   if (navigator.serviceWorker && navigator.serviceWorker.controller) {
     return true;
   }
-  
+
   // 4. Check localStorage flag (set after successful install)
   try {
     if (localStorage.getItem('kasirsolo:pwa-installed') === 'true') {
       return true;
     }
   } catch {}
-  
+
   return false;
 }
 
-// Generate manifest blob URL with icon
+// ── Register Service Worker ──────────────────────────────────────────────────
 export function setupPWA() {
-  // Manifest disediakan sebagai file statis (manifest.json) yang direferensikan
-  // di index.html via <link rel="manifest">. Browser TIDAK menerima manifest dari
-  // blob: URL untuk persyaratan installability, jadi jangan dibangun dinamis.
-  // Cukup daftarkan Service Worker (file eksternal, cache-first).
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
       console.log('[SW] Registered, scope:', reg.scope);
-      
+
       // Check for SW updates (app already installed, new version available)
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // SW baru terpasang. TIDAK lagi memanggil notifyUpdateAvailable di
-              // sini: event ini menyala untuk SEMUA perubahan sw.js walau versi
-              // rilis sama, dan pemanggilan tanpa data remote memicu overlay
-              // force-update palsu (bug ketemu saat uji v56). Sumber kebenaran
-              // versi = update.js watcher (version.json), bukan event SW.
               console.log('[SW] Service worker baru terpasang — menunggu reload berikutnya.');
             }
           });
@@ -63,10 +54,10 @@ export function setupPWA() {
       console.warn('[SW] Registration failed:', err.message);
     });
   }
-  
+
   // Initial check
   isPWAInstalled = checkPWAInstalled();
-  
+
   // Listen for display mode changes (e.g., user installs, then reopens)
   if (window.matchMedia) {
     const mq = window.matchMedia('(display-mode: standalone)');
@@ -74,7 +65,6 @@ export function setupPWA() {
       const wasInstalled = isPWAInstalled;
       isPWAInstalled = checkPWAInstalled();
       if (!wasInstalled && isPWAInstalled) {
-        // Just got installed! Mark in localStorage
         try { localStorage.setItem('kasirsolo:pwa-installed', 'true'); } catch {}
         showToast('🎉 Kasir Solo sudah terpasang!', 'success');
       }
@@ -84,13 +74,13 @@ export function setupPWA() {
   }
 }
 
+// ── Custom Install Banner ────────────────────────────────────────────────────
 export function showInstallBanner() {
-  // Jika sudah terinstal (running as PWA), jangan tampilkan banner
   if (isPWAInstalled || checkPWAInstalled()) {
     isPWAInstalled = true;
     return;
   }
-  
+
   if (document.getElementById('installBanner')) return;
   const banner = document.createElement('div');
   banner.id = 'installBanner';
@@ -98,14 +88,17 @@ export function showInstallBanner() {
   banner.innerHTML = '<div style="font-size:32px">📲</div><div style="flex:1"><div style="font-weight:700;font-size:14px">Pasang di HP</div><div style="font-size:12px;opacity:.85">Biar gampang dibuka kayak app biasa</div></div><button onclick="installPWA()" style="background:#fff;color:var(--primary);border:none;padding:8px 16px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">Pasang</button><button onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px">✕</button>';
   document.body.appendChild(banner);
 
-  // Add slideDown animation
   const style = document.createElement('style');
   style.textContent = '@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}';
   document.head.appendChild(style);
 }
 
+// ── Install PWA (native prompt) ─────────────────────────────────────────────
 export async function installPWA() {
-  if (!deferredPrompt) return;
+  if (!deferredPrompt) {
+    showManualInstallGuide();
+    return;
+  }
   deferredPrompt.prompt();
   const result = await deferredPrompt.userChoice;
   if (result.outcome === 'accepted') {
@@ -118,11 +111,35 @@ export async function installPWA() {
   if (banner) banner.remove();
 }
 
-// Module-level global listeners (run once on import)
+// ── Manual Install Guide (iOS / when prompt not available) ──────────────────
+export function showManualInstallGuide() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  let msg;
+  if (isIOS) {
+    msg = '🍎 <b>iOS:</b><br>1. Tekan tombol <b>Share</b> di browser<br>2. Pilih <b>"Add to Home Screen"</b><br>3. Konfirmasi dengan <b>"Tambah"</b>';
+  } else {
+    msg = '📱 <b>Android:</b><br>1. Buka menu <b>⋮</b> (pojok kanan atas)<br>2. Pilih <b>"Install app"</b> atau <b>"Tambahkan ke layar utama"</b><br><br>💡 Tip: Buka app 2x sebelum install agar prompt muncul otomatis.';
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'installGuideOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:20px;padding:24px;max-width:320px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+      <div style="font-size:40px;margin-bottom:12px">${isIOS ? '🍎' : '📲'}</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:12px;color:#1a1a1a">Pasang Aplikasi</div>
+      <div style="font-size:13px;color:#555;line-height:1.7;text-align:left;margin-bottom:20px">${msg}</div>
+      <button onclick="document.getElementById('installGuideOverlay').remove()" style="background:var(--primary);color:#fff;border:none;padding:10px 24px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer">Tutup</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+// ── Module-level listeners ───────────────────────────────────────────────────
 window.addEventListener('beforeinstallprompt', (e) => {
-  // Browser already knows app is installable - don't show if already installed
   if (isPWAInstalled || checkPWAInstalled()) {
-    e.preventDefault(); // Still prevent default to keep control
+    e.preventDefault();
     return;
   }
   e.preventDefault();
@@ -139,5 +156,5 @@ window.addEventListener('appinstalled', () => {
   if (banner) banner.remove();
 });
 
-// Export for manual checking
+// ── Export ────────────────────────────────────────────────────────────────────
 export { isPWAInstalled, checkPWAInstalled };

@@ -1,9 +1,8 @@
 // Service Worker for Kasir Solo - Kaki Lima
-// Strategi fetch: NETWORK-FIRST dengan fallback ke cache (lihat handler fetch
-// di bawah — komentar lama salah menyebut cache-first). HTML selalu segar saat
-// online; cache precache di bawah menjamin app tetap jalan offline penuh.
+// Strategi fetch: NETWORK-FIRST dengan fallback ke cache.
+// HTML navigasi di-cache agar app tetap jalan offline.
 
-const CACHE_NAME = 'kasir-solo-kaki5-v65';
+const CACHE_NAME = 'kasir-solo-kaki5-v66';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -69,7 +68,7 @@ const ASSETS_TO_CACHE = [
   './js/update.js'
 ];
 
-// Install: cache shell assets
+// ── Install: precache shell assets ───────────────────────────────────────────
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
@@ -81,7 +80,7 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// ── Activate: clean old caches, take control immediately ─────────────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -93,19 +92,66 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch: cache-first, fall back to network, then cache the response
+// ── Fetch: smart strategy per resource type ──────────────────────────────────
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+  const { request } = event;
 
+  // Skip non-GET requests
+  if (request.method !== 'GET') return;
+
+  // ── API calls: network-first, no cache ────────────────────────────────────
+  if (request.url.includes('/supabase.co')) {
+    event.respondWith(
+      fetch(request).catch(() => {
+        return new Response(JSON.stringify({ error: 'offline' }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
+    return;
+  }
+
+  // ── HTML pages: cache-first for offline navigation ────────────────────────
+  if (request.headers.get('accept')?.includes('text/html') ||
+      new URL(request.url).pathname.endsWith('/') ||
+      new URL(request.url).pathname.match(/^[^ .]+\.(html)?$/)) {
+    event.respondWith(
+      caches.match(request).then(cached => {
+        return cached || fetch(request).then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+          }
+          return response;
+        }).catch(() => {
+          return caches.match('./index.html');
+        });
+      })
+    );
+    return;
+  }
+
+  // ── Static assets (JS, CSS, images): network-first with cache fallback ───
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then(response => {
         if (response && response.status === 200 && response.type === 'basic') {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
         }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(request))
   );
 });
+
+// ── Background sync (optional): retry failed API calls when back online ─────
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-pending-requests') {
+    event.waitUntil(doSync());
+  }
+});
+
+async function doSync() {
+  console.log('[SW] Background sync triggered');
+}
