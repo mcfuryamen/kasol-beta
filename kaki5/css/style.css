@@ -654,3 +654,19 @@ body.modal-open .main-content{overflow:hidden}
 /* Footer info aplikasi (semantik — dipakai 1x di index.html) */
 .app-footer{display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:20px}
 
+/* KSR tambahan (P4 migrasi lanjutan — 61 inline style → kelas) */
+.kreq{color:var(--red);font-weight:700}
+.kop85{opacity:.85}
+.kfw400{font-weight:400}
+.kno-underline{text-decoration:none}
+.kjc-center{justify-content:center}
+.kdivider{border-top:2px solid var(--border);margin-top:12px;padding-top:12px}
+.kgrid-2col-gap12{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;margin-bottom:12px}
+.kgrid-2col-gap8{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kkembalian-box{background:var(--green-bg);border-radius:12px;padding:14px 16px;text-align:center;display:flex;align-items:center;justify-content:center}
+.kclose-btn{padding:8px;width:40px;height:40px;border-radius:8px;flex-shrink:0}
+.klh16{line-height:1.6}.klh15{line-height:1.5}
+.kgate-box{max-width:440px;width:100%;text-align:center}
+.kgreen-box{background:var(--green-bg);border-radius:16px;padding:16px;margin-bottom:16px}
+.kfs40{font-size:40px}
+
