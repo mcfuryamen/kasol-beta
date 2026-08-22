@@ -234,7 +234,7 @@ export function trapFocus(container) {
 export function setupModalFocusTrap(modalOverlay) {
   const modal = modalOverlay.querySelector('.modal, .license-sheet, .confirm-box');
   if (!modal) return () => {};
-  
+
   // Small delay to ensure modal is rendered
   return new Promise(resolve => {
     requestAnimationFrame(() => {
@@ -242,6 +242,89 @@ export function setupModalFocusTrap(modalOverlay) {
       resolve(cleanup);
     });
   });
+}
+
+// ==================== KSR — KEY-VALUE STYLE REGISTRY (P4 2026-08-22) ========
+// Framework untuk migrasi inline style → semantic class.
+//
+// Masalah: ~320 inline style di JS templates (dinamis per-record) & index.html
+// (statis) memaksa CSP `unsafe-inline` dan mencegah konsolidasi styling.
+//
+// Solusi: ksr() = Key Style Registry. Setiap key = satu class CSS di
+// css/style.css (section "KSR UTILITIES").
+//   1. Definisi key di _KEY_CSS (bawah)
+//   2. Kelas CSS sudah ada di style.css (satu-satunya sumber kebenaran)
+//   3. Pemanggil di template: class="${ksr('mt16', 'flex-center')}"
+//      → class=" kmt16 kflex-center"
+//
+// Catatan: dynamic style (mengandung ${} atau ternary) TETAP pakai inline.
+// ksr() hanya untuk nilai statis.
+
+const _KEY_CSS = {
+  // Margins
+  mt8:'margin-top:8px',mt12:'margin-top:12px',mt14:'margin-top:14px',mt16:'margin-top:16px',
+  mb8:'margin-bottom:8px',mb10:'margin-bottom:10px',mb12:'margin-bottom:12px',mb16:'margin-bottom:16px',
+  ml20:'margin-left:20px',
+  // Paddings
+  p10:'padding:10px',p12:'padding:12px',pt12:'padding-top:12px',pl20:'padding-left:20px',
+  // Flex
+  flex:'display:flex', 'flex-1':'flex:1',
+  'flex-center':'display:flex;align-items:center;justify-content:center',
+  'flex-between':'display:flex;align-items:center;justify-content:space-between',
+  'flex-between-mb12':'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px',
+  'flex-gap4':'display:flex;gap:4px',
+  'flex-gap10':'display:flex;align-items:center;gap:10px',
+  'flex-gap12':'display:flex;gap:12px',
+  'flex-col':'display:flex;flex-direction:column',
+  'flex-wrap':'display:flex;flex-wrap:wrap',
+  'grid-4col':'display:grid;grid-template-columns:repeat(4,1fr);gap:8px',
+  'col-span2':'grid-column:1/-1',
+  hide:'display:none', center:'text-align:center', right:'text-align:right', left:'text-align:left',
+  // Font sizes
+  fs11:'font-size:11px',fs12:'font-size:12px',fs13:'font-size:13px',fs14:'font-size:14px',
+  fs15:'font-size:15px',fs16:'font-size:16px',fs17:'font-size:17px',fs18:'font-size:18px',
+  fs20:'font-size:20px',fs22:'font-size:22px',fs28:'font-size:28px',fs30:'font-size:30px',fs32:'font-size:32px',
+  // Font weights
+  fw600:'font-weight:600',fw700:'font-weight:700',fw800:'font-weight:800',
+  lh18:'line-height:1.8',
+  // Colors
+  text2:'color:var(--text2)',text3:'color:var(--text3)',
+  primary:'color:var(--primary)',green:'color:var(--green)',red:'color:var(--red)',
+  'text-blue':'color:var(--blue)','text-white':'color:#fff',
+  // Backgrounds
+  'bg-green':'background:var(--green-bg)','bg-red':'background:var(--red-bg)',
+  'bg-orange':'background:var(--orange-bg)','bg-blue':'background:var(--blue-bg)',
+  'bg-green-b':'background:var(--green-bg);border-color:#A5D6A7',
+  'bg-red-b':'background:var(--red-bg);border-color:#EF9A9A',
+  'bg-blue-b':'background:var(--blue-bg);border-color:#90CAF9',
+  // Card-like containers
+  'info-card':'background:var(--green-bg);padding:12px;border-radius:8px;margin-top:12px',
+  'warn-card':'background:var(--orange-bg);padding:12px;border-radius:8px;margin-top:12px',
+  'err-card':'background:var(--red-bg);padding:12px;border-radius:8px;margin-top:12px',
+  'dashed-box':'padding:10px;text-align:center;border:1px dashed var(--border);border-radius:12px;color:var(--text2);font-size:13px',
+  // Widget sizes
+  wh80:'width:80px;height:80px;margin-bottom:8px',
+  wh64:'width:64px;height:64px;margin:0 auto 8px;display:block',
+  wh64-round:'width:64px;height:64px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0',
+  wh44:'width:44px;height:44px;min-height:44px;font-size:16px',
+  'btn-icon':'width:44px;height:44px;min-height:44px;font-size:16px',
+  dot:'width:12px;height:12px;border-radius:3px',
+  'dot-circle':'width:12px;height:12px;background:var(--red-light);border-radius:50%;flex-shrink:0',
+  'w-full':'width:100%','w-max300':'width:100%;max-width:300px;border-radius:12px;margin-bottom:12px',
+  // Text overflow
+  truncate:'flex:1;text-align:center;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none',
+  'tab-label':'flex:1;text-align:center;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none',
+  'date-label':'flex:1;text-align:center;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none',
+};
+
+/**
+ * KSR: translate one or more semantic keys to class string.
+ * Usage: class="${ksr('mt16', 'flex-center')}"   → " kmt16 kflex-center"
+ * @param  {...string} keys
+ * @returns {string}
+ */
+export function ksr(...keys) {
+  return keys.map(k => `k${k}`).join(' ');
 }
 
 
