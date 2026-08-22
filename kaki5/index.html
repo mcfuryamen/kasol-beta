@@ -37,7 +37,7 @@
 
 <!-- HEADER -->
 <header class="app-header">
-<img src="assets/icon.png" class="header-logo" alt="Logo"><h1>Kasir Solo<br><span style="font-size:12px;font-weight:400;opacity:.85">Kaki Lima Edition</span></h1>
+<img src="assets/icon.png" class="header-logo" alt="Logo"><h1>Kasir Solo<br><span class="kfs12 kfw400 kop85">Kaki Lima Edition</span></h1>
 <div class="header-right">
 <div class="trial-badge" id="trialChip" data-action="open-license-sheet" role="button" tabindex="0" title="Status Lisensi"><div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">7 hari</div></div>
 <button class="header-btn" title="Bantuan" data-action="navigate-bantuan">❓</button>
@@ -142,45 +142,45 @@
 <div class="card">
 <div class="card-title">👤 Profil</div>
 <div class="setting-item" data-action="open-name-modal">
-<div class="setting-icon" style="background:var(--orange-bg)">🏪</div>
-<div class="setting-info"><div class="s-title">Nama Usaha <span style="color:var(--red);font-weight:700">*</span></div><div class="s-desc" id="settingName">Warung Saya</div></div>
+<div class="setting-icon kbg-orange">🏪</div>
+<div class="setting-info"><div class="s-title">Nama Usaha <span class="kreq">*</span></div><div class="s-desc" id="settingName">Warung Saya</div></div>
 <div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" data-action="open-owner-modal">
-<div class="setting-icon" style="background:var(--orange-bg)">👤</div>
-<div class="setting-info"><div class="s-title">Nama Pemilik <span style="color:var(--red);font-weight:700">*</span></div><div class="s-desc" id="settingOwner">—</div></div>
+<div class="setting-icon kbg-orange">👤</div>
+<div class="setting-info"><div class="s-title">Nama Pemilik <span class="kreq">*</span></div><div class="s-desc" id="settingOwner">—</div></div>
 <div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" data-action="open-wa-modal">
-<div class="setting-icon" style="background:var(--green-bg)">💬</div>
-<div class="setting-info"><div class="s-title">Nomor WhatsApp <span style="color:var(--red);font-weight:700">*</span></div><div class="s-desc" id="settingWa">—</div></div>
+<div class="setting-icon kbg-green">💬</div>
+<div class="setting-info"><div class="s-title">Nomor WhatsApp <span class="kreq">*</span></div><div class="s-desc" id="settingWa">—</div></div>
 <div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" data-action="open-alamat-modal">
-<div class="setting-icon" style="background:var(--blue-bg)">📍</div>
-<div class="setting-info"><div class="s-title">Alamat <span style="color:var(--red);font-weight:700">*</span></div><div class="s-desc" id="settingAlamat">—</div></div>
+<div class="setting-icon kbg-blue">📍</div>
+<div class="setting-info"><div class="s-title">Alamat <span class="kreq">*</span></div><div class="s-desc" id="settingAlamat">—</div></div>
 <div class="setting-arrow">›</div>
 </div>
 </div>
 <div class="card">
 <div class="card-title">📱 Perangkat</div>
 <div class="setting-item" data-action="connect-printer" id="btPrinterConnectRow">
-<div class="setting-icon" style="background:var(--blue-bg)">📡</div>
+<div class="setting-icon kbg-blue">📡</div>
 <div class="setting-info"><div class="s-title">Hubungkan Printer</div><div class="s-desc" id="btPrinterStatus">Belum terhubung</div></div>
 <div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" data-action="test-print">
-<div class="setting-icon" style="background:var(--green-bg)">📄</div>
+<div class="setting-icon kbg-green">📄</div>
 <div class="setting-info"><div class="s-title">Cetak Tes</div><div class="s-desc">Cek apakah printer berfungsi</div></div>
 <div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" data-action="disconnect-printer">
-<div class="setting-icon" style="background:var(--red-bg)">❌</div>
+<div class="setting-icon kbg-red">❌</div>
 <div class="setting-info"><div class="s-title">Putuskan Printer</div><div class="s-desc">Lepas koneksi Bluetooth</div></div>
 <div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" data-action="install-pwa" id="pwaInstallRow">
-<div class="setting-icon" style="background:var(--green-bg)">📲</div>
+<div class="setting-icon kbg-green">📲</div>
 <div class="setting-info"><div class="s-title" id="pwaInstallTitle">Pasang Aplikasi</div><div class="s-desc" id="pwaInstallDesc">Buka kayak app native di HP</div></div>
 <div class="setting-arrow">›</div>
 </div>
@@ -188,23 +188,23 @@
 <div class="card">
 <div class="card-title">💾 Data & Cadangan</div>
 <div class="setting-item" data-action="export-data">
-<div class="setting-icon" style="background:var(--green-bg)">💾</div>
+<div class="setting-icon kbg-green">💾</div>
 <div class="setting-info"><div class="s-title">Simpan Cadangan</div><div class="s-desc">Simpan data ke file HP</div></div>
 <div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" data-action="trigger-import">
-<div class="setting-icon" style="background:var(--blue-bg)">📂</div>
+<div class="setting-icon kbg-blue">📂</div>
 <div class="setting-info"><div class="s-title">Pulihkan Data</div><div class="s-desc">Ambil data dari file cadangan</div></div>
 <div class="setting-arrow">›</div>
-<input type="file" id="importFile" accept=".json" style="display:none" data-action="import-data">
+<input type="file" id="importFile" accept=".json" class="khide" data-action="import-data">
 </div>
 <div class="setting-item" data-action="open-sync-diag">
-<div class="setting-icon" style="background:var(--orange-bg)">🩺</div>
+<div class="setting-icon kbg-orange">🩺</div>
 <div class="setting-info"><div class="s-title">Diagnosa Sinkronisasi</div><div class="s-desc">Cek kenapa profil belum masuk ke server</div></div>
 <div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" data-action="confirm-clear-all">
-<div class="setting-icon" style="background:var(--red-bg)">🗑️</div>
+<div class="setting-icon kbg-red">🗑️</div>
 <div class="setting-info"><div class="s-title">Hapus Semua Data</div><div class="s-desc">Hati-hati! Data tidak bisa kembali</div></div>
 <div class="setting-arrow">›</div>
 </div>
@@ -220,9 +220,9 @@
 <img src="assets/icon-old.png" class="kwh64-round" alt="Logo">
 <div class="kfw800 kfs18 kmt10">Kasir Solo - Kaki Lima</div>
 <div class="kfw600 ktext2 kfs12 kmt12">PT Mesin Kasir Solo</div>
-<div class="kmt8 kflex-gap12 kflex-wrap" style="justify-content:center">
-<a href="https://wa.me/628816566935" class="kgreen kfw600 kfs12" style="text-decoration:none">📱 0881-6566-935</a>
-<a id="appSiteLink" href="https://kasirsolo.app" target="_blank" rel="noopener" class="ktext-blue kfw600 kfs12" style="text-decoration:none">🌐 kasirsolo.app</a>
+<div class="kmt8 kflex-gap12 kflex-wrap kjc-center">
+<a href="https://wa.me/628816566935" class="kgreen kfw600 kfs12 kno-underline">📱 0881-6566-935</a>
+<a id="appSiteLink" href="https://kasirsolo.app" target="_blank" rel="noopener" class="ktext-blue kfw600 kfs12 kno-underline">🌐 kasirsolo.app</a>
 </div>
 <div class="kfs13 ktext2 kmt12"><span id="appVersionLabel">Versi 1.0.0</span></div>
 <div id="licUnit" class="kfs11 ktext3 kmt2"></div>
@@ -233,7 +233,7 @@
 <div class="page" id="page-bantuan">
 <div class="card">
 <div class="card-title">❓ Bantuan</div>
-<div style="font-size:14px;color:var(--text2);line-height:1.6">
+<div class="kfs14 ktext2 klh16">
 Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 </div>
@@ -290,27 +290,27 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="modal-handle"></div>
 <div class="modal-title" id="cartModalTitle">🛒 Keranjang</div>
 <div id="cartItems"></div>
-<div style="border-top:2px solid var(--border);margin-top:12px;padding-top:12px">
-<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:600;color:var(--text2)">Total Harga</span><span style="font-weight:800;font-size:20px;color:var(--primary)" id="cartModalTotal">Rp 0</span></div>
+<div class="kdivider">
+<div class="kflex-between kmb8"><span class="kfw600 ktext2">Total Harga</span><span class="kfw800 kfs20 kprimary" id="cartModalTotal">Rp 0</span></div>
 
 <!-- 2 kolom: input uang diterima (kiri) + kembalian (kanan) -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;margin-bottom:12px">
+<div class="kgrid-2col-gap12">
 <div class="form-group">
 <label class="form-label">💵 Uang Diterima</label>
 <input type="text" class="form-input" id="bayarInput" placeholder="Masukkan nominal..." data-action="format-bayar" data-action="select-all-bayar" inputmode="numeric">
 </div>
-<div style="display:flex;flex-direction:column">
+<div class="kflex-col">
 <label class="form-label">💰 Kembalian</label>
-<div id="kembalianBox" style="background:var(--green-bg);border-radius:12px;padding:14px 16px;text-align:center;display:flex;align-items:center;justify-content:center">
-<div style="font-size:20px;font-weight:800;color:var(--green)" id="kembalianVal">Rp 0</div>
+<div id="kembalianBox" class="kkembalian-box">
+<div class="kfs20 kfw800 kgreen" id="kembalianVal">Rp 0</div>
 </div>
 </div>
 </div>
 
 <!-- 4 kolom preset buttons -->
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px" id="presetBayarContainer"></div>
+<div class="kgrid-4col kmb12" id="presetBayarContainer"></div>
 </div>
-<div class="btn-row" style="margin-top:12px">
+<div class="btn-row kmt12">
 <button class="btn btn-secondary btn-sm" data-action="close-cart">Batal</button>
 <button class="btn btn-green" data-action="save-sale">✅ Simpan</button>
 </div>
@@ -455,7 +455,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <select class="form-input" id="alamatDesa" disabled><option value="">—</option></select>
 </div>
 <div class="form-group">
-<label class="form-label">Detail Alamat (jalan, no. rumah) <span style="color:var(--red);font-weight:700">*</span></label>
+<label class="form-label">Detail Alamat (jalan, no. rumah) <span class="kreq">*</span></label>
 <input type="text" class="form-input" id="inputAlamat" placeholder="Contoh: Jl. Merdeka No. 10, Solo" required>
 </div>
 <div class="btn-row">
@@ -478,12 +478,12 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="modal-overlay" id="trxDetailModal" role="dialog" aria-modal="true" aria-labelledby="trxDetailTitle">
 <div class="modal">
 <div class="modal-handle"></div>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div class="kflex-between-mb12">
 <div class="modal-title" id="trxDetailTitle">📃 Detail Transaksi</div>
-<button class="btn btn-icon btn-ghost" style="padding:8px;width:40px;height:40px;border-radius:8px;flex-shrink:0" data-action="close-trx-detail">✕</button>
+<button class="btn btn-icon btn-ghost kclose-btn" data-action="close-trx-detail">✕</button>
 </div>
 <div id="trxDetailContent"></div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px">
+<div class="kgrid-2col-gap8 kmt16">
 <button class="btn btn-primary" data-action="print-nota">🖨️ Cetak Nota</button>
 <button class="btn btn-red" id="trxDeleteBtn" data-action="delete-sale">🗑️ Hapus</button>
 </div>
@@ -511,7 +511,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="update-sub">Ada pembaruan penting supaya aplikasi makin lancar dan data usahamu makin aman. Tekan OKE untuk memuat versi terbaru.</div>
 <div class="update-notes-title">Yang baru di versi ini:</div>
 <ul class="update-notes" id="updateNotesList"></ul>
-<button class="btn btn-green" id="updateOkBtn" style="width:100%;margin-top:16px;font-size:16px">OKE</button>
+<button class="btn btn-green" id="updateOkBtn" class="kw-full kmt16 kfs16">OKE</button>
 <div class="update-hint">Aplikasi akan dimuat ulang otomatis — data jualanmu aman, tidak ada yang hilang.</div>
 </div>
 </div>
@@ -523,12 +523,12 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="modal-overlay" id="syncDiagModal" role="dialog" aria-modal="true" aria-labelledby="syncDiagTitle">
 <div class="modal">
 <div class="modal-handle"></div>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div class="kflex-between-mb12">
 <div class="modal-title" id="syncDiagTitle">🩺 Diagnosa Sinkronisasi</div>
-<button class="btn btn-icon btn-ghost" style="padding:8px;width:40px;height:40px;border-radius:8px;flex-shrink:0" data-action="close-sync-diag">✕</button>
+<button class="btn btn-icon btn-ghost kclose-btn" data-action="close-sync-diag">✕</button>
 </div>
-<div id="syncDiagContent" style="font-size:13px"></div>
-<div class="btn-row" style="margin-top:14px">
+<div id="syncDiagContent" class="kfs13"></div>
+<div class="btn-row kmt14">
 <button class="btn btn-secondary" data-action="copy-sync-diag">📋 Salin Hasil</button>
 <button class="btn btn-primary" data-action="open-sync-diag">🔄 Ulangi</button>
 </div>
@@ -538,23 +538,23 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <!-- ONBOARDING / LICENSE GATE OVERLAY (single step: nama usaha + S&K → mulai percobaan)
      Positioning di components-modal.css (#licenseGate); JS toggle display flex/none. -->
 <div id="licenseGate" role="dialog" aria-modal="true" aria-labelledby="licenseGateTitle">
-<div id="gateOnboarding" style="max-width:440px;width:100%;text-align:center">
-<img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px" alt="Logo">
-<div style="font-size:22px;font-weight:800;margin-bottom:4px">Kasir Solo</div><div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
-<div style="font-size:15px;color:var(--text2);margin-bottom:18px;line-height:1.5">Aplikasi kasir buat <strong>pedagang kaki lima</strong>. Catat jualan, pengeluaran, dan lihat untung tiap hari! Masukkan nomor WhatsApp untuk memulai.</div>
-<div class="form-group" style="text-align:left">
-<label class="form-label">Nomor WhatsApp <span style="color:var(--red);font-weight:700">*</span></label>
+<div id="gateOnboarding" class="kgate-box">
+<img src="assets/icon.png" class="kwh80" alt="Logo">
+<div class="kfs22 kfw800 kmb8">Kasir Solo</div><div class="kfs14 ktext2 kmb16">Kaki Lima Edition</div>
+<div class="kfs15 ktext2 kmb16 klh15">Aplikasi kasir buat <strong>pedagang kaki lima</strong>. Catat jualan, pengeluaran, dan lihat untung tiap hari! Masukkan nomor WhatsApp untuk memulai.</div>
+<div class="form-group kleft">
+<label class="form-label">Nomor WhatsApp <span class="kreq">*</span></label>
 <input type="tel" class="form-input" id="onboardWa" placeholder="Contoh: 08816566935" inputmode="numeric" pattern="[0-9]*" data-action="onboard-input">
 </div>
-<div id="onboardMsg" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px;text-align:left"></div>
-<div style="background:var(--green-bg);border-radius:16px;padding:16px;margin-bottom:16px">
-<div style="font-size:15px;font-weight:700;color:var(--green)">🎁 Coba Gratis 7 Hari</div>
-<div style="font-size:13px;color:var(--text2);margin-top:6px">Aktifkan masa percobaan gratis 7 hari, tanpa kartu.</div>
-<button class="btn btn-green" id="trialBtn" style="margin-top:12px" data-action="proceed-to-tc">🚀 Mulai Masa Percobaan</button>
+<div id="onboardMsg" class="khide kred kfs13 kmb8 kleft"></div>
+<div class="kgreen-box">
+<div class="kfs15 kfw700 kgreen">🎁 Coba Gratis 7 Hari</div>
+<div class="kfs13 ktext2 kmt8">Aktifkan masa percobaan gratis 7 hari, tanpa kartu.</div>
+<button class="btn btn-green" id="trialBtn" class="kmt12" data-action="proceed-to-tc">🚀 Mulai Masa Percobaan</button>
 </div>
-<div style="font-size:12px;color:var(--text3);margin-top:8px">Nomor WhatsApp akan dipakai untuk aktivasi lisensi dan komunikasi.<br>Isi lengkapnya bisa ditambah nanti di menu Pengaturan.</div>
+<div class="kfs12 ktext3 kmt8">Nomor WhatsApp akan dipakai untuk aktivasi lisensi dan komunikasi.<br>Isi lengkapnya bisa ditambah nanti di menu Pengaturan.</div>
 </div>
-<div id="gateLicenseBlock" style="display:none;max-width:440px;width:100%;text-align:center"></div>
+<div id="gateLicenseBlock" class="khide kgate-box"></div>
 </div>
 
 <!-- SYARAT & KETENTUAN MODAL -->
@@ -581,7 +581,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="modal-overlay" id="sheetLicense" role="dialog" aria-modal="true" aria-labelledby="sheetLicenseTitle">
 <div class="license-sheet">
 <div class="license-sheet-head">
-<div id="sheetLicenseTitle" style="font-size:18px;font-weight:800">🔐 Status Lisensi</div>
+<div id="sheetLicenseTitle" class="kfs18 kfw800">🔐 Status Lisensi</div>
 <button class="sheet-close" data-action="close-sheet-license" aria-label="Tutup">✕</button>
 </div>
 <div class="license-sheet-body" id="licenseSheetBody"></div>
@@ -592,7 +592,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="modal-overlay" id="sheetPurchase" role="dialog" aria-modal="true" aria-labelledby="sheetPurchaseTitle">
 <div class="license-sheet">
 <div class="license-sheet-head">
-<div id="sheetPurchaseTitle" style="font-size:18px;font-weight:800">💳 Beli Lisensi</div>
+<div id="sheetPurchaseTitle" class="kfs18 kfw800">💳 Beli Lisensi</div>
 <button class="sheet-close" data-action="close-sheet-purchase" aria-label="Tutup">✕</button>
 </div>
 <div class="license-sheet-body" id="purchaseSheetBody"></div>
@@ -602,14 +602,14 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <!-- LOCK OVERLAY (trial habis / perlu lisensi) -->
 <div class="modal-overlay" id="lockOverlay" role="dialog" aria-modal="true" aria-labelledby="lockOverlayTitle">
 <div class="card license-lock-card">
-<div class="license-icon" style="font-size:40px">🔒</div>
-<div class="license-title" id="lockOverlayTitle" style="font-size:20px;margin-top:6px">Masa Coba Gratis Habis</div>
-<p class="license-desc" id="lockOverlayDesc" style="text-align:center">Silakan perpanjang masa coba dengan membagikan aplikasi ke teman, atau aktivasi lisensi resmi untuk melanjutkan.</p>
+<div class="license-icon kfs40">🔒</div>
+<div class="license-title" id="lockOverlayTitle" class="kfs20 kmt8">Masa Coba Gratis Habis</div>
+<p class="license-desc" id="lockOverlayDesc" class="kcenter">Silakan perpanjang masa coba dengan membagikan aplikasi ke teman, atau aktivasi lisensi resmi untuk melanjutkan.</p>
 <div id="lockLicenseStatusArea"></div>
 </div>
 <!-- Mode "Lisensi Dicabut": halaman penuh putih bergaya gate (diisi dinamis
      renderRevokedLockOverlay); kartu di atas disembunyikan saat mode ini aktif. -->
-<div id="lockRevokedPage" style="display:none;max-width:440px;width:100%;text-align:center" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
+<div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
   <script type="module" src="js/app.js?v=72"></script>
