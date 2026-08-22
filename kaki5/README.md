@@ -32,25 +32,13 @@ Proyek ini **telah direfactor menjadi arsitektur modular-atomic** dengan pemisah
 
 ```
 kaki5/
-├── index.html          ← Shell HTML (modular CSS + ESM lazy loading)
+├── index.html          ← Shell HTML (Single-source CSS + ESM lazy loading)
 ├── server.cjs          ← HTTP server dev port 8086 (no-cache)
 ├── dexie.min.js        ← Library Dexie 3.2.4
-├── sw.js               ← Service Worker v35 (modular cache)
+├── sw.js               ← Service Worker v73 (single-source cache)
 ├── vercel.json         ← Konfigurasi Vercel
 ├── css/
-│   ├── base.css        ← Variables, reset, typography
-│   ├── components.css  ← Buttons, cards, forms, nav
-│   ├── components-stat.css
-│   ├── components-modal.css
-│   ├── components-banner.css
-│   ├── components-tabs.css
-│   ├── components-license.css
-│   ├── components-carousel.css
-│   ├── components-menu.css
-│   ├── components-cart.css
-│   ├── components-trx.css
-│   ├── components-report.css
-│   └── components-settings.css
+│   └── style.css       ← Single-source CSS (CSS variables, reset, layout, components, responsive breakpoints)
 ├── assets/
 │   └── icon.png, icon-192.png, icon-512.png
 ├── docs/

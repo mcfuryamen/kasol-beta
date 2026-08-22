@@ -81,7 +81,7 @@ Bump **all three** in lockstep, or users get stale cached code:
 
 - [ ] New `CACHE_NAME` suffix (**strictly greater** than the previous).
 - [ ] New/modified assets actually appear in the precache `assetsToCache` list
-      (e.g. the modular CSS under `assets/css/` — a past MAJOR finding).
+      (e.g. `css/style.css` — a past MAJOR finding).
 - [ ] Cache-bust query param on every `<script>`/`<link>` in `index.html`.
 - [ ] Old-cache cleanup still works (`caches.keys().filter(k => k !== CACHE_NAME)`
       in the activate handler deletes prior versions).
@@ -98,8 +98,8 @@ node test-modules.js          # exit 1 on ANY module failure
 # Every getElementById resolves (this lint) — quick:
 node test-html-refs.js        # exit 1 on orphaned refs
 
-# CSS: deklarasi di css/components-*.css yang ditimpa css/style.css
-node test-css-drift.js        # exit 1 kalau ada deklarasi yang ditimpa
+# CSS: guard single-source css/style.css
+node test-css-drift.js        # exit 1 kalau tidak single-source / parse error
 
 # Full suite:
 node test-imports.js          # 42/42 module imports
