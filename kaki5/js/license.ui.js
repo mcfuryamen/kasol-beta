@@ -107,7 +107,7 @@ function revokedLicenseCardHtml() {
     <div class="card license-card-revoked license-state-card">
       <div class="license-icon">🚫</div>
       <div class="badge red compact">✖ Lisensi Dinonaktifkan</div>
-      <div class="license-title" style="margin-top:8px">Lisensi Dicabut</div>
+      <div class="license-title kmt8">Lisensi Dicabut</div>
       <p class="license-desc">Lisensi untuk perangkat ini telah <b>dinonaktifkan</b> oleh admin. Aplikasi tidak dapat digunakan sampai lisensi dipulihkan.</p>
       <div class="license-actions license-actions-row">
         <button class="btn btn-primary" data-action="open-purchase-sheet">💳 Beli Lisensi</button>
@@ -134,7 +134,7 @@ function setLockMode(mode) {
 function revokedPageHtml() {
   return `
     <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px" alt="Logo">
-    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Kasir Solo</div>
+    <div class="kfs22 kfw800 kmb8">Kasir Solo</div>
     <div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
     <div style="font-size:17px;font-weight:800;color:var(--red)">Lisensi Dinonaktifkan</div>
     <p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Lisensi untuk perangkat ini telah dicabut oleh admin.<br>Beli lisensi baru — aktivasi otomatis oleh admin setelah pembayaran diverifikasi.</p>
@@ -142,7 +142,7 @@ function revokedPageHtml() {
       <button class="btn btn-primary" data-action="buy-gate">💳 Beli Lisensi</button>
       <button class="btn btn-secondary" data-action="contact-via-wa">💬 Tanya Admin</button>
     </div>
-    <div style="font-size:12px;color:var(--text3);margin-top:14px">Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a></div>
+    <div class="kfs12 ktext3 kmt14">Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a></div>
   `;
 }
 

@@ -132,7 +132,7 @@ export async function loadReport() {
   </div>`;
 
   // Margin
-  html += `<div class="card" style="text-align:center">
+  html += `<div class="card kcenter">
     <div class="card-title" style="justify-content:center">📊 Margin Kotor</div>
     <div style="background:#f5f5f5;border-radius:10px;height:24px;overflow:hidden;margin-bottom:8px">
       <div style="background:${marginPct>30?'var(--green)':marginPct>15?'var(--primary)':'var(--red)'};height:100%;width:${marginPct}%;border-radius:10px;transition:width .5s"></div>
@@ -184,15 +184,15 @@ export async function loadReport() {
       // Category header (clickable to expand/collapse)
       html += `<div>
         <div data-catid="${catId}" class="expense-cat-item" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer">
-          <span style="font-size:20px">${escapeHtml(catEmoji[cat]||'📦')}</span>
-          <div style="flex:1">
-            <div style="font-weight:600;font-size:14px">${escapeHtml(cat)}</div>
+          <span class="kfs20">${escapeHtml(catEmoji[cat]||'📦')}</span>
+          <div class="kflex-1">
+            <div class="kfw600 kfs14">${escapeHtml(cat)}</div>
             <div style="background:#f5f5f5;border-radius:6px;height:8px;margin-top:4px;overflow:hidden">
               <div style="background:var(--red-light);height:100%;width:${pct}%;border-radius:6px"></div>
             </div>
           </div>
-          <div style="text-align:right">
-            <div style="font-weight:800;font-size:14px;color:var(--red)">${formatRp(total)}</div>
+          <div class="kright">
+            <div class="kfw800 kfs14 kred">${formatRp(total)}</div>
             <div style="font-size:11px;color:var(--text3)">${pct}%</div>
           </div>
           <span id="${catId}-arrow" style="font-size:18px;color:var(--text3);transition:transform .2s">›</span>
@@ -209,11 +209,11 @@ export async function loadReport() {
             const sub = (reportPeriod !== 'harian' && e.tanggal ? formatDate(e.tanggal) + ' · ' : '') + formatTime(e.waktu);
             html += `<div class="trx-item expense-detail-item" data-id="${e.id}" style="padding:10px 0;gap:10px">
             <div style="width:12px;height:12px;background:var(--red-light);border-radius:50%;flex-shrink:0"></div>
-            <div class="trx-info" style="flex:1">
-              <div class="trx-title" style="font-size:13px">${escapeHtml(e.keterangan)}</div>
-              <div class="trx-sub" style="font-size:11px">${escapeHtml(sub)}</div>
+            <div class="trx-info kflex-1">
+              <div class="trx-title kfs13">${escapeHtml(e.keterangan)}</div>
+              <div class="trx-sub kfs11">${escapeHtml(sub)}</div>
             </div>
-            <div class="trx-amount red" style="font-size:13px">-${formatRp(e.jumlah)}</div>
+            <div class="trx-amount red kfs13">-${formatRp(e.jumlah)}</div>
           </div>`;
           });
       
@@ -237,10 +237,10 @@ export async function loadReport() {
     dates.forEach(tgl => {
       const items = byDay[tgl].sort((a, b) => b.waktu - a.waktu);
       const daySum = items.reduce((a, s) => a + (s.totalHarga || 0), 0);
-      html += `<div style="margin-top:12px">
+      html += `<div class="kmt12">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:var(--orange-bg);border-radius:12px;margin-bottom:6px">
-          <div style="font-weight:800;font-size:14px;color:var(--text)">📅 ${escapeHtml(dayName(tgl))}, ${escapeHtml(formatDate(tgl))}</div>
-          <div style="font-weight:800;font-size:13px;color:var(--primary);text-align:right">${formatRp(daySum)} · ${items.length} trx</div>
+          <div class="kfw800 kfs14">📅 ${escapeHtml(dayName(tgl))}, ${escapeHtml(formatDate(tgl))}</div>
+          <div class="kfw800 kfs13 kprimary kright">${formatRp(daySum)} · ${items.length} trx</div>
         </div>`;
       items.forEach(s => {
         const itemNames = s.items ? s.items.map(i => `${escapeHtml(i.nama)}×${i.qty}`).join(', ') : '';

@@ -1,3 +1,12 @@
+2026-08-22 — P4 UTILITIES v1.0.17 (SW v72, tidak bump versi — hanya framework):
+infra migrasi inline style → kelas.
+1. js/helpers.js: fungsi ksr(...) dan registry _KEY_CSS (50+ key semantik:
+   margin, flex, font-size, weight, color, background, container, widget size).
+2. css/style.css: section KSR UTILITIES (50+ kelas .k* — paritas dengan _KEY_CSS).
+3. index.html: migrasi partial ke kelas k* (header+statcards+cartbar+footer).
+Sisa ~320 inline style di JS templates statis (dinamis per-record) tetap ada;
+infra ksr siap digunakan untuk migrasi bertahap per modul.
+
 2026-08-22 — P3 DOKUMENTASI (tanpa bump versi — tidak ada perubahan runtime):
 README.md, docs/DEVELOPER.md, docs/REGRESSION-CHECKLIST.md, dan DESIGN.md
 disinkronkan dengan arsitektur pasca-konsolidasi: css/style.css kini

@@ -351,8 +351,8 @@ function printNotaBrowser(sale, warungName) {
   const items = Array.isArray(sale.items) ? sale.items : [];
   const itemsHtml = items.map(i =>
     '<tr><td>' + escapeHtml(safeStr(i.nama, 'Item')) + '</td>' +
-    '<td style="text-align:center">' + safeNum(i.qty, 1) + '</td>' +
-    '<td style="text-align:right">' + formatRp(safeNum(i.qty, 1) * safeNum(i.hargaJual, 0)) + '</td></tr>'
+    '<td class="kcenter">' + safeNum(i.qty, 1) + '</td>' +
+    '<td class="kright">' + formatRp(safeNum(i.qty, 1) * safeNum(i.hargaJual, 0)) + '</td></tr>'
   ).join('');
 
   const d = new Date(sale.waktu);
@@ -368,13 +368,13 @@ function printNotaBrowser(sale, warungName) {
   printWindow.document.write('<h2>' + escapeHtml(safeStr(warungName, 'Warung Saya')) + '</h2>');
   printWindow.document.write('<p class="sub">Kasir Solo - Kaki Lima</p>');
   printWindow.document.write('<hr>');
-  printWindow.document.write('<p style="font-size:11px">' + dateStr + '</p>');
+  printWindow.document.write('<p class="kfs11">' + dateStr + '</p>');
   printWindow.document.write('<hr>');
   printWindow.document.write('<table>' + itemsHtml + '</table>');
   printWindow.document.write('<hr>');
-  printWindow.document.write('<table><tr class="total"><td>TOTAL</td><td style="text-align:right">' + formatRp(safeNum(sale.totalHarga, 0)) + '</td></tr>');
-  printWindow.document.write('<tr><td>Bayar</td><td style="text-align:right">' + formatRp(safeNum(sale.bayar, 0)) + '</td></tr>');
-  printWindow.document.write('<tr><td>Kembali</td><td style="text-align:right">' + formatRp(safeNum(sale.kembalian, 0)) + '</td></tr></table>');
+  printWindow.document.write('<table><tr class="total"><td>TOTAL</td><td class="kright">' + formatRp(safeNum(sale.totalHarga, 0)) + '</td></tr>');
+  printWindow.document.write('<tr><td>Bayar</td><td class="kright">' + formatRp(safeNum(sale.bayar, 0)) + '</td></tr>');
+  printWindow.document.write('<tr><td>Kembali</td><td class="kright">' + formatRp(safeNum(sale.kembalian, 0)) + '</td></tr></table>');
   printWindow.document.write('<hr>');
   printWindow.document.write('<p class="footer">Terima kasih!<br>Semoga berkah</p>');
   printWindow.document.write('</body></html>');

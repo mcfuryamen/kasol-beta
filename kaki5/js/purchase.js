@@ -118,11 +118,11 @@ export async function openPurchaseSheet() {
   const hasQris = !!payInfo.qrisUrl;
   const qrisHtml = hasQris
     ? `<img src="${payInfo.qrisUrl}" style="width:100%;max-width:300px;border-radius:12px;margin-bottom:12px" alt="QRIS">
-       <div style="text-align:center;margin-bottom:12px">
+       <div class="kcenter kmb12">
          <a href="${payInfo.qrisUrl}" download="qris-kasirsolo.png" class="btn btn-ghost btn-sm">⤓ Unduh QRIS</a>
        </div>`
     : `<div style="text-align:center;padding:20px;border:1px dashed var(--line,var(--border));border-radius:12px;color:var(--text2)">
-         <div style="font-size:30px;margin-bottom:6px">▦</div>
+         <div class="kfs30 kmb8">▦</div>
          <strong>Preview QRIS demo</strong>
          <div style="font-size:12px;margin-top:4px">QRIS asli belum diatur di Admin Console.</div>
        </div>`;
@@ -131,14 +131,14 @@ export async function openPurchaseSheet() {
     ? `
       <div style="background:var(--bg2);border-radius:12px;padding:14px;margin-bottom:16px">
         <div style="font-size:13px;color:var(--text2);margin-bottom:8px;font-weight:700">🏦 Rekening Pembayaran</div>
-        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:14px">
-          <span style="color:var(--text2)">Bank</span><span style="font-weight:700">${payInfo.bank || '—'}</span>
+        <div class="kflex-between kgap8 kmb8 kfs14">
+          <span class="ktext2">Bank</span><span class="kfw700">${payInfo.bank || '—'}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:14px">
-          <span style="color:var(--text2)">No. Rekening</span><span style="font-weight:700;font-family:monospace">${payInfo.accountNumber || '—'}</span>
+        <div class="kflex-between kgap8 kmb8 kfs14">
+          <span class="ktext2">No. Rekening</span><span style="font-weight:700;font-family:monospace">${payInfo.accountNumber || '—'}</span>
         </div>
         <div style="display:flex;justify-content:space-between;gap:8px;font-size:14px">
-          <span style="color:var(--text2)">Atas Nama</span><span style="font-weight:700">${payInfo.accountName || '—'}</span>
+          <span class="ktext2">Atas Nama</span><span class="kfw700">${payInfo.accountName || '—'}</span>
         </div>
       </div>`
     : `
@@ -150,11 +150,11 @@ export async function openPurchaseSheet() {
   const priceRow = payInfo.priceLabel
     ? `
       <div style="background:var(--bg2);border-radius:12px;padding:12px 14px;margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:14px">
-          <span style="color:var(--text2)">Produk</span><span style="font-weight:700">${payInfo.productName || 'Kaki Lima'} · ${productCode}</span>
+        <div class="kflex-between kgap8 kmb8 kfs14">
+          <span class="ktext2">Produk</span><span class="kfw700">${payInfo.productName || 'Kaki Lima'} · ${productCode}</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:14px;color:var(--text2)">Harga Lisensi</span>
+          <span class="kfs14 ktext2">Harga Lisensi</span>
           <span style="display:inline-flex;align-items:baseline;gap:8px">
             ${payInfo.priceBeforeLabel ? `<s style="font-size:13px;color:var(--text3,#999);font-weight:600">${payInfo.priceBeforeLabel} ` : ''}
             <span style="font-size:18px;font-weight:800;color:var(--accent,var(--success,#16a34a))">${payInfo.priceLabel}</span>
@@ -165,14 +165,14 @@ export async function openPurchaseSheet() {
 
   // STEP 1 — info pembayaran + tombol "Kirim Bukti Bayar"
   body.innerHTML = `
-    <div style="margin-bottom:16px">
-      <p style="margin:0;color:var(--text2);font-size:14px">
+    <div class="kmb16">
+      <p class="ktext2 kfs14">
         Transfer sesuai nominal, lalu kirim bukti pembayaran. Admin akan memverifikasi & mengaktifkan lisensi secara otomatis.
       </p>
     </div>
 
     ${priceRow}
-    <div style="text-align:center;margin-bottom:16px">${qrisHtml}</div>
+    <div class="kcenter kmb16">${qrisHtml}</div>
     ${bankHtml}
 
     <div style="background:var(--bg2);border-radius:12px;padding:12px;margin-bottom:16px">
@@ -180,13 +180,13 @@ export async function openPurchaseSheet() {
       <div style="font-family:monospace;font-size:14px;font-weight:600">${unit_id}</div>
     </div>
 
-    <div id="purchaseUploadStep" style="margin-top:16px">
+    <div id="purchaseUploadStep" class="kmt16">
       <input type="file" id="buktiInput" accept="image/png,image/jpeg,image/webp" capture="environment" style="display:none" data-action="handle-bukti-upload">
       <div id="buktiPlaceholder" style="margin-bottom:10px;padding:14px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--text2);font-size:13px">
         📎 Bukti pembayaran belum dipilih
       </div>
       <div id="buktiPreview" style="margin-bottom:10px;text-align:center"></div>
-      <button class="btn btn-primary" style="width:100%" data-action="trigger-bukti-input" ${payInfo.isDemo ? 'disabled title="Menunggu konfigurasi pembayaran admin"' : ''} id="submitPurchaseBtn">
+      <button class="btn btn-primary kw-full" data-action="trigger-bukti-input" ${payInfo.isDemo ? 'disabled title="Menunggu konfigurasi pembayaran admin"' : ''} id="submitPurchaseBtn">
         🧾 ${payInfo.isDemo ? 'Pembayaran belum siap' : 'Kirim Bukti Bayar'}
       </button>
     </div>
