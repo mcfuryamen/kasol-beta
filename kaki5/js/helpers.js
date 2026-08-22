@@ -262,7 +262,7 @@ export function setupModalFocusTrap(modalOverlay) {
 
 const _KEY_CSS = {
   // Margins
-  mt8:'margin-top:8px',mt12:'margin-top:12px',mt14:'margin-top:14px',mt16:'margin-top:16px',
+  mt8:'margin-top:8px',mt10:'margin-top:10px',mt12:'margin-top:12px',mt14:'margin-top:14px',mt16:'margin-top:16px',mt2:'margin-top:2px',
   mb8:'margin-bottom:8px',mb10:'margin-bottom:10px',mb12:'margin-bottom:12px',mb16:'margin-bottom:16px',
   ml20:'margin-left:20px',
   // Paddings
@@ -283,7 +283,7 @@ const _KEY_CSS = {
   // Font sizes
   fs11:'font-size:11px',fs12:'font-size:12px',fs13:'font-size:13px',fs14:'font-size:14px',
   fs15:'font-size:15px',fs16:'font-size:16px',fs17:'font-size:17px',fs18:'font-size:18px',
-  fs20:'font-size:20px',fs22:'font-size:22px',fs28:'font-size:28px',fs30:'font-size:30px',fs32:'font-size:32px',
+  fs20:'font-size:20px',fs22:'font-size:22px',fs24:'font-size:24px',fs28:'font-size:28px',fs30:'font-size:30px',fs32:'font-size:32px',
   // Font weights
   fw600:'font-weight:600',fw700:'font-weight:700',fw800:'font-weight:800',
   lh18:'line-height:1.8',
