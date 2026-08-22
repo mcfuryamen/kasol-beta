@@ -61,6 +61,7 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 /* Tombol disabled: abu-abu, tidak bisa di-hover (pointer-events:none) */
 .btn:disabled,.btn[disabled]{background:#d9d9d9;color:#9c9c9c;cursor:not-allowed;box-shadow:none;transform:none;pointer-events:none;opacity:1}
 .btn-primary{background:var(--primary);color:#fff}
+.btn:focus,.btn:focus-visible{outline:none}
 .btn-primary:active{background:var(--primary-dark);transform:scale(.97)}
 .btn-green{background:var(--green);color:#fff}
 .btn-secondary{border:2px solid var(--primary);color:var(--primary);background:transparent}
