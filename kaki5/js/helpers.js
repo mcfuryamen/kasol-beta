@@ -305,7 +305,7 @@ const _KEY_CSS = {
   // Widget sizes
   wh80:'width:80px;height:80px;margin-bottom:8px',
   wh64:'width:64px;height:64px;margin:0 auto 8px;display:block',
-  wh64-round:'width:64px;height:64px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0',
+  'wh64-round':'width:64px;height:64px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0',
   wh44:'width:44px;height:44px;min-height:44px;font-size:16px',
   'btn-icon':'width:44px;height:44px;min-height:44px;font-size:16px',
   dot:'width:12px;height:12px;border-radius:3px',
