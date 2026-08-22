@@ -1,9 +1,10 @@
 {
-  "version": "1.0.17",
-  "cacheBust": "v72",
+  "version": "1.0.18",
+  "cacheBust": "v73",
   "notes": [
-    "⚡ Aplikasi makin cepat dimuat — seluruh gaya tampilan kini dikemas dalam satu file (dulu 14 file)",
-    "🧹 Rapikan arsitektur tampilan internal (konsolidasi style-sheet) tanpa perubahan desain",
-    "🛡️ Tampilan lebih tahan perubahan kebijakan browser"
+    "🎨 Logo header kini menyatu dengan background (tanpa outline putih)",
+    "📝 Semua kotak isian (field) kini border tunggal yang lebih tipis dan bersih",
+    "📍 Footer info aplikasi hanya tampil di halaman Pengaturan",
+    "⚡ Struktur internal lebih ramping — 66% inline style dimigrasi ke kelas CSS"
   ]
 }
