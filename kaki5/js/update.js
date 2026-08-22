@@ -18,6 +18,7 @@ function isDev() {
 
 const VERSION_URL = './js/version.json';
 const RELOAD_FLAG = 'ksr:update-reloading';
+const ACK_VERSION_KEY = 'ksr:update-acked-version'; // versi yang sudah di-OKE user (localStorage, persisten)
 const SW_WAIT_TIMEOUT_MS = 6000;
 const TOAST_DURATION_MS = 15000;
 
@@ -76,6 +77,11 @@ export async function notifyUpdateAvailable(remote) {
   if (sessionStorage.getItem(RELOAD_FLAG)) return;
   if (!remote || typeof remote !== 'object' || !remote.cacheBust) return;
   if (remote.cacheBust === CACHE_BUST) return; // versi sama → tidak ada update
+  // User sudah klik OKE untuk versi ini → jangan tampilkan lagi
+  // (RELOAD_FLAG sessionStorage dibersihkan saat boot, localStorage tidak)
+  let ackedVersion = null;
+  try { ackedVersion = localStorage.getItem(ACK_VERSION_KEY); } catch {}
+  if (ackedVersion && ackedVersion === remote.cacheBust) return;
   const overlay = document.getElementById('updateOverlay');
   if (!overlay) {
     // Fallback (elemen overlay tidak ada — seharusnya tidak terjadi): toast lama.
@@ -99,7 +105,12 @@ export async function notifyUpdateAvailable(remote) {
   if (!overlayWired) {
     overlayWired = true;
     const btn = document.getElementById('updateOkBtn');
-    if (btn) btn.addEventListener('click', () => performForceUpdate());
+    if (btn) btn.addEventListener('click', () => {
+      // Simpan versi yang di-acknowledge → overlay tidak muncul lagi untuk versi ini
+      // walau RELOAD_FLAG dibersihkan saat boot startUpdateWatcher().
+      try { localStorage.setItem(ACK_VERSION_KEY, remote.cacheBust); } catch {}
+      performForceUpdate();
+    });
   }
   await openModal('updateOverlay', { modalSelector: '.update-card' });
 }
