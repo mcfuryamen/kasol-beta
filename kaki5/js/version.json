@@ -1,9 +1,10 @@
 {
-  "version": "1.0.15",
-  "cacheBust": "v70",
+  "version": "1.0.16",
+  "cacheBust": "v71",
   "notes": [
-    "🚑 Perbaikan kritikal: tampilan aplikasi pulih di Chrome modern (kartu statistik berwarna lagi, layout beranda & modal rapi)",
-    "🖥️ Mode tablet/desktop aktif kembali — style.css yang tadinya tak pernah termuat kini dimuat normal",
-    "🔐 Perbaikan kebijakan keamanan (CSP) yang tanpa sengaja memblokir gaya tampilan"
+    "🛡️ Penguatan tampilan: posisi overlay (gerbang lisensi, bar keranjang, pembaruan) kini dikelola file CSS — lebih tahan perubahan kebijakan browser",
+    "🎨 Warna address-bar & splash screen kini serasi dengan warna header aplikasi",
+    "⌨️ Modal bisa ditutup dengan tombol Esc, dan halaman di belakangnya tidak ikut tergulir saat modal terbuka",
+    "♿ Status lisensi di header kini bisa diakses dengan keyboard (Tab + Enter)"
   ]
 }
