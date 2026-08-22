@@ -546,20 +546,22 @@ node test-imports.js
 # index.html atau id yang di-inject dinamis. Exit 1 jika ada orphan.
 node test-html-refs.js
 
-# CSS drift: deklarasi di css/components-*.css yang ditimpa css/style.css
-# (style.css dimuat TERAKHIR → nilainya menang). Exit 1 jika ada yang ditimpa.
+# Single-source CSS guard (memastikan 1 link HTML, 1 file css/style.css, syntax OK & precache SW sinkron)
 node test-css-drift.js
 ```
 
 `test-modules.js` & `test-imports.js` memakai `test-shim.js` (stub global: Dexie, window, document, dll) sehingga semua 42 modul bisa dievaluasi di Node tanpa browser.
 
-### Anti-Regression CSS Drift
+### Single-Source CSS Guard
 
-`index.html` memuat 13 file `css/components-*.css` DULU, lalu `css/style.css` **paling akhir**. Pada specificity yang sama, **nilai di `style.css` yang menang**. Konsekuensinya: mengedit `css/components.css` untuk properti yang juga ada di `style.css` **tidak akan terlihat di aplikasi** — gejalanya "sudah diedit tapi tampilan nggak berubah".
+Sejak konsolidasi P2 (2026-08-22), `css/style.css` menjadi **satu-satunya stylesheet** yang dimuat oleh `index.html` dan diprecache oleh Service Worker (13 file CSS modular lama telah dilebur ke dalamnya).
 
-- `node test-css-drift.js` melaporkan setiap deklarasi modular yang ditimpa `style.css` (exit 1).
-- Selector yang hanya ada di file modular dilaporkan sebagai warning (masih berfungsi, tapi drift).
-- Saat memperbaiki styling: **ubah `css/style.css` juga**, atau hapus deklarasi duplikat dari file modular.
+- `node test-css-drift.js` bertindak sebagai guard single-source:
+  1. `index.html` hanya memuat tepat 1 link CSS (`css/style.css`).
+  2. Folder `css/` hanya berisi `style.css` (mencegah munculnya file CSS modular baru yang memicu drift).
+  3. `css/style.css` lulus validasi parse (keseimbangan kurung kurawal `{}`).
+  4. Precache `sw.js` sinkron (hanya memuat `./css/style.css`).
+- Saat mengubah styling: **selalu edit `css/style.css`**. Gunakan semantic design tokens `:root` (`--primary: #D6501C`, `--green`, `--red`, `--blue`, `--bg`, `--card`, `--paper`).
 
 ### Anti-Regression DOM id (P4)
 

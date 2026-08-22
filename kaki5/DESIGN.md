@@ -108,7 +108,7 @@ Berikut diagram alur teks untuk masing‑masing status lisensi:
 
 ## 3. Gaya Visual (mengacu ke css/style.css)
 
-- **Warna Primer**: `--primary:#E65100` (orange tua) untuk tombol primary, aksen, dan nav‑item active.  
+- **Warna Primer**: `--primary:#D6501C` (oranye tua, kontras 4.5:1 di atas putih — sebelumnya `#E65100`) untuk tombol primary, aksen, dan nav‑item active.  
 - **Warna Status**:  
   - Hijau: `--green:#2E7D32` (lisensi aktif, tombol sukses).  
   - Merah: `--red:#C62828` (trial habis, expired, tombol error).  
@@ -187,7 +187,7 @@ Supabase config bisa di‑ambil dari `supabase-config.js` yang sudah ada; pastik
 - **Aksesibilitas**:  
   - Pastikan semua tombol memiliki `aria-label` yang jelas jika hanya menggunakan emoji/ikon. Contoh: tombol share: `aria-label="Bagikan aplikasi untuk dapat hari gratis"`.  
   - Input kode lisensi harus memiliki `<label>` yang terhubung (`htmlFor`).  
-  - Gunakan cukup kontras warna: teks putih pada background primary (`#E65100`) sudah memenuhi WCAG AA untuk teks besar; untuk teks kecil (badge) pastikan rasio ≥ 4.5:1 – kita dapat menggunakan `--primary-dark` untuk teks pada badge jika perlu.  
+  - Gunakan cukup kontras warna: teks putih pada background primary (`#D6501C`) sudah memenuhi WCAG AA untuk teks besar; untuk teks kecil (badge) pastikan rasio ≥ 4.5:1 – kita dapat menggunakan `--primary-dark` untuk teks pada badge jika perlu.  
   - Fokus tombol harus terlihat jelas (outline atau shadow) saat navigasi keyboard.  
   - Pastikan overlay gate dan sheet bisa ditutup dengan tombol `Esc`.  
 
