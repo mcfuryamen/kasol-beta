@@ -675,3 +675,7 @@ body.modal-open .main-content{overflow:hidden}
 .kp24{padding:24px}
 .kpy4{padding-top:4px;padding-bottom:4px}
 .kcursor-pointer{cursor:pointer}
+
+/* KSR tambahan — minimal utility yang dibutuhkan */
+.kmin-w0{min-width:0}
+.kflex-shrink0{flex-shrink:0}
