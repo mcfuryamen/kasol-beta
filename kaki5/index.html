@@ -49,25 +49,25 @@
 
 <!-- ====== HALAMAN BERANDA ====== -->
 <div class="page active" id="page-beranda">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+<div class="kflex-between-mb12">
 <div>
-<div style="font-size:14px;color:var(--text3);font-weight:600" id="greetText">Selamat pagi! 👋</div>
-<div style="font-size:20px;font-weight:800" id="namaWarung">Warung Saya</div>
+<div class="kfs14 ktext3 kfw600" id="greetText">Selamat pagi! 👋</div>
+<div class="kfs20 kfw800" id="namaWarung">Warung Saya</div>
 </div>
-<div style="font-size:13px;color:var(--text3);font-weight:600;text-align:right" id="todayDate"></div>
+<div class="kfs13 ktext3 kfw600 kright" id="todayDate"></div>
 </div>
 
 <div class="stat-grid">
-<div id="platCarouselEl" style="grid-column:1/-1;margin-bottom:8px"></div>
-<div class="stat-card" style="background:var(--green-bg);border-color:#A5D6A7">
+<div id="platCarouselEl" class="kcol-span2 kmb8"></div>
+<div class="stat-card kbg-green-b">
 <div class="stat-label">💰 Omzet Hari Ini</div>
 <div class="stat-value green" id="todayOmzet">Rp 0</div>
 </div>
-<div class="stat-card" style="background:var(--red-bg);border-color:#EF9A9A">
+<div class="stat-card kbg-red-b">
 <div class="stat-label">🧾 Pengeluaran</div>
 <div class="stat-value red" id="todayExpense">Rp 0</div>
 </div>
-<div class="stat-card" style="background:var(--blue-bg);border-color:#90CAF9">
+<div class="stat-card kbg-blue-b">
 <div class="stat-label">📈 Laba Hari Ini</div>
 <div class="stat-value blue" id="todayProfit">Rp 0</div>
 </div>
@@ -104,12 +104,12 @@
 
 <!-- Keranjang floating — styling di components-cart.css (#cartBar), JS toggle display -->
 <div id="cartBar" data-action="open-cart">
-<div style="display:flex;align-items:center;justify-content:space-between">
-<div style="display:flex;align-items:center;gap:10px">
-<span style="font-size:24px">🛒</span>
-<span style="font-weight:800;font-size:16px" id="cartCount">0 item</span>
+<div class="kflex-between">
+<div class="kflex-gap10">
+<span class="kfs24">🛒</span>
+<span class="kfw800 kfs16" id="cartCount">0 item</span>
 </div>
-<div style="font-weight:800;font-size:18px" id="cartTotal">Rp 0</div>
+<div class="kfw800 kfs18" id="cartTotal">Rp 0</div>
 </div>
 </div>
 </div>
@@ -212,20 +212,20 @@
 
 <div class="card">
 <!-- licenseInfoCard: status lisensi (aktif/trial/expired) di-render oleh license.ui.renderLicenseInfoCard() -->
-<div id="licenseInfoCard" style="margin-top:16px"></div>
+<div id="licenseInfoCard" class="kmt16"></div>
 </div>
 </div>
 <!-- ====== Footer Info Aplikasi (di luar kartu, paling bawah) ====== -->
-<div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:20px">
-<img src="assets/icon-old.png" style="width:64px;height:64px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0" alt="Logo">
-<div style="font-weight:800;color:var(--text);font-size:18px;margin-top:10px">Kasir Solo - Kaki Lima</div>
-<div style="font-weight:600;color:var(--text2);font-size:12px;margin-top:12px">PT Mesin Kasir Solo</div>
-<div style="margin-top:8px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-<a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none;font-weight:600;font-size:12px">📱 0881-6566-935</a>
-<a id="appSiteLink" href="https://kasirsolo.app" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;font-weight:600;font-size:12px">🌐 kasirsolo.app</a>
+<div class="app-footer">
+<img src="assets/icon-old.png" class="kwh64-round" alt="Logo">
+<div class="kfw800 kfs18 kmt10">Kasir Solo - Kaki Lima</div>
+<div class="kfw600 ktext2 kfs12 kmt12">PT Mesin Kasir Solo</div>
+<div class="kmt8 kflex-gap12 kflex-wrap" style="justify-content:center">
+<a href="https://wa.me/628816566935" class="kgreen kfw600 kfs12" style="text-decoration:none">📱 0881-6566-935</a>
+<a id="appSiteLink" href="https://kasirsolo.app" target="_blank" rel="noopener" class="ktext-blue kfw600 kfs12" style="text-decoration:none">🌐 kasirsolo.app</a>
 </div>
-<div style="font-size:13px;color:var(--text2);margin-top:12px"><span id="appVersionLabel">Versi 1.0.0</span></div>
-<div id="licUnit" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+<div class="kfs13 ktext2 kmt12"><span id="appVersionLabel">Versi 1.0.0</span></div>
+<div id="licUnit" class="kfs11 ktext3 kmt2"></div>
 </div>
 </div>
 
