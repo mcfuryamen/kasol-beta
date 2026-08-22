@@ -10,8 +10,8 @@
   "dir": "ltr",
   "lang": "id",
   "categories": ["business", "finance"],
-  "background_color": "#FAF3EB",
-  "theme_color": "#E65100",
+  "background_color": "#FFFAF5",
+  "theme_color": "#D6501C",
   "prefer_related_applications": false,
   "icons": [
     {

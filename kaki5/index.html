@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#E65100">
+<meta name="theme-color" content="#D6501C">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kasir Solo">
 <meta name="description" content="Aplikasi kasir untuk pedagang kaki lima. Catat jualan, pengeluaran, dan lihat untung tiap hari!">
@@ -50,7 +50,7 @@
 <header class="app-header">
 <img src="assets/icon.png" class="header-logo" alt="Logo"><h1>Kasir Solo<br><span style="font-size:12px;font-weight:400;opacity:.85">Kaki Lima Edition</span></h1>
 <div class="header-right">
-<div class="trial-badge" id="trialChip" data-action="open-license-sheet" role="button" title="Status Lisensi"><div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">7 hari</div></div>
+<div class="trial-badge" id="trialChip" data-action="open-license-sheet" role="button" tabindex="0" title="Status Lisensi"><div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">7 hari</div></div>
 <button class="header-btn" title="Bantuan" data-action="navigate-bantuan">❓</button>
 </div>
 </header>
@@ -113,8 +113,8 @@
 <div class="cat-tabs" id="posCatTabs"></div>
 <div class="menu-grid" id="posMenuGrid"></div>
 
-<!-- Keranjang floating -->
-<div id="cartBar" style="display:none;position:fixed;bottom:calc(var(--nav-h) + 8px);left:8px;right:8px;max-width:90%;margin:0 auto;background:var(--green);color:#fff;border-radius:16px;padding:14px 20px;z-index:50;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3);display:none" data-action="open-cart">
+<!-- Keranjang floating — styling di components-cart.css (#cartBar), JS toggle display -->
+<div id="cartBar" data-action="open-cart">
 <div style="display:flex;align-items:center;justify-content:space-between">
 <div style="display:flex;align-items:center;gap:10px">
 <span style="font-size:24px">🛒</span>
@@ -528,7 +528,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast" role="alert" aria-live="polite" aria-atomic="true"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- SYNC DIAGNOSTICS MODAL -->
 <div class="modal-overlay" id="syncDiagModal" role="dialog" aria-modal="true" aria-labelledby="syncDiagTitle">
@@ -546,8 +546,9 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 </div>
 
-<!-- ONBOARDING / LICENSE GATE OVERLAY (single step: nama usaha + S&K → mulai percobaan) -->
-<div id="licenseGate" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;align-items:center;justify-content:center;padding:24px;overflow-y:auto" role="dialog" aria-modal="true" aria-labelledby="licenseGateTitle">
+<!-- ONBOARDING / LICENSE GATE OVERLAY (single step: nama usaha + S&K → mulai percobaan)
+     Positioning di components-modal.css (#licenseGate); JS toggle display flex/none. -->
+<div id="licenseGate" role="dialog" aria-modal="true" aria-labelledby="licenseGateTitle">
 <div id="gateOnboarding" style="max-width:440px;width:100%;text-align:center">
 <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px" alt="Logo">
 <div style="font-size:22px;font-weight:800;margin-bottom:4px">Kasir Solo</div><div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
@@ -622,7 +623,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" style="display:none;max-width:440px;width:100%;text-align:center" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=70"></script>
+  <script type="module" src="js/app.js?v=71"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>
