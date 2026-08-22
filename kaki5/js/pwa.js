@@ -98,22 +98,84 @@ export function showInstallBanner() {
   document.head.appendChild(style);
 }
 
+// ── Update setting row "Pasang Aplikasi" berdasarkan status ─────────────────
+function updateInstallRow() {
+  const installed = isPWAInstalled || checkPWAInstalled();
+  const titleEl = document.getElementById('pwaInstallTitle');
+  const descEl = document.getElementById('pwaInstallDesc');
+  const row = document.getElementById('pwaInstallRow');
+  if (!titleEl) return;
+  if (installed) {
+    titleEl.textContent = '✅ Sudah Terpasang';
+    descEl.textContent = 'Aplikasi sudah berjalan di layar utama';
+    if (row) row.style.opacity = '0.6';
+  } else {
+    titleEl.textContent = 'Pasang Aplikasi';
+    descEl.textContent = 'Buka kayak app native di HP';
+    if (row) row.style.opacity = '1';
+  }
+}
+
 // ── Install PWA (native prompt) ─────────────────────────────────────────────
 export async function installPWA() {
-  if (!deferredPrompt) {
-    showManualInstallGuide();
+  // 1. Sudah terpasang? → toast + update UI
+  if (isPWAInstalled || checkPWAInstalled()) {
+    isPWAInstalled = true;
+    showToast('✅ Aplikasi sudah terpasang di perangkat ini', 'success');
+    updateInstallRow();
     return;
   }
-  deferredPrompt.prompt();
-  const result = await deferredPrompt.userChoice;
-  if (result.outcome === 'accepted') {
-    showToast('🎉 App berhasil dipasang!', 'success');
-    isPWAInstalled = true;
-    try { localStorage.setItem('kasirsolo:pwa-installed', 'true'); } catch {}
+
+  // 2. Prompt native tersedia? → langsung tampilkan
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    if (result.outcome === 'accepted') {
+      showToast('🎉 App berhasil dipasang!', 'success');
+      isPWAInstalled = true;
+      try { localStorage.setItem('kasirsolo:pwa-installed', 'true'); } catch {}
+      updateInstallRow();
+    }
+    deferredPrompt = null;
+    const banner = document.getElementById('installBanner');
+    if (banner) banner.remove();
+    return;
   }
-  deferredPrompt = null;
-  const banner = document.getElementById('installBanner');
-  if (banner) banner.remove();
+
+  // 3. Prompt belum tersedia → tunggu sampai 5 detik (beforeinstallprompt
+  //    bisa telat jika SW baru saja register / page baru load)
+  const gotPrompt = await new Promise(resolve => {
+    const check = setInterval(() => {
+      if (deferredPrompt) { clearInterval(check); clearTimeout(timer); resolve(true); }
+    }, 500);
+    const timer = setTimeout(() => { clearInterval(check); resolve(false); }, 5000);
+  });
+  if (gotPrompt && deferredPrompt) {
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    if (result.outcome === 'accepted') {
+      showToast('🎉 App berhasil dipasang!', 'success');
+      isPWAInstalled = true;
+      try { localStorage.setItem('kasirsolo:pwa-installed', 'true'); } catch {}
+      updateInstallRow();
+    }
+    deferredPrompt = null;
+    const banner = document.getElementById('installBanner');
+    if (banner) banner.remove();
+    return;
+  }
+
+  // 4. Prompt tidak tersedia (iOS / sudah terpasang di launcher / dev) →
+  //    toast singkat dengan langkah kunci (bukan tutorial overlay penuh)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS) {
+    showToast('📱 iPhone: tekan Share → Add to Home Screen', 'info', { duration: 8000 });
+  } else if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    showToast('💡 Install PWA hanya berfungsi di URL produksi (bukan localhost)', 'info', { duration: 6000 });
+  } else {
+    showToast('📱 Buka menu ⋮ di Chrome → "Install app"', 'info', { duration: 8000 });
+  }
 }
 
 // ── Manual Install Guide (iOS / when prompt not available) ──────────────────
