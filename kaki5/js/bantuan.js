@@ -210,14 +210,18 @@ const TUTORIALS = [
           Aplikasi bisa dibuka seperti app biasa (tanpa buka browser) dan tetap bisa dipakai
           <b>walaupun tidak ada internet</b>.
         </p>
-        <p class="kmt16"><b>Cara Pasang (Android / Chrome):</b></p>
+        <p class="kmt16"><b>Cara Pasang (Paling Gampang):</b></p>
         <ol class="kpl20 kmy8">
-          <li>Buka Kasir Solo di browser Chrome</li>
-          <li>Ketik menu titik tiga <b>⋮</b> di pojok kanan atas</li>
-          <li>Pilih <b>"Tambahkan ke Layar Utama"</b></li>
-          <li>Ketik <b>"Instal" / "Tambahkan"</b></li>
-          <li>Ikon Kasir Solo muncul di layar utama HP</li>
+          <li>Buka halaman <b>⚙️ Pengaturan</b></li>
+          <li>Cari menu <b>📲 Pasang Aplikasi</b> (di kartu Perangkat)</li>
+          <li>Ketuk menu tersebut → dialog instalasi muncul otomatis</li>
+          <li>Ketuk <b>"Instal"</b> → selesai! Ikon Kasir Solo muncul di layar utama</li>
         </ol>
+        <p class="kmt16"><b>Alternatif (jika dialog tidak muncul):</b></p>
+        <ul class="kpl20 kmy8">
+          <li><b>Android/Chrome:</b> menu titik tiga <b>⋮</b> → "Tambahkan ke Layar Utama"</li>
+          <li><b>iPhone/Safari:</b> tombol Share <b>⎋</b> → "Add to Home Screen"</li>
+        </ul>
         <p class="kinfo-card">
           📶 <b>Tips Offline:</b> Semua data penjualan tersimpan otomatis di HP. Saat internet kembali,
           data profil tersinkron otomatis ke server.
