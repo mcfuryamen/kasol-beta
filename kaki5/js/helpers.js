@@ -161,4 +161,87 @@ export function getDeviceInfo() {
   };
 }
 
+// ==================== FOCUS TRAP (a11y) ====================
+// Traps keyboard focus within a modal/dialog element.
+// Usage: const cleanup = trapFocus(modalElement); ... cleanup();
+export function trapFocus(container) {
+  if (!container) return () => {};
+  
+  const focusableSelectors = [
+    'button:not([disabled]):not([tabindex="-1"])',
+    '[href]:not([tabindex="-1"])',
+    'input:not([disabled]):not([tabindex="-1"])',
+    'select:not([disabled]):not([tabindex="-1"])',
+    'textarea:not([disabled]):not([tabindex="-1"])',
+    '[tabindex]:not([tabindex="-1"])',
+    '[contenteditable="true"]:not([tabindex="-1"])'
+  ].join(', ');
+  
+  let focusableElements = [];
+  let firstElement = null;
+  let lastElement = null;
+  let previousActiveElement = null;
+  
+  function updateFocusableElements() {
+    focusableElements = Array.from(container.querySelectorAll(focusableSelectors))
+      .filter(el => el.offsetParent !== null || el === document.activeElement);
+    firstElement = focusableElements[0];
+    lastElement = focusableElements[focusableElements.length - 1];
+  }
+  
+  function handleKeyDown(e) {
+    if (e.key !== 'Tab') return;
+    
+    updateFocusableElements();
+    
+    if (focusableElements.length === 0) return;
+    
+    if (e.shiftKey) {
+      // Shift + Tab
+      if (document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement?.focus();
+      }
+    } else {
+      // Tab
+      if (document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement?.focus();
+      }
+    }
+  }
+  
+  // Store previous active element to restore on cleanup
+  previousActiveElement = document.activeElement;
+  
+  // Initial setup
+  updateFocusableElements();
+  firstElement?.focus();
+  
+  container.addEventListener('keydown', handleKeyDown);
+  
+  // Return cleanup function
+  return function cleanup() {
+    container.removeEventListener('keydown', handleKeyDown);
+    if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+      previousActiveElement.focus();
+    }
+  };
+}
+
+// Auto-apply focus trap to all modals with data-focus-trap="true"
+// Call this after modal is shown (added to .show class)
+export function setupModalFocusTrap(modalOverlay) {
+  const modal = modalOverlay.querySelector('.modal, .license-sheet, .confirm-box');
+  if (!modal) return () => {};
+  
+  // Small delay to ensure modal is rendered
+  return new Promise(resolve => {
+    requestAnimationFrame(() => {
+      const cleanup = trapFocus(modal);
+      resolve(cleanup);
+    });
+  });
+}
+
 

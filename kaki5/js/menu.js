@@ -4,6 +4,7 @@ import { escapeHtml, formatRp, showToast } from './helpers.js';
 import { currentPage } from './app-state.js';
 import { showConfirm } from './confirm.js';
 import { loadPOS } from './pos.js';
+import { openModal, closeModal } from './modal.js';
 
 // Debounced search for menu list
 function debounce(fn, delay = 300) {
@@ -48,9 +49,9 @@ export async function renderMenuList() {
           <div class="trx-sub">Modal ${formatRp(m.hargaModal)} · Untung ${formatRp(untung)}</div>
         </div>
         <div style="display:flex;gap:4px">
-          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px" onclick="openMenuForm(${m.id})">✏️</button>
-          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px" onclick="toggleMenu(${m.id})">${m.aktif?'⏸️':'▶️'}</button>
-          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px;color:var(--red)" onclick="confirmDeleteMenu(${m.id})">🗑️</button>
+          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px" data-action="open-menu-form" data-menu-id="${m.id}">✏️</button>
+          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px" data-action="toggle-menu" data-menu-id="${m.id}">${m.aktif?'⏸️':'▶️'}</button>
+          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px;color:var(--red)" data-action="confirm-delete-menu" data-menu-id="${m.id}">🗑️</button>
         </div>
       </div>`;
     });
@@ -90,14 +91,14 @@ export async function openMenuForm(id) {
       document.getElementById('menuHargaJual').value = '';
       document.getElementById('menuHargaModal').value = '';
     }
-    document.getElementById('menuModal').classList.add('show');
+    await openModal('menuModal');
   } finally {
     _menuFormInFlight = false;
   }
 }
 
 export function closeMenuModal() {
-  document.getElementById('menuModal').classList.remove('show');
+  closeModal('menuModal');
 }
 
 export async function saveMenu() {

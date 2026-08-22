@@ -9,6 +9,7 @@ import { getSyncClientDebug, getSyncState, ensureSynced } from './sync.js';
 import { getSupabaseClient } from './license.sync.js';
 import { getUnitId, getDeviceCode } from './license.js';
 import { escapeHtml } from './helpers.js';
+import { openModal, closeModal } from './modal.js';
 
 const OK = 'ok', WARN = 'warn', FAIL = 'fail';
 const ICON = { ok: '✅', warn: '⚠️', fail: '❌' };
@@ -152,7 +153,7 @@ export async function openSyncDiag() {
   const modal = document.getElementById('syncDiagModal');
   const box = document.getElementById('syncDiagContent');
   if (!modal || !box || _running) return;
-  modal.classList.add('show');
+  await openModal('syncDiagModal');
   _running = true;
   box.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text2);font-size:14px">⏳ Memeriksa 10 langkah sinkronisasi…</div>';
   try {
@@ -188,5 +189,5 @@ export async function copySyncDiag() {
 }
 
 export function closeSyncDiag() {
-  document.getElementById('syncDiagModal')?.classList.remove('show');
+  closeModal('syncDiagModal');
 }

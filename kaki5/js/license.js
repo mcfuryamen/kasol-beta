@@ -10,6 +10,11 @@
 //
 // Refactored 2026-08-10: split into license.logic.js, license.ui.js, license.sync.js
 // for strict separation of concerns.
+//
+// NEW (2026-08-20): Dynamic salt versioning via Supabase products table
+// - Salt fetched from products table (salt_hmac, salt_version)
+// - Local fallback for offline support
+// - Cache with manual clear for rotation
 
 // Re-export pure logic functions
 export {
@@ -21,7 +26,9 @@ export {
   getUnitId, ensureUnitId,
   isLicensed, trialEndDate, daysLeft,
   getLicense, saveLicense, grantExtensionLogic,
-  isOnboarded, markOnboarded, markLicenseRevoked, clearLocalLicense
+  isOnboarded, markOnboarded, markLicenseRevoked, clearLocalLicense,
+  // Salt management (NEW 2026-08-20)
+  clearHmacSaltCache, clearProductSaltCache
 } from './license.logic.js';
 
 // Re-export UI functions
@@ -36,12 +43,12 @@ export {
 } from './license.ui.js';
 
 // Re-export sync functions
-// (L8, audit 2026-08-17: getLicenseSyncState / isWithinLicenseGracePeriod /
-//  activateLicenseCloud dihapus — dead exports, tak pernah dipakai pemanggil.)
 export {
   syncLicenseStatus,
   fetchLicenseStatusFromCloud,
-  isDeviceKnownOnCloud
+  isDeviceKnownOnCloud,
+  fetchProductSalt,          // NEW: fetch salt from Supabase products table
+  getSupabaseClient
 } from './license.sync.js';
 
 // Window wiring terpusat di app.js (lihat app.js:114-117).

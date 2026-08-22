@@ -299,7 +299,7 @@ export function initBantuan() {
     const tutId = `tutorial-${idx}`;
     html += `
       <div class="card" style="margin-bottom:12px">
-        <div onclick="toggleTutorial('${tutId}')" style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:4px 0">
+        <div data-action="toggle-tutorial" data-tut-id="${tutId}" style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:4px 0">
           <span style="font-size:32px">${escapeHtml(tutorial.icon)}</span>
           <div style="flex:1">
             <div style="font-weight:700;font-size:16px">${escapeHtml(tutorial.title)}</div>

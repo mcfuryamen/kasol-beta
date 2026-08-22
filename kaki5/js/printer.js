@@ -134,7 +134,7 @@ export async function connectBTPrinter() {
     if (err.name === 'NotFoundError') {
       showToast('Printer tidak ditemukan', 'error');
     } else {
-      showToast('Gagal: ' + err.message, 'error');
+      console.error('Gagal', err); showToast('Gagal', 'error');
     }
     clearPrinterState();
     console.error('BT Error:', err);
@@ -204,7 +204,7 @@ async function sendToPrinter(data) {
       return true;
     } catch (err) {
       if (attempts >= MAX_ATTEMPTS) {
-        showToast('Gagal cetak: ' + err.message, 'error');
+        console.error('Gagal cetak', err); showToast('Gagal cetak', 'error');
         return false;
       }
       // Retry: tunggu sebentar sebelum coba lagi

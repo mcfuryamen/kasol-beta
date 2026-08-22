@@ -2,6 +2,7 @@
 // Modal detail pengeluaran — mirip trxdetail.js tapi untuk expense
 import { DB } from './db.js';
 import { escapeHtml, formatRp, formatDate, formatTime } from './helpers.js';
+import { openModal, closeModal } from './modal.js';
 
 export async function showExpenseDetail(id) {
   try {
@@ -48,14 +49,18 @@ export async function showExpenseDetail(id) {
         </div>
       </div>
 
-      <button class="btn btn-secondary" onclick="document.getElementById('expenseDetailModal').classList.remove('show')">Tutup</button>
+      <button class="btn btn-secondary" data-action="close-expense-detail">Tutup</button>
     `;
 
     document.getElementById('expenseDetailContent').innerHTML = html;
-    document.getElementById('expenseDetailModal').classList.add('show');
+    await openModal('expenseDetailModal');
   } catch (err) {
     console.error('[ExpenseDetail] Error:', err);
   }
+}
+
+export function closeExpenseDetail() {
+  closeModal('expenseDetailModal');
 }
 
 // Export ke window hanya untuk yang dipanggil via inline HTML onclick attribute

@@ -212,7 +212,8 @@ export async function getVillages(kecId)
 
 ### `backup.js` — Ekspor/Impor
 ```js
-function validateBackup(data)   // murni & teruji — return null jika valid, else pesan error
+async function validateBackup(data)   // murni & teruji — return null jika valid, else pesan error
+                                     // async sejak Lapis 3 (verifikasi signature HMAC backup)
 async function importData(event) // baca file → validasi → konfirmasi → bulkPut
 function exportData()            // simpan semua tabel → JSON
 ```
@@ -534,8 +535,8 @@ Yang di-izinkan tetap di modul hanyalah **shared-state** (config: `KASIRSOLO_SUP
 node --check js/app.js
 
 # LOAD & EVALUATE semua modul di browser-stub (AUTHORITATIVE — direkomendasikan)
-# Menjalankan node --check + real import per modul, LALU lint anti-regresi DOM id,
-# exit 1 jika ada yang gagal / ada ref getElementById orphan.
+# Menjalankan node --check + real import per modul, LALU lint anti-regresi DOM id
+# dan CSS drift check, exit 1 jika ada yang gagal.
 node test-modules.js
 
 # Alternatif: hanya real-import semua modul (exit 1 jika gagal)
@@ -544,9 +545,21 @@ node test-imports.js
 # Anti-regresi DOM id saja (cepat): setiap getElementById harus resolve ke id di
 # index.html atau id yang di-inject dinamis. Exit 1 jika ada orphan.
 node test-html-refs.js
+
+# CSS drift: deklarasi di css/components-*.css yang ditimpa css/style.css
+# (style.css dimuat TERAKHIR → nilainya menang). Exit 1 jika ada yang ditimpa.
+node test-css-drift.js
 ```
 
-`test-modules.js` & `test-imports.js` memakai `test-shim.js` (stub global: Dexie, window, document, dll) sehingga semua 37 modul bisa dievaluasi di Node tanpa browser.
+`test-modules.js` & `test-imports.js` memakai `test-shim.js` (stub global: Dexie, window, document, dll) sehingga semua 42 modul bisa dievaluasi di Node tanpa browser.
+
+### Anti-Regression CSS Drift
+
+`index.html` memuat 13 file `css/components-*.css` DULU, lalu `css/style.css` **paling akhir**. Pada specificity yang sama, **nilai di `style.css` yang menang**. Konsekuensinya: mengedit `css/components.css` untuk properti yang juga ada di `style.css` **tidak akan terlihat di aplikasi** — gejalanya "sudah diedit tapi tampilan nggak berubah".
+
+- `node test-css-drift.js` melaporkan setiap deklarasi modular yang ditimpa `style.css` (exit 1).
+- Selector yang hanya ada di file modular dilaporkan sebagai warning (masih berfungsi, tapi drift).
+- Saat memperbaiki styling: **ubah `css/style.css` juga**, atau hapus deklarasi duplikat dari file modular.
 
 ### Anti-Regression DOM id (P4)
 
@@ -559,7 +572,7 @@ Setiap `document.getElementById('...')` harus resolve ke elemen — baik statis 
 ```bash
 node test_validate.js
 ```
-Runs 14 test cases untuk `validateBackup()` — memastikan import/export data tidak corrupt.
+Runs 32 test cases untuk `validateBackup()` (termasuk 2 kasus verifikasi signature) + `sanitizeSettingsRows()` — memastikan import/export data tidak corrupt.
 
 ### Browser Testing (Smoke Test)
 1. **License gate** — Spawn app, lihat trial overlay, klik "Coba 7 Hari", app unlock

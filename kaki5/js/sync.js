@@ -23,6 +23,11 @@ import { getSetting, setSetting } from './db.js';
 import { showToast, getDeviceInfo } from './helpers.js';
 import { getUnitId, getDeviceCode, getInstallId } from './license.js';
 
+// Dev detection helper
+function isDev() {
+  return location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('192.168.') || location.hostname.startsWith('10.') || location.hostname.endsWith('.local') || !location.hostname.includes('.');
+}
+
 const APP_TYPE = 'kaki5';
 // Flag "synced" di-cache selama ini lama; lewat dari itu WAJIB verifikasi server.
 const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -289,7 +294,7 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
       lastTryAt: new Date().toISOString()
     });
     await reportSyncError(stage, e);
-    if (!silent) showToast('Gagal sinkron (' + stage + '): ' + message.slice(0, 120), 'error', { duration: 5000 });
+    console.error('Gagal sinkron', stage, message); if (!silent) showToast('Gagal sinkron', 'error', { duration: 5000 });
     return { ok: false, reason: 'error', stage, error: message };
   }
 }

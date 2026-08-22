@@ -9,6 +9,12 @@
 
 import { CACHE_BUST } from './version.js';
 import { showToast } from './helpers.js';
+import { openModal, closeModal } from './modal.js';
+
+// Dev detection helper
+function isDev() {
+  return location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('192.168.') || location.hostname.startsWith('10.') || location.hostname.endsWith('.local') || !location.hostname.includes('.');
+}
 
 const VERSION_URL = './js/version.json';
 const RELOAD_FLAG = 'ksr:update-reloading';
@@ -66,7 +72,7 @@ const DEFAULT_NOTES = [
 // Kontrak: `remote` HARUS objek hasil fetchRemoteVersion (punya cacheBust).
 // Pemanggilan tanpa data remote / versi yang sama diabaikan — mencegah overlay
 // palsu dari event SW atau pemanggil lawas (bug ketemu saat uji v56).
-export function notifyUpdateAvailable(remote) {
+export async function notifyUpdateAvailable(remote) {
   if (sessionStorage.getItem(RELOAD_FLAG)) return;
   if (!remote || typeof remote !== 'object' || !remote.cacheBust) return;
   if (remote.cacheBust === CACHE_BUST) return; // versi sama → tidak ada update
@@ -95,7 +101,7 @@ export function notifyUpdateAvailable(remote) {
     const btn = document.getElementById('updateOkBtn');
     if (btn) btn.addEventListener('click', () => performForceUpdate());
   }
-  overlay.classList.add('show');
+  await openModal('updateOverlay', { modalSelector: '.update-card' });
 }
 
 // Escape ringan tanpa dependensi DOM helper (update.js minimal-dependency).
@@ -112,18 +118,18 @@ async function checkForUpdate() {
   try {
     const remote = await fetchRemoteVersion();
     if (remote.cacheBust !== CACHE_BUST) {
-      console.log(`[UPDATE] Versi baru ${remote.cacheBust} (lokal ${CACHE_BUST}).`);
+      if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log(`[UPDATE] Versi baru ${remote.cacheBust} (lokal ${CACHE_BUST}).`);
       notifyUpdateAvailable(remote);
     }
   } catch (e) {
-    console.log('[UPDATE] Cek versi gagal (mungkin offline):', e?.message || e);
+    if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[UPDATE] Cek versi gagal (mungkin offline):', e?.message || e);
   }
   if ('serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg) await reg.update(); // minta SW cek ulang (updatefound -> notify)
     } catch (e) {
-      console.log('[UPDATE] SW update check:', e?.message || e);
+      if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[UPDATE] SW update check:', e?.message || e);
     }
   }
 }
