@@ -122,23 +122,57 @@ export async function runSyncDiagnostics() {
   }
 
   const failed = steps.some(s => s.status === FAIL);
-  return { steps, summary: failed ? 'ADA LANGKAH YANG GAGAL — salin hasil ini dan kirim ke admin.' : 'Semua langkah sehat.' };
+  return { steps, summary: failed ? 'ADA MASALAH' : 'SEMUA BAIK' };
 }
 
 function renderDiag(result) {
   const box = document.getElementById('syncDiagContent');
   if (!box) return;
+
+  const hasFail = result.steps.some(s => s.status === FAIL);
+  const hasWarn = result.steps.some(s => s.status === WARN);
+
+  // Ringkasan bahasa awam untuk user
+  let summary;
+  if (!hasFail && !hasWarn) {
+    summary = `
+      <div class="kinfo-card kcenter">
+        <div class="kfs32 kmb8">✅</div>
+        <div class="kfw700 kfs15 kgreen">Data Anda Aman &amp; Tersinkron</div>
+        <div class="kfs13 ktext2 kmt8">Semua pemeriksaan berhasil. Data usaha Anda tersimpan dengan baik di server.</div>
+      </div>`;
+  } else if (!hasFail) {
+    summary = `
+      <div class="kwarn-card kcenter">
+        <div class="kfs32 kmb8">⚠️</div>
+        <div class="kfw700 kfs15">Ada Hal yang Perlu Diperhatikan</div>
+        <div class="kfs13 ktext2 kmt8">Data Anda tersinkron, tapi ada beberapa catatan. Jika ada masalah, coba muat ulang aplikasi.</div>
+      </div>`;
+  } else {
+    const offline = result.steps.find(s => s.name.includes('internet') && s.status === FAIL);
+    summary = `
+      <div class="kerr-card kcenter">
+        <div class="kfs32 kmb8">❌</div>
+        <div class="kfw700 kfs15 kred">Data Belum Tersinkron</div>
+        <div class="kfs13 ktext2 kmt8">${offline ? 'Perangkat Anda sedang <b>tidak terhubung internet</b>. Data tetap aman di HP — akan otomatis tersinkron saat online.' : 'Ada masalah koneksi ke server. Data tetap aman di HP. Coba muat ulang aplikasi, atau kirim hasil pemeriksaan ke admin.'}</div>
+      </div>`;
+  }
+
   const rows = result.steps.map(s => `
-    <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start">
-      <div style="font-size:18px;flex-shrink:0">${ICON[s.status]}</div>
-      <div style="min-width:0">
-        <div style="font-weight:700;font-size:13.5px">${escapeHtml(s.name)}</div>
-        <div style="font-size:12px;color:var(--text2);word-break:break-word;margin-top:2px">${escapeHtml(s.detail)}</div>
+    <div class="kflex-gap10 kpy4" style="border-bottom:1px solid var(--border)">
+      <div class="kfs18 kflex-shrink0">${ICON[s.status]}</div>
+      <div class="kmin-w0">
+        <div class="kfw700 kfs13">${escapeHtml(s.name)}</div>
+        <div class="kfs12 ktext2" style="word-break:break-word;margin-top:2px">${escapeHtml(s.detail)}</div>
       </div>
     </div>`).join('');
+
   box.innerHTML = `
-    <div style="font-size:13px;color:var(--text2);margin-bottom:8px">${escapeHtml(result.summary)}</div>
-    ${rows}`;
+    ${summary}
+    <details class="kmt12">
+      <summary class="kfs13 ktext2 kcursor-pointer" style="padding:8px 0">📋 Detail Teknis (untuk admin)</summary>
+      <div class="kmt8">${rows}</div>
+    </details>`;
 }
 
 function diagPlainText(result) {
@@ -155,7 +189,7 @@ export async function openSyncDiag() {
   if (!modal || !box || _running) return;
   await openModal('syncDiagModal');
   _running = true;
-  box.innerHTML = '<div class="kcenter kp24 ktext2 kfs14">⏳ Memeriksa 10 langkah sinkronisasi…</div>';
+  box.innerHTML = '<div class="kcenter kp24 ktext2 kfs14">⏳ Memeriksa koneksi &amp; penyimpanan data…</div>';
   try {
     const result = await runSyncDiagnostics();
     renderDiag(result);
@@ -181,7 +215,7 @@ export async function copySyncDiag() {
       document.execCommand('copy'); ta.remove();
     }
     const { showToast } = await import('./helpers.js');
-    showToast('Hasil diagnosa disalin — tempel di WhatsApp admin.');
+    showToast('Hasil pemeriksaan disalin — kirim ke admin via WhatsApp jika perlu bantuan.');
   } catch (e) {
     const { showToast } = await import('./helpers.js');
     showToast('Gagal menyalin — screenshot layar ini saja.', 'error');
