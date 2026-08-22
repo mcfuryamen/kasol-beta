@@ -49,9 +49,9 @@ export async function renderMenuList() {
           <div class="trx-sub">Modal ${formatRp(m.hargaModal)} · Untung ${formatRp(untung)}</div>
         </div>
         <div style="display:flex;gap:4px">
-          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px" data-action="open-menu-form" data-menu-id="${m.id}">✏️</button>
-          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px" data-action="toggle-menu" data-menu-id="${m.id}">${m.aktif?'⏸️':'▶️'}</button>
-          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px;color:var(--red)" data-action="confirm-delete-menu" data-menu-id="${m.id}">🗑️</button>
+          <button class="btn-icon btn-ghost kwh44" data-action="open-menu-form" data-menu-id="${m.id}">✏️</button>
+          <button class="btn-icon btn-ghost kwh44" data-action="toggle-menu" data-menu-id="${m.id}">${m.aktif?'⏸️':'▶️'}</button>
+          <button class="btn-icon btn-ghost kwh44 kred" data-action="confirm-delete-menu" data-menu-id="${m.id}">🗑️</button>
         </div>
       </div>`;
     });

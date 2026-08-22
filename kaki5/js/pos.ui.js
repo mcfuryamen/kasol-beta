@@ -95,7 +95,7 @@ export async function openCartModal() {
   const presets = generatePresetNominal(totalPrice);
   const presetContainer = document.getElementById('presetBayarContainer');
   presetContainer.innerHTML = presets.map(p =>
-    `<button class="btn btn-sm btn-ghost" style="font-size:12px" data-action="set-nominal-bayar" data-nominal="${p}">${p.toLocaleString('id-ID')}</button>`
+    `<button class="btn btn-sm btn-ghost kfs12" data-action="set-nominal-bayar" data-nominal="${p}">${p.toLocaleString('id-ID')}</button>`
   ).join('');
 
   // Kotak kembalian SELALU tampil (permintaan pemilik 2026-08-17): saat modal

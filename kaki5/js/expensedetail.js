@@ -27,24 +27,24 @@ export async function showExpenseDetail(id) {
       <div class="modal-title">💸 Detail Pengeluaran</div>
       
       <div style="background:var(--red-bg);border-radius:12px;padding:16px;margin-bottom:16px;text-align:center">
-        <div style="font-size:48px;margin-bottom:8px">${escapeHtml(emoji)}</div>
-        <div style="font-size:28px;font-weight:800;color:var(--red);margin-bottom:4px">${formatRp(exp.jumlah)}</div>
-        <div style="font-size:13px;color:var(--text2)">${escapeHtml(exp.kategori)}</div>
+        <div class="kfs48 kmb8">${escapeHtml(emoji)}</div>
+        <div class="kfs28 kfw800 kred kmb8">${formatRp(exp.jumlah)}</div>
+        <div class="kfs13 ktext2">${escapeHtml(exp.kategori)}</div>
       </div>
 
       <div style="background:#f9f9f9;border-radius:10px;padding:14px;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <span style="font-size:20px">📝</span>
-          <div style="flex:1">
+          <span class="kfs20">📝</span>
+          <div class="kflex-1">
             <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Keterangan</div>
-            <div style="font-weight:600;font-size:15px">${escapeHtml(exp.keterangan)}</div>
+            <div class="kfw600 kfs15">${escapeHtml(exp.keterangan)}</div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:20px">📅</span>
-          <div style="flex:1">
+        <div class="kflex-gap10">
+          <span class="kfs20">📅</span>
+          <div class="kflex-1">
             <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Tanggal & Waktu</div>
-            <div style="font-weight:600;font-size:15px">${escapeHtml(formatDate(exp.tanggal))} • ${escapeHtml(formatTime(exp.waktu))}</div>
+            <div class="kfw600 kfs15">${escapeHtml(formatDate(exp.tanggal))} • ${escapeHtml(formatTime(exp.waktu))}</div>
           </div>
         </div>
       </div>

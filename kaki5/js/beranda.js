@@ -49,11 +49,11 @@ export const loadBeranda = withPageLoading('recentTrx', async function () {
     const dStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     const dayN = dayName(dStr);
     return `<div class="trx-item" data-action="show-trx-detail" data-trx-id="${s.id}">
-      <div style="flex:1">
-        <div style="font-weight:700">${escapeHtml(dayN)} · ${formatTime(s.waktu)}</div>
+      <div class="kflex-1">
+        <div class="kfw700">${escapeHtml(dayN)} · ${formatTime(s.waktu)}</div>
         <div style="font-size:12px;color:var(--text2)">${s.items ? s.items.length : 0} item</div>
       </div>
-      <div style="font-weight:800;color:var(--green)">${formatRp(s.totalHarga)}</div>
+      <div class="kfw800 kgreen">${formatRp(s.totalHarga)}</div>
     </div>`;
   }).join('');
 });

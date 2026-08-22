@@ -155,7 +155,7 @@ export async function openSyncDiag() {
   if (!modal || !box || _running) return;
   await openModal('syncDiagModal');
   _running = true;
-  box.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text2);font-size:14px">⏳ Memeriksa 10 langkah sinkronisasi…</div>';
+  box.innerHTML = '<div class="kcenter kp24 ktext2 kfs14">⏳ Memeriksa 10 langkah sinkronisasi…</div>';
   try {
     const result = await runSyncDiagnostics();
     renderDiag(result);

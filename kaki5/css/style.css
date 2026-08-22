@@ -670,3 +670,10 @@ body.modal-open .main-content{overflow:hidden}
 .kgreen-box{background:var(--green-bg);border-radius:16px;padding:16px;margin-bottom:16px}
 .kfs40{font-size:40px}
 
+.kmy8{margin:8px 0}
+/* KSR tambahan untuk migrasi JS templates (P4-lanjut) */
+.kfs48{font-size:48px}
+.kgap8{gap:8px}
+.kp24{padding:24px}
+.kpy4{padding-top:4px;padding-bottom:4px}
+.kcursor-pointer{cursor:pointer}
