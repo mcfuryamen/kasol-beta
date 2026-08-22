@@ -20,6 +20,7 @@ import { setupRegionPicker } from './region.js';
 import { showToast, formatPhoneDisplay } from './helpers.js';
 import { ensureSynced, isSyncConfigured } from './sync.js';
 import { currentPage } from './app-state.js';
+import { openModal, closeModal } from './modal.js';
 
 export async function loadSettings() {
   const data = await loadSettingsData();
@@ -61,25 +62,27 @@ export async function loadSettings() {
  *  Banner tampil di semua halaman kecuali halaman pengaturan
  *  (saat user mengisi profil, banner disembunyikan agar tidak menutupi form). */
 export async function checkProfileNotification() {
-  const banner = document.getElementById('profileBanner');
-  if (!banner) return;
   if (currentPage === 'pengaturan') {
-    banner.classList.remove('show');
+    closeModal('profileBanner');
     return;
   }
   const incomplete = await checkProfileNotificationData();
-  banner.classList.toggle('show', incomplete);
+  if (incomplete) {
+    await openModal('profileBanner');
+  } else {
+    closeModal('profileBanner');
+  }
 }
 
 // Owner Modal (Nama Pemilik)
-export function openOwnerModal() {
+export async function openOwnerModal() {
   const currentText = document.getElementById('settingOwner')?.textContent || '—';
   document.getElementById('inputOwner').value = currentText === '—' ? '' : currentText;
-  document.getElementById('ownerModal').classList.add('show');
+  await openModal('ownerModal');
 }
 
 export function closeOwnerModal() {
-  document.getElementById('ownerModal').classList.remove('show');
+  closeModal('ownerModal');
 }
 
 export async function saveOwner() {
@@ -95,14 +98,14 @@ export async function saveOwner() {
 }
 
 // WA Modal (Nomor WhatsApp)
-export function openWaModal() {
+export async function openWaModal() {
   const currentText = document.getElementById('settingWa')?.textContent || '—';
   document.getElementById('inputWa').value = currentText === '—' ? '' : currentText;
-  document.getElementById('waModal').classList.add('show');
+  await openModal('waModal');
 }
 
 export function closeWaModal() {
-  document.getElementById('waModal').classList.remove('show');
+  closeModal('waModal');
 }
 
 export async function saveWa() {
@@ -118,7 +121,7 @@ export async function saveWa() {
 }
 
 // Alamat Modal (region picker + detail)
-export function openAlamatModal() {
+export async function openAlamatModal() {
   const currentText = document.getElementById('settingAlamat')?.textContent || '—';
   const detailPart = currentText === '—' ? '' : (currentText.split(' — ')[0]);
   document.getElementById('inputAlamat').value = detailPart;
@@ -141,11 +144,11 @@ export function openAlamatModal() {
       state: region
     });
   })();
-  document.getElementById('alamatModal').classList.add('show');
+  await openModal('alamatModal');
 }
 
 export function closeAlamatModal() {
-  document.getElementById('alamatModal').classList.remove('show');
+  closeModal('alamatModal');
 }
 
 export async function saveAlamat() {
@@ -172,13 +175,13 @@ export async function saveAlamat() {
   checkProfileNotification();
 }
 
-export function openNameModal() {
+export async function openNameModal() {
   document.getElementById('inputNamaWarung').value = document.getElementById('settingName')?.textContent || '';
-  document.getElementById('nameModal').classList.add('show');
+  await openModal('nameModal');
 }
 
 export function closeNameModal() {
-  document.getElementById('nameModal').classList.remove('show');
+  closeModal('nameModal');
 }
 
 export async function saveNamaWarung() {

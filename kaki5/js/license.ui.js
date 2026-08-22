@@ -2,6 +2,8 @@
 // DOM operations only. NO crypto, NO direct DB access.
 import { getLicense, daysLeft, isLicensed, MAX_EXTENSIONS, activateSerial, markLicenseRevoked } from './license.logic.js';
 import { escapeHtml } from './helpers.js';
+import { rateLimiters } from './helpers.pure.js';
+import { showToast } from './helpers.js';
 
 // ----- UI wiring (refs injected by app.js to avoid circular imports) -----
 let _updateTrialChip = null;
@@ -23,13 +25,17 @@ export function setLicenseRefs(refs) {
 }
 
 // ── Overlay helpers ─────────────────────────────────────────────────
-export function openOverlay(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.add('show');
+// Use centralized modal management with focus trap (a11y)
+import { openModal, closeModal, registerModalSelector } from './modal.js';
+
+// Register custom selector for lockOverlay (uses .card.license-lock-card)
+registerModalSelector('lockOverlay', '.card.license-lock-card');
+
+export async function openOverlay(id) {
+  await openModal(id);
 }
 export function closeOverlay(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.remove('show');
+  closeModal(id);
 }
 export function closeSheet(id) { closeOverlay(id); }
 
@@ -54,22 +60,22 @@ export function licenseStatusHtml(left, extUsed, inputId) {
       </div>
       <div class="license-description">Nikmati trial sekarang. Saat siap, beli lisensi dan admin akan mengaktifkannya otomatis setelah pembayaran diverifikasi.</div>
       <div class="license-extend-section">
-        ${extUsed < MAX_EXTENSIONS ? `<button class="btn-extend" onclick="window._ksr_openExtendFlow()">🎁 Tambah 1 Hari Gratis</button>` : `<div class="hint">Jatah perpanjangan gratis sudah habis (maks ${MAX_EXTENSIONS}x).</div>`}
+        ${extUsed < MAX_EXTENSIONS ? `<button class="btn-extend" data-action="open-extend-flow">🎁 Tambah 1 Hari Gratis</button>` : `<div class="hint">Jatah perpanjangan gratis sudah habis (maks ${MAX_EXTENSIONS}x).</div>`}
         <div class="license-usage">Perpanjangan dipakai <b>${extUsed}/${MAX_EXTENSIONS}</b>x</div>
       </div>
     </div>
     <div class="license-actions license-actions-row">
-      <button class="btn btn-primary" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
-      <button class="btn btn-secondary" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
+      <button class="btn btn-primary" data-action="open-purchase-sheet">💳 Beli Lisensi</button>
+      <button class="btn btn-secondary" data-action="contact-via-wa">💬 Tanya Admin</button>
     </div>
   `;
 }
 
 function manualKeyHtml(inputId) {
-  return `<div class="manual-key-toggle"><a href="javascript:void(0)" onclick="window._ksr_toggleManualKey('${inputId}')">Sudah punya kode? Aktivasi manual</a>
+  return `<div class="manual-key-toggle"><a href="javascript:void(0)" data-action="toggle-manual-key" data-input-id="${inputId}">Sudah punya kode? Aktivasi manual</a>
     <div id="manualKeyWrap-${inputId}" class="manual-key-wrap">
       <div class="field"><input type="text" id="${inputId}" placeholder="KK5-XXXX-XXXX-XX-XXXXXX" class="form-input uppercase"></div>
-      <button class="btn btn-primary" onclick="window._ksr_activateLicense('${inputId}')">🔑 Aktifkan Kode</button>
+      <button class="btn btn-primary" data-action="activate-license" data-input-id="${inputId}">🔑 Aktifkan Kode</button>
     </div></div>`;
 }
 
@@ -83,7 +89,7 @@ function activeLicenseCardHtml(serial, expTxt) {
       <p class="license-key"><b>${escapeHtml(serial || '-')}</b></p>
       <p class="license-expiry">${expTxt}</p>
       <p class="license-desc">Semua fitur sudah terbuka. Terima kasih sudah memakai Kaki5.</p>
-      <div class="license-active-actions"><button class="btn btn-outline" onclick="window._ksr_checkLicenseStatus()">🔄 Refresh Status</button></div>
+      <div class="license-active-actions"><button class="btn btn-outline" data-action="check-license-status">🔄 Refresh Status</button></div>
     </div>`;
 }
 
@@ -91,8 +97,8 @@ function revokedLicenseActionsHtml() {
   return `
     <div class="badge red compact">✖ Lisensi Dinonaktifkan</div>
     <div class="license-actions license-actions-row">
-      <button class="btn btn-primary" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
-      <button class="btn btn-secondary" onclick="window._ksr_contactViaWA()">💬 Hubungi Admin</button>
+      <button class="btn btn-primary" data-action="open-purchase-sheet">💳 Beli Lisensi</button>
+      <button class="btn btn-secondary" data-action="contact-via-wa">💬 Hubungi Admin</button>
     </div>`;
 }
 
@@ -104,8 +110,8 @@ function revokedLicenseCardHtml() {
       <div class="license-title" style="margin-top:8px">Lisensi Dicabut</div>
       <p class="license-desc">Lisensi untuk perangkat ini telah <b>dinonaktifkan</b> oleh admin. Aplikasi tidak dapat digunakan sampai lisensi dipulihkan.</p>
       <div class="license-actions license-actions-row">
-        <button class="btn btn-primary" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
-        <button class="btn btn-secondary" onclick="window._ksr_contactViaWA()">💬 Hubungi Admin</button>
+        <button class="btn btn-primary" data-action="open-purchase-sheet">💳 Beli Lisensi</button>
+        <button class="btn btn-secondary" data-action="contact-via-wa">💬 Hubungi Admin</button>
       </div>
     </div>`;
 }
@@ -133,8 +139,8 @@ function revokedPageHtml() {
     <div style="font-size:17px;font-weight:800;color:var(--red)">Lisensi Dinonaktifkan</div>
     <p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Lisensi untuk perangkat ini telah dicabut oleh admin.<br>Beli lisensi baru — aktivasi otomatis oleh admin setelah pembayaran diverifikasi.</p>
     <div class="license-actions license-actions-row">
-      <button class="btn btn-primary" onclick="window._ksr_buyGate()">💳 Beli Lisensi</button>
-      <button class="btn btn-secondary" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
+      <button class="btn btn-primary" data-action="buy-gate">💳 Beli Lisensi</button>
+      <button class="btn btn-secondary" data-action="contact-via-wa">💬 Tanya Admin</button>
     </div>
     <div style="font-size:12px;color:var(--text3);margin-top:14px">Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a></div>
   `;
@@ -143,7 +149,7 @@ function revokedPageHtml() {
 function renderRevokedLockOverlay() {
   const lock = document.getElementById('lockOverlay');
   setLockMode('revoked');
-  if (lock) lock.classList.add('show');
+  if (lock) openModal('lockOverlay');
   const page = document.getElementById('lockRevokedPage');
   if (page) page.innerHTML = revokedPageHtml();
   // lockLicenseStatusArea tidak dipakai di mode ini (halaman punya aksinya sendiri)
@@ -166,7 +172,7 @@ function pendingVerificationHtml(inputId) {
       <div class="license-header"><div class="license-icon">⏳</div><div class="license-title">Aktivasi sedang diproses</div><span class="badge amber">Menunggu admin</span></div>
       <div class="license-description">Bukti pembayaran sudah diterima. Lisensi akan aktif otomatis setelah verifikasi selesai.</div>
       <div class="license-progress"><span></span></div>
-      <div class="license-actions license-actions-primary"><button class="btn btn-primary" onclick="window._ksr_checkLicenseStatus()">🔄 Cek Status Sekarang</button></div>
+      <div class="license-actions license-actions-primary"><button class="btn btn-primary" data-action="check-license-status">🔄 Cek Status Sekarang</button></div>
       <div class="license-hint">Tidak perlu kirim ulang bukti pembayaran.</div>
     </div>
     ${manualKeyHtml(inputId)}
@@ -197,7 +203,7 @@ export async function renderLicenseStatusArea(targetId, inputId) {
       const lic = await getLicense();
     const expTxt = lic?.expiryLabel ? 'Masa berlaku: ' + escapeHtml(lic.expiryLabel) : 'Berlaku seumur hidup';
     el.innerHTML = activeLicenseCardHtml(cloud.license_serial || lic?.serial, expTxt);
-    document.getElementById('lockOverlay')?.classList.remove('show');
+    closeModal('lockOverlay');
     const gate = document.getElementById('licenseGate');
     if (gate) gate.style.display = 'none';
     if (_updateTrialChip) _updateTrialChip();
@@ -234,7 +240,7 @@ export async function checkCloudStatusAndUnlock() {
   const cloud = await fetchLicenseStatusFromCloud();
   if (cloud && cloud.license_status === 'aktif') {
     await renderLicenseStatusArea('licenseSheetBody', 'licenseKeyInputSheet');
-    document.getElementById('lockOverlay')?.classList.remove('show');
+    closeModal('lockOverlay');
     const gate = document.getElementById('licenseGate');
     if (gate) gate.style.display = 'none';
     if (_checkLicenseGate) _checkLicenseGate();
@@ -279,8 +285,7 @@ export async function checkLicenseGate() {
   if (await isLicensed()) {
     if (_updateTrialChip) _updateTrialChip();
     if (_renderLicenseInfoCard) _renderLicenseInfoCard();
-    const lock = document.getElementById('lockOverlay');
-    if (lock) lock.classList.remove('show');
+    closeModal('lockOverlay');
     return;
   }
   // not licensed (trial running or expired) - cloud-first always sync
@@ -292,15 +297,14 @@ export async function checkLicenseGate() {
       if (_updateTrialChip) _updateTrialChip();
       if (_renderLicenseInfoCard) _renderLicenseInfoCard();
       const lock = document.getElementById('lockOverlay');
-      if (lock) lock.classList.remove('show');
+      if (lock) closeModal('lockOverlay');
       return;
     }
   }
   if (_updateTrialChip) _updateTrialChip();
   if (_renderLicenseInfoCard) _renderLicenseInfoCard();
   if (left <= 0) {
-      const lock = document.getElementById('lockOverlay');
-      if (lock) lock.classList.add('show');
+      await openModal('lockOverlay');
     }
   }
 
@@ -344,7 +348,6 @@ export async function renderLicenseInfoCard() {
 
 // ── Share / Extension UI ──────────────────────────────────────────────
 export async function contactViaWA() {
-  // Import from logic to avoid circular dependency
   const { getDeviceIdentity } = await import('./license.logic.js');
   const { deviceCode } = await getDeviceIdentity();
   const text = `Halo, saya ingin aktivasi lisensi Kasir Solo - Kaki Lima.\nKode Perangkat: ${deviceCode}\nAplikasi: Kasir Solo Kaki Lima`;
@@ -355,11 +358,18 @@ export async function openExtendFlow() {
   const { getLicense } = await import('./license.logic.js');
   const { grantExtensionLogic } = await import('./license.logic.js');
   const { showToast } = await import('./helpers.js');
-  const { MAX_EXTENSIONS } = await import('./license.logic.js');
+  const { rateLimiters } = await import('./helpers.pure.js');
 
   const lic = await getLicense();
   const extUsed = lic.extensionsUsed || 0;
   if (extUsed >= MAX_EXTENSIONS) { showToast('Jatah perpanjangan sudah habis', 'error'); return; }
+
+  // Rate limit: 10 calls per minute
+  if (!rateLimiters.grantExtension('open-extend-flow')) {
+    showToast('Terlalu banyak percobaan. Tunggu sebentar.', 'error');
+    return;
+  }
+
   const { getAppLink } = await import('./app-link.js');
   const appLink = await getAppLink();
   const shareText = `Halo! Saya pakai *Kasir Solo - Kaki Lima* buat catat jualan saya, gampang & ringan banget. Bayar cuman *SEKALI*, pakai *SELAMANYA* — Coba langsung di: ${appLink}`;
@@ -381,6 +391,13 @@ export async function grantExtension() {
   const { grantExtensionLogic, daysLeft, isLicensed } = await import('./license.logic.js');
   const { showToast } = await import('./helpers.js');
   const { closeOverlay, openLicenseSheet } = await import('./license.ui.js');
+  const { rateLimiters } = await import('./helpers.pure.js');
+
+  // Rate limit: 10 calls per minute (same as openExtendFlow)
+  if (!rateLimiters.grantExtension('grant-extension')) {
+    showToast('Terlalu banyak percobaan. Tunggu sebentar.', 'error');
+    return;
+  }
 
   const res = await grantExtensionLogic();
   if (!res.granted) {
@@ -393,7 +410,7 @@ export async function grantExtension() {
   if (_updateTrialChip) _updateTrialChip();
   if (_renderLicenseInfoCard) _renderLicenseInfoCard();
   closeOverlay('sheetLicense');
-  document.getElementById('lockOverlay')?.classList.remove('show');
+  closeModal('lockOverlay');
   if (_checkLicenseGate) _checkLicenseGate();
   showToast('Masa coba ditambah 1 hari! 🎉 (' + extUsed + '/' + MAX_EXTENSIONS + ')');
 }
@@ -402,6 +419,13 @@ export async function activateLicense(inputId) {
   const { activateSerial } = await import('./license.logic.js');
   const { showToast } = await import('./helpers.js');
   const { closeOverlay } = await import('./license.ui.js');
+  const { rateLimiters } = await import('./helpers.pure.js');
+
+  // Rate limit: 5 calls per minute
+  if (!rateLimiters.activateLicense('activate-license')) {
+    showToast('Terlalu banyak percobaan aktivasi. Tunggu sebentar.', 'error');
+    return;
+  }
 
   const key = (document.getElementById(inputId).value || '').trim().toUpperCase();
   if (!key) { showToast('Masukkan kode lisensi', 'error'); return; }
@@ -411,8 +435,7 @@ export async function activateLicense(inputId) {
     if (_updateTrialChip) _updateTrialChip();
     if (_renderLicenseInfoCard) _renderLicenseInfoCard();
     closeOverlay('sheetLicense');
-    const lock = document.getElementById('lockOverlay');
-    if (lock) lock.classList.remove('show');
+    closeModal('lockOverlay');
     const gate = document.getElementById('licenseGate');
     if (gate) gate.style.display = 'none';
     showToast(res.message);

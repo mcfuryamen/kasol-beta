@@ -1,6 +1,11 @@
 // ==================== PWA SUPPORT (ESM) ====================
 import { showToast } from './helpers.js';
 
+// Dev detection helper
+function isDev() {
+  return location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('192.168.') || location.hostname.startsWith('10.') || location.hostname.endsWith('.local') || !location.hostname.includes('.');
+}
+
 let deferredPrompt = null;
 let isPWAInstalled = false;
 
@@ -37,7 +42,7 @@ function checkPWAInstalled() {
 export function setupPWA() {
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
-      console.log('[SW] Registered, scope:', reg.scope);
+      if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[SW] Registered, scope:', reg.scope);
 
       // Check for SW updates (app already installed, new version available)
       reg.addEventListener('updatefound', () => {
@@ -45,7 +50,7 @@ export function setupPWA() {
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('[SW] Service worker baru terpasang — menunggu reload berikutnya.');
+              if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[SW] Service worker baru terpasang — menunggu reload berikutnya.');
             }
           });
         }
@@ -85,7 +90,7 @@ export function showInstallBanner() {
   const banner = document.createElement('div');
   banner.id = 'installBanner';
   banner.style.cssText = 'position:fixed;top:calc(var(--header-h) + 8px);left:8px;right:8px;max-width:90%;margin:0 auto;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;border-radius:16px;padding:14px 16px;z-index:150;box-shadow:0 4px 16px rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;animation:slideDown .3s ease';
-  banner.innerHTML = '<div style="font-size:32px">📲</div><div style="flex:1"><div style="font-weight:700;font-size:14px">Pasang di HP</div><div style="font-size:12px;opacity:.85">Biar gampang dibuka kayak app biasa</div></div><button onclick="installPWA()" style="background:#fff;color:var(--primary);border:none;padding:8px 16px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">Pasang</button><button onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px">✕</button>';
+  banner.innerHTML = '<div style="font-size:32px">📲</div><div style="flex:1"><div style="font-weight:700;font-size:14px">Pasang di HP</div><div style="font-size:12px;opacity:.85">Biar gampang dibuka kayak app biasa</div></div><button data-action="install-pwa" style="background:#fff;color:var(--primary);border:none;padding:8px 16px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">Pasang</button><button data-action="close-install-banner" style="background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px">✕</button>';
   document.body.appendChild(banner);
 
   const style = document.createElement('style');
@@ -131,7 +136,7 @@ export function showManualInstallGuide() {
       <div style="font-size:40px;margin-bottom:12px">${isIOS ? '🍎' : '📲'}</div>
       <div style="font-size:16px;font-weight:700;margin-bottom:12px;color:#1a1a1a">Pasang Aplikasi</div>
       <div style="font-size:13px;color:#555;line-height:1.7;text-align:left;margin-bottom:20px">${msg}</div>
-      <button onclick="document.getElementById('installGuideOverlay').remove()" style="background:var(--primary);color:#fff;border:none;padding:10px 24px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer">Tutup</button>
+      <button data-action="close-install-guide" style="background:var(--primary);color:#fff;border:none;padding:10px 24px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer">Tutup</button>
     </div>`;
   document.body.appendChild(overlay);
 }

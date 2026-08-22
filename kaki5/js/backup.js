@@ -1,10 +1,14 @@
 // ==================== BACKUP & RESTORE (ESM) ====================
+// HMAC-SHA256 signature for backup integrity verification
+// Prevents tampering with backup files (transaksi, harga modal, etc.)
 import { DB } from './db.js';
 import { todayStr, showToast } from './helpers.js';
 import { setCart } from './app-state.js';
 import { showConfirm } from './confirm.js';
 import { clearCartStorage } from './pos.js';
 import { navigateTo } from './navigation.js';
+import { getDeviceIdentity } from './license.logic.js';
+import { hmacSignature, b32Encode } from './license.logic.js';
 
 // Kunci settings yang TIDAK boleh keluar-masuk file cadangan (T7, audit
 // 2026-08-17/H5): lisensi aktif di file cadangan bisa diklon ke perangkat lain
@@ -19,6 +23,26 @@ export function sanitizeSettingsRows(rows) {
   const PROTECTED = ['installId', 'unitId', 'deviceIdentity', 'license', 'onboarded', 'sync'];
   if (!Array.isArray(rows)) return [];
   return rows.filter(r => r && typeof r === 'object' && !PROTECTED.includes(r.key));
+}
+
+/**
+ * Generate HMAC-SHA256 signature for backup data
+ * Uses device-bound salt so backup can only be restored on same device
+ */
+export async function generateBackupSignature(data) {
+  const { deviceCode } = await getDeviceIdentity();
+  const payload = JSON.stringify(data);
+  const sig = await hmacSignature(deviceCode + payload);
+  return sig; // 6-char Base32
+}
+
+/**
+ * Verify backup signature
+ * Returns true if valid, false if tampered or from different device
+ */
+export async function verifyBackupSignature(data, expectedSig) {
+  const actualSig = await generateBackupSignature(data);
+  return actualSig === expectedSig;
 }
 
 export async function exportData() {
@@ -36,6 +60,12 @@ export async function exportData() {
     settings,
     platformMessages: await DB.platformMessages.toArray()
   };
+  
+  // Generate HMAC signature for integrity verification
+  const signature = await generateBackupSignature(data);
+  data._signature = signature;
+  data._signatureVersion = 1;
+  
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -55,7 +85,7 @@ export async function exportData() {
 //     dengan transaksi restore, data lama tidak mungkin hilang karena file buruk.
 // HARUS tetap fungsi mandiri tanpa referensi luar — test_validate.js
 // mengekstrak definisi ini berdiri sendiri.
-export function validateBackup(data) {
+export async function validateBackup(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     return 'File tidak valid: bukan objek cadangan!';
   }
@@ -119,6 +149,18 @@ export function validateBackup(data) {
   const dup = dupCheck(data.menu, 'menu') || dupCheck(penjualan, 'transaksi') || dupCheck(data.pengeluaran || [], 'pengeluaran');
   if (dup) return dup;
 
+  // ── Lapis 3: Signature verification (NEW 2026-08-20) ──
+  if (data._signature && data._signatureVersion === 1) {
+    const { _signature, _signatureVersion, ...dataForVerify } = data;
+    const isValid = await verifyBackupSignature(dataForVerify, _signature);
+    if (!isValid) {
+      return 'File ditolak: Signature tidak valid (file dimodifikasi atau dari perangkat lain).';
+    }
+  } else {
+    // Old backup without signature — warn but allow (backward compatibility)
+    console.warn('[BACKUP] File cadangan lama tanpa signature — restore diperbolehkan tapi tidak diverifikasi');
+  }
+
   return null;
 }
 
@@ -128,7 +170,7 @@ export async function importData(event) {
   try {
     const text = await file.text();
     const data = JSON.parse(text);
-    const err = validateBackup(data);
+    const err = await validateBackup(data);
     if (err) { showToast(err, 'error', { duration: 6000 }); return; }
     // ensure missing arrays default to []
     data.penjualan = data.penjualan || [];
@@ -193,3 +235,7 @@ export function confirmClearAll() {
     navigateTo('beranda');
   });
 }
+
+// generateBackupSignature & verifyBackupSignature are already exported inline
+// at their declarations above (see line 32 & 43) — a second export statement
+// here caused "Duplicate export" and broke the ESM import of app.js.

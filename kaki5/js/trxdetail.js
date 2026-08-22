@@ -5,6 +5,7 @@ import { selectedTrxId, setSelectedTrxId, currentPage } from './app-state.js';
 import { showConfirm } from './confirm.js';
 import { loadBeranda } from './beranda.js';
 import { loadReport } from './laporan.js';
+import { openModal, closeModal } from './modal.js';
 
 export async function showTrxDetail(id) {
   setSelectedTrxId(id);
@@ -35,11 +36,11 @@ export async function showTrxDetail(id) {
   </div>`;
 
   document.getElementById('trxDetailContent').innerHTML = html;
-  document.getElementById('trxDetailModal').classList.add('show');
+  await openModal('trxDetailModal');
 }
 
 export function closeTrxDetail() {
-  document.getElementById('trxDetailModal').classList.remove('show');
+  closeModal('trxDetailModal');
 }
 
 export function hapusPenjualan() {

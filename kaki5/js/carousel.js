@@ -69,7 +69,7 @@ export async function renderPlatformCarousel() {
   `).join('');
 
   const dotsHtml = msgs.map((_, i) =>
-    `<button class="plat-dot${i === 0 ? ' active' : ''}" onclick="window._ksr_platGoTo(${i})"></button>`
+    `<button class="plat-dot${i === 0 ? ' active' : ''}" data-action="plat-goto" data-slide="${i}"></button>`
   ).join('');
 
   el.innerHTML = `

@@ -4,6 +4,7 @@
 import { escapeHtml, formatRp } from './helpers.js';
 import { cart, posCat } from './app-state.js';
 import { generatePresetNominal } from './pos.logic.js';
+import { openModal, closeModal } from './modal.js';
 
 export function renderPOSCatTabsUI(menus) {
   const box = document.getElementById('posCatTabs');
@@ -45,7 +46,7 @@ export function renderPOSMenuUI(menus) {
   const catEmoji = {Makanan:'🍚',Minuman:'🥤',Snack:'🍢',Lainnya:'📦'};
   grid.innerHTML = menus.map(m => {
     const qty = cart[m.id] ? cart[m.id].qty : 0;
-    return `<div class="menu-item ${qty>0?'selected':''}" onclick="addToCart(${m.id})">
+    return `<div class="menu-item ${qty>0?'selected':''}" data-action="add-to-cart" data-menu-id="${m.id}">
       ${qty > 0 ? `<div class="item-qty">${qty}</div>` : ''}
       <span class="item-emoji">${escapeHtml(catEmoji[m.kategori]||'🍽️')}</span>
       <div class="item-name">${escapeHtml(m.nama)}</div>
@@ -69,7 +70,7 @@ export function renderCartBar() {
   }
 }
 
-export function openCartModal() {
+export async function openCartModal() {
   const items = Object.values(cart).filter(c => c.qty > 0);
   if (items.length === 0) return;
 
@@ -78,9 +79,9 @@ export function openCartModal() {
   box.innerHTML = items.map(c => `<div class="cart-item">
     <div class="cart-name">${escapeHtml(c.menu.nama)}</div>
     <div class="qty-control">
-      <button class="qty-btn" onclick="changeQty(${c.menu.id},-1)">−</button>
+      <button class="qty-btn" data-action="change-qty" data-menu-id="${c.menu.id}" data-delta="-1">−</button>
       <div class="qty-val">${c.qty}</div>
-      <button class="qty-btn" onclick="changeQty(${c.menu.id},1)">+</button>
+      <button class="qty-btn" data-action="change-qty" data-menu-id="${c.menu.id}" data-delta="1">+</button>
     </div>
     <div class="cart-price">${formatRp(c.qty * c.menu.hargaJual)}</div>
   </div>`).join('');
@@ -94,17 +95,17 @@ export function openCartModal() {
   const presets = generatePresetNominal(totalPrice);
   const presetContainer = document.getElementById('presetBayarContainer');
   presetContainer.innerHTML = presets.map(p =>
-    `<button class="btn btn-sm btn-ghost" style="font-size:12px" onclick="setNominalBayar(${p})">${p.toLocaleString('id-ID')}</button>`
+    `<button class="btn btn-sm btn-ghost" style="font-size:12px" data-action="set-nominal-bayar" data-nominal="${p}">${p.toLocaleString('id-ID')}</button>`
   ).join('');
 
   // Kotak kembalian SELALU tampil (permintaan pemilik 2026-08-17): saat modal
   // dibuka uang diterima sudah terisi = total (uang pas) → kembalian Rp 0.
   hitungKembalianUI(totalPrice, totalPrice);
-  document.getElementById('cartModal').classList.add('show');
+  await openModal('cartModal');
 }
 
 export function closeCartModal() {
-  document.getElementById('cartModal').classList.remove('show');
+  closeModal('cartModal');
 }
 
 export function hitungKembalianUI(total, bayar) {

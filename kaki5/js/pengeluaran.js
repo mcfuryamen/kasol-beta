@@ -5,17 +5,18 @@ import { DB } from './db.js';
 import { showToast } from './helpers.js';
 import { expDate } from './app-state.js';
 import { loadReport } from './laporan.js';
+import { openModal, closeModal } from './modal.js';
 
-export function openExpenseForm() {
+export async function openExpenseForm() {
   document.getElementById('editExpenseId').value = '';
   document.getElementById('expKeterangan').value = '';
   document.getElementById('expKategori').value = 'Bahan Baku';
   document.getElementById('expJumlah').value = '';
-  document.getElementById('expenseModal').classList.add('show');
+  await openModal('expenseModal');
 }
 
 export function closeExpenseModal() {
-  document.getElementById('expenseModal').classList.remove('show');
+  closeModal('expenseModal');
 }
 
 export async function saveExpense() {

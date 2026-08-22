@@ -1,7 +1,9 @@
 {
-  "version": "1.0.13",
-  "cacheBust": "v65",
+  "version": "1.0.15",
+  "cacheBust": "v70",
   "notes": [
-    "🔄 Folder kerja disinkronkan dengan mirror GitHub — restore dari C:\\Users\\Admin\\Documents\\GitHub\\kasol\\kaki5"
+    "🚑 Perbaikan kritikal: tampilan aplikasi pulih di Chrome modern (kartu statistik berwarna lagi, layout beranda & modal rapi)",
+    "🖥️ Mode tablet/desktop aktif kembali — style.css yang tadinya tak pernah termuat kini dimuat normal",
+    "🔐 Perbaikan kebijakan keamanan (CSP) yang tanpa sengaja memblokir gaya tampilan"
   ]
 }

@@ -92,15 +92,19 @@ Bump **all three** in lockstep, or users get stale cached code:
 
 ```bash
 # Syntax + real ESM import of every module (catches the stray-catch false-pass)
+# Juga menjalankan test-html-refs.js + test-css-drift.js sebagai gate.
 node test-modules.js          # exit 1 on ANY module failure
 
 # Every getElementById resolves (this lint) — quick:
 node test-html-refs.js        # exit 1 on orphaned refs
 
+# CSS: deklarasi di css/components-*.css yang ditimpa css/style.css
+node test-css-drift.js        # exit 1 kalau ada deklarasi yang ditimpa
+
 # Full suite:
-node test-imports.js          # 37/37 module imports
-node test_validate.js         # license/serial validation
-node test_pos.js              # POS math/change
+node test-imports.js          # 42/42 module imports
+node test_validate.js         # backup validation + signature + sanitize (32 kasus)
+node test_pos.js              # POS math/change (6 kasus)
 ```
 
 Add `node test-html-refs.js` to your pre-commit hook / CI after `test-modules.js`.

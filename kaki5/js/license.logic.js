@@ -1,21 +1,14 @@
 // ==================== LICENSE LOGIC (ESM) ====================
 // Pure functions + DB-dependent logic. NO DOM operations.
+// Salt is now fetched dynamically from Supabase (license.sync.js)
+// with local fallback for offline support.
 import { setSetting, getSetting } from './db.js';
 import { escapeHtml } from './helpers.js';
+// fetchProductSalt dipakai lewat dynamic import di getHmacSalt() (lihat ~line 131)
+// agar license.logic.js tidak hard-depend ke lapisan network saat modul di-load.
+import { clearProductSaltCache } from './license.sync.js';
 
 const PRODUCT_PREFIX = 'KK5';
-// PRODUCT_SALT deliberately NOT stored as a plain, greppable constant.
-// Derived at runtime from non-obvious fragments so a casual string-scan of the
-// bundle doesn't trivially reveal the HMAC key. This is defensive entertainment
-// (security-through-obscurity) — the real fix is server-side validation (see
-// license.sync.js + CLOUD-ROADMAP.md). Offline PWA can never be truly un-forgeable.
-function buildProductSalt() {
-  const a = 'KASIR' + 'SOLO';
-  const b = 'KAKI' + '5';
-  const c = 'HMAC' + '-' + 'V2';
-  return [a, b, c].join('-');
-}
-const PRODUCT_SALT = buildProductSalt();
 
 const B32_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 
@@ -46,7 +39,7 @@ export function b32Encode(bytes, length) {
 // "Perangkat" = perangkat FISIK, bukan instalasi browser.
 // deviceCode diturunkan DETERMINISTIK dari fingerprint PERANGKAT KERAS yang
 // stabil di SEMUA engine browser (Chrome/Firefox/Safari/...). Sinyal yang
-// dipakai adalah info OS & hardware (screen, CPU, RAM, timezone) yang identik
+// dipakai adalah info OS & hardware (screen, CPU, RAM, touch points, screen resolution) yang identik
 // walau ganti browser. SENGJA meng-exclude canvas & WebGL karena rendering
 // beda antar engine → kalau dipakai, id berubah walau device sama.
 // installId tetap disimpan sebagai penanda INSTALASI (tracking jumlah install),
@@ -127,11 +120,42 @@ export async function getDeviceIdentity() {
   return identity;
 }
 
+/**
+ * Get HMAC salt - fetches from Supabase (cached) with local fallback.
+ * This replaces the old hardcoded buildProductSalt().
+ */
+let _hmacSaltCache = null;
+
+async function getHmacSalt() {
+  if (_hmacSaltCache) return _hmacSaltCache;
+  
+  try {
+    const { fetchProductSalt } = await import('./license.sync.js');
+    const result = await fetchProductSalt();
+    _hmacSaltCache = result.salt;
+    return result.salt;
+  } catch (e) {
+    console.warn('[LICENSE] Failed to get HMAC salt, using fallback:', e?.message || e);
+    // Local fallback matches old buildProductSalt(): KASIRSOLO-KAKI5-HMAC-V2
+    _hmacSaltCache = 'KASIRSOLO-KAKI5-HMAC-V2';
+    return _hmacSaltCache;
+  }
+}
+
+/**
+ * Clear HMAC salt cache (e.g., after salt rotation)
+ */
+export function clearHmacSaltCache() {
+  _hmacSaltCache = null;
+  clearProductSaltCache(); // Also clear sync module cache
+}
+
 export async function hmacSignature(data) {
+  const salt = await getHmacSalt();
   const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey('raw', enc.encode(PRODUCT_SALT),
+  const key = await crypto.subtle.importKey('raw', enc.encode(salt),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(PRODUCT_SALT + data));
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(salt + data));
   return b32Encode(new Uint8Array(sig), 6);
 }
 
@@ -399,3 +423,8 @@ export async function grantExtensionLogic() {
   await saveLicense(lic);
   return { granted: true, lic, extUsed, left: Math.max(0, daysLeft(lic)) };
 }
+
+// Re-export the sync-module salt clearer for external use (e.g., admin panel).
+// clearHmacSaltCache is already exported inline at its declaration above —
+// re-exporting it here caused "Duplicate export" and broke 15 module imports.
+export { clearProductSaltCache };

@@ -6,6 +6,13 @@
 import { getUnitId, getDeviceCode } from './license.js';
 import { showToast } from './helpers.js';
 import { pullCloudProfileTo } from './sync.js';
+import { rateLimiters } from './helpers.pure.js';
+import { openModal, closeModal } from './modal.js';
+
+// Dev detection helper
+function isDev() {
+  return location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('192.168.') || location.hostname.startsWith('10.') || location.hostname.endsWith('.local') || !location.hostname.includes('.');
+}
 
 const QRIS_BUCKET_URL = 'https://hhywrvedlwljawgxzpkq.supabase.co/storage/v1/object/public/qris/';
 const BUKTI_BUCKET_URL = 'https://hhywrvedlwljawgxzpkq.supabase.co/storage/v1/object/bukti/';
@@ -35,7 +42,7 @@ function isPlaceholderKey(k) {
 function unlockGate() {
   const gate = document.getElementById('licenseGate');
   if (gate) gate.style.display = 'none';
-  document.getElementById('lockOverlay')?.classList.remove('show');
+  closeModal('lockOverlay');
 }
 
 /** Get current license status from Supabase */
@@ -149,7 +156,7 @@ export async function openPurchaseSheet() {
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:14px;color:var(--text2)">Harga Lisensi</span>
           <span style="display:inline-flex;align-items:baseline;gap:8px">
-            ${payInfo.priceBeforeLabel ? `<s style="font-size:13px;color:var(--text3,#999);font-weight:600">${payInfo.priceBeforeLabel}</s>` : ''}
+            ${payInfo.priceBeforeLabel ? `<s style="font-size:13px;color:var(--text3,#999);font-weight:600">${payInfo.priceBeforeLabel} ` : ''}
             <span style="font-size:18px;font-weight:800;color:var(--accent,var(--success,#16a34a))">${payInfo.priceLabel}</span>
           </span>
         </div>
@@ -174,12 +181,12 @@ export async function openPurchaseSheet() {
     </div>
 
     <div id="purchaseUploadStep" style="margin-top:16px">
-      <input type="file" id="buktiInput" accept="image/png,image/jpeg,image/webp" capture="environment" style="display:none" onchange="window._ksr_handleBuktiUpload(event)">
+      <input type="file" id="buktiInput" accept="image/png,image/jpeg,image/webp" capture="environment" style="display:none" data-action="handle-bukti-upload">
       <div id="buktiPlaceholder" style="margin-bottom:10px;padding:14px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--text2);font-size:13px">
         📎 Bukti pembayaran belum dipilih
       </div>
       <div id="buktiPreview" style="margin-bottom:10px;text-align:center"></div>
-      <button class="btn btn-primary" style="width:100%" onclick="document.getElementById('buktiInput').click()" ${payInfo.isDemo ? 'disabled title="Menunggu konfigurasi pembayaran admin"' : ''} id="submitPurchaseBtn">
+      <button class="btn btn-primary" style="width:100%" data-action="trigger-bukti-input" ${payInfo.isDemo ? 'disabled title="Menunggu konfigurasi pembayaran admin"' : ''} id="submitPurchaseBtn">
         🧾 ${payInfo.isDemo ? 'Pembayaran belum siap' : 'Kirim Bukti Bayar'}
       </button>
     </div>
@@ -198,8 +205,8 @@ export async function openPurchaseSheet() {
   window._ksr_purchaseDeviceCode = device_code;
   window._ksr_currentPrice = parsePriceToNumber(payInfo.priceLabel) || null;
 
-  // Tampilkan sheet
-  document.getElementById('sheetPurchase')?.classList.add('show');
+  // Tampilkan sheet via modal system (focus trap + a11y)
+  await openModal('sheetPurchase');
 }
 
 /** Parse "Rp 500.000" / "Rp500.000" menjadi angka 500000. */
@@ -246,6 +253,12 @@ export async function handleBuktiUpload(event) {
 
 /** Submit purchase to Supabase */
 export async function submitPurchase(unitId, deviceCode) {
+  // Rate limit: 3 calls per minute
+  if (!rateLimiters.submitPurchase('submit-purchase')) {
+    showToast('Terlalu banyak percobaan kirim bukti. Tunggu sebentar.', 'error');
+    return;
+  }
+
   const file = window._ksr_currentBuktiFile;
   if (!file) {
     showToast('Pilih foto bukti transfer terlebih dahulu', 'error');
@@ -310,7 +323,7 @@ export async function submitPurchase(unitId, deviceCode) {
     if (insertError) throw insertError;
 
     showToast('✅ Bukti pembayaran dikirim! Tunggu verifikasi admin.', 3000, 'success');
-    window._ksr_closeSheet('sheetPurchase');
+    closeModal('sheetPurchase');
 
     // Refresh status card langsung → jadi "Menunggu Verifikasi Admin"
     try {
@@ -324,7 +337,7 @@ export async function submitPurchase(unitId, deviceCode) {
 
   } catch (e) {
     console.error('Submit purchase error:', e);
-    showToast('Gagal mengirim bukti: ' + e.message, 3000, 'error');
+    showToast('Gagal mengirim bukti', 'error', { duration: 3000 });
   }
 }
 
@@ -345,7 +358,7 @@ export async function pollLicenseStatus(unitId) {
       // License activated!
       _pollTimer = null;
       showToast('🎉 Lisensi berhasil diaktifkan!', 3000, 'success');
-      window._ksr_closeSheet('sheetPurchase');
+      closeModal('sheetPurchase');
       unlockGate();
       // Reload license info
       if (window._ksr_updateTrialChip) window._ksr_updateTrialChip();
