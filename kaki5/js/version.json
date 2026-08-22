@@ -1,10 +1,9 @@
 {
-  "version": "1.0.16",
-  "cacheBust": "v71",
+  "version": "1.0.17",
+  "cacheBust": "v72",
   "notes": [
-    "🛡️ Penguatan tampilan: posisi overlay (gerbang lisensi, bar keranjang, pembaruan) kini dikelola file CSS — lebih tahan perubahan kebijakan browser",
-    "🎨 Warna address-bar & splash screen kini serasi dengan warna header aplikasi",
-    "⌨️ Modal bisa ditutup dengan tombol Esc, dan halaman di belakangnya tidak ikut tergulir saat modal terbuka",
-    "♿ Status lisensi di header kini bisa diakses dengan keyboard (Tab + Enter)"
+    "⚡ Aplikasi makin cepat dimuat — seluruh gaya tampilan kini dikemas dalam satu file (dulu 14 file)",
+    "🧹 Rapikan arsitektur tampilan internal (konsolidasi style-sheet) tanpa perubahan desain",
+    "🛡️ Tampilan lebih tahan perubahan kebijakan browser"
   ]
 }
