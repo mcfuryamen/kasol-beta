@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import { createHmac, randomUUID } from 'node:crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 
 /** Default TTL: 24 jam (ms) */
 export const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -99,10 +99,11 @@ export function validateSessionToken(adminKey, tokenB64url) {
     return { ok: false, code: 401, error: 'token_expired' };
   }
 
-  // Recompute signature (verifikasi tanpa melibat admin key / token asli)
+  // Recompute signature (constant-time compare, tanpa reveal key/token asli)
   const expectedSig = signPayload(adminKey, { id, iat, exp });
-  const equal = Buffer.from(suppliedSig, 'base64url').length === Buffer.from(expectedSig, 'base64url').length
-    && createHmac('sha256', '').update(suppliedSig).digest().equals(createHmac('sha256', expectedSig).digest());
+  const a = Buffer.from(suppliedSig, 'base64url');
+  const b = Buffer.from(expectedSig, 'base64url');
+  const equal = a.length === b.length && timingSafeEqual(a, b);
 
   if (!equal) {
     return { ok: false, code: 401, error: 'unauthorized' };
