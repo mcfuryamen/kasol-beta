@@ -210,7 +210,8 @@ async function restoreClientLicense(id) {
     status: 'aktif',
     license_status: 'aktif',
     license_serial: '⏳ Generating...',
-    activated_at: new Date().toISOString()
+    activated_at: new Date().toISOString(),
+    verified_at: new Date().toISOString()
   } : x);
   if (clientView === 'kelola') renderKanban(); else renderAnalytics();
 
@@ -237,13 +238,14 @@ async function restoreClientLicense(id) {
       throw new Error('Serial tidak valid setelah generate: ' + (verify.data?.reason || 'unknown'));
     }
 
-    // 3) Simpan ke Supabase (status aktif + serial + license_status + activated_at)
+    // 3) Simpan ke Supabase (status aktif + serial + license_status + activated_at + verified_at)
     const now = new Date().toISOString();
     const patchData = {
       status: 'aktif',
       license_status: 'aktif',
       license_serial: serial,
-      activated_at: now
+      activated_at: now,
+      verified_at: now
     };
 
     const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
@@ -262,7 +264,8 @@ async function restoreClientLicense(id) {
       status: 'aktif',
       license_status: 'aktif',
       license_serial: serial,
-      activated_at: now
+      activated_at: now,
+      verified_at: now
     } : x);
     if (clientView === 'kelola') renderKanban(); else renderAnalytics();
 
