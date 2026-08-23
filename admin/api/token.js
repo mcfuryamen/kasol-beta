@@ -16,7 +16,6 @@
  * =============================================================================
  */
 
-import { checkAdminGate, checkSessionToken } from './_gate.js';
 import { mintSessionToken } from './_token.js';
 
 export default async function handler(req, res) {
