@@ -34,7 +34,7 @@ function setPageMeta(screen) {
 export function initNavigation() {
   sidebar = document.querySelector('.sidebar');
   sidebarOverlay = document.getElementById('sidebarOverlay');
-  navItems = document.querySelectorAll('.nav-link, .nav-item, .sb-link');
+  navItems = document.querySelectorAll('.nav-link, .nav-item, .sb-link, .bnav-item');
 
   // Hamburger is already in HTML (topbar-right)
   hamburger = document.querySelector('.menu-toggle, .hamburger');
@@ -136,9 +136,11 @@ export function switchScreen(screen, clientView) {
     else link.removeAttribute('aria-current');
   });
 
-  // Update bottom nav (only .nav-item; .nav-link belongs to sidebar and is handled above)
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.classList.toggle('active', item.dataset.screen === screen);
+  // Update bottom nav (.bnav-item)
+  document.querySelectorAll('.bnav-item').forEach(item => {
+    const match = item.dataset.screen === screen;
+    item.classList.toggle('active', match);
+    item.setAttribute('aria-current', match ? 'page' : 'false');
   });
 
   // Update screens
@@ -206,9 +208,10 @@ export function updateActiveScreen(screen, clientView) {
     if (isActive) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   });
-  document.querySelectorAll('.nav-item').forEach(item => {
+  document.querySelectorAll('.bnav-item').forEach(item => {
     const isActive = item.dataset.screen === screen;
     item.classList.toggle('active', isActive);
+    item.setAttribute('aria-current', isActive ? 'page' : 'false');
   });
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.toggle('active', s.id === `screen-${screen}`);
