@@ -126,7 +126,16 @@ function setLockMode(mode) {
   const revoked = mode === 'revoked';
   if (lock) lock.classList.toggle('revoked-page', revoked);
   if (card) card.style.display = revoked ? 'none' : '';
-  if (page) page.style.display = revoked ? '' : 'none';
+  if (page) {
+    if (revoked) {
+      // Hapus khide (display:none dari CSS) dan tampilkan halaman revoked
+      page.classList.remove('khide');
+      page.style.display = 'block';
+    } else {
+      page.style.display = 'none';
+      page.classList.add('khide');
+    }
+  }
 }
 
 // Halaman "Lisensi Dicabut" — struktur meniru gate lisensi (logo, judul,
