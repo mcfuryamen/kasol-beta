@@ -52,8 +52,9 @@ function validateSessionToken(adminKey, tokenB64url) {
     }
     if (Date.now() > exp) return { ok: false, error: 'token_expired' };
     const expectedSig = signPayload(adminKey, { id, iat, exp });
-    const equal = Buffer.from(suppliedSig, 'base64url').length === Buffer.from(expectedSig, 'base64url').length
-      && createHmac('sha256', '').update(suppliedSig).digest().equals(createHmac('sha256', expectedSig).digest());
+    const a = Buffer.from(suppliedSig, 'base64url');
+    const b = Buffer.from(expectedSig, 'base64url');
+    const equal = a.length === b.length && timingSafeEqual(a, b);
     if (!equal) return { ok: false };
     return { ok: true, expiresAt: exp };
   } catch {
@@ -154,6 +155,37 @@ async function proxy(req, res) {
   res.end(text);
 }
 
+// Salt produk (sama dengan api/license.js dan app klien)
+const DEFAULT_SALTS = {
+  KK5: process.env.LICENSE_SALT_KAKI5 || 'KASIRSOLO-KAKI5-HMAC-V2',
+  KSR: process.env.LICENSE_SALT_ROSOK || 'KASIRSOLO-ROSOK-HMAC-V2',
+  GBK: process.env.LICENSE_SALT_GEROBAK || 'KASIRSOLO-GEROBAK-HMAC-V2',
+  RTL: process.env.LICENSE_SALT_RETAIL || 'KASIRSOLO-RETAIL-HMAC-V2'
+};
+function getSaltMap() {
+  try {
+    const override = JSON.parse(process.env.LICENSE_SALTS || '{}');
+    return { ...DEFAULT_SALTS, ...override };
+  } catch { return { ...DEFAULT_SALTS }; }
+}
+
+function checkAdminGate(req) {
+  const sessionKey = req.headers['x-session-key'];
+  if (typeof sessionKey === 'string' && sessionKey.length > 0) {
+    const v = validateSessionToken(adminKey, sessionKey);
+    if (v.ok) return { ok: true };
+    if (v.error === 'token_expired') return { ok: false, code: 401, error: 'token_expired' };
+    return v;
+  }
+  const supplied = req.headers['x-admin-key'];
+  if (typeof supplied === 'string' && supplied.length > 0) {
+    const a = Buffer.from(supplied, 'utf8');
+    const b = Buffer.from(adminKey, 'utf8');
+    if (a.length === b.length && timingSafeEqual(a, b)) return { ok: true };
+  }
+  return { ok: false, code: 401, error: 'unauthorized' }
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const urlPath = decodeURIComponent(req.url.split('?')[0]);
@@ -168,6 +200,49 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (urlPath === '/api/rest') return await proxy(req, res);
+
+    // POST /api/license — generate/verify lisensi (dev local)
+    if (req.method === 'POST' && urlPath === '/api/license') {
+      const gate = checkAdminGate(req);
+      if (!gate.ok) return json(res, gate.code, { error: gate.error });
+
+      let body;
+      try { body = await readBody(req); } catch { return json(res, 400, { error: 'bad_json' }); }
+
+      const { action, prefix, deviceCode, expCode, serial, salt } = body || {};
+      if (!action) return json(res, 400, { error: 'missing_action' });
+      const upPrefix = String(prefix || '').toUpperCase();
+      const saltMap = getSaltMap();
+      const serverSalt = saltMap[upPrefix] || '';
+      const effectiveSalt = serverSalt || (typeof salt === 'string' ? salt : '');
+
+      if (action === 'generate') {
+        if (!upPrefix || !deviceCode) return json(res, 400, { error: 'missing_input' });
+        if (!effectiveSalt) return json(res, 400, { error: 'no_salt_for_prefix' });
+        try {
+          const mod = await import('./js/license-core.js');
+          const serialOut = await mod.generateSerial(upPrefix, effectiveSalt, deviceCode, expCode ?? '99');
+          return res.end(JSON.stringify({ serial: serialOut }));
+        } catch (e) {
+          return json(res, 500, { error: 'generate_failed', detail: String(e?.message || e) });
+        }
+      }
+
+      if (action === 'verify') {
+        if (!upPrefix || !serial || !deviceCode) return json(res, 400, { error: 'missing_input' });
+        if (!effectiveSalt) return json(res, 400, { error: 'no_salt_for_prefix' });
+        try {
+          const mod = await import('./js/license-core.js');
+          const result = await mod.verifySerial(upPrefix, effectiveSalt, serial, deviceCode);
+          result.expiryText = mod.formatExpiry(result.expCode, result.valid && !result.expired ? new Date() : null);
+          return res.end(JSON.stringify(result));
+        } catch (e) {
+          return json(res, 500, { error: 'verify_failed', detail: String(e?.message || e) });
+        }
+      }
+      return json(res, 400, { error: 'invalid_action' });
+    }
+
     const filePath = path.resolve(root, '.' + (urlPath === '/' ? '/index.html' : urlPath));
     if (!filePath.startsWith(root + path.sep)) return res.writeHead(403).end('Forbidden');
     fs.readFile(filePath, (err, content) => {

@@ -12,7 +12,7 @@
 import { showToast } from './toast.js';
 import { escapeHtml, formatRelativeTime, formatDate, normalizePhone } from './utils.js';
 import { STATE, setState, subscribe } from './app-state.js';
-import { supabaseFetch, supabaseStorageSign } from './api.js';
+import { supabaseFetch, supabaseStorageSign, licenseApi } from './api.js';
 import { updateSidebarBadges } from './navigation.js?v=20260812i';
 
 // app_type → produk (HANYA metadata: prefix/ikon/label).
@@ -186,12 +186,94 @@ async function revokeClientLicense(id) {
   }
 }
 
-/** Aktifkan klien — langsung pindah ke status 'aktif' dari status mana pun. */
+/** Aktifkan klien — generate lisensi valid + set status 'aktif' + simpan ke Supabase.
+ *  Contoh app_type: 'kaki5' → prefix 'KK5'. Serial lifetime (99) dibuat di
+ *  server (/api/license) agar cocok dengan salt yang sama dipakai app klien.
+ */
 async function restoreClientLicense(id) {
   const c = clients.find((x) => x.id === id);
   if (!c) return;
-  await updateClientStatus(id, 'aktif');
-  showToast('✅ Status diubah ke Aktif', 2000, 'success');
+
+  const appType = c.app_type || '';
+  const prefix = (APP_META[appType] || {}).prefix || '';
+  const deviceCode = c.device_code || '';
+
+  if (!prefix || !deviceCode) {
+    showToast('Data aplikasi/device code belum lengkap untuk generate lisensi', 2500, 'error');
+    return;
+  }
+
+  // Optimistic: langsung set status aktif + license placeholder di UI
+  const prev = { ...c };
+  clients = clients.map((x) => x.id === id ? {
+    ...x,
+    status: 'aktif',
+    license_status: 'aktif',
+    license_serial: '⏳ Generating...',
+    activated_at: new Date().toISOString()
+  } : x);
+  if (clientView === 'kelola') renderKanban(); else renderAnalytics();
+
+  try {
+    // 1) Generate serial via server (salt server-side only)
+    const gen = await licenseApi('generate', {
+      prefix,
+      deviceCode,
+      expCode: '99' // lifetime
+    });
+
+    if (!gen.ok || !gen.data?.serial) {
+      throw new Error(gen.data?.error || 'Gagal generate serial lisensi');
+    }
+    const serial = gen.data.serial;
+
+    // 2) Verifikasi cepat (pastikan format valid sebelum disimpan)
+    const verify = await licenseApi('verify', {
+      prefix,
+      serial,
+      deviceCode
+    });
+    if (!verify.ok || !verify.data?.valid) {
+      throw new Error('Serial tidak valid setelah generate: ' + (verify.data?.reason || 'unknown'));
+    }
+
+    // 3) Simpan ke Supabase (status aktif + serial + license_status + activated_at)
+    const now = new Date().toISOString();
+    const patchData = {
+      status: 'aktif',
+      license_status: 'aktif',
+      license_serial: serial,
+      activated_at: now
+    };
+
+    const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      data: patchData,
+      headers: { Prefer: 'return=representation' }
+    });
+
+    if (!res.ok) {
+      throw new Error('Gagal menyimpan lisensi ke Supabase (status ' + res.status + ')');
+    }
+
+    // 4) Update local state dengan data final
+    clients = clients.map((x) => x.id === id ? {
+      ...x,
+      status: 'aktif',
+      license_status: 'aktif',
+      license_serial: serial,
+      activated_at: now
+    } : x);
+    if (clientView === 'kelola') renderKanban(); else renderAnalytics();
+
+    showToast(`✅ Lisensi aktif • ${prefix}-${serial.slice(-13)}`, 3000, 'success');
+  } catch (e) {
+    // Rollback
+    clients = clients.map((x) => x.id === id ? prev : x);
+    if (clientView === 'kelola') renderKanban(); else renderAnalytics();
+    console.error('[restoreClientLicense]', e);
+    showToast('Gagal aktivasi lisensi: ' + (e.message || 'unknown'), 3500, 'error');
+  }
 }
 
 window.revokeClientLicense = revokeClientLicense;
