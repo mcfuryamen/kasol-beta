@@ -165,13 +165,27 @@ async function revokeClientLicense(id) {
 
   // optimistic update supaya UI langsung merespon
   const prev = { ...c };
-  clients = clients.map((x) => x.id === id ? { ...x, status: 'batal', license_status: 'batal', license_serial: null, activated_at: null } : x);
+  const now = new Date().toISOString();
+  clients = clients.map((x) => x.id === id ? {
+    ...x,
+    status: 'batal',
+    license_status: 'batal',
+    license_serial: null,
+    activated_at: null,
+    revoked_at: now
+  } : x);
   if (clientView === 'kelola') renderKanban(); else renderAnalytics();
 
   try {
     const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
-      data: { status: 'batal', license_status: 'batal', license_serial: null, activated_at: null },
+      data: {
+        status: 'batal',
+        license_status: 'batal',
+        license_serial: null,
+        activated_at: null,
+        revoked_at: now
+      },
       headers: { Prefer: 'return=representation' }
     });
     if (!res.ok) throw new Error('Failed to revoke');
@@ -238,14 +252,15 @@ async function restoreClientLicense(id) {
       throw new Error('Serial tidak valid setelah generate: ' + (verify.data?.reason || 'unknown'));
     }
 
-    // 3) Simpan ke Supabase (status aktif + serial + license_status + activated_at + verified_at)
+    // 3) Simpan ke Supabase (status aktif + serial + license_status + activated_at + verified_at + restored_at)
     const now = new Date().toISOString();
     const patchData = {
       status: 'aktif',
       license_status: 'aktif',
       license_serial: serial,
       activated_at: now,
-      verified_at: now
+      verified_at: now,
+      restored_at: now
     };
 
     const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
@@ -265,7 +280,8 @@ async function restoreClientLicense(id) {
       license_status: 'aktif',
       license_serial: serial,
       activated_at: now,
-      verified_at: now
+      verified_at: now,
+      restored_at: now
     } : x);
     if (clientView === 'kelola') renderKanban(); else renderAnalytics();
 
