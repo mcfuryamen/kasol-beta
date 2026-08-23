@@ -1,5 +1,112 @@
+2026-08-23 — v1.0.18 (SW v73) — BUMP VERSI RESMI:
+Rilis stabil dengan perbaikan visual, UX, dan bugfix berikut:
+1. Logo header: hapus background #fff + padding 2px — tepi logo menyatu
+   dengan gradient header (tanpa outline/bingkai putih).
+2. Semua kotak isian (field): border 2px → 1px + fokus tanpa outline dobel
+   (sebelumnya 3px oranye + offset 2px membuat garis ganda).
+3. Footer aplikasi (info, kontak, versi) dipindah ke dalam halaman
+   Pengaturan — tidak lagi bocor ke Beranda/Jualan/Laporan.
+4. Update overlay: setelah user klik OKE, overlay tidak muncul lagi
+   (penyimpanan versi di localStorage, tidak terpengaruh sessionStorage
+   yang dibersihkan saat boot).
+5. Tombol .btn: outline oranye/biru browser dihapus — menggantikan dengan
+   :active state saja (scale + warna lebih gelap).
+6. Menu "Pasang Aplikasi" di Pengaturan kini menjadi trigger instalasi
+   PWA (bukan tutorial). Menampilkan native install prompt browser
+   jika tersedia; jika tidak, toast singkat per-platform (iOS/Android/
+   localhost) — tanpa overlay tutorial penuh.
+7. "Cek Data Online" (dulu "Diagnosa Sinkronisasi"): di-rename menjadi
+   lebih user-friendly. Hasil pemeriksaan menampilkan ringkasan bahasa
+   awam (✅ Semua aman / ⚠️ Perlu diperhatikan / ❌ Belum tersinkron)
+   di atas, detail teknis disembunyikan di <details> untuk admin.
+8. Fix syntax error js/helpers.js:308 — kunci object 'wh64-round' tanpa
+   quote menyebabkan SyntaxError di browser (harusnya 'wh64-round').
+9. Fix manifest.json — property 'purpose' diubah dari array ["any"] ke
+   string "any" / "any maskable" sesuai spec Web App Manifest.
+
 2026-08-22 — P4 UTILITIES v1.0.17 (SW v72, tidak bump versi — hanya framework):
 infra migrasi inline style → kelas.
+1. js/helpers.js: fungsi ksr(...) dan registry _KEY_CSS (50+ key semantik:
+   margin, flex, font-size, weight, color, background, container, widget size).
+2. css/style.css: section KSR UTILITIES (50+ kelas .k* — paritas dengan _KEY_CSS).
+3. index.html: migrasi partial ke kelas k* (header+statcards+cartbar+footer).
+Sisa ~320 inline style di JS templates statis (dinamis per-record) tetap ada;
+infra ksr siap digunakan untuk migrasi bertahap per modul.
+
+2026-08-22 — P3 DOKUMENTASI (tanpa bump versi — tidak ada perubahan runtime):
+README.md, docs/DEVELOPER.md, docs/REGRESSION-CHECKLIST.md, dan DESIGN.md
+disinkronkan dengan arsitektur pasca-konsolidasi: css/style.css kini
+satu-satunya stylesheet (struktur folder, guard test-css-drift baru, checklist
+precache). DESIGN.md: warna primer dikoreksi #E65100 → #D6501C.
+
+2026-08-22 — P2 KONSOLIDASI v1.0.17 (SW v72): CSS single-source + pembersihan.
+1. css/style.css kini SATU-SATUNYA stylesheet (dulu 13 file modular + style.css
+   dimuat bersamaan = dual-source drift-prone). 67 selector yang hanya ada di
+   file modular + @keyframes licenseProgress dipindah ke style.css
+   (diverifikasi level-selector DAN level-deklarasi: 0 bocor).
+2. Breakpoint banner profil disatukan 380px → 414px (mengikuti perilaku render
+   yang selama ini efektif karena base.css@414 menang).
+3. 13 file css modular dihapus; index.html & sw.js precache hanya memuat
+   css/style.css → 14 request CSS menjadi 1.
+4. Skeleton duplikat (3 lokasi) otomatis terdedup jadi 1 di style.css.
+5. js/templates.js: objek TEMPLATES dead-code dihapus (salinan HTML ber-onclick
+   legacy yang tidak pernah di-inject; initPage/cleanupPage tetap).
+6. test-css-drift.js ditulis ulang: guard single-source (1 link HTML, 1 file
+   css/, brace seimbang, precache SW sinkron).
+Backlog strategis tersisa: migrasi bertahap inline style → kelas CSS.
+
+2026-08-22 — P1 HARDENING v1.0.16 (SW v71): lanjutan audit LAYOUT_CSS_UI_UX_AUDIT_2026-08-22.
+1. Styling kritikal overlay dipindah dari inline ke file CSS (paritas modular +
+   style.css): #licenseGate (components-modal.css), #cartBar (components-cart.css),
+   guard #updateOverlay/display:none (components-modal.css).
+2. Token --paper didefinisikan (#FFF8F0) di base.css + style.css — sebelumnya
+   dipakai .update-notes li tanpa definisi (background transparan).
+3. theme_color disinkronkan #E65100 → #D6501C (meta index.html + manifest.json).
+4. js/modal.js: Escape menutup overlay ter-atas (kecuali lockOverlay &
+   updateOverlay), scroll-lock background (body.modal-open → .main-content
+   overflow hidden) saat ada overlay terbuka.
+5. A11y: #trialChip kini tabindex=0 + delegasi keydown Enter/Space untuk
+   elemen non-native ber-data-action (app.js); toast role alert → status
+   (konsisten dengan aria-live polite).
+6. BESAR (pre-existing, ketemu saat verifikasi): refactor template
+   onclick="..." → data-action="..." tidak diikuti handler di app.js — 21
+   action mati total (add-to-cart, change-qty, set-nominal-bayar,
+   show-trx-detail, toggle-menu, confirm-delete-menu, activate-license,
+   open-purchase-sheet, buy-gate, contact-via-wa, open-extend-flow,
+   toggle-manual-key, check-license-status, trigger-bukti-input,
+   handle-bukti-upload, toggle-tutorial, plat-goto, close-install-banner,
+   close-install-guide, close-expense-detail, open-purchase-sheet dup).
+   Semua case ditambahkan + delegasi event input/change untuk data-action
+   di elemen input (pencarian POS/menu, format bayar, upload file) yang
+   sebelumnya tidak pernah terpicu.
+Backlog tersisa: konsolidasi CSS dual-source & migrasi inline style (P2).
+
+2026-08-22 — HOTFIX v1.0.15 (SW v70): Perbaikan CSP yang merusak layout.
+Masalah: meta CSP memakai nonce placeholder ("__CSP_NONCE__") → Chrome memblokir
+semua inline style (382 titik: kartu statistik putih, overlay kehilangan posisi
+fixed) dan inline onload → css/style.css (media="print") tidak pernah aktif di
+layar → seluruh breakpoint tablet/desktop mati sejak v54 (2026-08-17).
+Perbaikan:
+1. CSP: script-src 'self' (tanpa nonce), style-src 'self' 'unsafe-inline'.
+2. style.css dimuat sebagai stylesheet blocking biasa (trik media=print dihapus).
+3. Script nonce-replacement & console.log dead code dihapus; dev SW-unregister
+   dipindah ke js/dev-unregister-sw.js (inline script kini dilarang CSP).
+4. CACHE_NAME SW → v70, cacheBust app.js → ?v=70.
+Detail audit: LAYOUT_CSS_UI_UX_AUDIT_2026-08-22.md.
+
+2026-08-20 16:52:00 +07:00 - Framework, Optimasi & Dokumentasi: Memutuskan untuk mengadopsi Tailwind CSS sebagai CSS framework.
+Alasan: 
+- Memungkinkan penggunaan variabel desain yang sudah ada melalui penyesuaian tema Tailwind.
+- Mengurangi ukuran CSS melalui purging yang efektif.
+- Mempermudah pengembangan dengan kelas utilitas yang konsisten.
+- Tidak perlu mengubah struktur HTML secara drastis, hanya mengganti kelas.
+Langkah selanjutnya:
+1. Menyiapkan build process untuk Tailwind CSS (menggunakan PostCSS, autoprefixer, cssnano).
+2. Mengganti kelas kustom di index.html dengan kelas Tailwind yang sesuai.
+3. Menyelamatkan kelas yang ditambahkan secara dinamis via JavaScript (misal: 'show', 'active') agar tidak terhapus oleh PurgeCSS.
+4. Membuat dokumen gaya di docs/STYLE_GUIDE.md.
+5. Memperbarui README.md di akar proyek.
+6. Mencatat setiap langkah dalam CHANGELOG.txt.
 1. js/helpers.js: fungsi ksr(...) dan registry _KEY_CSS (50+ key semantik:
    margin, flex, font-size, weight, color, background, container, widget size).
 2. css/style.css: section KSR UTILITIES (50+ kelas .k* — paritas dengan _KEY_CSS).
