@@ -298,7 +298,7 @@ window.openCatalogSheet = function(idx = null) {
           </div>
     <div class="btn-block-row mt12">
       <button class="btn btn-outline" onclick="closeCatalogSheet()">Batal</button>
-      <button class="btn btn-primary" onclick="saveCatalogApp(${idx})">${isEdit ? 'Simpan Perubahan' : 'Tambah Aplikasi'}</button>
+      <button class="btn btn-primary" onclick="saveCatalogApp(${idx})">${isEdit ? 'Simpan' : 'Tambah'}</button>
     </div>
   `;
 

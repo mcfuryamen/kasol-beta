@@ -391,8 +391,8 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
   .pr-salt,.pr-price{grid-column:1/-1;}
   .data-table th:nth-child(3),.data-table td:nth-child(3){display:none;}
   /* Form detail: tumpuk di layar kecil */
-  .btn-block-row{flex-direction:column;align-items:stretch;}
-  .btn-block-row .btn{width:100%;}
+  .btn-block-row .btn{width:auto;min-height:40px;font-size:13px;}
+  .btn-block-row{gap:var(--s2);padding:var(--s2) var(--s3);}
   .cd-head{flex-direction:column;align-items:flex-start;}
   /* Catalog card: kompak di HP */
   .catalog-grid{gap:var(--s3);}
@@ -614,6 +614,10 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 .stat-value.orange,.stat-mini .sm-val.orange{background:none;color:var(--primary);}
 .btn-block-row {
   display: flex; gap: var(--space-3); justify-content: flex-end;
+  position: sticky; bottom: 0; z-index: 10;
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
 }
 .btn-block-row > .btn {
   flex: 1;
