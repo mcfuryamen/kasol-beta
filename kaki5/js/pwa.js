@@ -23,10 +23,9 @@ function checkPWAInstalled() {
     return true;
   }
 
-  // 3. Check if service worker is controlling this page (strong indicator)
-  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-    return true;
-  }
+  // 3. NOTE: service worker controller TIDAK menandakan app terpasang sebagai PWA.
+  //    SW aktif di setiap kunjungan, bukan hanya setelah install. Hapus check ini
+  //    karena menyebabkan beforeinstallprompt ditolak dan install prompt tidak muncul.
 
   // 4. Check localStorage flag (set after successful install)
   try {
@@ -203,14 +202,17 @@ export function showManualInstallGuide() {
   document.body.appendChild(overlay);
 }
 
-// ── Module-level listeners ───────────────────────────────────────────────────
+// ── Module-level listeners ────────────────────────────────────────────────────
+// beforeinstallprompt: browser memastikan app installable BELUM terpasang.
+// Simpan deferredPrompt TERLEBIH DAHULU (tanpa cek checkPWAInstalled),
+// karena check itu bisa false-positive (mis. SW controller). Hanya banner
+// yang disembunyikan jika terdeteksi sudah terpasang.
 window.addEventListener('beforeinstallprompt', (e) => {
-  if (isPWAInstalled || checkPWAInstalled()) {
-    e.preventDefault();
-    return;
-  }
   e.preventDefault();
   deferredPrompt = e;
+  if (isPWAInstalled || checkPWAInstalled()) {
+    return; // sudah terpasang → jangan tampilkan banner, tapi prompt tetap tersimpan
+  }
   showInstallBanner();
 });
 
