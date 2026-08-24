@@ -196,7 +196,12 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 /* KPI CARDS */
 .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--s4);margin-bottom:var(--s5);}
 /* Grid kartu stat klien — auto-fit agar 1..N kartu mengisi penuh, tanpa kolom kosong */
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s4);margin-bottom:var(--s5);}
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s4);margin-bottom:var(--s5);}
+
+/* Analytics KPI: 2 kolom di HP/tablet, auto-fit di desktop */
+@media (min-width:1025px){
+  .stat-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));}
+}
 
 /* BAR ROWS (charts) */
 .bar-row{display:grid;grid-template-columns:120px 1fr 36px;align-items:center;gap:var(--s3);margin-bottom:var(--s3);}
