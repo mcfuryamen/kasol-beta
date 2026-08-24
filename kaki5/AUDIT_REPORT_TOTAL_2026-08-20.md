@@ -184,7 +184,7 @@ license_status, license_serial, license_expires_at, license_activated_at
 - ✅ **Display standalone** + `display_override: window-controls-overlay`
 - ✅ **Auto-update detection** (`update.js`): event-driven (boot, visibilitychange, online)
 - ✅ **Force-update overlay** full-screen dengan release notes dari `version.json.notes`
-- ✅ **PWA install detection** multi-signal (standalone, iOS standalone, SW controller, localStorage flag)
+- ✅ **PWA install detection** multi-signal (standalone, iOS standalone, localStorage flag)
 - ✅ **No install banner** jika sudah terpasang
 
 ### Version Management (5 titik serentak):
