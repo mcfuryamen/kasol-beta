@@ -136,7 +136,7 @@ input[type=number]{-moz-appearance:textfield;}
 .user-role{font-size:11px;color:var(--ink-3);font-weight:600;}
 
 /* CONTENT */
-.content{flex:1;padding:var(--s6);max-width:1024px;width:100%;margin:0 auto;}
+.content{flex:1;padding:var(--s6);width:100%;}
 .screen{display:none;}
 .screen.active{display:block;animation:fade .25s var(--ease);}
 @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
