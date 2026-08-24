@@ -223,7 +223,7 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 /* CATALOG */
 .catalog-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s4);}
 
-/* HP: 2 kolom | Tablet portrait: 4 kolom | Desktop: 4 kolom */
+/* Catalog: 2 kolom di HP, 4 kolom di tablet portrait+ */
 @media (min-width:641px){
   .catalog-grid{grid-template-columns:repeat(4,1fr);}
 }
@@ -394,6 +394,16 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
   .btn-block-row{flex-direction:column;align-items:stretch;}
   .btn-block-row .btn{width:100%;}
   .cd-head{flex-direction:column;align-items:flex-start;}
+  /* Catalog card: kompak di HP */
+  .catalog-grid{gap:var(--s3);}
+  .catalog-card{padding:var(--s3);}
+  .catalog-card-title{font-size:12px;}
+  .catalog-card-meta{font-size:11px;}
+  .catalog-card-desc{font-size:10px;-webkit-line-clamp:2;}
+  .catalog-card-cover{font-size:28px;height:44px;}
+  .catalog-card-cover img{width:44px;height:44px;}
+  .catalog-card-actions .btn{font-size:11px;padding:6px 4px;}
+  .domain-chip{font-size:9px;padding:1px 6px;}
   /* Input ≥16px hindari auto-zoom iOS */
   .field input,.field select,.field textarea{font-size:16px;}
   /* Toolbar klien: search & filter isi baris penuh */
@@ -651,6 +661,9 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
 }
 .catalog-card {
   background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius); padding: var(--space-3); text-align: center; position: relative; transition: var(--transition-fast); display: flex; flex-direction: column;
+  min-width: 0;               /* cegah grid blowout */
+  overflow: hidden;            /* potong konten yang meluber */
+  box-sizing: border-box;      /* border + padding masuk hitungan lebar */
 }
 .catalog-card:active {
   transform: scale(.95);
@@ -662,13 +675,13 @@ select.field-input,.field select{background-image:url("data:image/svg+xml,%3Csvg
   width: 64px; height: 64px; object-fit: contain;
 }
 .catalog-card-title {
-  font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 }
 .catalog-card-desc {
   font-size: 11px; color: var(--text3); flex: 1; margin-bottom: var(--space-2); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .catalog-card-meta {
-  font-size: 16px; font-weight: 800; color: var(--primary); margin-bottom: var(--space-2);
+  font-size: 12px; font-weight: 800; color: var(--primary); margin-bottom: var(--space-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 .catalog-card-category {
   display: inline-block; padding: 2px 8px; border-radius: var(--radius-full); background: var(--orange-50); color: var(--primary-dark); font-size: 10px; font-weight: 700;
