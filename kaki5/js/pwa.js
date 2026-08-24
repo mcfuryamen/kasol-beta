@@ -143,40 +143,9 @@ export async function installPWA() {
     return;
   }
 
-  // 3. Prompt belum tersedia → tunggu sampai 5 detik (beforeinstallprompt
-  //    bisa telat jika SW baru saja register / page baru load)
-  const gotPrompt = await new Promise(resolve => {
-    const check = setInterval(() => {
-      if (deferredPrompt) { clearInterval(check); clearTimeout(timer); resolve(true); }
-    }, 500);
-    const timer = setTimeout(() => { clearInterval(check); resolve(false); }, 5000);
-  });
-  if (gotPrompt && deferredPrompt) {
-    deferredPrompt.prompt();
-    const result = await deferredPrompt.userChoice;
-    if (result.outcome === 'accepted') {
-      showToast('🎉 App berhasil dipasang!', 'success');
-      isPWAInstalled = true;
-      try { localStorage.setItem('kasirsolo:pwa-installed', 'true'); } catch {}
-      updateInstallRow();
-    }
-    deferredPrompt = null;
-    const banner = document.getElementById('installBanner');
-    if (banner) banner.remove();
-    return;
-  }
-
-  // 4. Prompt tidak tersedia (iOS / sudah terpasang di launcher / dev) →
-  //    toast singkat dengan langkah kunci (bukan tutorial overlay penuh)
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (isIOS) {
-    showToast('📱 iPhone: tekan Share → Add to Home Screen', 'info', { duration: 8000 });
-  } else if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-    showToast('💡 Install PWA hanya berfungsi di URL produksi (bukan localhost)', 'info', { duration: 6000 });
-  } else {
-    showToast('📱 Buka menu ⋮ di Chrome → "Install app"', 'info', { duration: 8000 });
-  }
+  // 3. Prompt belum tersedia saat klik → tunjukkan panduan instalasi manual
+  //    (overlay full-screen dengan langkah, bukan toast yang hilang dalam 5 detik)
+  showManualInstallGuide();
 }
 
 // ── Manual Install Guide (iOS / when prompt not available) ──────────────────
