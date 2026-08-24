@@ -82,7 +82,6 @@
       </button>
       <div class="topbar-title">
         <h1 id="pageTitle">Dashboard</h1>
-        <p id="pageSubtitle">Ringkasan performa bisnis</p>
       </div>
       <div class="topbar-right">
         <button class="icon-btn" id="refreshBtn" title="Muat ulang data" onclick="window.refreshCurrentScreen()">⟳</button>
@@ -275,7 +274,7 @@
     </main>
   </div>
 
-  <!-- BOTTOM NAVBAR (mobile native-style, muncul di tablet/HP saja) -->
+  <!-- BOTTOM NAVBAR (mobile native-style, semua menu: Dashboard, Katalog, Analitik, Kelola, Pengaturan) -->
   <nav class="bottom-nav" id="bottomNav" aria-label="Navigasi bawah">
     <div class="bottom-nav-inner">
       <button class="bnav-item active" data-screen="dashboard" aria-current="page">
@@ -286,9 +285,13 @@
         <span class="bnav-ic">◧</span>
         <span class="bnav-tx">Katalog</span>
       </button>
-      <button class="bnav-item" data-screen="klien">
+      <button class="bnav-item" data-screen="klien" data-client-view="analitik">
         <span class="bnav-ic">📊</span>
-        <span class="bnav-tx">Klien</span>
+        <span class="bnav-tx">Analitik</span>
+      </button>
+      <button class="bnav-item" data-screen="klien" data-client-view="kelola">
+        <span class="bnav-ic">📋</span>
+        <span class="bnav-tx">Kelola</span>
       </button>
       <button class="bnav-item" data-screen="settings">
         <span class="bnav-ic">⚙</span>
