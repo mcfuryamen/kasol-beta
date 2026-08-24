@@ -117,15 +117,17 @@ function updateInstallRow() {
 
 // ── Install PWA (native prompt) ─────────────────────────────────────────────
 export async function installPWA() {
-  // 1. Sudah terpasang? → toast + update UI
-  if (isPWAInstalled || checkPWAInstalled()) {
-    isPWAInstalled = true;
-    showToast('✅ Aplikasi sudah terpasang di perangkat ini', 'success');
-    updateInstallRow();
-    return;
-  }
+  // beforeinstallprompt yang sudah terpendam sudah membuktikan:
+  //    1. App eligible untuk di-install (manifest, SW, HTTPS)
+  //    2. App BELUM terpasang (Chrome hanya fire event jika eligible + belum pasang)
+  //
+  // Jangan cek isPWAInstalled / checkPWAInstalled() di sini — itu bisa
+  // false-positive (display-mode "nyangkut" saat navigasi, localStorage
+  // dari install sebelumnya, dsb) dan menyebabkan native prompt TIDAK
+  // pernah dipanggil, walau deferredPrompt tersedia.
+  // Guard untuk TAMPILKAN BANNER tetap ada di beforeinstallprompt listener.
 
-  // 2. Prompt native tersedia? → langsung tampilkan
+  // 1. Prompt native tersedia? → langsung panggil
   if (deferredPrompt) {
     deferredPrompt.prompt();
     const result = await deferredPrompt.userChoice;
