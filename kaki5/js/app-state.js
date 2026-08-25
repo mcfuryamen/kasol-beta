@@ -4,7 +4,7 @@
 // traceable and prevents modules from clobbering each other.
 import { todayStr } from './helpers.js';
 
-// --- Cart --- // {menuId: {menu, qty, selectedToppings[], orderType}}
+// --- Cart --- // {menuId: {menu, qty, selectedToppings[], toppingQtys{}, orderType}}
 export let cart = {};
 
 // --- Order type: dine-in | takeaway | ojol

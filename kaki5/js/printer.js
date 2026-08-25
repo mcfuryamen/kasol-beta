@@ -281,15 +281,18 @@ export function buildReceiptText(sale, warungName, alamat = '') {
     const label = isOjol ? name + ' [O]' : name;
     txt += label + LF;
     const baseLine = '  ' + qty + ' x ' + formatRpPlain(effectiveHarga);
-    // Hitung total baris termasuk topping
+    // Hitung total baris termasuk topping (qty per-topping dari toppingQtys,
+    // fallback ke qty menu untuk data lama / field tidak ada)
     let lineTotal = effectiveHarga * qty;
+    const toppingQtys = (item.toppingQtys && typeof item.toppingQtys === 'object') ? item.toppingQtys : {};
     if (Array.isArray(item.selectedToppings)) {
       item.selectedToppings.forEach(t => {
         const th = safeNum(t.harga, 0);
         if (th > 0) {
           const tName = safeStr(t.nama, 'Topping').substring(0, 14);
-          txt += '    + ' + tName + ' ' + formatRpPlain(th) + LF;
-          lineTotal += th * qty;
+          const tq = Math.max(1, parseInt(toppingQtys[t.nama], 10) || qty);
+          txt += '    + ' + tName + ' x' + tq + ' ' + formatRpPlain(th) + LF;
+          lineTotal += th * tq;
         }
       });
     }
@@ -384,14 +387,16 @@ function printNotaBrowser(sale, warungName, alamat = '') {
     const hargaOjol = safeNum(i.hargaOjol, 0);
     const base = hargaOjol > 0 ? hargaOjol : safeNum(i.hargaJual, 0);
     let lineTotal = base * qty;
-    // Topping ikut tercetak di bawah nama item
+    // Topping ikut tercetak di bawah nama item (qty per-topping)
     let toppingsHtml = '';
+    const toppingQtys = (i.toppingQtys && typeof i.toppingQtys === 'object') ? i.toppingQtys : {};
     if (Array.isArray(i.selectedToppings)) {
       toppingsHtml = i.selectedToppings.map(t => {
         const th = safeNum(t.harga, 0);
-        lineTotal += th * qty;
+        const tq = Math.max(1, parseInt(toppingQtys[t.nama], 10) || qty);
+        lineTotal += th * tq;
         return '<div style="font-size:10px;color:#444;padding-left:8px">+ ' +
-          escapeHtml(safeStr(t.nama, 'Topping')) + (th > 0 ? ' ' + formatRp(th) : '') + '</div>';
+          escapeHtml(safeStr(t.nama, 'Topping')) + ' ×' + tq + (th > 0 ? ' ' + formatRp(th) + ' = ' + formatRp(th * tq) : '') + '</div>';
       }).join('');
     }
     return '<tr><td>' + escapeHtml(safeStr(i.nama, 'Item')) + toppingsHtml + '</td>' +

@@ -27,6 +27,7 @@ function ensureReportDelegation() {
         t.closest('[data-start-date]') ||
         t.closest('[data-month-date]') ||
         t.closest('[data-catid]') ||
+        t.closest('[data-tglid]') ||
         t.closest('.expense-detail-item[data-id]') ||
         t.closest('.trx-detail-item[data-id]');
       if (!el) return;
@@ -37,6 +38,7 @@ function ensureReportDelegation() {
       if (el.dataset.startDate) return pickWeek(el.dataset.startDate);
       if (el.dataset.monthDate) return pickMonth(el.dataset.monthDate);
       if (el.dataset.catid) return toggleExpenseCat(el.dataset.catid);
+      if (el.dataset.tglid) return toggleTrxDay(el.dataset.tglid);
       const id = Number(el.dataset.id);
       if (!Number.isFinite(id)) return;
       if (el.classList.contains('expense-detail-item')) {
@@ -234,14 +236,28 @@ export async function loadReport() {
     const dates = Object.keys(byDay).sort().reverse(); // terbaru dulu
 
     html += '<div class="card"><div class="card-title">📝 Riwayat Transaksi</div>';
+    // Tanggal aktif: yang sedang dipilih user (period=harian → reportDate;
+    // period lain → tanggal 'tglAktif' = todayStr atau rentang center).
+    // Kita buka otomatis hanya tanggal yang match dengan reportDate (saat
+    // period=harian) atau hari ini (period lain) agar UX tetap informatif;
+    // tanggal lain default collapse supaya daftar tidak terlalu panjang.
+    const today = todayStr();
+    const activeDay = reportPeriod === 'harian' ? reportDate : today;
     dates.forEach(tgl => {
       const items = byDay[tgl].sort((a, b) => b.waktu - a.waktu);
       const daySum = items.reduce((a, s) => a + (s.totalHarga || 0), 0);
+      // ID aman untuk DOM: ganti dash dengan empty (YYYYMMDD) + prefix tglDay-
+      const tglId = 'trxDay-' + tgl.replace(/-/g, '');
+      const isOpen = (tgl === activeDay);
       html += `<div class="kmt12">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:var(--orange-bg);border-radius:12px;margin-bottom:6px">
+        <div data-tglid="${tglId}" class="trx-day-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:var(--orange-bg);border-radius:12px;margin-bottom:6px;cursor:pointer;user-select:none">
           <div class="kfw800 kfs14">📅 ${escapeHtml(dayName(tgl))}, ${escapeHtml(formatDate(tgl))}</div>
-          <div class="kfw800 kfs13 kprimary kright">${formatRp(daySum)} · ${items.length} trx</div>
-        </div>`;
+          <div class="kright" style="display:flex;align-items:center;gap:10px">
+            <div class="kfw800 kfs13 kprimary">${formatRp(daySum)} · ${items.length} trx</div>
+            <span id="${tglId}-arrow" style="font-size:18px;color:var(--text3);transition:transform .2s;display:inline-block;${isOpen ? 'transform:rotate(90deg)' : ''}">›</span>
+          </div>
+        </div>
+        <div id="${tglId}" class="trx-day-panel" style="display:${isOpen ? 'block' : 'none'};padding-left:8px;border-left:2px solid var(--orange-bg);margin-bottom:8px">`;
       items.forEach(s => {
         const itemNames = s.items ? s.items.map(i => `${escapeHtml(i.nama)}×${i.qty}`).join(', ') : '';
         const noteSub = s.orderNote ? ' · 📝 ' + escapeHtml(s.orderNote) : '';
@@ -251,7 +267,7 @@ export async function loadReport() {
           <div class="trx-amount green">${formatRp(s.totalHarga)}</div>
         </div>`;
       });
-      html += '</div>';
+      html += '</div></div>';
     });
     html += '</div>';
   }
@@ -547,7 +563,19 @@ export function toggleExpenseCat(catId) {
   const panel = document.getElementById(catId);
   const arrow = document.getElementById(`${catId}-arrow`);
   if (!panel || !arrow) return;
-  
+
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+}
+
+// Toggle Riwayat Transaksi accordion per tanggal (expand/collapse daftar trx).
+// Dipakai saat user tap header tanggal di card 'Riwayat Transaksi'.
+export function toggleTrxDay(tglId) {
+  const panel = document.getElementById(tglId);
+  const arrow = document.getElementById(`${tglId}-arrow`);
+  if (!panel || !arrow) return;
+
   const isOpen = panel.style.display !== 'none';
   panel.style.display = isOpen ? 'none' : 'block';
   arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';

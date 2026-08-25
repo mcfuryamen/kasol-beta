@@ -309,12 +309,14 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="modal">
 <div class="modal-handle"></div>
 <div class="modal-title" id="cartModalTitle">🛒 Keranjang</div>
+<!-- Header tipe pesanan global (berlaku untuk seluruh baris keranjang) -->
+<div id="cartOrderTypeHeader" class="kflex-between kfw600 kfs14" style="padding:8px 12px;background:var(--orange-bg);border-radius:10px;margin-bottom:8px"></div>
 <div id="cartItems"></div>
 <!-- Topping selector panel (disembunyikan sampai '+' diklik) -->
 <div id="toppingSelector" style="display:none">
   <div class="kfw600 ktext2 kmb8">Pilih Topping</div>
-  <div id="toppingList"></div>
-  <button class="btn btn-sm btn-primary" data-action="apply-topping">✔ Terapkan</button>
+  <div id="toppingList" class="kgrid-1col-gap8"></div>
+  <button class="btn btn-sm btn-primary kmt8" data-action="apply-topping">✔ Terapkan</button>
 </div>
 <div class="kdivider">
 <div class="kflex-between kmb8"><span class="kfw600 ktext2">Total Harga</span><span class="kfw800 kfs20 kprimary" id="cartModalTotal">Rp 0</span></div>
@@ -662,7 +664,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=87"></script>
+  <script type="module" src="js/app.js?v=90"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

@@ -1,7 +1,13 @@
 {
-  "version": "1.0.19",
-  "cacheBust": "v87",
+  "version": "1.0.22",
+  "cacheBust": "v90",
   "notes": [
+    "📋 Trx detail: tampilkan topping list + qty per-topping di bawah nama item. Harga baris pakai lineTotal (bukan qty×hargaJual) agar sesuai kalkulasi terbaru.",
+    "🧾 Nota: thermal & browser print tampilkan qty per-topping ('telur dadar x1 3000'). Hitung pakai toppingQtys; fallback ke qty menu untuk data lama.",
+    "🛒 Cart modal: header tipe pesanan global dipindah ke atas keranjang (orange pill 'Dine-in / Take-away / Ojol' — berlaku untuk semua baris). Per-baris tinggal nama menu + harga tipe + topping tags (chip dengan ×qty) + qty stepper + line total. Lebih bersih & spesifik.",
+    "💾 Schema: sale.items[i] tambah field `toppingQtys` (Object {nama: qty}). Data lama tanpa field ini di-fallback ke qty=1 per topping.",
+    "🧮 Per-topping qty (refactor): ganti `toppingQty` (Number, qty global) jadi `toppingQtys` (Object {nama: qty}, qty per-topping). Mis. nasi 2 + telur dadar 1, ayam goreng 2 → (5000×2) + (3000×1) + (5000×2) = 23.000. UI: 1 grid penuh per opsi topping, stepper qty inline di kanan (hidden sampai checkbox dicentang). Backward-compat: data lama dengan `toppingQty` number masih terbaca.",
+    "🧮 Topping qty independent dari qty menu: mis. nasi 2 + topping 1 → total = 2×harga + 1×topping (bukan 2×(harga+topping)). Stepper 'Jumlah' topping tersedia di menu selector dan panel cart modal.",
     "📊 KPI Beranda & Laporan: kartu jumlah transaksi / porsi / rata-rata kini punya latar oranye pastel (konsisten dengan pola warna hijau/merah/biru)",
     "📐 Form Menu: field Harga Modal & Harga Jual dalam grid 2 kolom (utilitas kgrid-2col-gap8); urutan dibalik (Modal kiri, Jual kanan)",
     "🧾 Restruk nota: tipe pesanan selalu tampil (kiri) + catatan di kanan, topping muncul per-item, alamat usaha tampil di header, footer Terima kasih + Semoga berkah jadi 1 baris, sub-line Kasir Solo pindah ke paling bawah"

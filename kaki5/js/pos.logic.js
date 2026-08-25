@@ -13,39 +13,89 @@ export function parseToppings(raw) {
   } catch { return []; }
 }
 
-// Hitung total harga topping untuk 1 item di cart
-export function toppingHarga(item) {
-  const toppings = item.selectedToppings || [];
-  return toppings.reduce((s, t) => s + (t.harga || 0), 0);
+// Normalisasi toppingQtys dari item (cart atau sale record) → Object {nama: qty}.
+// Backward-compat:
+//   - item.toppingQtys (Object) → return as-is.
+//   - item.toppingQty (Number) → semua topping dapat qty itu.
+//   - tidak ada → qty=1 untuk semua selectedToppings.
+export function normalizeToppingQtys(item) {
+  if (item.toppingQtys && typeof item.toppingQtys === 'object') {
+    return { ...item.toppingQtys };
+  }
+  const legacy = Math.max(1, parseInt(item.toppingQty, 10) || 1);
+  const out = {};
+  (item.selectedToppings || []).forEach(t => { out[t.nama] = legacy; });
+  return out;
 }
 
-// Harga efektif per-qty: harga dasar (dine-in/takeaway) atau hargaOjol,
-// ditambah total harga semua topping terpilih.
+// Hitung Σ (harga topping × qty topping) untuk 1 item.
+// qty per-topping independen: mis. nasi 2 + telur dadar 1, ayam goreng 2
+// → (3000*1) + (5000*2) = 13.000. Topping tidak dipilih qty=0 → kontribusi 0.
+export function toppingHarga(item) {
+  const toppings = item.selectedToppings || [];
+  const qtys = normalizeToppingQtys(item);
+  return toppings.reduce((s, t) => {
+    const q = Math.max(0, parseInt(qtys[t.nama], 10) || 0);
+    return s + ((t.harga || 0) * q);
+  }, 0);
+}
+
+// Harga efektif per-qty (TANPA toppingQty — sudah terhitung di toppingHarga).
+// Dipakai untuk label harga satuan per item.
 export function hargaEfektif(item, orderType) {
   const isOjol = orderType === 'ojol';
   const baseHarga = (isOjol && item.menu.hargaOjol > 0) ? item.menu.hargaOjol : item.menu.hargaJual;
-  return baseHarga + toppingHarga(item);
+  // Per-qty topping harga: Σ harga topping (ignore qty) — untuk display per-unit.
+  // NB: total baris dihitung oleh calculateTotal / lineTotal, bukan di sini.
+  const toppings = item.selectedToppings || [];
+  const topPerQty = toppings.reduce((s, t) => s + (t.harga || 0), 0);
+  return baseHarga + topPerQty;
 }
 
 // ── Cart operations ──────────────────────────────────────────────────────────
-export function addToCartLogic(cart, menuId, menu, selectedToppings = [], orderType = 'dine-in', qty = 1) {
+// selectedToppingQtys: Array<{nama, qty}> atau null/undefined.
+//   - Dipakai untuk set qty awal per-topping (qty>=1) saat ini dipanggil.
+//   - Item existing: qty menu digabung (+addQty); selectedToppings & toppingQtys
+//     di-REPLACE dengan nilai dari argumen (bukan union).
+//     Topping yang tidak ada di argumen dihapus dari toppingQtys.
+export function addToCartLogic(cart, menuId, menu, selectedToppings = [], orderType = 'dine-in', qty = 1, selectedToppingQtys = null) {
   const addQty = Math.max(1, parseInt(qty, 10) || 1);
   const existing = cart[menuId];
+
+  // Bangun map qty topping akhir dari argumen.
+  const finalQtys = {};
+  if (Array.isArray(selectedToppingQtys)) {
+    selectedToppingQtys.forEach(t => {
+      const q = Math.max(1, parseInt(t.qty, 10) || 1);
+      finalQtys[t.nama] = q;
+    });
+  }
+  (selectedToppings || []).forEach(t => {
+    if (!(t.nama in finalQtys)) finalQtys[t.nama] = 1;
+  });
+
   if (existing) {
-    // Item sudah ada: gabungkan topping (union), jangan dobel nama
-    const existingNames = new Set((existing.selectedToppings || []).map(t => t.nama));
-    const newToppings = (selectedToppings || []).filter(t => !existingNames.has(t.nama));
     return {
       ...cart,
       [menuId]: {
         ...existing,
         qty: existing.qty + addQty,
-        selectedToppings: [...(existing.selectedToppings || []), ...newToppings],
+        selectedToppings: [...selectedToppings],
+        toppingQtys: finalQtys,
         orderType
       }
     };
   }
-  return { ...cart, [menuId]: { menu, qty: addQty, selectedToppings: [...selectedToppings], orderType } };
+  return {
+    ...cart,
+    [menuId]: {
+      menu,
+      qty: addQty,
+      selectedToppings: [...selectedToppings],
+      toppingQtys: finalQtys,
+      orderType
+    }
+  };
 }
 
 export function changeQtyLogic(cart, menuId, delta) {
@@ -65,8 +115,11 @@ export function hitungKembalianLogic(total, bayar) {
 
 export function calculateTotal(cart) {
   return Object.values(cart).reduce((sum, item) => {
-    const hargaPerItem = hargaEfektif(item, item.orderType || 'dine-in');
-    return sum + (hargaPerItem * item.qty);
+    const isOjol = item.orderType === 'ojol';
+    const baseHarga = (isOjol && item.menu.hargaOjol > 0) ? item.menu.hargaOjol : item.menu.hargaJual;
+    // Σ (harga topping × qty topping) — qty per-topping independen
+    const topSum = toppingHarga(item);
+    return sum + (baseHarga * item.qty) + topSum;
   }, 0);
 }
 
@@ -76,6 +129,17 @@ export function calculateModal(cart) {
 
 export function countItems(cart) {
   return Object.values(cart).reduce((sum, item) => sum + item.qty, 0);
+}
+
+// Total satu baris item. Bekerja untuk cart item (dengan item.menu.*) maupun
+// sale record (item.hargaJual/hargaOjol flat). Dipakai oleh trx detail & nota.
+export function lineTotal(item, orderType = null) {
+  const ojolActive = orderType === 'ojol' || item.orderType === 'ojol';
+  const hargaOjol = item.hargaOjol ?? item.menu?.hargaOjol ?? 0;
+  const hargaJual = item.hargaJual ?? item.menu?.hargaJual ?? 0;
+  const baseHarga = (ojolActive && hargaOjol > 0) ? hargaOjol : hargaJual;
+  const qty = Math.max(1, parseInt(item.qty, 10) || 1);
+  return (baseHarga * qty) + toppingHarga(item);
 }
 
 // Generate 4 preset nominal di atas total harga — standar mata uang Indonesia

@@ -109,8 +109,8 @@ export async function addToCart(menuId) {
   const hasOjol = (m.hargaOjol || 0) > 0;
   // Jika ada topping atau hargaOjol → buka selector dulu, baru masuk keranjang
   if (toppings.length > 0 || hasOjol) {
-    openMenuSelector(m, ({ selectedToppings = [], orderType: tipe = orderType, qty = 1 }) => {
-      const next = addToCartLogic(cart, menuId, m, selectedToppings, tipe, qty);
+    openMenuSelector(m, ({ selectedToppings = [], orderType: tipe = orderType, qty = 1, selectedToppingQtys = null }) => {
+      const next = addToCartLogic(cart, menuId, m, selectedToppings, tipe, qty, selectedToppingQtys);
       setCart(next);
       setOrderType(tipe); // simpan tipe order yang dipilih
       saveCart();
@@ -214,7 +214,8 @@ export async function simpanPenjualan(cetakJuga = false) {
       hargaOjol: c.menu.hargaOjol || 0,
       hargaModal: c.menu.hargaModal,
       qty: c.qty,
-      selectedToppings: c.selectedToppings || []
+      selectedToppings: c.selectedToppings || [],
+      toppingQtys: c.toppingQtys || {}
     })),
     totalHarga,
     totalModal,

@@ -9,6 +9,8 @@ import { openModal, closeModal } from './modal.js';
 let _toppingTargetMenuId = null; // menuId yang topping-nya sedang dipilih (di cart)
 
 // ── Selector topping + jumlah SEBELUM masuk keranjang ───────────────────────
+// Topping qty independen per-topping: setiap opsi topping punya stepper qty sendiri
+// (default 1, hidden sampai checkbox dicentang). Mis. telur dadar qty=1 + ayam goreng qty=2.
 let _menuSelectorOnConfirm = null;
 let _menuSelectorOrderType = 'dine-in';
 let _menuSelectorQty = 1;
@@ -35,21 +37,50 @@ export function openMenuSelector(menu, onConfirm) {
       </div>
       ${toppings.length > 0 ? `
       <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
-      <div class="kfw600 ktext2 kmb8">Pilih Topping</div>
-      <div id="menuSelectorToppings">
-        ${toppings.map(t => `
-          <label class="topping-option">
-            <input type="checkbox" data-nama="${escapeHtml(t.nama)}" data-harga="${t.harga}">
-            <span>${escapeHtml(t.nama)}</span>
-            <span class="kright">${formatRp(t.harga)}</span>
-          </label>
-        `).join('')}
+      <div class="kfw600 ktext2 kmt8 kmb8">Pilih Topping</div>
+      <div id="menuSelectorToppings" class="kgrid-1col-gap8">
+        ${toppings.map(t => renderToppingOptionRow(t, 'ms')).join('')}
       </div>
       ` : ''}
     </div>
   `;
 
   openModal('menuSelectorModal');
+}
+
+// Render 1 baris opsi topping — checkbox + nama + harga + stepper qty (hidden sampai checked).
+// scope: 'ms' (menu selector) atau 'cart' (cart modal).
+function renderToppingOptionRow(t, scope) {
+  return `
+    <label class="topping-option-row" data-nama="${escapeHtml(t.nama)}" data-harga="${t.harga}">
+      <input type="checkbox" data-action="topping-toggle" data-scope="${scope}" data-nama="${escapeHtml(t.nama)}" data-harga="${t.harga}">
+      <span class="topping-name">${escapeHtml(t.nama)}</span>
+      <span class="topping-harga">${formatRp(t.harga)}</span>
+      <span class="topping-stepper" data-scope="${scope}" data-nama="${escapeHtml(t.nama)}" style="display:none">
+        <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="${scope}" data-nama="${escapeHtml(t.nama)}" data-delta="-1" style="width:28px;min-width:28px;padding:0">−</button>
+        <input type="number" class="ms-qty-input topping-qty-input" data-scope="${scope}" data-nama="${escapeHtml(t.nama)}" min="1" max="99" value="1" inputmode="numeric" aria-label="Jumlah ${escapeHtml(t.nama)}" style="width:42px">
+        <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="${scope}" data-nama="${escapeHtml(t.nama)}" data-delta="1" style="width:28px;min-width:28px;padding:0">＋</button>
+      </span>
+    </label>
+  `;
+}
+
+// Toggle stepper qty visibility saat checkbox berubah.
+// scope: 'ms' (menu selector) atau 'cart' (cart modal).
+export function syncToppingStepperVisibility(scope, nama) {
+  const cb = document.querySelector(
+    `input[type="checkbox"][data-action="topping-toggle"][data-scope="${scope}"][data-nama="${CSS.escape(nama)}"]`
+  );
+  const row = document.querySelector(
+    `.topping-stepper[data-scope="${scope}"][data-nama="${CSS.escape(nama)}"]`
+  );
+  if (!cb || !row) return;
+  row.style.display = cb.checked ? 'inline-flex' : 'none';
+  // Sync qty input minimal ke 1 kalau baru di-check
+  if (cb.checked) {
+    const inp = row.querySelector('.topping-qty-input');
+    if (inp && (parseInt(inp.value, 10) || 0) < 1) inp.value = 1;
+  }
 }
 
 // Ubah jumlah di menu selector (batas 1–99).
@@ -63,25 +94,48 @@ export function changeMenuSelectorQty(delta) {
   if (el) el.value = _menuSelectorQty;
 }
 
+// Ubah qty per-topping (independen per opsi, mis. telur dadar qty=1, ayam goreng qty=2).
+export function changeToppingQty(scope, nama, delta) {
+  const row = document.querySelector(
+    `.topping-stepper[data-scope="${scope}"][data-nama="${CSS.escape(nama)}"]`
+  );
+  if (!row) return;
+  const inp = row.querySelector('.topping-qty-input');
+  if (!inp) return;
+  const domVal = parseInt(inp.value, 10);
+  const base = Number.isNaN(domVal) ? 1 : domVal;
+  const next = Math.min(99, Math.max(1, base + (parseInt(delta, 10) || 0)));
+  inp.value = next;
+}
+
 export function confirmMenuSelector() {
-  // Baca jumlah dari input manual (fallback ke state stepper kalau kosong/tidak valid)
+  // Baca jumlah menu dari input manual
   const qtyEl = document.getElementById('menuSelectorQty');
   const typed = parseInt(qtyEl?.value, 10);
   if (!Number.isNaN(typed)) _menuSelectorQty = Math.min(99, Math.max(1, typed));
 
+  // Kumpulkan topping dipilih + qty masing-masing
   const cbs = document.querySelectorAll('#menuSelectorToppings input[type="checkbox"]');
   const selected = [];
+  const qtys = [];
   cbs.forEach(cb => {
     if (cb.checked) {
       const nama = cb.dataset.nama || '';
       const harga = parseInt(cb.dataset.harga) || 0;
-      if (nama) selected.push({ nama, harga });
+      if (!nama) return;
+      selected.push({ nama, harga });
+      // Baca qty dari stepper inline
+      const stepper = document.querySelector(
+        `.topping-stepper[data-scope="ms"][data-nama="${CSS.escape(nama)}"] .topping-qty-input`
+      );
+      const q = Math.max(1, parseInt(stepper?.value, 10) || 1);
+      qtys.push({ nama, qty: q });
     }
   });
   const activeBtn = document.querySelector('#menuSelectorOrderBtns .btn-primary');
   const tipe = activeBtn?.dataset?.tipe || _menuSelectorOrderType || 'dine-in';
   if (_menuSelectorOnConfirm) {
-    _menuSelectorOnConfirm({ selectedToppings: selected, orderType: tipe, qty: _menuSelectorQty });
+    _menuSelectorOnConfirm({ selectedToppings: selected, orderType: tipe, qty: _menuSelectorQty, selectedToppingQtys: qtys });
   }
   _menuSelectorOnConfirm = null;
   closeModal('menuSelectorModal');
@@ -119,18 +173,36 @@ export function applySelectedTopping() {
   if (!_toppingTargetMenuId) return;
   const cbs = document.querySelectorAll('#toppingList input[type="checkbox"]');
   const selected = [];
+  const newQtys = {};
   cbs.forEach(cb => {
     if (cb.checked) {
       const nama = cb.dataset.nama || '';
       const harga = parseInt(cb.dataset.harga) || 0;
-      if (nama) selected.push({ nama, harga });
+      if (!nama) return;
+      selected.push({ nama, harga });
+      // Baca qty per-topping dari stepper inline
+      const stepper = document.querySelector(
+        `.topping-stepper[data-scope="cart"][data-nama="${CSS.escape(nama)}"] .topping-qty-input`
+      );
+      newQtys[nama] = Math.max(1, parseInt(stepper?.value, 10) || 1);
     }
   });
   const next = { ...cart };
   if (next[_toppingTargetMenuId]) {
+    // Merge dengan toppingQtys lama: pertahankan qty untuk topping yang sudah ada & masih dipilih
+    const existingQtys = next[_toppingTargetMenuId].toppingQtys || {};
+    const mergedQtys = { ...existingQtys };
+    // Update qty untuk topping yang dicentang
+    Object.entries(newQtys).forEach(([nama, q]) => { mergedQtys[nama] = q; });
+    // Hapus qty untuk topping yang di-uncheck (nama tidak ada di selected baru)
+    const selectedNames = new Set(selected.map(t => t.nama));
+    Object.keys(mergedQtys).forEach(nama => {
+      if (!selectedNames.has(nama)) delete mergedQtys[nama];
+    });
     next[_toppingTargetMenuId] = {
       ...next[_toppingTargetMenuId],
-      selectedToppings: selected
+      selectedToppings: selected,
+      toppingQtys: mergedQtys
     };
     setCart(next);
   }
@@ -178,6 +250,16 @@ function hargaPerItem(item) {
   return hargaEfektif(item, orderType);
 }
 
+// Total satu baris cart: harga dasar × qty + Σ (topping_i × qty_topping_i).
+// Qty topping independen per-topping (tiap opsi punya stepper sendiri).
+// Mis. nasi 2 + telur dadar 1, ayam goreng 2 → (5000*2) + (3000*1) + (5000*2) = 23.000.
+function lineTotal(item) {
+  const isOjol = orderType === 'ojol';
+  const baseHarga = (isOjol && item.menu.hargaOjol > 0) ? item.menu.hargaOjol : item.menu.hargaJual;
+  const topSum = toppingHarga(item);
+  return (baseHarga * item.qty) + topSum;
+}
+
 function hargaDineIn(item) {
   return hargaEfektif(item, 'dine-in');
 }
@@ -190,16 +272,26 @@ function renderAvailableToppings(menuId) {
   const item = cart[menuId];
   if (!item) return;
   const toppings = parseToppings(item.menu.toppingList);
-  const checkedNames = new Set((item.selectedToppings || []).map(t => t.nama));
+  const selectedNames = new Set((item.selectedToppings || []).map(t => t.nama));
+  const qtys = item.toppingQtys || {};
   document.getElementById('toppingList').innerHTML = toppings.length === 0
     ? '<div class="kfs12 kgray">Menu ini belum ada topping.</div>'
-    : toppings.map(t => `
-        <label class="topping-option">
-          <input type="checkbox" data-nama="${escapeHtml(t.nama)}" data-harga="${t.harga}" ${checkedNames.has(t.nama)?'checked':''}>
-          <span>${escapeHtml(t.nama)}</span>
-          <span class="kright">${formatRp(t.harga)}</span>
+    : toppings.map(t => {
+        const checked = selectedNames.has(t.nama);
+        const q = Math.max(1, parseInt(qtys[t.nama], 10) || 1);
+        return `
+        <label class="topping-option-row" data-nama="${escapeHtml(t.nama)}" data-harga="${t.harga}">
+          <input type="checkbox" data-action="topping-toggle" data-scope="cart" data-nama="${escapeHtml(t.nama)}" data-harga="${t.harga}" ${checked?'checked':''}>
+          <span class="topping-name">${escapeHtml(t.nama)}</span>
+          <span class="topping-harga">${formatRp(t.harga)}</span>
+          <span class="topping-stepper" data-scope="cart" data-nama="${escapeHtml(t.nama)}" style="display:${checked?'inline-flex':'none'}">
+            <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="cart" data-nama="${escapeHtml(t.nama)}" data-delta="-1" style="width:28px;min-width:28px;padding:0">−</button>
+            <input type="number" class="ms-qty-input topping-qty-input" data-scope="cart" data-nama="${escapeHtml(t.nama)}" min="1" max="99" value="${q}" inputmode="numeric" aria-label="Jumlah ${escapeHtml(t.nama)}" style="width:42px">
+            <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="cart" data-nama="${escapeHtml(t.nama)}" data-delta="1" style="width:28px;min-width:28px;padding:0">＋</button>
+          </span>
         </label>
-      `).join('');
+      `;
+      }).join('');
 }
 
 // ── Category tabs ────────────────────────────────────────────────────────────
@@ -292,7 +384,7 @@ export function renderCartBar() {
   const bar = document.getElementById('cartBar');
   const items = Object.values(cart);
   const totalQty = items.reduce((a,c) => a + c.qty, 0);
-  const totalPrice = items.reduce((a,c) => a + hargaPerItem(c) * c.qty, 0);
+  const totalPrice = items.reduce((a,c) => a + lineTotal(c), 0);
 
   if (totalQty > 0) {
     bar.style.display = 'block';
@@ -308,24 +400,40 @@ export async function openCartModal() {
   const items = Object.values(cart).filter(c => c.qty > 0);
   if (items.length === 0) return;
 
+  // Header tipe pesanan global (berlaku untuk SELURUH baris dalam keranjang)
+  const orderHeader = document.getElementById('cartOrderTypeHeader');
+  if (orderHeader) {
+    const tipeLabel = orderType === 'ojol' ? '🛵 Ojol'
+      : orderType === 'takeaway' ? '🥡 Take-away' : '🍽️ Dine-in';
+    orderHeader.innerHTML = `<span>${tipeLabel}</span><span class="kfs12 kgray">berlaku untuk semua item</span>`;
+  }
+
   const box = document.getElementById('cartItems');
 
   box.innerHTML = items.map(c => {
     const toppings = parseToppings(c.menu.toppingList);
     const hasToppings = toppings.length > 0;
-    const pricePerItem = hargaPerItem(c);
-    const totalLine = pricePerItem * c.qty;
+    const totalLine = lineTotal(c);
     const selected = c.selectedToppings || [];
+    const qtys = c.toppingQtys || {};
     // Tampilkan harga sesuai tipe order (bukan harga jual default)
-    const displayHargaTipe = c.orderType === 'ojol' && c.menu.hargaOjol > 0
+    const displayHargaTipe = orderType === 'ojol' && c.menu.hargaOjol > 0
       ? formatRp(c.menu.hargaOjol)
       : formatRp(c.menu.hargaJual);
-    const tipeLabel = c.orderType === 'ojol' ? '🛵 Ojol'
-      : c.orderType === 'takeaway' ? '🥡 Take-away' : '🍽️ Dine-in';
+    // Topping tags dengan qty per-topping
+    const toppingTags = hasToppings && selected.length > 0
+      ? '<div class="cart-topping-tags" style="margin-top:4px">' + selected.map(t => {
+          const tq = Math.max(1, parseInt(qtys[t.nama], 10) || 1);
+          return `<span class="topping-tag">+ ${escapeHtml(t.nama)} <b>×${tq}</b> <span class="kgray">${formatRp(t.harga * tq)}</span></span>`;
+        }).join('') + '</div>'
+      : '';
     return `<div class="cart-item" data-menu-id="${c.menu.id}">
       <div class="cart-info">
-        <div class="cart-name">${escapeHtml(c.menu.nama)} <span class="cart-name-price">${displayHargaTipe}</span></div>
-        <div class="cart-meta">${tipeLabel}${hasToppings && selected.length > 0 ? ' · ' + selected.map(t => escapeHtml(t.nama) + ' ' + formatRp(t.harga)).join(', ') : ''}</div>
+        <div class="cart-name-row">
+          <span class="cart-name">${escapeHtml(c.menu.nama)}</span>
+          <span class="cart-name-price">${displayHargaTipe}</span>
+        </div>
+        ${toppingTags}
       </div>
       <div class="cart-qty-price">
         <div class="qty-control">
@@ -358,7 +466,7 @@ export async function openCartModal() {
 }
 
 function calculateTotalUI(items) {
-  return items.reduce((sum, c) => sum + hargaPerItem(c) * c.qty, 0);
+  return items.reduce((sum, c) => sum + lineTotal(c), 0);
 }
 
 // Update harga per-baris, total, nominal bayar & preset TANPA rebuild daftar
@@ -373,7 +481,7 @@ export function refreshCartModalTotals() {
     const c = cart[Number(row.dataset.menuId)];
     const priceEl = row.querySelector('.cart-price');
     if (!c || !priceEl) return;
-    priceEl.textContent = formatRp(hargaPerItem(c) * c.qty);
+    priceEl.textContent = formatRp(lineTotal(c));
   });
 
   const total = calculateTotalUI(items);

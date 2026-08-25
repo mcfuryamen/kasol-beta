@@ -27,7 +27,7 @@ import { showExpenseDetail, closeExpenseDetail } from './expensedetail.js';
 import { subscribeToLicenseUpdates, openPurchaseSheet, purchaseShowUpload, handleBuktiUpload, submitPurchase, pollLicenseStatus } from './purchase.js';
 import { syncNow as _ksrSyncNow } from './settings.sync.js';
 import { saveCart } from './pos.sync.js';
-import { selectTopping, applySelectedTopping, toggleOrderType, openMenuSelector, confirmMenuSelector, closeMenuSelector, changeMenuSelectorQty } from './pos.ui.js';
+import { selectTopping, applySelectedTopping, toggleOrderType, openMenuSelector, confirmMenuSelector, closeMenuSelector, changeMenuSelectorQty, changeToppingQty, syncToppingStepperVisibility } from './pos.ui.js';
 import { APP_VERSION, APP_VERSION_LABEL } from './version.js';
 import { startUpdateWatcher } from './update.js';
 import { setReportPeriod, setReportDate, setCustomStart, setCustomEnd, setPosCat, setCurrentPage, setCart, setSelectedTrxId, setLastSaleId, setPlatCurrentSlide, setPlatAutoTimer, orderType, setOrderType } from './app-state.js';
@@ -504,6 +504,16 @@ function handleDataAction(action, el, event) {
     }
     case 'menu-selector-qty': {
       changeMenuSelectorQty(el.dataset.delta);
+      break;
+    }
+    case 'topping-toggle': {
+      // Tampilkan/sembunyikan stepper qty inline saat checkbox berubah
+      syncToppingStepperVisibility(el.dataset.scope, el.dataset.nama);
+      break;
+    }
+    case 'topping-qty': {
+      // Stepper qty per-topping (independen per opsi)
+      changeToppingQty(el.dataset.scope, el.dataset.nama, el.dataset.delta);
       break;
     }
     case 'remove-topping': {

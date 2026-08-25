@@ -706,10 +706,16 @@ body.modal-open .main-content{overflow:hidden}
 .cart-toppings{margin-bottom:6px}
 .topping-tag{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);color:var(--green);font-size:11px;font-weight:600;padding:2px 6px;border-radius:6px;margin:2px}
 .topping-remove{cursor:pointer;font-weight:700;color:var(--red);margin-left:2px}
-.topping-option{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;border:1px solid var(--border);margin-bottom:6px;cursor:pointer;font-size:13px}
-.topping-option input[type="checkbox"]{accent-color:var(--primary);width:16px;height:16px;margin-right:8px}
+/* Topping option row: 1 grid penuh (1 opsi = 1 baris), stepper qty di kanan (hidden sampai dicentang) */
+.topping-option-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);margin-bottom:0;cursor:pointer;font-size:13px;background:#fff}
+.topping-option-row:hover{background:var(--green-bg)}
+.topping-option-row input[type="checkbox"]{accent-color:var(--primary);width:16px;height:16px;flex-shrink:0}
+.topping-option-row .topping-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topping-option-row .topping-harga{font-size:12px;font-weight:600;color:var(--text2);min-width:60px;text-align:right;flex-shrink:0}
+.topping-option-row .topping-stepper{display:inline-flex;align-items:center;gap:4px;flex-shrink:0}
+.topping-option-row .topping-qty-input{width:42px !important;height:28px;text-align:center;font-weight:700;font-size:13px}
 .topping-editing{outline:2px solid var(--primary-light);outline-offset:-2px;border-radius:12px}
-#toppingList{max-height:180px;overflow-y:auto;margin-bottom:8px}
+#toppingList{max-height:220px;overflow-y:auto;margin-bottom:8px}
 #toppingSelector{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px}
 
 /* Cart info-only: tipe order sebagai badge + topping tags horizontal */
@@ -748,11 +754,8 @@ body.modal-open .main-content{overflow:hidden}
 #menuSelectorModal .modal-title{font-size:18px;margin-bottom:12px}
 #menuSelectorModal .kmb8{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:6px}
 #menuSelectorModal .kmb12{margin-bottom:12px}
-#menuSelectorModal .topping-option{font-size:13px}
-/* Topping menu selector: grid 2 kolom, urutan isi kiri→kanan lalu ke bawah */
-#menuSelectorToppings{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:220px;overflow-y:auto}
-#menuSelectorToppings .topping-option{margin-bottom:0;gap:6px}
-#menuSelectorToppings .topping-option span:first-of-type{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Topping menu selector: 1 grid penuh (1 opsi per baris) */
+#menuSelectorToppings{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto}
 /* Input jumlah manual di menu selector (pengganti span statis) */
 .ms-qty-input,#menuSelectorQty{width:52px;height:36px;text-align:center;font-weight:800;font-size:16px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:0;-moz-appearance:textfield;appearance:textfield}
 #menuSelectorQty::-webkit-inner-spin-button,#menuSelectorQty::-webkit-outer-spin-button,.ms-qty-input::-webkit-inner-spin-button,.ms-qty-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}

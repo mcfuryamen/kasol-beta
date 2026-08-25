@@ -6,6 +6,7 @@ import { showConfirm } from './confirm.js';
 import { loadBeranda } from './beranda.js';
 import { loadReport } from './laporan.js';
 import { openModal, closeModal } from './modal.js';
+import { lineTotal } from './pos.logic.js';
 
 export async function showTrxDetail(id) {
   setSelectedTrxId(id);
@@ -26,7 +27,18 @@ export async function showTrxDetail(id) {
     html += '<table style="width:100%;border-collapse:collapse;font-size:14px">';
     html += '<tr style="background:#f5f5f5"><th class="kp10 kleft">Menu</th><th class="kp10 kcenter">Jml</th><th class="kp10 kright">Harga</th></tr>';
     s.items.forEach(i => {
-      html += `<tr style="border-top:1px solid var(--border)"><td class="kp10 kfw600">${escapeHtml(i.nama)}</td><td class="kp10 kcenter">${i.qty}</td><td style="padding:10px;text-align:right;font-weight:700">${formatRp(i.qty*i.hargaJual)}</td></tr>`;
+      const itemTotal = lineTotal(i);
+      html += `<tr style="border-top:1px solid var(--border)"><td class="kp10 kfw600">${escapeHtml(i.nama)}`;
+      // Topping list (dengan qty per-topping)
+      if (Array.isArray(i.selectedToppings) && i.selectedToppings.length > 0) {
+        const qtys = i.toppingQtys || {};
+        const toppingLines = i.selectedToppings.map(t => {
+          const tq = Math.max(1, parseInt(qtys[t.nama], 10) || 1);
+          return `<div style="font-size:11px;color:var(--text2);font-weight:500;padding-left:10px;margin-top:2px">+ ${escapeHtml(t.nama)} ×${tq} <span style="color:var(--text3)">${formatRp(t.harga)}</span></div>`;
+        }).join('');
+        html += toppingLines;
+      }
+      html += `</td><td class="kp10 kcenter">${i.qty}</td><td style="padding:10px;text-align:right;font-weight:700">${formatRp(itemTotal)}</td></tr>`;
     });
     html += '</table></div>';
   }
