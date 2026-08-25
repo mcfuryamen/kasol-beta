@@ -1,11 +1,9 @@
 {
-  "version": "1.0.18",
-  "cacheBust": "v86",
+  "version": "1.0.19",
+  "cacheBust": "v87",
   "notes": [
-    "🛒 Halaman Jualan baru: tipe order (Dine-in/Take-away/Ojol) + catatan pesanan yang ikut tercetak di nota",
-    "⌨️ Jumlah item kini bisa diketik langsung di keranjang & pemilih menu (total ter-update real-time)",
-    "🧂🛵 Badge topping & Ojol sejajar horizontal di kartu menu; topping 2 kolom",
-    "🎫 Chip lisensi kini selalu sinkron dengan status lisensi sebenarnya",
-    "🍽️ Halaman Menu: tombol ✏️ edit & 🗑️ hapus kini berfungsi + filter kategori seperti di halaman Jualan"
+    "📊 KPI Beranda & Laporan: kartu jumlah transaksi / porsi / rata-rata kini punya latar oranye pastel (konsisten dengan pola warna hijau/merah/biru)",
+    "📐 Form Menu: field Harga Modal & Harga Jual dalam grid 2 kolom (utilitas kgrid-2col-gap8); urutan dibalik (Modal kiri, Jual kanan)",
+    "🧾 Restruk nota: tipe pesanan selalu tampil (kiri) + catatan di kanan, topping muncul per-item, alamat usaha tampil di header, footer Terima kasih + Semoga berkah jadi 1 baris, sub-line Kasir Solo pindah ke paling bawah"
   ]
 }

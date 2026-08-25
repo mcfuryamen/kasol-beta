@@ -2,6 +2,16 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-26 (v87 / 1.0.19: kartu KPI + form menu 2 kolom + restruk nota)
+- **KPI Beranda & Laporan**: utility baru `.kbg-orange-b` (pola sama dgn `kbg-green-b/-red-b/-blue-b`) diterapkan ke 5 kartu jumlah transaksi / porsi / rata-rata (beranda) + 2 kartu Transaksi / Porsi (laporan) — konsisten "warna kartu = warna nilai" (oranye pastel + border `#FFCC80`).
+- **Form menu (Edit/Tambah)**: field "Harga Modal / Bahan (Rp)" dan "Harga Jual (Rp)" dibungkus `<div class="kgrid-2col-gap8">` (utilitas CSS eksisting) menjadi 2 kolom sejajar; "Harga Ojol" tetap full width. Urutan field dibalik: Modal di kiri, Jual di kanan.
+- **Restruk nota (Bluetooth thermal & window.print fallback)**:
+  * Tipe pesanan SELALU tercetak (kiri) dengan label "Dine-in" / "Take-away" / "Ojol"; catatan pesanan di kanan via `padLine(32)`.
+  * Topping per-item dicetak sebagai baris "+ nama harga" di bawah item, ikut dijumlahkan ke total.
+  * Alamat usaha dari setting `alamat` tampil di header nota (menggantikan teks "Kasir Solo - Kaki Lima" yang lama).
+  * Footer dirapikan: "Terima kasih! Semoga berkah" jadi satu baris, "Kasir Solo - Kaki Lima" pindah ke paling bawah sebagai sub-line.
+  * `testPrint`: header "=== TES CETAK ===" pakai parameter `warungName` langsung (tidak `.replace` string lagi); footer test jadi "Printer berfungsi!".
+
 ## 2026-08-25 (iterasi UI halaman Jualan + sinkronisasi chip lisensi)
 - **Kontrol sticky di atas grid menu**: tombol tipe order (🍽️ Dine-in / 🥡 Take-away / 🛵 Ojol) + pencarian + accordion kategori tetap terlihat saat menu di-scroll. Tipe order aktif = tombol primary; harga Ojol otomatis dipakai di grid & keranjang saat 🛵 dipilih.
 - **Catatan pesanan end-to-end**: kotak catatan di bawah tombol tipe order (placeholder dinamis per tipe), draft persist di `localStorage['kasirsolo:order-note']`, tersimpan sebagai `orderNote` di record penjualan, tercetak di nota Bluetooth & nota browser, tampil di detail transaksi & laporan; reset otomatis setelah simpan.
