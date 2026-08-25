@@ -17,9 +17,42 @@ function debounce(fn, delay = 300) {
 
 const _debouncedRenderMenuList = debounce(renderMenuList, 300);
 
+// ── Filter kategori halaman Menu (accordion, ala halaman Jualan) ────────────
+let _menuCat = 'Semua';
+const _CAT_EMOJI = {Makanan:'🍚',Minuman:'🥤',Snack:'🍢',Lainnya:'📦'};
+function catEmoji(cat) { return _CAT_EMOJI[cat] || '📦'; }
+function catLabel(cat) { return cat === 'Semua' ? '📋 Semua' : catEmoji(cat) + ' ' + cat; }
+
+// Render tombol kategori di #menuCatAccordionInner (dipanggil dari
+// renderMenuList agar selalu sinkron). Klik kategori → pilih & render ulang;
+// accordion tetap terbuka (ditutup manual via tombol 📂 Kategori) —
+// perilaku sama dengan halaman Jualan.
+function renderMenuCatAccordion(allMenus) {
+  const box = document.getElementById('menuCatAccordionInner');
+  if (!box) return;
+  const cats = ['Semua', ...new Set(allMenus.map(m => m.kategori))];
+  box.innerHTML = cats.map(c =>
+    `<button class="btn btn-sm ${_menuCat === c ? 'btn-primary' : 'btn-ghost'}"
+            data-cat="${escapeHtml(c)}">${escapeHtml(catLabel(c))}</button>`
+  ).join('');
+  box.onclick = (e) => {
+    const btn = e.target.closest('button[data-cat]');
+    if (!btn) return;
+    selectMenuCat(btn.dataset.cat);
+  };
+}
+
+export function selectMenuCat(cat) {
+  _menuCat = cat || 'Semua';
+  renderMenuList();
+}
+
 export async function renderMenuList() {
   const search = (document.getElementById('searchMenuList').value || '').toLowerCase();
-  let menus = await DB.menu.toArray();
+  const allMenus = await DB.menu.toArray();
+  renderMenuCatAccordion(allMenus);
+  let menus = allMenus;
+  if (_menuCat !== 'Semua') menus = menus.filter(m => m.kategori === _menuCat);
   if (search) menus = menus.filter(m => m.nama.toLowerCase().includes(search));
 
   const box = document.getElementById('menuListContainer');
@@ -28,7 +61,6 @@ export async function renderMenuList() {
     return;
   }
 
-  const catEmoji = {Makanan:'🍚',Minuman:'🥤',Snack:'🍢',Lainnya:'📦'};
   // Group by kategori
   const groups = {};
   menus.forEach(m => {
@@ -39,7 +71,7 @@ export async function renderMenuList() {
   let html = '';
   for (const [cat, items] of Object.entries(groups)) {
     html += `<div class="card">
-      <div class="card-title">${escapeHtml(catEmoji[cat]||'📦')} ${escapeHtml(cat)}</div>`;
+      <div class="card-title">${escapeHtml(catEmoji(cat))} ${escapeHtml(cat)}</div>`;
     items.forEach(m => {
       const untung = m.hargaJual - m.hargaModal;
       html += `<div class="trx-item">

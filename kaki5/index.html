@@ -135,6 +135,10 @@
 <div class="search-box">
 <span class="search-icon">🔍</span>
 <input type="text" id="searchMenuList" placeholder="Cari menu..." data-action="menu-search">
+<button class="btn btn-sm btn-ghost" data-action="toggle-menu-cat-accordion">📂 Kategori</button>
+</div>
+<div id="menuCatAccordion" class="pos-cat-accordion">
+<div class="pos-cat-accordion-inner" id="menuCatAccordionInner"></div>
 </div>
 <div id="menuListContainer"></div>
 <button class="fab" data-action="open-menu-form" title="Tambah Menu">➕</button>
@@ -656,7 +660,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=85"></script>
+  <script type="module" src="js/app.js?v=86"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

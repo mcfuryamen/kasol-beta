@@ -319,6 +319,37 @@ export async function activateSerial(rawSerial) {
   return { valid: true, message: '✅ Lisensi aktif! Masa berlaku: ' + result.expiryLabel };
 }
 
+// Persist status aktif dari cloud (tabel `clients`). Sumber kebenaran = server
+// (pembayaran sudah diverifikasi admin), jadi TIDAK memvalidasi ulang HMAC /
+// binding deviceCode seperti activateSerial() — serial di cloud bisa dibuat
+// dengan binding/salt yang berbeda sehingga activateSerial() gagal diam-diam
+// dan chip/gate selamanya membaca status 'trial' sementara kartu status
+// (yang membaca cloud) menampilkan aktif (bug sinkron chip 2026-08-25).
+export async function persistCloudLicense(cloud) {
+  if (!cloud || cloud.license_status !== 'aktif') return { valid: false, message: 'Status cloud bukan aktif' };
+  const local = await getLicense();
+  if (local.status === 'active') return { valid: true, already: true };
+  const serial = (cloud.license_serial || '').trim().toUpperCase();
+  const m = serial.match(/-([A-Z0-9]{2})-[A-Z0-9]{6}$/);
+  const expCode = m ? m[1] : '99';
+  let expiryLabel = decodeExpiryLabel(expCode);
+  if (cloud.license_expires_at) {
+    const d = new Date(cloud.license_expires_at);
+    if (!isNaN(d.getTime())) expiryLabel = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  const lic = {
+    status: 'active',
+    startedAt: local.startedAt || new Date().toISOString(),
+    serial: serial || local.serial || '',
+    deviceCode: local.deviceCode || (await getDeviceIdentity()).deviceCode,
+    expCode,
+    expiryLabel,
+    source: 'cloud'
+  };
+  await saveLicense(lic);
+  return { valid: true, lic };
+}
+
 // Check current status (used by the license gate + banner)
 export async function getLicenseStatus() {
   const lic = await getLicense();

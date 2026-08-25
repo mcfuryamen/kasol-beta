@@ -1,10 +1,11 @@
 {
   "version": "1.0.18",
-  "cacheBust": "v85",
+  "cacheBust": "v86",
   "notes": [
     "🛒 Halaman Jualan baru: tipe order (Dine-in/Take-away/Ojol) + catatan pesanan yang ikut tercetak di nota",
     "⌨️ Jumlah item kini bisa diketik langsung di keranjang & pemilih menu (total ter-update real-time)",
     "🧂🛵 Badge topping & Ojol sejajar horizontal di kartu menu; topping 2 kolom",
-    "🎫 Chip lisensi kini selalu sinkron dengan status lisensi sebenarnya"
+    "🎫 Chip lisensi kini selalu sinkron dengan status lisensi sebenarnya",
+    "🍽️ Halaman Menu: tombol ✏️ edit & 🗑️ hapus kini berfungsi + filter kategori seperti di halaman Jualan"
   ]
 }

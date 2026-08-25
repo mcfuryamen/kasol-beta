@@ -419,9 +419,19 @@ function handleDataAction(action, el, event) {
     case 'menu-search':
       if (window.renderMenuListDebounced) window.renderMenuListDebounced();
       break;
-    case 'open-menu-form':
-      if (window.openMenuForm) window.openMenuForm();
+    case 'open-menu-form': {
+      // Tombol ✏️ edit di kartu menu membawa data-menu-id (mode edit);
+      // FAB ➕ tidak membawa id (mode tambah). Tanpa ini form edit terbuka kosong.
+      const rawMenuId = el?.dataset.menuId;
+      const menuId = rawMenuId ? Number(rawMenuId) : NaN;
+      if (window.openMenuForm) window.openMenuForm(Number.isNaN(menuId) ? undefined : menuId);
       break;
+    }
+    case 'toggle-menu-cat-accordion': {
+      const menuAcc = document.getElementById('menuCatAccordion');
+      if (menuAcc) menuAcc.classList.toggle('open');
+      break;
+    }
 
     // Settings - Profile
     case 'open-name-modal':

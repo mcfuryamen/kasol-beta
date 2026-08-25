@@ -360,6 +360,13 @@ export async function pollLicenseStatus(unitId) {
       showToast('🎉 Lisensi berhasil diaktifkan!', 3000, 'success');
       closeModal('sheetPurchase');
       unlockGate();
+      // Persist lisensi cloud → lokal dulu, supaya chip & gate (yang membaca
+      // data lokal IndexedDB) langsung ikut aktif — bukan cuma kartu status
+      // yang membaca cloud. Dulu chip tetap "TRIAL" sampai reload.
+      try {
+        const { persistCloudLicense } = await import('./license.logic.js');
+        await persistCloudLicense(status);
+      } catch (e) { console.warn('Persist lisensi lokal gagal:', e); }
       // Reload license info
       if (window._ksr_updateTrialChip) window._ksr_updateTrialChip();
       if (window._ksr_checkLicenseGate) window._ksr_checkLicenseGate();
@@ -403,10 +410,17 @@ export function subscribeToLicenseUpdates(unitId) {
             if (typeof loadSettings === 'function') await loadSettings();
           } catch (_) { /* abaikan */ }
         })();
-        // Update local license
-        if (window._ksr_updateTrialChip) window._ksr_updateTrialChip();
-        if (window._ksr_checkLicenseGate) window._ksr_checkLicenseGate();
-        if (window._ksr_renderLicenseInfoCard) window._ksr_renderLicenseInfoCard();
+        // Update local license: persist cloud → lokal dulu (chip & gate membaca
+        // data lokal — tanpa ini chip tetap "TRIAL" walau server sudah aktif).
+        (async () => {
+          try {
+            const { persistCloudLicense } = await import('./license.logic.js');
+            await persistCloudLicense(payload.new);
+          } catch (e) { console.warn('Persist lisensi lokal gagal:', e); }
+          if (window._ksr_updateTrialChip) window._ksr_updateTrialChip();
+          if (window._ksr_checkLicenseGate) window._ksr_checkLicenseGate();
+          if (window._ksr_renderLicenseInfoCard) window._ksr_renderLicenseInfoCard();
+        })();
       } else if (payload.new.license_status === 'batal' || payload.new.license_status === 'nonaktif') {
         // Realtime revoke: kunci app segera tanpa menunggu reload.
         console.warn('License revoked via realtime!', payload.new);

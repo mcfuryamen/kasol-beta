@@ -1,6 +1,6 @@
 // ==================== LICENSE UI (ESM) ====================
 // DOM operations only. NO crypto, NO direct DB access.
-import { getLicense, daysLeft, isLicensed, getLicenseStatus, MAX_EXTENSIONS, activateSerial, markLicenseRevoked } from './license.logic.js';
+import { getLicense, daysLeft, isLicensed, getLicenseStatus, MAX_EXTENSIONS, activateSerial, markLicenseRevoked, persistCloudLicense } from './license.logic.js';
 import { escapeHtml } from './helpers.js';
 import { rateLimiters } from './helpers.pure.js';
 import { showToast } from './helpers.js';
@@ -205,9 +205,13 @@ export async function renderLicenseStatusArea(targetId, inputId) {
       // Pastikan lisensi (serial dari cloud) tersimpan di local store supaya
       // chip banner & status konsisten setelah reload / saat offline.
       const local = await getLicense();
-      if (cloud.license_serial && local?.status !== 'active') {
-        const persisted = await activateSerial(cloud.license_serial);
-        if (persisted?.valid) void persisted;
+      if (local?.status !== 'active') {
+        // Persist berbasis cloud (sumber kebenaran server). Dulu activateSerial()
+        // — gagal diam-diam bila serial cloud tidak lolos validasi HMAC/device
+        // lokal, membuat chip & gate selamanya 'trial' sementara kartu status
+        // (yang membaca cloud) menampilkan aktif.
+        const persisted = await persistCloudLicense(cloud);
+        if (!persisted?.valid) console.warn('[LICENSE] Persist lisensi cloud gagal:', persisted?.message || persisted);
       }
       const lic = await getLicense();
     const expTxt = lic?.expiryLabel ? 'Masa berlaku: ' + escapeHtml(lic.expiryLabel) : 'Berlaku seumur hidup';

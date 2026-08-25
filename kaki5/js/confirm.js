@@ -18,8 +18,13 @@ export async function showConfirm(icon, text, btnText, callback) {
     document.getElementById('confirmYes').removeEventListener('click', _confirmYesHandler);
   }
   _confirmYesHandler = () => {
+    // Simpan callback dulu: closeConfirm() me-null-kan confirmCallback
+    // (live binding ESM dari app-state), jadi baca sebelum ditimpa —
+    // kalau tidak, tombol "Ya" tidak pernah mengeksekusi aksinya
+    // (bug: hapus menu/transaksi terlihat mati, audit 2026-08-25).
+    const cb = confirmCallback;
     closeConfirm();
-    if (confirmCallback) confirmCallback();
+    if (cb) cb();
   };
   document.getElementById('confirmYes').addEventListener('click', _confirmYesHandler);
   
