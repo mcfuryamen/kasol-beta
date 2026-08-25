@@ -32,25 +32,13 @@ Proyek ini **telah direfactor menjadi arsitektur modular-atomic** dengan pemisah
 
 ```
 kaki5/
-├── index.html          ← Shell HTML (modular CSS + ESM lazy loading)
+├── index.html          ← Shell HTML (Single-source CSS + ESM lazy loading)
 ├── server.cjs          ← HTTP server dev port 8086 (no-cache)
 ├── dexie.min.js        ← Library Dexie 3.2.4
-├── sw.js               ← Service Worker v35 (modular cache)
+├── sw.js               ← Service Worker v73 (single-source cache)
 ├── vercel.json         ← Konfigurasi Vercel
 ├── css/
-│   ├── base.css        ← Variables, reset, typography
-│   ├── components.css  ← Buttons, cards, forms, nav
-│   ├── components-stat.css
-│   ├── components-modal.css
-│   ├── components-banner.css
-│   ├── components-tabs.css
-│   ├── components-license.css
-│   ├── components-carousel.css
-│   ├── components-menu.css
-│   ├── components-cart.css
-│   ├── components-trx.css
-│   ├── components-report.css
-│   └── components-settings.css
+│   └── style.css       ← Single-source CSS (CSS variables, reset, layout, components, responsive breakpoints)
 ├── assets/
 │   └── icon.png, icon-192.png, icon-512.png
 ├── docs/
@@ -97,7 +85,7 @@ kaki5/
 
 **Arsitektur baru (v5):**
 1. `<script src="dexie.min.js">` (global)
-2. `<script type="module" src="js/app.js?v=65">` (ESM entry - lazy loading)
+2. `<script type="module" src="js/app.js?v=66">` (ESM entry - lazy loading)
 
 `app.js` melakukan:
 - Pre-wire critical modules (pos, beranda)
@@ -240,9 +228,9 @@ Karena banyak konten di-render dari input pengguna (nama menu, keterangan pengel
 ## 💾 Backup & Pemulihan Data
 
 - **Export**: `exportData()` membuat file JSON berisi `{ version, menu, penjualan, pengeluaran, pengaturan }`.
-- **Import**: `importData(event)` membaca file → **`validateBackup(data)`** (fungsi murni, teruji) memvalidasi struktur ketat sebelum menimpa data → konfirmasi → pulihkan.
+- **Import**: `importData(event)` membaca file → **`await validateBackup(data)`** (fungsi murni & async, teruji) memvalidasi struktur ketat + verifikasi signature sebelum menimpa data → konfirmasi → pulihkan.
 - Validasi mencakup: objek valid, `version` angka ≥ 1, `menu` harus array, dan record lain (jika ada) harus array berisi objek.
-- **`test_validate.cjs`**: unit test (30+6 kasus) untuk `validateBackup` — jalankan dengan `node test_validate.cjs`.
+- **`test_validate.js`**: unit test (32 kasus: 26 struktur/field + 2 signature + 4 sanitize) untuk `validateBackup` — jalankan dengan `node test_validate.js`.
 
 ---
 
@@ -280,7 +268,7 @@ Setiap modul besar dipecah menjadi 3 layer terpisah:
     ↓
 [<script src="dexie.min.js">] ← Dexie global tersedia
     ↓
-[<script type="module" src="js/app.js?v=65">] ← ESM entry point
+[<script type="module" src="js/app.js?v=66">] ← ESM entry point
     ↓
 [app.js: Lazy load critical modules first]
     ├─ pos.js (PRE-WIRE)
@@ -360,8 +348,14 @@ cleanup() → saat pindah ke page lain
 
 ### Test
 ```bash
-# Unit test validasi backup
-node test_validate.cjs
+# Unit test validasi backup + sanitize (32 kasus)
+node test_validate.js
+
+# Unit test perhitungan POS (6 kasus)
+node test_pos.js
+
+# Gate modul + lint DOM id
+node test-modules.js
 
 # Jalankan dev server
 npx server.cjs

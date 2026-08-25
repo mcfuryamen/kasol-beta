@@ -9,9 +9,16 @@
 
 import { CACHE_BUST } from './version.js';
 import { showToast } from './helpers.js';
+import { openModal, closeModal } from './modal.js';
+
+// Dev detection helper
+function isDev() {
+  return location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('192.168.') || location.hostname.startsWith('10.') || location.hostname.endsWith('.local') || !location.hostname.includes('.');
+}
 
 const VERSION_URL = './js/version.json';
 const RELOAD_FLAG = 'ksr:update-reloading';
+const ACK_VERSION_KEY = 'ksr:update-acked-version'; // versi yang sudah di-OKE user (localStorage, persisten)
 const SW_WAIT_TIMEOUT_MS = 6000;
 const TOAST_DURATION_MS = 15000;
 
@@ -66,10 +73,15 @@ const DEFAULT_NOTES = [
 // Kontrak: `remote` HARUS objek hasil fetchRemoteVersion (punya cacheBust).
 // Pemanggilan tanpa data remote / versi yang sama diabaikan — mencegah overlay
 // palsu dari event SW atau pemanggil lawas (bug ketemu saat uji v56).
-export function notifyUpdateAvailable(remote) {
+export async function notifyUpdateAvailable(remote) {
   if (sessionStorage.getItem(RELOAD_FLAG)) return;
   if (!remote || typeof remote !== 'object' || !remote.cacheBust) return;
   if (remote.cacheBust === CACHE_BUST) return; // versi sama → tidak ada update
+  // User sudah klik OKE untuk versi ini → jangan tampilkan lagi
+  // (RELOAD_FLAG sessionStorage dibersihkan saat boot, localStorage tidak)
+  let ackedVersion = null;
+  try { ackedVersion = localStorage.getItem(ACK_VERSION_KEY); } catch {}
+  if (ackedVersion && ackedVersion === remote.cacheBust) return;
   const overlay = document.getElementById('updateOverlay');
   if (!overlay) {
     // Fallback (elemen overlay tidak ada — seharusnya tidak terjadi): toast lama.
@@ -93,9 +105,14 @@ export function notifyUpdateAvailable(remote) {
   if (!overlayWired) {
     overlayWired = true;
     const btn = document.getElementById('updateOkBtn');
-    if (btn) btn.addEventListener('click', () => performForceUpdate());
+    if (btn) btn.addEventListener('click', () => {
+      // Simpan versi yang di-acknowledge → overlay tidak muncul lagi untuk versi ini
+      // walau RELOAD_FLAG dibersihkan saat boot startUpdateWatcher().
+      try { localStorage.setItem(ACK_VERSION_KEY, remote.cacheBust); } catch {}
+      performForceUpdate();
+    });
   }
-  overlay.classList.add('show');
+  await openModal('updateOverlay', { modalSelector: '.update-card' });
 }
 
 // Escape ringan tanpa dependensi DOM helper (update.js minimal-dependency).
@@ -112,18 +129,18 @@ async function checkForUpdate() {
   try {
     const remote = await fetchRemoteVersion();
     if (remote.cacheBust !== CACHE_BUST) {
-      console.log(`[UPDATE] Versi baru ${remote.cacheBust} (lokal ${CACHE_BUST}).`);
+      if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log(`[UPDATE] Versi baru ${remote.cacheBust} (lokal ${CACHE_BUST}).`);
       notifyUpdateAvailable(remote);
     }
   } catch (e) {
-    console.log('[UPDATE] Cek versi gagal (mungkin offline):', e?.message || e);
+    if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[UPDATE] Cek versi gagal (mungkin offline):', e?.message || e);
   }
   if ('serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg) await reg.update(); // minta SW cek ulang (updatefound -> notify)
     } catch (e) {
-      console.log('[UPDATE] SW update check:', e?.message || e);
+      if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[UPDATE] SW update check:', e?.message || e);
     }
   }
 }

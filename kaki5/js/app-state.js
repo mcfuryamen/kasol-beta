@@ -4,8 +4,15 @@
 // traceable and prevents modules from clobbering each other.
 import { todayStr } from './helpers.js';
 
-// --- Cart --- // {menuId: {menu, qty}}
+// --- Cart --- // {menuId: {menu, qty, selectedToppings[], orderType}}
 export let cart = {};
+
+// --- Order type: dine-in | takeaway | ojol
+export let orderType = 'dine-in';
+
+export function setOrderType(value) {
+  orderType = value;
+}
 
 // --- Navigation ---
 export let currentPage = 'beranda';

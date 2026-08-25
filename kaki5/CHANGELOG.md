@@ -2,6 +2,14 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-25 (fix PWA install flow — native prompt sekarang dipanggil benar)
+- **Bug**: `checkPWAInstalled()` menilai `navigator.serviceWorker.controller` == PWA terpasang, padahal SW aktif di setiap kunjungan. Akibatnya `isPWAInstalled = true` sebelum prompt muncul, `beforeinstallprompt` ditolak, dan `deferredPrompt` tidak pernah disimpan.
+- **Bug**: `installPWA()` nyaris selalu return karena `isPWAInstalled || checkPWAInstalled()` jadi `true` dari sinyal false-positive — native dialog "Install app" tidak pernah dipanggil, tapi UI tetap ganti ke "Sudah Terpasang" + toast "berhasil" (halu).
+- **Fix 1**: Hapus sinyal `navigator.serviceWorker.controller` dari `checkPWAInstalled()` — manifest + localStorage + display-mode yang jadi acuan akhir.
+- **Fix 2**: `beforeinstallprompt` listener simpan `deferredPrompt` **sebelum** cek apapun — banner yang disembunyikan kalau terdeteksi terpasang, prompt tetap tersimpan walau tak ditampilkan.
+- **Fix 3**: `installPWA()` tidak ada guard pre-prompt lagi — langsung `deferredPrompt.prompt()` kalau tersedia, tanpa timeout polling 5 detik yang bikin muncul "toast tutorial" yang hilang sebelum terbaca.
+- **Fallback**: Kalau prompt belum ready saat klik, tampilkan `showManualInstallGuide()` (overlay full-screen langkah instalasi), bukan toast yang hilang.
+
 ## 2026-08-17 (v64: harga coret di layar pembelian)
 - Layar Beli Lisensi menampilkan **harga coret** (harga sebelum diskon, strikethrough) bila `price_before_label` diisi di Admin Console — harga efektif tetap `price_label`.
 
@@ -154,7 +162,7 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 ## 2026-08-07 (PWA Install Detection + API Wilayah Desa + Custom Period Laporan)
 
 - **PWA Install Detection** (`js/pwa.js`):
-  - Deteksi otomatis kalau PWA sudah terinstal (standalone, iOS standalone, SW controlling, localStorage flag)
+  - Deteksi otomatis kalau PWA sudah terinstal (standalone, iOS standalone, localStorage flag)
   - Tidak tampilkan banner "Pasang di HP" jika sudah terinstal
   - Persist flag ke localStorage `kasirsolo:pwa-installed`
   - Listen `display-mode` change untuk deteksi instalasi sesudah reload

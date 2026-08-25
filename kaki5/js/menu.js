@@ -4,6 +4,7 @@ import { escapeHtml, formatRp, showToast } from './helpers.js';
 import { currentPage } from './app-state.js';
 import { showConfirm } from './confirm.js';
 import { loadPOS } from './pos.js';
+import { openModal, closeModal } from './modal.js';
 
 // Debounced search for menu list
 function debounce(fn, delay = 300) {
@@ -48,9 +49,9 @@ export async function renderMenuList() {
           <div class="trx-sub">Modal ${formatRp(m.hargaModal)} · Untung ${formatRp(untung)}</div>
         </div>
         <div style="display:flex;gap:4px">
-          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px" onclick="openMenuForm(${m.id})">✏️</button>
-          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px" onclick="toggleMenu(${m.id})">${m.aktif?'⏸️':'▶️'}</button>
-          <button class="btn-icon btn-ghost" style="width:44px;height:44px;min-height:44px;font-size:16px;color:var(--red)" onclick="confirmDeleteMenu(${m.id})">🗑️</button>
+          <button class="btn-icon btn-ghost kwh44" data-action="open-menu-form" data-menu-id="${m.id}">✏️</button>
+          <button class="btn-icon btn-ghost kwh44" data-action="toggle-menu" data-menu-id="${m.id}">${m.aktif?'⏸️':'▶️'}</button>
+          <button class="btn-icon btn-ghost kwh44 kred" data-action="confirm-delete-menu" data-menu-id="${m.id}">🗑️</button>
         </div>
       </div>`;
     });
@@ -82,6 +83,11 @@ export async function openMenuForm(id) {
       document.getElementById('menuKategori').value = m.kategori;
       document.getElementById('menuHargaJual').value = m.hargaJual;
       document.getElementById('menuHargaModal').value = m.hargaModal;
+      // Topping list: render sebagai baris terpisah "nama|harga" di textarea
+      const toppings = parseToppingList(m.toppingList);
+      document.getElementById('menuToppingList').value = toppings.map(t => t.nama + '|' + t.harga).join('\n');
+      // Harga ojol: 0 = tidak di-set
+      document.getElementById('menuHargaOjol').value = m.hargaOjol || '';
     } else {
       document.getElementById('editMenuId').value = '';
       document.getElementById('menuModalTitle').textContent = '🍽️ Tambah Menu';
@@ -89,32 +95,67 @@ export async function openMenuForm(id) {
       document.getElementById('menuKategori').value = 'Makanan';
       document.getElementById('menuHargaJual').value = '';
       document.getElementById('menuHargaModal').value = '';
+      document.getElementById('menuToppingList').value = '';
+      document.getElementById('menuHargaOjol').value = '';
     }
-    document.getElementById('menuModal').classList.add('show');
+    await openModal('menuModal');
   } finally {
     _menuFormInFlight = false;
   }
 }
 
 export function closeMenuModal() {
-  document.getElementById('menuModal').classList.remove('show');
+  closeModal('menuModal');
 }
 
+// =====================================================================
+// Topping helpers (opsi ringan topping + hargaOjol via field di tabel menu)
+// =====================================================================
+
+// Parse JSON string → array {nama, harga}. Kembali [] kalau invalid/kosong.
+export function parseToppingList(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(t => typeof t.nama === 'string' && t.nama.trim() !== '');
+  } catch { return []; }
+}
+
+// Format array {nama, harga} → JSON string untuk disimpan ke DB
+export function buildToppingListString(toppings) {
+  return JSON.stringify(toppings.filter(t => t.nama && t.nama.trim()));
+}
+
+// Parse textarea "Susu|1000\nExtra Gula|500" → [{nama, harga}]
+export function parseToppingTextarea(raw) {
+  if (!raw || !raw.trim()) return [];
+  return raw.trim().split('\n').map(line => {
+    const [nama, hargaRaw] = line.split('|');
+    return { nama: (nama || '').trim(), harga: Math.max(0, parseInt(hargaRaw) || 0) };
+  }).filter(t => t.nama !== '');
+}
+
+// Validasi hargaJual untuk menu biasa sama, tapi topping boleh harga 0 (gratis)
 export async function saveMenu() {
   const id = document.getElementById('editMenuId').value;
   const nama = document.getElementById('menuNama').value.trim();
   const kategori = document.getElementById('menuKategori').value;
   const hargaJual = parseInt(document.getElementById('menuHargaJual').value) || 0;
   const hargaModal = parseInt(document.getElementById('menuHargaModal').value) || 0;
+  const hargaOjol = parseInt(document.getElementById('menuHargaOjol').value) || 0;
+  const toppingRaw = document.getElementById('menuToppingList').value || '';
+  const toppingList = buildToppingListString(parseToppingTextarea(toppingRaw));
 
   if (!nama) { showToast('Nama menu harus diisi!', 'error'); return; }
   if (hargaJual <= 0) { showToast('Harga jual harus diisi!', 'error'); return; }
 
+  const updateData = { nama, kategori, hargaJual, hargaModal, hargaOjol, toppingList };
   if (id) {
-    await DB.menu.update(parseInt(id), { nama, kategori, hargaJual, hargaModal });
+    await DB.menu.update(parseInt(id), updateData);
     showToast('✅ Menu diperbarui!');
   } else {
-    await DB.menu.add({ nama, kategori, hargaJual, hargaModal, aktif: 1, urutan: Date.now() });
+    await DB.menu.add({ ...updateData, aktif: 1, urutan: Date.now() });
     showToast('✅ Menu ditambahkan!');
   }
   closeMenuModal();

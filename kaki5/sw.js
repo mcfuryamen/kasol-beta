@@ -1,27 +1,16 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v68 — ubah angka ini setiap swap service worker file.
+// Cache version v73 — ubah angka ini setiap swap service worker file.
+// v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
+// css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v68';
+const CACHE_NAME = 'kasir-solo-kaki5-v85';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './dexie.min.js',
-  './css/base.css',
-  './css/components.css',
-  './css/components-stat.css',
-  './css/components-modal.css',
-  './css/components-banner.css',
-  './css/components-tabs.css',
-  './css/components-license.css',
-  './css/components-carousel.css',
-  './css/components-menu.css',
-  './css/components-cart.css',
-  './css/components-trx.css',
-  './css/components-report.css',
-  './css/components-settings.css',
   './css/style.css',
   './assets/icon.png',
   './assets/icon-48.png',
@@ -143,8 +132,16 @@ self.addEventListener('fetch', event => {
     fetch(request)
       .then(response => {
         if (response && response.status === 200 && response.type === 'basic') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+          // Abaikan request dengan scheme yang tidak didukung Cache API
+          // (mis. chrome-extension:// dari plugin browser)
+          try {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+          } catch (e) {
+            if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) {
+              console.warn('[SW] Cache skip:', request.url, e.message);
+            }
+          }
         }
         return response;
       })

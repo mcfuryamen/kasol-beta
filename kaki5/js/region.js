@@ -1,4 +1,4 @@
-﻿// ==================== REGION PICKER — API Wilayah Indonesia ====================
+// ==================== REGION PICKER — API Wilayah Indonesia ====================
 // Data: https://github.com/emsifa/api-wilayah-indonesia (static JSON, tanpa key).
 // Struktur rantai: Provinsi → Kabupaten → Kecamatan → Desa
 // Endpoint:
@@ -11,8 +11,10 @@
 //          sehingga desa terpilih otomatis ter-load saat modal dibuka.
 //
 // Bisa dipakai offline-cache manual oleh caller jika perlu.
+// LOCAL FALLBACK: provinces.json tersimpan di assets/region/provinces.json
 
 const BASE = 'https://raw.githubusercontent.com/emsifa/api-wilayah-indonesia/master/static/api';
+const LOCAL_BASE = './assets/region';
 const cache = {};
 
 function esc(s) {
@@ -23,6 +25,24 @@ function esc(s) {
 
 async function getJson(url) {
   if (cache[url]) return cache[url];
+  
+  // Try local first for provinces
+  let isProvinces = url.includes('/provinces.json');
+  if (isProvinces) {
+    try {
+      const localUrl = LOCAL_BASE + '/provinces.json';
+      const r = await fetch(localUrl);
+      if (r.ok) {
+        const j = await r.json();
+        cache[url] = j;
+        console.log('[REGION] Loaded provinces from local fallback');
+        return j;
+      }
+    } catch (e) {
+      console.warn('[REGION] Local fallback failed, trying API');
+    }
+  }
+  
   const r = await fetch(url);
   if (!r.ok) throw new Error('region ' + r.status);
   const j = await r.json();

@@ -2,12 +2,50 @@
 // Pure functions: cart operations, calculations, validation.
 // No DOM access. No DB access.
 
-export function addToCartLogic(cart, menuId, menu) {
+// ── Topping helpers ──────────────────────────────────────────────────────────
+// Parse JSON string dari menu.toppingList → array {nama, harga}
+export function parseToppings(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(t => typeof t.nama === 'string' && t.nama.trim() !== '');
+  } catch { return []; }
+}
+
+// Hitung total harga topping untuk 1 item di cart
+export function toppingHarga(item) {
+  const toppings = item.selectedToppings || [];
+  return toppings.reduce((s, t) => s + (t.harga || 0), 0);
+}
+
+// Harga efektif per-qty: harga dasar (dine-in/takeaway) atau hargaOjol,
+// ditambah total harga semua topping terpilih.
+export function hargaEfektif(item, orderType) {
+  const isOjol = orderType === 'ojol';
+  const baseHarga = (isOjol && item.menu.hargaOjol > 0) ? item.menu.hargaOjol : item.menu.hargaJual;
+  return baseHarga + toppingHarga(item);
+}
+
+// ── Cart operations ──────────────────────────────────────────────────────────
+export function addToCartLogic(cart, menuId, menu, selectedToppings = [], orderType = 'dine-in', qty = 1) {
+  const addQty = Math.max(1, parseInt(qty, 10) || 1);
   const existing = cart[menuId];
   if (existing) {
-    return { ...cart, [menuId]: { ...existing, qty: existing.qty + 1 } };
+    // Item sudah ada: gabungkan topping (union), jangan dobel nama
+    const existingNames = new Set((existing.selectedToppings || []).map(t => t.nama));
+    const newToppings = (selectedToppings || []).filter(t => !existingNames.has(t.nama));
+    return {
+      ...cart,
+      [menuId]: {
+        ...existing,
+        qty: existing.qty + addQty,
+        selectedToppings: [...(existing.selectedToppings || []), ...newToppings],
+        orderType
+      }
+    };
   }
-  return { ...cart, [menuId]: { menu, qty: 1 } };
+  return { ...cart, [menuId]: { menu, qty: addQty, selectedToppings: [...selectedToppings], orderType } };
 }
 
 export function changeQtyLogic(cart, menuId, delta) {
@@ -26,7 +64,10 @@ export function hitungKembalianLogic(total, bayar) {
 }
 
 export function calculateTotal(cart) {
-  return Object.values(cart).reduce((sum, item) => sum + (item.menu.hargaJual * item.qty), 0);
+  return Object.values(cart).reduce((sum, item) => {
+    const hargaPerItem = hargaEfektif(item, item.orderType || 'dine-in');
+    return sum + (hargaPerItem * item.qty);
+  }, 0);
 }
 
 export function calculateModal(cart) {

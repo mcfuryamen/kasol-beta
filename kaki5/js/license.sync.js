@@ -7,8 +7,14 @@
 import { ensureSynced, pullCloudProfileTo } from './sync.js';
 import { getUnitId, getDeviceCode, getLicense, markLicenseRevoked, bumpClockAnchor } from './license.logic.js';
 import { setSetting } from './db.js';
+import { rateLimiters } from './helpers.pure.js';
 
 const LICENSE_SYNC_KEY = 'licenseSync';
+const APP_TYPE = 'kaki5';
+const PRODUCT_PREFIX = 'KK5';
+
+// Cache for product salt (fetched once per session)
+let _productSaltCache = null;
 
 function classifyCloudError(error) {
   const status = Number(error?.status || error?.statusCode || 0);
@@ -27,7 +33,7 @@ async function readLicenseRow(sb, unitId) {
       .from('clients')
       .select('license_status, license_serial, license_expires_at, first_seen')
       .eq('unit_id', unitId)
-      .eq('app_type', 'kaki5')
+      .eq('app_type', APP_TYPE)
       .maybeSingle();
     if (error) return { kind: classifyCloudError(error), error };
     if (!data) return { kind: 'not-found' };
@@ -41,7 +47,7 @@ async function isKnownDevice(sb, deviceCode) {
   try {
     const unitId = await getUnitId();
     const { data, error } = await sb.rpc('device_known', {
-      p_unit_id: unitId, p_device_code: deviceCode, p_app_type: 'kaki5'
+      p_unit_id: unitId, p_device_code: deviceCode, p_app_type: APP_TYPE
     });
     return error ? null : data === true;
   } catch (_) {
@@ -74,54 +80,69 @@ function getSupabaseClient() {
 export { getSupabaseClient };
 
 /**
- * Pastikan ada session anonim yang membawa claim unit_id di metadata, lalu
- * baca ulang baris clients. Return 'found' | 'missing' | 'error'.
- *
- * Latar (H3, kejadian nyata 2026-08-17): baris clients dengan user_id NULL /
- * milik session lain TIDAK terlihat oleh select RLS tanpa session bermetadata.
- * syncLicenseStatus dulu menyamakan "tidak terlihat" dengan "terhapus" lalu
- * me-revoke perangkat yang barinya sebenarnya ada — termasuk install baru.
- * Policy "clients hybrid" punya cabang kedua: jwt.user_metadata.unit_id =
- * unit_id, jadi setelah session dibuat dengan metadata yang benar, baris
- * harusnya terbaca. Kalau SETELAH itu masih hilang, baru boleh revoke.
+ * Fetch product salt from Supabase products table.
+ * Returns { salt, version } or null if failed.
+ * Uses local fallback if fetch fails.
  */
-async function recheckRowWithSession(sb) {
+export async function fetchProductSalt() {
+  // Return cached if available
+  if (_productSaltCache) return _productSaltCache;
+
+  const sb = getSupabaseClient();
+  if (!sb || !navigator.onLine) {
+    return getLocalFallbackSalt();
+  }
+
   try {
-    const unitId = await getUnitId();
-    const { data: sessData } = await sb.auth.getSession();
-    if (!sessData?.session?.user?.id) {
-      const { error: auErr } = await sb.auth
-        .signInAnonymously({ options: { data: { unit_id: unitId } } });
-      if (auErr) return 'error';
-    } else {
-      const metaUnit = sessData.session.user.user_metadata?.unit_id;
-      if (!metaUnit || metaUnit !== unitId) {
-        try {
-          await sb.auth.updateUser({ data: { unit_id: unitId } });
-        } catch (_) { /* metadata opsional — cabang user_id policy masih jalan */ }
-      }
+    const { data, error } = await sb
+      .from('products')
+      .select('salt_hmac, salt_version')
+      .eq('prefix', PRODUCT_PREFIX)
+      .eq('app_type', APP_TYPE)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('[LICENSE] Failed to fetch product salt:', error.message);
+      return getLocalFallbackSalt();
     }
-    const re = await readLicenseRow(sb, unitId);
-    if (re.kind === 'ok') return 'found';
-    if (re.kind === 'not-found') return 'missing';
-    return 'error';
-  } catch (_) {
-    return 'error';
+
+    if (data && data.salt_hmac) {
+      const result = { salt: data.salt_hmac, version: data.salt_version || 2 };
+      _productSaltCache = result;
+      console.log('[LICENSE] Product salt fetched from Supabase:', result);
+      return result;
+    }
+
+    console.warn('[LICENSE] No salt found in products table for', PRODUCT_PREFIX);
+    return getLocalFallbackSalt();
+  } catch (e) {
+    console.warn('[LICENSE] Error fetching product salt:', e?.message || e);
+    return getLocalFallbackSalt();
   }
 }
 
-// Lazy-import UI refresh (NO DOM in this module, but we need it post-pull)
-async function refreshSettingsUI() {
-  try {
-    const { loadSettings } = await import('./settings.js');
-    if (typeof loadSettings === 'function') await loadSettings();
-  } catch (e) {
-    console.warn('[C2] settings UI refresh skipped:', e?.message || e);
-  }
+function getLocalFallbackSalt() {
+  // Local fallback for v2 (matches current buildProductSalt in license.logic.js)
+  const fallback = { salt: 'KASIRSOLO-KAKI5-HMAC-V2', version: 2 };
+  _productSaltCache = fallback;
+  console.log('[LICENSE] Using local fallback salt:', fallback);
+  return fallback;
+}
+
+/**
+ * Clear salt cache (e.g., after manual rotation or for testing)
+ */
+export function clearProductSaltCache() {
+  _productSaltCache = null;
 }
 
 /** Sync local license state to Supabase and apply only authoritative results. */
 export async function syncLicenseStatus() {
+  // Rate limit: 30 calls per minute
+  if (!rateLimiters.syncLicense('sync-license-status')) {
+    return { ok: false, reason: 'rate-limited' };
+  }
+
   const sb = getSupabaseClient();
   if (!sb || !navigator.onLine) return { ok: false, reason: 'network' };
   const unitId = await getUnitId();
@@ -187,6 +208,53 @@ export async function syncLicenseStatus() {
 }
 
 /**
+ * Pastikan ada session anonim yang membawa claim unit_id di metadata, lalu
+ * baca ulang baris clients. Return 'found' | 'missing' | 'error'.
+ *
+ * Latar (H3, kejadian nyata 2026-08-17): baris clients dengan user_id NULL /
+ * milik session lain TIDAK terlihat oleh select RLS tanpa session bermetadata.
+ * syncLicenseStatus dulu menyamakan "tidak terlihat" dengan "terhapus" lalu
+ * me-revoke perangkat yang barinya sebenarnya ada — termasuk install baru.
+ * Policy "clients hybrid" punya cabang kedua: jwt.user_metadata.unit_id =
+ * unit_id, jadi setelah session dibuat dengan metadata yang benar, baris
+ * harusnya terbaca. Kalau SETELAH itu masih hilang, baru boleh revoke.
+ */
+async function recheckRowWithSession(sb) {
+  try {
+    const unitId = await getUnitId();
+    const { data: sessData } = await sb.auth.getSession();
+    if (!sessData?.session?.user?.id) {
+      const { error: auErr } = await sb.auth
+        .signInAnonymously({ options: { data: { unit_id: unitId } } });
+      if (auErr) return 'error';
+    } else {
+      const metaUnit = sessData.session.user.user_metadata?.unit_id;
+      if (!metaUnit || metaUnit !== unitId) {
+        try {
+          await sb.auth.updateUser({ data: { unit_id: unitId } });
+        } catch (_) { /* metadata opsional — cabang user_id policy masih jalan */ }
+      }
+    }
+    const re = await readLicenseRow(sb, unitId);
+    if (re.kind === 'ok') return 'found';
+    if (re.kind === 'not-found') return 'missing';
+    return 'error';
+  } catch (_) {
+    return 'error';
+  }
+}
+
+// Lazy-import UI refresh (NO DOM in this module, but we need it post-pull)
+async function refreshSettingsUI() {
+  try {
+    const { loadSettings } = await import('./settings.js');
+    if (typeof loadSettings === 'function') await loadSettings();
+  } catch (e) {
+    console.warn('[C2] settings UI refresh skipped:', e?.message || e);
+  }
+}
+
+/**
  * Cek apakah perangkat FISIK sudah pernah terdaftar di cloud (tabel `clients`).
  * Basis: unit_id = 'K5-' + deviceCode (deterministik per hardware), jadi sama
  * walau ganti browser/re-install → onboarding cukup sekali per perangkat.
@@ -214,7 +282,7 @@ export async function isDeviceKnownOnCloud() {
     const { data, error } = await sb.rpc('device_known', {
       p_unit_id: unit_id,
       p_device_code: device_code,
-      p_app_type: 'kaki5'
+      p_app_type: APP_TYPE
     });
     if (error) throw error;
     return data === true;

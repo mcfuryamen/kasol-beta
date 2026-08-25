@@ -114,6 +114,78 @@ export function throttle(fn, ms = 100) {
   };
 }
 
+// ==================== RATE LIMITER (PURE) ====================
+// Simple in-memory rate limiter for client-side protection
+// Usage: const limiter = createRateLimiter(5, 60000); // 5 calls per minute
+// if (!limiter()) { showToast('Terlalu banyak percobaan', 'error'); return; }
+
+export function createRateLimiter(maxCalls, windowMs) {
+  const calls = [];
+  return function() {
+    const now = Date.now();
+    // Remove expired calls
+    while (calls.length > 0 && now - calls[0] > windowMs) {
+      calls.shift();
+    }
+    if (calls.length >= maxCalls) {
+      return false; // Rate limited
+    }
+    calls.push(now);
+    return true; // Allowed
+  };
+}
+
+// Rate limiter with key (for multiple independent limiters)
+// Usage: const limiter = createKeyedRateLimiter(5, 60000);
+// if (!limiter('activate-license')) { ... }
+export function createKeyedRateLimiter(maxCalls, windowMs) {
+  const stores = new Map(); // key -> { calls: [], lastCleanup }
+  
+  return function(key) {
+    const now = Date.now();
+    let store = stores.get(key);
+    if (!store) {
+      store = { calls: [], lastCleanup: now };
+      stores.set(key, store);
+    }
+    
+    // Periodic cleanup of old keys (every 1000 calls globally)
+    if (store.calls.length > 1000) {
+      const expired = [];
+      for (const [k, v] of stores.entries()) {
+        if (v.calls.length === 0 || now - v.lastCleanup > windowMs * 2) {
+          expired.push(k);
+        }
+      }
+      expired.forEach(k => stores.delete(k));
+    }
+    
+    // Clean expired calls for this key
+    while (store.calls.length > 0 && now - store.calls[0] > windowMs) {
+      store.calls.shift();
+    }
+    store.lastCleanup = now;
+    
+    if (store.calls.length >= maxCalls) {
+      return false; // Rate limited
+    }
+    store.calls.push(now);
+    return true; // Allowed
+  };
+}
+
+// Export rate limiter instances for common actions
+export const rateLimiters = {
+  // 5 calls per minute for license activation
+  activateLicense: createKeyedRateLimiter(5, 60 * 1000),
+  // 3 calls per minute for purchase submission
+  submitPurchase: createKeyedRateLimiter(3, 60 * 1000),
+  // 10 calls per minute for share-to-extend
+  grantExtension: createKeyedRateLimiter(10, 60 * 1000),
+  // 30 calls per minute for sync
+  syncLicense: createKeyedRateLimiter(30, 60 * 1000),
+};
+
 // ==================== PHONE / WHATSAPP VALIDATION ====================
 export function sanitizePhoneInput(raw) {
   if (!raw) return '';

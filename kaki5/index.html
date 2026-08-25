@@ -5,11 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#E65100">
+<meta name="theme-color" content="#D6501C">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kasir Solo">
 <meta name="description" content="Aplikasi kasir untuk pedagang kaki lima. Catat jualan, pengeluaran, dan lihat untung tiap hari!">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://hhywrvedlwljawgxzpkq.supabase.co https://raw.githubusercontent.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<!-- CSP 2026-08-22: nonce placeholder dihapus (nilai publik = tanpa nilai keamanan,
+     malah memblokir semua inline style + onload handler → layout rusak).
+     style-src 'unsafe-inline' diperlukan karena 340+ style attribute di markup/template.
+     Inline <script> dilarang (script-src 'self') — semua JS wajib file eksternal. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://hhywrvedlwljawgxzpkq.supabase.co wss://hhywrvedlwljawgxzpkq.supabase.co https://raw.githubusercontent.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <link rel="icon" type="image/png" sizes="48x48" href="assets/icon-48.png">
 <link rel="icon" type="image/png" sizes="72x72" href="assets/icon-72.png">
 <link rel="icon" type="image/png" sizes="96x96" href="assets/icon-96.png">
@@ -22,44 +26,21 @@
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="manifest" href="manifest.json">
 <title>Kasir Solo - Kaki Lima</title>
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/components.css">
-<link rel="stylesheet" href="css/components-stat.css">
-<link rel="stylesheet" href="css/components-modal.css">
-<link rel="stylesheet" href="css/components-banner.css">
-<link rel="stylesheet" href="css/components-tabs.css">
-<link rel="stylesheet" href="css/components-license.css">
-<link rel="stylesheet" href="css/components-carousel.css">
-<link rel="stylesheet" href="css/components-menu.css">
-<link rel="stylesheet" href="css/components-cart.css">
-<link rel="stylesheet" href="css/components-trx.css">
-<link rel="stylesheet" href="css/components-report.css">
-<link rel="stylesheet" href="css/components-settings.css">
-<link rel="stylesheet" href="css/style.css" media="print" onload="this.media='all'">
-<script src="dexie.min.js"></script>
-<!-- Disable PWA cache during development -->
-<script>
-  // DEV ONLY: auto-unregister service worker saat develop lokal, biar gak
-  // nabrak cache lama. Dijaga hostname supaya TIDAK jalan di produksi —
-  // di produksi SW harus tetap terpasang (janji offline-first PWA).
-  if (navigator.serviceWorker && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      for (let registration of registrations) {
-        registration.unregister();
-        console.log('[DEV] Service worker unregistered');
-      }
-    });
-  }
-</script>
+<!-- Konsolidasi P2 2026-08-22: css/style.css = satu-satunya stylesheet (superset
+     lengkap; 13 file css/ modular dilebur ke sini). Jangan tambahkan link css lain. -->
+<link rel="stylesheet" href="css/style.css">
+<script src="dexie.min.js" integrity="sha384-vG8R9Zn5YZHCeXt9gLNp8MnsUCqmIy7HPxhdOdLGa/30/c8uZXFrrN0iKGID/ZvC" crossorigin="anonymous"></script>
+<!-- Disable PWA cache during development (eksternal: inline script diblokir CSP script-src 'self') -->
+<script src="js/dev-unregister-sw.js"></script>
 </head>
 <body>
 
 <!-- HEADER -->
 <header class="app-header">
-<img src="assets/icon.png" class="header-logo" alt="Logo"><h1>Kasir Solo<br><span style="font-size:12px;font-weight:400;opacity:.85">Kaki Lima Edition</span></h1>
+<img src="assets/icon.png" class="header-logo" alt="Logo"><h1>Kasir Solo<br><span class="kfs12 kfw400 kop85">Kaki Lima Edition</span></h1>
 <div class="header-right">
-<div class="trial-badge" id="trialChip" onclick="window._ksr_openLicenseSheet()" role="button" title="Status Lisensi"><div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">7 hari</div></div>
-<button class="header-btn" title="Bantuan" onclick="window._ksr_navigateTo('bantuan')">❓</button>
+<div class="trial-badge" id="trialChip" data-action="open-license-sheet" role="button" tabindex="0" title="Status Lisensi"><div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">7 hari</div></div>
+<button class="header-btn" title="Bantuan" data-action="navigate-bantuan">❓</button>
 </div>
 </header>
 
@@ -68,25 +49,25 @@
 
 <!-- ====== HALAMAN BERANDA ====== -->
 <div class="page active" id="page-beranda">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+<div class="kflex-between-mb12">
 <div>
-<div style="font-size:14px;color:var(--text3);font-weight:600" id="greetText">Selamat pagi! 👋</div>
-<div style="font-size:20px;font-weight:800" id="namaWarung">Warung Saya</div>
+<div class="kfs14 ktext3 kfw600" id="greetText">Selamat pagi! 👋</div>
+<div class="kfs20 kfw800" id="namaWarung">Warung Saya</div>
 </div>
-<div style="font-size:13px;color:var(--text3);font-weight:600;text-align:right" id="todayDate"></div>
+<div class="kfs13 ktext3 kfw600 kright" id="todayDate"></div>
 </div>
 
 <div class="stat-grid">
-<div id="platCarouselEl" style="grid-column:1/-1;margin-bottom:8px"></div>
-<div class="stat-card" style="background:var(--green-bg);border-color:#A5D6A7">
+<div id="platCarouselEl" class="kcol-span2 kmb8"></div>
+<div class="stat-card kbg-green-b">
 <div class="stat-label">💰 Omzet Hari Ini</div>
 <div class="stat-value green" id="todayOmzet">Rp 0</div>
 </div>
-<div class="stat-card" style="background:var(--red-bg);border-color:#EF9A9A">
+<div class="stat-card kbg-red-b">
 <div class="stat-label">🧾 Pengeluaran</div>
 <div class="stat-value red" id="todayExpense">Rp 0</div>
 </div>
-<div class="stat-card" style="background:var(--blue-bg);border-color:#90CAF9">
+<div class="stat-card kbg-blue-b">
 <div class="stat-label">📈 Laba Hari Ini</div>
 <div class="stat-value blue" id="todayProfit">Rp 0</div>
 </div>
@@ -114,21 +95,37 @@
 
 <!-- ====== HALAMAN JUALAN (POS) ====== -->
 <div class="page" id="page-jualan">
+<!-- Kontrol POS (tipe order + cari + kategori) — STICKY saat menu discroll -->
+<div class="pos-controls">
+<!-- Tipe order: dine-in / takeaway / ojol -->
+<div id="orderTypeButtons">
+  <button class="btn btn-sm btn-primary" data-action="switch-order-type" data-tipe="dine-in">🍽️ Dine-in</button>
+  <button class="btn btn-sm btn-ghost"   data-action="switch-order-type" data-tipe="takeaway">🥡 Take-away</button>
+  <button class="btn btn-sm btn-ghost"   data-action="switch-order-type" data-tipe="ojol">🛵 Ojol</button>
+</div>
+<!-- Catatan pesanan (akordeon): keterangan tambahan sesuai tipe order -->
+<div id="orderNoteBox" class="order-note-box" style="display:none">
+  <input type="text" class="form-input" id="orderNoteInput" placeholder="Catatan..." maxlength="120" data-action="order-note-input">
+</div>
 <div class="search-box">
 <span class="search-icon">🔍</span>
-<input type="text" id="searchMenu" placeholder="Cari menu..." oninput="renderPOSMenuDebounced()">
+<input type="text" id="searchMenu" placeholder="Cari menu..." data-action="pos-search">
+<button class="btn btn-sm btn-ghost" data-action="toggle-cat-accordion">📂 Kategori</button>
 </div>
-<div class="cat-tabs" id="posCatTabs"></div>
+<div id="posCatAccordion" class="pos-cat-accordion">
+  <div class="pos-cat-accordion-inner" id="posCatAccordionInner"></div>
+</div>
+</div><!-- /.pos-controls -->
 <div class="menu-grid" id="posMenuGrid"></div>
 
-<!-- Keranjang floating -->
-<div id="cartBar" style="display:none;position:fixed;bottom:calc(var(--nav-h) + 8px);left:8px;right:8px;max-width:90%;margin:0 auto;background:var(--green);color:#fff;border-radius:16px;padding:14px 20px;z-index:50;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3);display:none" onclick="openCartModal()">
-<div style="display:flex;align-items:center;justify-content:space-between">
-<div style="display:flex;align-items:center;gap:10px">
-<span style="font-size:24px">🛒</span>
-<span style="font-weight:800;font-size:16px" id="cartCount">0 item</span>
+<!-- Keranjang floating — styling di components-cart.css (#cartBar), JS toggle display -->
+<div id="cartBar" data-action="open-cart">
+<div class="kflex-between">
+<div class="kflex-gap10">
+<span class="kfs24">🛒</span>
+<span class="kfw800 kfs16" id="cartCount">0 item</span>
 </div>
-<div style="font-weight:800;font-size:18px" id="cartTotal">Rp 0</div>
+<div class="kfw800 kfs18" id="cartTotal">Rp 0</div>
 </div>
 </div>
 </div>
@@ -137,88 +134,93 @@
 <div class="page" id="page-menu">
 <div class="search-box">
 <span class="search-icon">🔍</span>
-<input type="text" id="searchMenuList" placeholder="Cari menu..." oninput="renderMenuListDebounced()">
+<input type="text" id="searchMenuList" placeholder="Cari menu..." data-action="menu-search">
 </div>
 <div id="menuListContainer"></div>
-<button class="fab" onclick="openMenuForm()" title="Tambah Menu">➕</button>
+<button class="fab" data-action="open-menu-form" title="Tambah Menu">➕</button>
 </div>
 
 <!-- ====== HALAMAN LAPORAN (+ Pengeluaran digabung) ====== -->
 <div class="page" id="page-laporan">
 <div class="report-tabs" id="reportPeriodTabs">
-<div class="report-tab active" data-period="harian" onclick="setReportPeriod('harian')">Harian</div>
-<div class="report-tab" data-period="mingguan" onclick="setReportPeriod('mingguan')">Mingguan</div>
-<div class="report-tab" data-period="bulanan" onclick="setReportPeriod('bulanan')">Bulanan</div>
-        <div class="report-tab" data-period="custom" onclick="setReportPeriod('custom')">Custom</div>
+<div class="report-tab active" data-period="harian" data-action="report-period-harian">Harian</div>
+<div class="report-tab" data-period="mingguan" data-action="report-period-mingguan">Mingguan</div>
+<div class="report-tab" data-period="bulanan" data-action="report-period-bulanan">Bulanan</div>
+        <div class="report-tab" data-period="custom" data-action="report-period-custom">Custom</div>
 </div>
 <div class="date-nav" id="reportDateNav"></div>
 <div id="reportContent"></div>
-<button class="fab" onclick="openExpenseForm()" title="Catat Pengeluaran">➕</button>
+<button class="fab" data-action="open-expense-form" title="Catat Pengeluaran">➕</button>
 </div>
 
 <!-- ====== HALAMAN PENGATURAN ====== -->
 <div class="page" id="page-pengaturan">
 <div class="card">
 <div class="card-title">👤 Profil</div>
-<div class="setting-item" onclick="openNameModal()">
-<div class="setting-icon" style="background:var(--orange-bg)">🏪</div>
-<div class="setting-info"><div class="s-title">Nama Usaha <span style="color:var(--red);font-weight:700">*</span></div><div class="s-desc" id="settingName">Warung Saya</div></div>
+<div class="setting-item" data-action="open-name-modal">
+<div class="setting-icon kbg-orange">🏪</div>
+<div class="setting-info"><div class="s-title">Nama Usaha <span class="kreq">*</span></div><div class="s-desc" id="settingName">Warung Saya</div></div>
 <div class="setting-arrow">›</div>
 </div>
-<div class="setting-item" onclick="openOwnerModal()">
-<div class="setting-icon" style="background:var(--orange-bg)">👤</div>
-<div class="setting-info"><div class="s-title">Nama Pemilik <span style="color:var(--red);font-weight:700">*</span></div><div class="s-desc" id="settingOwner">—</div></div>
+<div class="setting-item" data-action="open-owner-modal">
+<div class="setting-icon kbg-orange">👤</div>
+<div class="setting-info"><div class="s-title">Nama Pemilik <span class="kreq">*</span></div><div class="s-desc" id="settingOwner">—</div></div>
 <div class="setting-arrow">›</div>
 </div>
-<div class="setting-item" onclick="openWaModal()">
-<div class="setting-icon" style="background:var(--green-bg)">💬</div>
-<div class="setting-info"><div class="s-title">Nomor WhatsApp <span style="color:var(--red);font-weight:700">*</span></div><div class="s-desc" id="settingWa">—</div></div>
+<div class="setting-item" data-action="open-wa-modal">
+<div class="setting-icon kbg-green">💬</div>
+<div class="setting-info"><div class="s-title">Nomor WhatsApp <span class="kreq">*</span></div><div class="s-desc" id="settingWa">—</div></div>
 <div class="setting-arrow">›</div>
 </div>
-<div class="setting-item" onclick="openAlamatModal()">
-<div class="setting-icon" style="background:var(--blue-bg)">📍</div>
-<div class="setting-info"><div class="s-title">Alamat <span style="color:var(--red);font-weight:700">*</span></div><div class="s-desc" id="settingAlamat">—</div></div>
+<div class="setting-item" data-action="open-alamat-modal">
+<div class="setting-icon kbg-blue">📍</div>
+<div class="setting-info"><div class="s-title">Alamat <span class="kreq">*</span></div><div class="s-desc" id="settingAlamat">—</div></div>
 <div class="setting-arrow">›</div>
 </div>
 </div>
 <div class="card">
-<div class="card-title">🖨️ Printer Bluetooth</div>
-<div class="setting-item" onclick="connectBTPrinter()" id="btPrinterConnectRow">
-<div class="setting-icon" style="background:var(--blue-bg)">📡</div>
+<div class="card-title">📱 Perangkat</div>
+<div class="setting-item" data-action="connect-printer" id="btPrinterConnectRow">
+<div class="setting-icon kbg-blue">📡</div>
 <div class="setting-info"><div class="s-title">Hubungkan Printer</div><div class="s-desc" id="btPrinterStatus">Belum terhubung</div></div>
 <div class="setting-arrow">›</div>
 </div>
-<div class="setting-item" onclick="testPrint()">
-<div class="setting-icon" style="background:var(--green-bg)">📄</div>
+<div class="setting-item" data-action="test-print">
+<div class="setting-icon kbg-green">📄</div>
 <div class="setting-info"><div class="s-title">Cetak Tes</div><div class="s-desc">Cek apakah printer berfungsi</div></div>
 <div class="setting-arrow">›</div>
 </div>
-<div class="setting-item" onclick="disconnectBTPrinter()">
-<div class="setting-icon" style="background:var(--red-bg)">❌</div>
+<div class="setting-item" data-action="disconnect-printer">
+<div class="setting-icon kbg-red">❌</div>
 <div class="setting-info"><div class="s-title">Putuskan Printer</div><div class="s-desc">Lepas koneksi Bluetooth</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<div class="setting-item" data-action="install-pwa" id="pwaInstallRow">
+<div class="setting-icon kbg-green">📲</div>
+<div class="setting-info"><div class="s-title" id="pwaInstallTitle">Pasang Aplikasi</div><div class="s-desc" id="pwaInstallDesc">Buka kayak app native di HP</div></div>
 <div class="setting-arrow">›</div>
 </div>
 </div>
 <div class="card">
 <div class="card-title">💾 Data & Cadangan</div>
-<div class="setting-item" onclick="exportData()">
-<div class="setting-icon" style="background:var(--green-bg)">💾</div>
+<div class="setting-item" data-action="export-data">
+<div class="setting-icon kbg-green">💾</div>
 <div class="setting-info"><div class="s-title">Simpan Cadangan</div><div class="s-desc">Simpan data ke file HP</div></div>
 <div class="setting-arrow">›</div>
 </div>
-<div class="setting-item" onclick="document.getElementById('importFile').click()">
-<div class="setting-icon" style="background:var(--blue-bg)">📂</div>
+<div class="setting-item" data-action="trigger-import">
+<div class="setting-icon kbg-blue">📂</div>
 <div class="setting-info"><div class="s-title">Pulihkan Data</div><div class="s-desc">Ambil data dari file cadangan</div></div>
 <div class="setting-arrow">›</div>
-<input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+<input type="file" id="importFile" accept=".json" class="khide" data-action="import-data">
 </div>
-<div class="setting-item" onclick="openSyncDiag()">
-<div class="setting-icon" style="background:var(--orange-bg)">🩺</div>
-<div class="setting-info"><div class="s-title">Diagnosa Sinkronisasi</div><div class="s-desc">Cek kenapa profil belum masuk ke server</div></div>
+<div class="setting-item" data-action="open-sync-diag">
+<div class="setting-icon kbg-orange">🩺</div>
+<div class="setting-info"><div class="s-title">Cek Data Online</div><div class="s-desc">Pastikan data usaha aman & tersimpan di server</div></div>
 <div class="setting-arrow">›</div>
 </div>
-<div class="setting-item" onclick="confirmClearAll()">
-<div class="setting-icon" style="background:var(--red-bg)">🗑️</div>
+<div class="setting-item" data-action="confirm-clear-all">
+<div class="setting-icon kbg-red">🗑️</div>
 <div class="setting-info"><div class="s-title">Hapus Semua Data</div><div class="s-desc">Hati-hati! Data tidak bisa kembali</div></div>
 <div class="setting-arrow">›</div>
 </div>
@@ -226,35 +228,28 @@
 
 <div class="card">
 <!-- licenseInfoCard: status lisensi (aktif/trial/expired) di-render oleh license.ui.renderLicenseInfoCard() -->
-<div id="licenseInfoCard" style="margin-top:16px"></div>
+<div id="licenseInfoCard" class="kmt16"></div>
 </div>
-<div class="card">
-<div class="card-title">📲 Aplikasi (PWA)</div>
-<div class="setting-item" onclick="installPWA()" id="pwaInstallRow">
-<div class="setting-icon" style="background:var(--green-bg)">📲</div>
-<div class="setting-info"><div class="s-title" id="pwaInstallTitle">Pasang Aplikasi</div><div class="s-desc" id="pwaInstallDesc">Buka kayak app native di HP</div></div>
-<div class="setting-arrow">›</div>
+
+<!-- ====== Footer Info Aplikasi (hanya di halaman Pengaturan) ====== -->
+<div class="app-footer">
+<img src="assets/icon-old.png" class="kwh64-round" alt="Logo">
+<div class="kfw800 kfs18 kmt10">Kasir Solo - Kaki Lima</div>
+<div class="kfw600 ktext2 kfs12 kmt12">PT Mesin Kasir Solo</div>
+<div class="kmt8 kflex-gap12 kflex-wrap kjc-center">
+<a href="https://wa.me/628816566935" class="kgreen kfw600 kfs12 kno-underline">📱 0881-6566-935</a>
+<a id="appSiteLink" href="https://kasirsolo.app" target="_blank" rel="noopener" class="ktext-blue kfw600 kfs12 kno-underline">🌐 kasirsolo.app</a>
 </div>
+<div class="kfs13 ktext2 kmt12"><span id="appVersionLabel">Versi 1.0.0</span></div>
+<div id="licUnit" class="kfs11 ktext3 kmt2"></div>
 </div>
-<!-- ====== Footer Info Aplikasi (di luar kartu, paling bawah) ====== -->
-<div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:20px">
-<img src="assets/icon-old.png" style="width:64px;height:64px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0" alt="Logo">
-<div style="font-weight:800;color:var(--text);font-size:18px;margin-top:10px">Kasir Solo - Kaki Lima</div>
-<div style="font-weight:600;color:var(--text2);font-size:12px;margin-top:12px">PT Mesin Kasir Solo</div>
-<div style="margin-top:8px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-<a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none;font-weight:600;font-size:12px">📱 0881-6566-935</a>
-<a id="appSiteLink" href="https://kasirsolo.app" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;font-weight:600;font-size:12px">🌐 kasirsolo.app</a>
-</div>
-<div style="font-size:13px;color:var(--text2);margin-top:12px"><span id="appVersionLabel">Versi 1.0.0</span></div>
-<div id="licUnit" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
-</div>
-</div>
+</div><!-- /#page-pengaturan -->
 
 <!-- ====== HALAMAN BANTUAN ====== -->
 <div class="page" id="page-bantuan">
 <div class="card">
 <div class="card-title">❓ Bantuan</div>
-<div style="font-size:14px;color:var(--text2);line-height:1.6">
+<div class="kfs14 ktext2 klh16">
 Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 </div>
@@ -267,17 +262,17 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
      Diletakkan di level body (bukan di dalam page) supaya bisa muncul
      di semua halaman; position:fixed membuat posisinya tidak tergantung
      lokasi di DOM. -->
-<div id="profileBanner">
+<div id="profileBanner" role="dialog" aria-modal="true" aria-labelledby="profileBannerTitle">
 <div class="prof-banner-backdrop"></div>
 <div class="prof-banner-card">
 <div class="prof-emoji">📝</div>
-<div class="prof-banner-title">Lengkapi Profil Tokomu</div>
+<div class="prof-banner-title" id="profileBannerTitle">Lengkapi Profil Tokomu</div>
 <div class="prof-banner-sub">Isi info singkat biar pengalaman pakai Kasir Solo makin nyaman — kamu dapat bantuan lebih cepat, plus info promo &amp; tips yang pas buat usahamu.</div>
 <div class="prof-banner-points">
 <div><span>👤</span><span>Nama &amp; nomor WhatsApp — biar kami bisa bantu kamu lebih cepat</span></div>
 <div><span>📍</span><span>Alamat toko — biar tips &amp; informasinya sesuai tempat usahamu</span></div>
 </div>
-<button class="prof-banner-cta" onclick="document.getElementById('profileBanner').classList.remove('show');window._ksr_navigateTo('pengaturan')">Isi Profil Sekarang</button>
+<button class="prof-banner-cta" data-action="dismiss-profile-banner">Isi Profil Sekarang</button>
 </div>
 </div>
 
@@ -306,43 +301,63 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </nav>
 
 <!-- CART MODAL -->
-<div class="modal-overlay" id="cartModal">
+<div class="modal-overlay" id="cartModal" role="dialog" aria-modal="true" aria-labelledby="cartModalTitle">
 <div class="modal">
 <div class="modal-handle"></div>
-<div class="modal-title">🛒 Keranjang</div>
+<div class="modal-title" id="cartModalTitle">🛒 Keranjang</div>
 <div id="cartItems"></div>
-<div style="border-top:2px solid var(--border);margin-top:12px;padding-top:12px">
-<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:600;color:var(--text2)">Total Harga</span><span style="font-weight:800;font-size:20px;color:var(--primary)" id="cartModalTotal">Rp 0</span></div>
+<!-- Topping selector panel (disembunyikan sampai '+' diklik) -->
+<div id="toppingSelector" style="display:none">
+  <div class="kfw600 ktext2 kmb8">Pilih Topping</div>
+  <div id="toppingList"></div>
+  <button class="btn btn-sm btn-primary" data-action="apply-topping">✔ Terapkan</button>
+</div>
+<div class="kdivider">
+<div class="kflex-between kmb8"><span class="kfw600 ktext2">Total Harga</span><span class="kfw800 kfs20 kprimary" id="cartModalTotal">Rp 0</span></div>
 
 <!-- 2 kolom: input uang diterima (kiri) + kembalian (kanan) -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;margin-bottom:12px">
+<div class="kgrid-2col-gap12">
 <div class="form-group">
 <label class="form-label">💵 Uang Diterima</label>
-<input type="text" class="form-input" id="bayarInput" placeholder="Masukkan nominal..." oninput="formatBayarInput()" onfocus="selectAllBayarInput()" inputmode="numeric">
+<input type="text" class="form-input" id="bayarInput" placeholder="Masukkan nominal..." data-action="format-bayar" inputmode="numeric">
 </div>
-<div style="display:flex;flex-direction:column">
+<div class="kflex-col">
 <label class="form-label">💰 Kembalian</label>
-<div id="kembalianBox" style="background:var(--green-bg);border-radius:12px;padding:14px 16px;text-align:center;display:flex;align-items:center;justify-content:center">
-<div style="font-size:20px;font-weight:800;color:var(--green)" id="kembalianVal">Rp 0</div>
+<div id="kembalianBox" class="kkembalian-box">
+<div class="kfs20 kfw800 kgreen" id="kembalianVal">Rp 0</div>
 </div>
 </div>
 </div>
 
 <!-- 4 kolom preset buttons -->
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px" id="presetBayarContainer"></div>
+<div class="kgrid-4col kmb12" id="presetBayarContainer"></div>
 </div>
-<div class="btn-row" style="margin-top:12px">
-<button class="btn btn-secondary btn-sm" onclick="closeCartModal()">Batal</button>
-<button class="btn btn-green" onclick="simpanPenjualan()">✅ Simpan</button>
+<div class="btn-row kmt12">
+<button class="btn btn-secondary btn-sm" data-action="close-cart">Batal</button>
+<button class="btn btn-primary" data-action="save-sale">Simpan</button>
+<button class="btn btn-green" data-action="save-sale-print">🖨️ Simpan &amp; Cetak</button>
 </div>
 <div id="afterSaleActions" style="display:none;margin-top:8px">
-<button class="btn btn-primary" onclick="printLastNota()">🖨️ Cetak Nota</button>
+<button class="btn btn-primary" data-action="print-last-nota">🖨️ Cetak Nota</button>
+</div>
+</div>
+</div>
+
+<!-- MENU SELECTOR MODAL (topping + tipe order SEBELUM masuk keranjang) -->
+<div class="modal-overlay" id="menuSelectorModal" role="dialog" aria-modal="true" aria-labelledby="menuSelectorTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="menuSelectorTitle">📋 Pilihan Menu</div>
+<div id="menuSelectorBody"></div>
+<div class="btn-row">
+<button class="btn btn-secondary" data-action="close-menu-selector">Batal</button>
+<button class="btn btn-primary" data-action="confirm-menu-selector">➕ Tambah ke Keranjang</button>
 </div>
 </div>
 </div>
 
 <!-- MENU FORM MODAL -->
-<div class="modal-overlay" id="menuModal">
+<div class="modal-overlay" id="menuModal" role="dialog" aria-modal="true" aria-labelledby="menuModalTitle">
 <div class="modal">
 <div class="modal-handle"></div>
 <div class="modal-title" id="menuModalTitle">🍽️ Tambah Menu</div>
@@ -368,18 +383,26 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <label class="form-label">Harga Modal / Bahan (Rp)</label>
 <input type="number" class="form-input" id="menuHargaModal" placeholder="Contoh: 8000" inputmode="numeric">
 </div>
+<div class="form-group">
+<label class="form-label">Harga Ojol (Rp) — opsional, kosongkan jika sama dengan harga jual</label>
+<input type="number" class="form-input" id="menuHargaOjol" placeholder="Contoh: 18000" inputmode="numeric">
+</div>
+<div class="form-group">
+<label class="form-label">Topping — satu per baris, format: <code>Nama Topping|Harga</code></label>
+<textarea class="form-input" id="menuToppingList" rows="3" placeholder="Contoh:&#10;Extra Gula|1000&#10;Lemon|2000&#10;Boba|3000"></textarea>
+</div>
 <div class="btn-row">
-<button class="btn btn-secondary" onclick="closeMenuModal()">Batal</button>
-<button class="btn btn-primary" onclick="saveMenu()">💾 Simpan</button>
+<button class="btn btn-secondary" data-action="close-menu-modal">Batal</button>
+<button class="btn btn-primary" data-action="save-menu">💾 Simpan</button>
 </div>
 </div>
 </div>
 
 <!-- EXPENSE FORM MODAL -->
-<div class="modal-overlay" id="expenseModal">
+<div class="modal-overlay" id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
 <div class="modal">
 <div class="modal-handle"></div>
-<div class="modal-title">🧾 Catat Pengeluaran</div>
+<div class="modal-title" id="expenseModalTitle">🧾 Catat Pengeluaran</div>
 <input type="hidden" id="editExpenseId">
 <div class="form-group">
 <label class="form-label">Buat Apa?</label>
@@ -400,65 +423,65 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <input type="number" class="form-input" id="expJumlah" placeholder="Contoh: 50000" inputmode="numeric">
 </div>
 <div class="btn-row">
-<button class="btn btn-secondary" onclick="closeExpenseModal()">Batal</button>
-<button class="btn btn-primary" onclick="saveExpense()">💾 Simpan</button>
+<button class="btn btn-secondary" data-action="close-expense-modal">Batal</button>
+<button class="btn btn-primary" data-action="save-expense">💾 Simpan</button>
 </div>
 </div>
 </div>
 
 <!-- NAME MODAL -->
-<div class="modal-overlay" id="nameModal">
+<div class="modal-overlay" id="nameModal" role="dialog" aria-modal="true" aria-labelledby="nameModalTitle">
 <div class="modal">
 <div class="modal-handle"></div>
-<div class="modal-title">🏪 Nama Usaha</div>
+<div class="modal-title" id="nameModalTitle">🏪 Nama Usaha</div>
 <div class="form-group">
 <label class="form-label">Ketik nama warung kamu</label>
 <input type="text" class="form-input" id="inputNamaWarung" placeholder="Contoh: Bakso Pak Joko" required>
 </div>
 <div class="btn-row">
-<button class="btn btn-secondary" onclick="closeNameModal()">Batal</button>
-<button class="btn btn-primary" onclick="saveNamaWarung()">💾 Simpan</button>
+<button class="btn btn-secondary" data-action="close-name-modal">Batal</button>
+<button class="btn btn-primary" data-action="save-nama-warung">💾 Simpan</button>
 </div>
 </div>
 </div>
 
 <!-- OWNER MODAL -->
-<div class="modal-overlay" id="ownerModal">
+<div class="modal-overlay" id="ownerModal" role="dialog" aria-modal="true" aria-labelledby="ownerModalTitle">
 <div class="modal">
 <div class="modal-handle"></div>
-<div class="modal-title">👤 Nama Pemilik</div>
+<div class="modal-title" id="ownerModalTitle">👤 Nama Pemilik</div>
 <div class="form-group">
 <label class="form-label">Siapa nama pemilik usaha?</label>
 <input type="text" class="form-input" id="inputOwner" placeholder="Contoh: Pak Joko" required>
 </div>
 <div class="btn-row">
-<button class="btn btn-secondary" onclick="closeOwnerModal()">Batal</button>
-<button class="btn btn-primary" onclick="saveOwner()">💾 Simpan</button>
+<button class="btn btn-secondary" data-action="close-owner-modal">Batal</button>
+<button class="btn btn-primary" data-action="save-owner">💾 Simpan</button>
 </div>
 </div>
 </div>
 
 <!-- WA MODAL -->
-<div class="modal-overlay" id="waModal">
+<div class="modal-overlay" id="waModal" role="dialog" aria-modal="true" aria-labelledby="waModalTitle">
 <div class="modal">
 <div class="modal-handle"></div>
-<div class="modal-title">💬 Nomor WhatsApp</div>
+<div class="modal-title" id="waModalTitle">💬 Nomor WhatsApp</div>
 <div class="form-group">
 <label class="form-label">Nomor WhatsApp kamu</label>
-<input type="tel" class="form-input" id="inputWa" placeholder="Contoh: 0812-3456-7890" inputmode="tel" oninput="this.value=this.value.replace(/[^\d+\s-]/g,'')" required>
+<input type="tel" class="form-input" id="inputWa" placeholder="Contoh: 0812-3456-7890" inputmode="tel" data-action="sanitize-wa-input" required>
 </div>
 <div class="btn-row">
-<button class="btn btn-secondary" onclick="closeWaModal()">Batal</button>
-<button class="btn btn-primary" onclick="saveWa()">💾 Simpan</button>
+<button class="btn btn-secondary" data-action="close-wa-modal">Batal</button>
+<button class="btn btn-primary" data-action="save-wa">💾 Simpan</button>
 </div>
 </div>
 </div>
 
 <!-- ALAMAT MODAL -->
-<div class="modal-overlay" id="alamatModal">
+<div class="modal-overlay" id="alamatModal" role="dialog" aria-modal="true" aria-labelledby="alamatModalTitle">
 <div class="modal">
 <div class="modal-handle"></div>
-<div class="modal-title">📍 Alamat</div>
+<div class="modal-title" id="alamatModalTitle">📍 Alamat</div>
 <div class="form-group">
 <label class="form-label">Provinsi</label>
 <select class="form-input" id="alamatProvinsi" disabled><option value="">—</option></select>
@@ -476,109 +499,112 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <select class="form-input" id="alamatDesa" disabled><option value="">—</option></select>
 </div>
 <div class="form-group">
-<label class="form-label">Detail Alamat (jalan, no. rumah) <span style="color:var(--red);font-weight:700">*</span></label>
+<label class="form-label">Detail Alamat (jalan, no. rumah) <span class="kreq">*</span></label>
 <input type="text" class="form-input" id="inputAlamat" placeholder="Contoh: Jl. Merdeka No. 10, Solo" required>
 </div>
 <div class="btn-row">
-<button class="btn btn-secondary" onclick="closeAlamatModal()">Batal</button>
-<button class="btn btn-primary" onclick="saveAlamat()">💾 Simpan</button>
+<button class="btn btn-secondary" data-action="close-alamat-modal">Batal</button>
+<button class="btn btn-primary" data-action="save-alamat">💾 Simpan</button>
 </div>
 </div>
 </div>
 
 <!-- EXPENSE DETAIL MODAL -->
-<div class="modal-overlay" id="expenseDetailModal">
+<div class="modal-overlay" id="expenseDetailModal" role="dialog" aria-modal="true" aria-labelledby="expenseDetailTitle">
 <div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="expenseDetailTitle">🧾 Detail Pengeluaran</div>
 <div id="expenseDetailContent"></div>
 </div>
 </div>
 
 <!-- TRX DETAIL MODAL -->
-<div class="modal-overlay" id="trxDetailModal">
+<div class="modal-overlay" id="trxDetailModal" role="dialog" aria-modal="true" aria-labelledby="trxDetailTitle">
 <div class="modal">
 <div class="modal-handle"></div>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-<div class="modal-title">📃 Detail Transaksi</div>
-<button class="btn btn-icon btn-ghost" style="padding:8px;width:40px;height:40px;border-radius:8px;flex-shrink:0" onclick="closeTrxDetail()">✕</button>
+<div class="kflex-between-mb12">
+<div class="modal-title" id="trxDetailTitle">📃 Detail Transaksi</div>
+<button class="btn btn-icon btn-ghost kclose-btn" data-action="close-trx-detail">✕</button>
 </div>
 <div id="trxDetailContent"></div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px">
-<button class="btn btn-primary" onclick="printNota()">🖨️ Cetak Nota</button>
-<button class="btn btn-red" id="trxDeleteBtn" onclick="hapusPenjualan()">🗑️ Hapus</button>
+<div class="kgrid-2col-gap8 kmt16">
+<button class="btn btn-primary" data-action="print-nota">🖨️ Cetak Nota</button>
+<button class="btn btn-red" id="trxDeleteBtn" data-action="delete-sale">🗑️ Hapus</button>
 </div>
 </div>
 </div>
 
 <!-- CONFIRM DIALOG -->
-<div class="confirm-overlay" id="confirmDialog">
+<div class="confirm-overlay" id="confirmDialog" role="dialog" aria-modal="true" aria-labelledby="confirmText">
 <div class="confirm-box">
 <div class="confirm-icon" id="confirmIcon">⚠️</div>
 <div class="confirm-text" id="confirmText">Yakin?</div>
 <div class="btn-row">
-<button class="btn btn-secondary btn-sm" onclick="closeConfirm()">Batal</button>
-<button class="btn btn-red btn-sm" id="confirmYes" onclick="">Ya, Hapus</button>
+<button class="btn btn-secondary btn-sm" data-action="close-confirm">Batal</button>
+<button class="btn btn-red btn-sm" id="confirmYes">Ya, Hapus</button>
 </div>
 </div>
 </div>
 
 <!-- FORCE UPDATE OVERLAY (versi baru wajib dimuat) -->
-<div id="updateOverlay">
+<div id="updateOverlay" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
 <div class="update-card">
 <img src="assets/icon.png" style="width:64px;height:64px;margin:0 auto 8px;display:block" alt="Logo">
-<div class="update-title">✨ Versi Baru Tersedia!</div>
+<div class="update-title" id="updateTitle">✨ Versi Baru Tersedia!</div>
 <div class="update-version" id="updateVersionLabel">Versi —</div>
 <div class="update-sub">Ada pembaruan penting supaya aplikasi makin lancar dan data usahamu makin aman. Tekan OKE untuk memuat versi terbaru.</div>
 <div class="update-notes-title">Yang baru di versi ini:</div>
 <ul class="update-notes" id="updateNotesList"></ul>
-<button class="btn btn-green" id="updateOkBtn" style="width:100%;margin-top:16px;font-size:16px">OKE</button>
+<button class="btn btn-green" id="updateOkBtn" class="kw-full kmt16 kfs16">OKE</button>
 <div class="update-hint">Aplikasi akan dimuat ulang otomatis — data jualanmu aman, tidak ada yang hilang.</div>
 </div>
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- SYNC DIAGNOSTICS MODAL -->
-<div class="modal-overlay" id="syncDiagModal">
+<div class="modal-overlay" id="syncDiagModal" role="dialog" aria-modal="true" aria-labelledby="syncDiagTitle">
 <div class="modal">
 <div class="modal-handle"></div>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-<div class="modal-title">🩺 Diagnosa Sinkronisasi</div>
-<button class="btn btn-icon btn-ghost" style="padding:8px;width:40px;height:40px;border-radius:8px;flex-shrink:0" onclick="closeSyncDiag()">✕</button>
+<div class="kflex-between-mb12">
+<div class="modal-title" id="syncDiagTitle">🔄 Cek Data Online</div>
+<button class="btn btn-icon btn-ghost kclose-btn" data-action="close-sync-diag">✕</button>
 </div>
-<div id="syncDiagContent" style="font-size:13px"></div>
-<div class="btn-row" style="margin-top:14px">
-<button class="btn btn-secondary" onclick="copySyncDiag()">📋 Salin Hasil</button>
-<button class="btn btn-primary" onclick="openSyncDiag()">🔄 Ulangi</button>
+<div id="syncDiagContent" class="kfs13"></div>
+<div class="btn-row kmt14">
+<button class="btn btn-secondary" data-action="copy-sync-diag">📋 Kirim ke Admin</button>
+<button class="btn btn-primary" data-action="open-sync-diag">🔄 Periksa Ulang</button>
 </div>
 </div>
 </div>
 
-<!-- ONBOARDING / LICENSE GATE OVERLAY (single step: nama usaha + S&K → mulai percobaan) -->
-<div id="licenseGate" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;align-items:center;justify-content:center;padding:24px;overflow-y:auto">
-<div id="gateOnboarding" style="max-width:440px;width:100%;text-align:center">
-<img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px" alt="Logo">
-<div style="font-size:22px;font-weight:800;margin-bottom:4px">Kasir Solo</div><div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
-<div style="font-size:15px;color:var(--text2);margin-bottom:18px;line-height:1.5">Aplikasi kasir buat <strong>pedagang kaki lima</strong>. Catat jualan, pengeluaran, dan lihat untung tiap hari! Masukkan nomor WhatsApp untuk memulai.</div>
-<div class="form-group" style="text-align:left">
-<label class="form-label">Nomor WhatsApp <span style="color:var(--red);font-weight:700">*</span></label>
-<input type="tel" class="form-input" id="onboardWa" placeholder="Contoh: 08816566935" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); window._ksr_onboardInput()">
+<!-- ONBOARDING / LICENSE GATE OVERLAY (single step: nama usaha + S&K → mulai percobaan)
+     Positioning di components-modal.css (#licenseGate); JS toggle display flex/none. -->
+<div id="licenseGate" role="dialog" aria-modal="true" aria-labelledby="licenseGateTitle">
+<div id="gateOnboarding" class="kgate-box">
+<img src="assets/icon.png" class="kwh80" alt="Logo">
+<div class="kfs22 kfw800 kmb8">Kasir Solo</div><div class="kfs14 ktext2 kmb16">Kaki Lima Edition</div>
+<div class="kfs15 ktext2 kmb16 klh15">Aplikasi kasir buat <strong>pedagang kaki lima</strong>. Catat jualan, pengeluaran, dan lihat untung tiap hari! Masukkan nomor WhatsApp untuk memulai.</div>
+<div class="form-group kleft">
+<label class="form-label">Nomor WhatsApp <span class="kreq">*</span></label>
+<input type="tel" class="form-input" id="onboardWa" placeholder="Contoh: 08816566935" inputmode="numeric" pattern="[0-9]*" data-action="onboard-input">
 </div>
-<div id="onboardMsg" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px;text-align:left"></div>
-<div style="background:var(--green-bg);border-radius:16px;padding:16px;margin-bottom:16px">
-<div style="font-size:15px;font-weight:700;color:var(--green)">🎁 Coba Gratis 7 Hari</div>
-<div style="font-size:13px;color:var(--text2);margin-top:6px">Aktifkan masa percobaan gratis 7 hari, tanpa kartu.</div>
-<button class="btn btn-green" id="trialBtn" style="margin-top:12px" onclick="window._ksr_proceedToTC()">🚀 Mulai Masa Percobaan</button>
+<div id="onboardMsg" class="khide kred kfs13 kmb8 kleft"></div>
+<div class="kgreen-box">
+<div class="kfs15 kfw700 kgreen">🎁 Coba Gratis 7 Hari</div>
+<div class="kfs13 ktext2 kmt8">Aktifkan masa percobaan gratis 7 hari, tanpa kartu.</div>
+<button class="btn btn-green kmt12" id="trialBtn" data-action="proceed-to-tc">🚀 Mulai Masa Percobaan</button>
 </div>
-<div style="font-size:12px;color:var(--text3);margin-top:8px">Nomor WhatsApp akan dipakai untuk aktivasi lisensi dan komunikasi.<br>Isi lengkapnya bisa ditambah nanti di menu Pengaturan.</div>
+<div class="kfs12 ktext3 kmt8">Nomor WhatsApp akan dipakai untuk aktivasi lisensi dan komunikasi.<br>Isi lengkapnya bisa ditambah nanti di menu Pengaturan.</div>
 </div>
-<div id="gateLicenseBlock" style="display:none;max-width:440px;width:100%;text-align:center"></div>
+<div id="gateLicenseBlock" class="khide kgate-box"></div>
 </div>
 
 <!-- SYARAT & KETENTUAN MODAL -->
-<div class="modal-overlay" id="tcModal">
+<div class="modal-overlay" id="tcModal" role="dialog" aria-modal="true" aria-labelledby="tcModalTitle">
 <div style="background:#fff;border-radius:20px;padding:24px;max-width:520px;width:100%;max-height:85vh;display:flex;flex-direction:column;animation:popIn .3s ease">
-<div style="font-size:19px;font-weight:800;margin-bottom:6px">📜 Syarat &amp; Ketentuan</div>
+<div class="modal-title" id="tcModalTitle" style="font-size:19px;font-weight:800;margin-bottom:6px">📜 Syarat & Ketentuan</div>
 <div style="font-size:11.5px;color:var(--text3);display:flex;align-items:center;gap:6px;margin-bottom:12px">🕒 Terakhir diperbarui: <b>7 Agustus 2026</b> · v1.1</div>
 <div style="flex:1;overflow-y:auto;font-size:13.5px;color:var(--text);line-height:1.7;padding-right:4px">
 <p><b>1. Layanan</b> — <b>Kasir Solo Kaki Lima</b> adalah aplikasi kasir (POS) untuk pedagang kaki lima &amp; warung: mencatat transaksi jualan, mengelola menu/produk &amp; stok, rekap laporan &amp; pengeluaran, kas harian, dan cetak nota lewat printer thermal Bluetooth. Dengan menyetujui Syarat &amp; Ketentuan ini, Anda mendapat akses penuh selama masa uji coba maupun lisensi resmi.</p>
@@ -589,52 +615,49 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <p><b>6. Bantuan &amp; Perubahan</b> — Butuh bantuan? Hubungi kami melalui WhatsApp. Kami dapat memperbarui Syarat &amp; Ketentuan ini sewaktu-waktu; penggunaan berkelanjutan berarti Anda menyetujui versi terbaru.</p>
 </div>
 <div style="display:flex;gap:10px;margin-top:14px">
-<button class="btn btn-secondary" style="flex:1" onclick="window._ksr_cancelTC()">🔙 Batal</button>
-<button class="btn btn-green" style="flex:1" onclick="window._ksr_acceptTC()">✓ Setuju &amp; Lanjut</button>
+<button class="btn btn-secondary" style="flex:1" data-action="cancel-tc">🔙 Batal</button>
+<button class="btn btn-green" style="flex:1" data-action="accept-tc">✓ Setuju &amp; Lanjut</button>
 </div>
 </div>
 </div>
 
 <!-- LICENSE SHEET (status + extend + activate) -->
-<div class="modal-overlay" id="sheetLicense">
+<div class="modal-overlay" id="sheetLicense" role="dialog" aria-modal="true" aria-labelledby="sheetLicenseTitle">
 <div class="license-sheet">
 <div class="license-sheet-head">
-<div style="font-size:18px;font-weight:800">🔐 Status Lisensi</div>
-<button class="sheet-close" onclick="window._ksr_closeSheet('sheetLicense')" aria-label="Tutup">✕</button>
+<div id="sheetLicenseTitle" class="kfs18 kfw800">🔐 Status Lisensi</div>
+<button class="sheet-close" data-action="close-sheet-license" aria-label="Tutup">✕</button>
 </div>
 <div class="license-sheet-body" id="licenseSheetBody"></div>
 </div>
 </div>
 
 <!-- PEMBELIAN SHEET (QRIS + upload bukti) -->
-<div class="modal-overlay" id="sheetPurchase">
+<div class="modal-overlay" id="sheetPurchase" role="dialog" aria-modal="true" aria-labelledby="sheetPurchaseTitle">
 <div class="license-sheet">
 <div class="license-sheet-head">
-<div style="font-size:18px;font-weight:800">💳 Beli Lisensi</div>
-<button class="sheet-close" onclick="window._ksr_closeSheet('sheetPurchase')" aria-label="Tutup">✕</button>
+<div id="sheetPurchaseTitle" class="kfs18 kfw800">💳 Beli Lisensi</div>
+<button class="sheet-close" data-action="close-sheet-purchase" aria-label="Tutup">✕</button>
 </div>
 <div class="license-sheet-body" id="purchaseSheetBody"></div>
 </div>
 </div>
 
 <!-- LOCK OVERLAY (trial habis / perlu lisensi) -->
-<div class="modal-overlay" id="lockOverlay">
+<div class="modal-overlay" id="lockOverlay" role="dialog" aria-modal="true" aria-labelledby="lockOverlayTitle">
 <div class="card license-lock-card">
-<div class="license-icon" style="font-size:40px">🔒</div>
-<div class="license-title" id="lockOverlayTitle" style="font-size:20px;margin-top:6px">Masa Coba Gratis Habis</div>
-<p class="license-desc" id="lockOverlayDesc" style="text-align:center">Silakan perpanjang masa coba dengan membagikan aplikasi ke teman, atau aktivasi lisensi resmi untuk melanjutkan.</p>
+<div class="license-icon kfs40">🔒</div>
+<div class="license-title" id="lockOverlayTitle" class="kfs20 kmt8">Masa Coba Gratis Habis</div>
+<p class="license-desc" id="lockOverlayDesc" class="kcenter">Silakan perpanjang masa coba dengan membagikan aplikasi ke teman, atau aktivasi lisensi resmi untuk melanjutkan.</p>
 <div id="lockLicenseStatusArea"></div>
 </div>
 <!-- Mode "Lisensi Dicabut": halaman penuh putih bergaya gate (diisi dinamis
      renderRevokedLockOverlay); kartu di atas disembunyikan saat mode ini aktif. -->
-<div id="lockRevokedPage" style="display:none;max-width:440px;width:100%;text-align:center"></div>
+<div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-<script>
-(() => { console.log("Kaki5 ESM loaded"); })();
-</script>
-  <script type="module" src="js/app.js?v=65"></script>
-<script src="js/supabase.min.js"></script>
+  <script type="module" src="js/app.js?v=85"></script>
+<script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>
 </html>

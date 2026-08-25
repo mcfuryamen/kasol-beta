@@ -2,7 +2,7 @@
 // Kaki Lima POS System - Modular Atomic Architecture
 // Entry point that wires ESM modules to window globals
 // Supports lazy-loading, navigation, and feature modules
-console.log('[APP] Starting...');
+if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Starting...');
 // Single entry module loaded via <script type="module" src="js/app.js">.
 // ESM keeps module scope private, so this file re-exposes on `window` every
 // function referenced by inline HTML handlers (onclick/oninput) or by template
@@ -20,15 +20,21 @@ import { syncLicenseStatus } from './license.sync.js';
 import { showConfirm, closeConfirm } from './confirm.js';
 import { exportData, importData, confirmClearAll } from './backup.js';
 import { checkOnboarding } from './onboarding.js';
-import { setupPWA, installPWA } from './pwa.js';
+import { setupPWA, installPWA, checkPWAInstalled, updateInstallRow } from './pwa.js';
 import { connectBTPrinter, disconnectBTPrinter, printNota, printLastNota, testPrint, getSavedPrinterName } from './printer.js';
 import { showTrxDetail, closeTrxDetail, hapusPenjualan } from './trxdetail.js';
-import { showExpenseDetail } from './expensedetail.js';
+import { showExpenseDetail, closeExpenseDetail } from './expensedetail.js';
 import { subscribeToLicenseUpdates, openPurchaseSheet, purchaseShowUpload, handleBuktiUpload, submitPurchase, pollLicenseStatus } from './purchase.js';
 import { syncNow as _ksrSyncNow } from './settings.sync.js';
+import { saveCart } from './pos.sync.js';
+import { selectTopping, applySelectedTopping, toggleOrderType, openMenuSelector, confirmMenuSelector, closeMenuSelector, changeMenuSelectorQty } from './pos.ui.js';
 import { APP_VERSION, APP_VERSION_LABEL } from './version.js';
 import { startUpdateWatcher } from './update.js';
-import { setReportPeriod, setReportDate, setCustomStart, setCustomEnd, setPosCat, setCurrentPage, setCart, setSelectedTrxId, setLastSaleId, setPlatCurrentSlide, setPlatAutoTimer } from './app-state.js';
+import { setReportPeriod, setReportDate, setCustomStart, setCustomEnd, setPosCat, setCurrentPage, setCart, setSelectedTrxId, setLastSaleId, setPlatCurrentSlide, setPlatAutoTimer, orderType, setOrderType } from './app-state.js';
+import { openModal, closeModal, closeAllModals, isModalOpen, toggleModal, registerModalSelector } from './modal.js';
+
+// Register custom selector for tcModal (custom inline-styled structure)
+registerModalSelector('tcModal', '.modal-overlay > div[style*="border-radius:20px"]');
 
 // Lazy-loaded modules (wired to window when page is first visited)
 let _posModule = null;
@@ -43,7 +49,7 @@ let _pengeluaranModule = null;
 let _berandaModule = null;
 
 // Wire page modules on first use
-const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput' };
+const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput' };
 const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu' };
 const _laporanWireMap = { __wired: false, loadReport: 'loadReport', setReportPeriod: 'setReportPeriodUI', setReportPeriodUI: 'setReportPeriodUI', navReportDate: 'navReportDate', toggleExpenseCat: 'toggleExpenseCat', setCustomDate: 'setCustomDate', toggleCustomPicker: 'toggleCustomPicker', pickDate: 'pickDate', pickWeek: 'pickWeek', pickMonth: 'pickMonth', pickCustomDate: 'pickCustomDate' };
 const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaWarung: 'saveNamaWarung', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification' };
@@ -58,7 +64,7 @@ import('./pos.js').then(m => {
     if (modKey !== '__wired' && m[modKey] !== undefined) window[key] = m[modKey];
   }
   _posWireMap.__wired = true;
-  console.log('[APP] Wired pos module');
+  if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Wired pos module');
 }).catch(e => console.error('[APP] Failed to wire pos:', e));
 
 import('./beranda.js').then(m => {
@@ -67,7 +73,7 @@ import('./beranda.js').then(m => {
     if (modKey !== '__wired' && m[modKey] !== undefined) window[key] = m[modKey];
   }
   _berandaWireMap.__wired = true;
-  console.log('[APP] Wired beranda module');
+  if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Wired beranda module');
 }).catch(e => console.error('[APP] Failed to wire beranda:', e));
 
 // Lazy-wire menu module (less frequently accessed)
@@ -77,7 +83,7 @@ import('./menu.js').then(m => {
     if (modKey !== '__wired' && m[modKey] !== undefined) window[key] = m[modKey];
   }
   _menuWireMap.__wired = true;
-  console.log('[APP] Wired menu module');
+  if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Wired menu module');
 }).catch(e => console.error('[APP] Failed to wire menu:', e));
 
 // Lazy-wire laporan module (large module, only load when needed)
@@ -87,7 +93,7 @@ import('./laporan.js').then(m => {
     if (modKey !== '__wired' && m[modKey] !== undefined) window[key] = m[modKey];
   }
   _laporanWireMap.__wired = true;
-  console.log('[APP] Wired laporan module');
+  if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Wired laporan module');
 }).catch(e => console.error('[APP] Failed to wire laporan:', e));
 
 // Lazy-wire settings module (large module with region picker)
@@ -98,7 +104,7 @@ import('./settings.js').then(m => {
   }
   _settingsWireMap.__wired = true;
   if (_settingsReadyResolve) { _settingsReadyResolve(); _settingsReadyResolve = null; }
-  console.log('[APP] Wired settings module');
+  if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Wired settings module');
 }).catch(e => console.error('[APP] Failed to wire settings:', e));
 
 // Lazy-wire bantuan module
@@ -108,7 +114,7 @@ import('./bantuan.js').then(m => {
     if (modKey !== '__wired' && m[modKey] !== undefined) window[key] = m[modKey];
   }
   _bantuanWireMap.__wired = true;
-  console.log('[APP] Wired bantuan module');
+  if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Wired bantuan module');
 }).catch(e => console.error('[APP] Failed to wire bantuan:', e));
 
 // Lazy-wire pengeluaran module
@@ -118,7 +124,7 @@ import('./pengeluaran.js').then(m => {
     if (modKey !== '__wired' && m[modKey] !== undefined) window[key] = m[modKey];
   }
   _pengeluaranWireMap.__wired = true;
-  console.log('[APP] Wired pengeluaran module');
+  if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Wired pengeluaran module');
 }).catch(e => console.error('[APP] Failed to wire pengeluaran:', e));
 
 // ==================== WIRE WINDOW GLOBALS (for HTML onclick) ====================
@@ -145,6 +151,13 @@ window.closeTrxDetail     = closeTrxDetail;
 window.hapusPenjualan     = hapusPenjualan;
 window.showExpenseDetail  = showExpenseDetail;
 window.installPWA         = installPWA;
+window.selectTopping      = selectTopping;
+window.applySelectedTopping = applySelectedTopping;
+window.openMenuSelector   = openMenuSelector;
+window.confirmMenuSelector = confirmMenuSelector;
+window.closeMenuSelector  = closeMenuSelector;
+window.toggleOrderType = toggleOrderType;
+window._ksr_toggleOrderType = (tipe) => { if (window.toggleOrderType) window.toggleOrderType(tipe); };
 window.renderPlatformCarousel = renderPlatformCarousel;
 window._ksr_platGoTo = (slideIdx) => {
   platGoTo(slideIdx);
@@ -167,10 +180,22 @@ window.setLastSaleId      = setLastSaleId;
 window.setPlatCurrentSlide= setPlatCurrentSlide;
 window.setPlatAutoTimer   = setPlatAutoTimer;
 
+// Modal management (a11y: focus trap)
+window._ksr_openModal    = openModal;
+window._ksr_closeModal   = closeModal;
+window._ksr_closeAllModals = closeAllModals;
+window._ksr_isModalOpen  = isModalOpen;
+window._ksr_toggleModal  = toggleModal;
+
 // ==================== LICENSE GATE ====================
 // Expose license actions to the gate UI (index.html)
 import { setLicenseRefs, updateTrialChip, renderLicenseInfoCard, checkLicenseGate, openExtendFlow, grantExtension, openLicenseSheet, getLicenseStatus, startTrial, activateSerial, activateLicense, contactViaWA, checkCloudStatusAndUnlock, toggleManualKey, fetchLicenseStatusFromCloud, isDeviceKnownOnCloud, saveLicense, getDeviceIdentity, decodeExpiryLabel, enforceRevoked } from './license.js';
 import { ensureUnitId, isOnboarded, markOnboarded } from './license.logic.js';
+
+// Dev detection helper
+function isDev() {
+  return location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('192.168.') || location.hostname.startsWith('10.') || location.hostname.endsWith('.local') || !location.hostname.includes('.');
+}
 
 setLicenseRefs({
   updateTrialChip,
@@ -199,7 +224,7 @@ window._ksr_enforceRevoked = enforceRevoked;
 window._ksr_updateTrialChip = updateTrialChip;
 window._ksr_checkLicenseGate = checkLicenseGate;
 window._ksr_renderLicenseInfoCard = renderLicenseInfoCard;
-window._ksr_closeSheet       = (id) => document.getElementById(id)?.classList.remove('show');
+window._ksr_closeSheet       = (id) => closeModal(id);
 window._ksr_contactViaWA     = contactViaWA;
 // --- Syarat & Ketentuan 2-STEP onboarding (user gaptek friendly) ---
 // STEP 1 -> STEP 2: validasi nama usaha, simpan, tampilkan modal S&K (trial BELUM mulai)
@@ -223,13 +248,13 @@ window._ksr_proceedToTC = async () => {
     const nw = document.getElementById('settingWa');
     if (nw) nw.textContent = formatPhoneDisplay(res.normalized);
   }
-  document.getElementById('tcModal')?.classList.add('show'); // STEP 2
+  await openModal('tcModal'); // STEP 2
 };
 // STEP 2 BATAL: tutup modal -> balik ke STEP 1 (gate tetap, nama sudah keisi)
-window._ksr_cancelTC = () => document.getElementById('tcModal')?.classList.remove('show');
+window._ksr_cancelTC = () => closeModal('tcModal');
 // STEP 2 SETUJU: mulai masa coba + masuk aplikasi
 window._ksr_acceptTC = async () => {
-  document.getElementById('tcModal')?.classList.remove('show');
+  closeModal('tcModal');
   const msg = document.getElementById('onboardMsg');
   if (msg) msg.style.display = 'none';
   await startTrial();
@@ -279,15 +304,15 @@ function gateLicenseHtml(status) {
       : '<p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Masa coba 7 hari Anda sudah berakhir.<br>Beli lisensi resmi — aktivasi otomatis oleh admin setelah pembayaran diverifikasi.</p>';
   return `
     <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px" alt="Logo">
-    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Kasir Solo</div><div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
+    <div class="kfs22 kfw800 kmb8">Kasir Solo</div><div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
     <div style="font-size:17px;font-weight:800;color:var(--red)">Masa Coba Gratis Habis</div>
     ${intro}
       <div class="license-actions license-actions-row">
-        <button class="btn btn-primary" onclick="window._ksr_buyGate()">💳 Beli Lisensi</button>
-        <button class="btn btn-secondary" onclick="window._ksr_contactViaWA()">💬 Tanya Admin</button>
+        <button class="btn btn-primary" data-action="buy-gate">💳 Beli Lisensi</button>
+        <button class="btn btn-secondary" data-action="contact-via-wa">💬 Tanya Admin</button>
       </div>
       <div id="gateLicMsg" style="display:none;color:var(--red);font-size:13px;margin-top:8px"></div>
-      <div style="font-size:12px;color:var(--text3);margin-top:14px">Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a></div>
+      <div class="kfs12 ktext3 kmt14">Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a></div>
     `;
   }
 
@@ -318,32 +343,445 @@ if (_gateEl) {
   syncGateBodyClass();
 }
 
+
 // ==================== INIT ====================
+
+// ==================== DATA ACTION HANDLER ====================
+// Central handler for all data-action attributes (replaces inline onclick/oninput)
+function handleDataAction(action, el, event) {
+  switch (action) {
+    // Navigation
+    case 'navigate-bantuan':
+      navigateTo('bantuan');
+      break;
+    case 'navigate-pengaturan':
+      navigateTo('pengaturan');
+      break;
+
+    // License/Sheet
+    case 'open-license-sheet':
+      if (window._ksr_openLicenseSheet) window._ksr_openLicenseSheet();
+      break;
+    case 'close-sheet-license':
+      if (window._ksr_closeSheet) window._ksr_closeSheet('sheetLicense');
+      break;
+    case 'close-sheet-purchase':
+      if (window._ksr_closeSheet) window._ksr_closeSheet('sheetPurchase');
+      break;
+    case 'proceed-to-tc':
+      if (window._ksr_proceedToTC) window._ksr_proceedToTC();
+      break;
+    case 'cancel-tc':
+      if (window._ksr_cancelTC) window._ksr_cancelTC();
+      break;
+    case 'accept-tc':
+      if (window._ksr_acceptTC) window._ksr_acceptTC();
+      break;
+    case 'onboard-input':
+      if (window._ksr_onboardInput) window._ksr_onboardInput();
+      break;
+    case 'dismiss-profile-banner':
+      closeModal('profileBanner');
+      navigateTo('pengaturan');
+      break;
+
+    // POS
+    case 'pos-search':
+      if (window.renderPOSMenuDebounced) window.renderPOSMenuDebounced();
+      break;
+    case 'order-note-input': {
+      // Draft catatan pesanan disimpan agar tidak hilang saat refresh/PWA reload
+      try { localStorage.setItem('kasirsolo:order-note', (el.value || '').slice(0, 120)); } catch (_) {}
+      break;
+    }
+    case 'toggle-cat-accordion': {
+      const acc = document.getElementById('posCatAccordion');
+      if (acc) acc.classList.toggle('open');
+      break;
+    }
+    case 'open-cart':
+      if (window.openCartModal) window.openCartModal();
+      break;
+    case 'report-period-harian':
+      if (window.setReportPeriod) window.setReportPeriod('harian');
+      break;
+    case 'report-period-mingguan':
+      if (window.setReportPeriod) window.setReportPeriod('mingguan');
+      break;
+    case 'report-period-bulanan':
+      if (window.setReportPeriod) window.setReportPeriod('bulanan');
+      break;
+    case 'report-period-custom':
+      if (window.setReportPeriod) window.setReportPeriod('custom');
+      break;
+
+    // Menu
+    case 'menu-search':
+      if (window.renderMenuListDebounced) window.renderMenuListDebounced();
+      break;
+    case 'open-menu-form':
+      if (window.openMenuForm) window.openMenuForm();
+      break;
+
+    // Settings - Profile
+    case 'open-name-modal':
+      if (window.openNameModal) window.openNameModal();
+      break;
+    case 'open-owner-modal':
+      if (window.openOwnerModal) window.openOwnerModal();
+      break;
+    case 'open-wa-modal':
+      if (window.openWaModal) window.openWaModal();
+      break;
+    case 'open-alamat-modal':
+      if (window.openAlamatModal) window.openAlamatModal();
+      break;
+
+    // Settings - Printer
+    case 'connect-printer':
+      if (window.connectBTPrinter) window.connectBTPrinter();
+      break;
+    case 'test-print':
+      if (window.testPrint) window.testPrint();
+      break;
+    case 'disconnect-printer':
+      if (window.disconnectBTPrinter) window.disconnectBTPrinter();
+      break;
+    case 'install-pwa':
+      if (window.installPWA) window.installPWA();
+      break;
+
+    // Settings - Data
+    case 'export-data':
+      if (window.exportData) window.exportData();
+      break;
+    case 'trigger-import':
+      document.getElementById('importFile')?.click();
+      break;
+    case 'import-data':
+      if (window.importData && event?.target?.files?.[0]) window.importData(event);
+      break;
+    case 'open-sync-diag':
+      if (window.openSyncDiag) window.openSyncDiag();
+      break;
+    case 'confirm-clear-all':
+      if (window.confirmClearAll) window.confirmClearAll();
+      break;
+
+    // Cart/Payment
+    case 'format-bayar':
+      if (window.formatBayarInput) window.formatBayarInput();
+      if (event && event.type === 'click' && window.selectAllBayarInput) window.selectAllBayarInput();
+      break;
+    case 'close-cart':
+      if (window.closeCartModal) window.closeCartModal();
+      break;
+    case 'save-sale':
+      if (window.simpanPenjualan) window.simpanPenjualan();
+      break;
+    case 'save-sale-print':
+      if (window.simpanPenjualan) window.simpanPenjualan(true);
+      break;
+    case 'switch-order-type': {
+      const tipe = (el.closest?.('[data-tipe]') || {}).dataset?.tipe || 'dine-in';
+      toggleOrderType(tipe);
+      break;
+    }
+    case 'select-topping': {
+      const menuId = (el.closest?.('[data-menu-id]') || {}).dataset?.menuId;
+      if (menuId && window.selectTopping) window.selectTopping(Number(menuId));
+      break;
+    }
+    case 'menu-selector-qty': {
+      changeMenuSelectorQty(el.dataset.delta);
+      break;
+    }
+    case 'remove-topping': {
+      const el2 = el.closest?.('[data-nama]');
+      const nama = el2?.dataset?.nama;
+      const menuId2 = el2?.closest?.('[data-menu-id]')?.dataset?.menuId;
+      if (nama && menuId2 && cart[menuId2]) {
+        const next = { ...cart };
+        next[menuId2] = {
+          ...next[menuId2],
+          selectedToppings: (next[menuId2].selectedToppings || []).filter(x => x.nama !== nama)
+        };
+        setCart(next);
+        saveCart();
+        openCartModal();
+      }
+      break;
+    }
+    case 'apply-topping':
+      if (window.applySelectedTopping) window.applySelectedTopping();
+      break;
+    case 'menu-selector-type': {
+      const tipe = (el.closest?.('[data-tipe]') || {}).dataset?.tipe || 'dine-in';
+      // Update active state tombol tipe di selector
+      const container = document.getElementById('menuSelectorOrderBtns');
+      if (container) {
+        container.querySelectorAll('.btn').forEach(b => {
+          b.classList.remove('btn-primary');
+          b.classList.add('btn-ghost');
+          if (b.dataset.tipe === tipe) {
+            b.classList.remove('btn-ghost');
+            b.classList.add('btn-primary');
+          }
+        });
+      }
+      break;
+    }
+    case 'close-menu-selector':
+      if (window.closeMenuSelector) window.closeMenuSelector();
+      break;
+    case 'confirm-menu-selector':
+      if (window.confirmMenuSelector) window.confirmMenuSelector();
+      break;
+    case 'print-last-nota':
+      if (window.printLastNota) window.printLastNota();
+      break;
+
+    // Menu Form
+    case 'close-menu-modal':
+      if (window.closeMenuModal) window.closeMenuModal();
+      break;
+    case 'save-menu':
+      if (window.saveMenu) window.saveMenu();
+      break;
+
+    // Expense Form
+    case 'close-expense-modal':
+      if (window.closeExpenseModal) window.closeExpenseModal();
+      break;
+    case 'save-expense':
+      if (window.saveExpense) window.saveExpense();
+      break;
+
+    // Name Modal
+    case 'close-name-modal':
+      if (window.closeNameModal) window.closeNameModal();
+      break;
+    case 'save-nama-warung':
+      if (window.saveNamaWarung) window.saveNamaWarung();
+      break;
+
+    // Owner Modal
+    case 'close-owner-modal':
+      if (window.closeOwnerModal) window.closeOwnerModal();
+      break;
+    case 'save-owner':
+      if (window.saveOwner) window.saveOwner();
+      break;
+
+    // WA Modal
+    case 'sanitize-wa-input':
+      el.value = el.value.replace(/[^\d+\s-]/g, '');
+      break;
+    case 'close-wa-modal':
+      if (window.closeWaModal) window.closeWaModal();
+      break;
+    case 'save-wa':
+      if (window.saveWa) window.saveWa();
+      break;
+
+    // Alamat Modal
+    case 'close-alamat-modal':
+      if (window.closeAlamatModal) window.closeAlamatModal();
+      break;
+    case 'save-alamat':
+      if (window.saveAlamat) window.saveAlamat();
+      break;
+
+    // Trx Detail
+    case 'close-trx-detail':
+      if (window.closeTrxDetail) window.closeTrxDetail();
+      break;
+    case 'print-nota':
+      if (window.printNota) window.printNota();
+      break;
+    case 'delete-sale':
+      if (window.hapusPenjualan) window.hapusPenjualan();
+      break;
+
+    // Confirm Dialog
+    case 'close-confirm':
+      if (window.closeConfirm) window.closeConfirm();
+      break;
+    // confirmYes is handled separately in confirm.js
+
+    // Sync Diag
+    case 'close-sync-diag':
+      if (window.closeSyncDiag) window.closeSyncDiag();
+      break;
+    case 'copy-sync-diag':
+      if (window.copySyncDiag) window.copySyncDiag();
+      break;
+    case 'open-sync-diag':
+      if (window.openSyncDiag) window.openSyncDiag();
+      break;
+
+    // Purchase/Expense
+    case 'open-expense-form':
+      if (window.openExpenseForm) window.openExpenseForm();
+      break;
+
+    // ---- Dilengkapi (P1 2026-08-22): refactor template lama onclick="..." →
+    // data-action="..." tidak diikuti handler-nya di sini, sehingga klik
+    // item POS / tombol lisensi / titik carousel dsb. mati total. Id tabel
+    // Dexie (++id) numerik, sedangkan dataset selalu string → konversi. ----
+    case 'add-to-cart': {
+      const id = Number(el?.dataset.menuId);
+      if (!Number.isNaN(id) && window.addToCart) window.addToCart(id);
+      break;
+    }
+    case 'change-qty': {
+      const id = Number(el?.dataset.menuId);
+      if (!Number.isNaN(id) && window.changeQty) window.changeQty(id, Number(el?.dataset.delta));
+      break;
+    }
+    // Input qty manual di cart: event 'input' (tiap ketikan) → update ringan
+    // tanpa rebuild daftar (fokus aman); event 'change' (blur/Enter) → sinkron penuh.
+    case 'cart-qty-input': {
+      const id = Number(el?.dataset.menuId);
+      if (Number.isNaN(id)) break;
+      if (window.setCartQty) window.setCartQty(id, el.value, event.type === 'change');
+      break;
+    }
+    case 'set-nominal-bayar': {
+      const nominal = Number(el?.dataset.nominal);
+      if (!Number.isNaN(nominal) && window.setNominalBayar) window.setNominalBayar(nominal);
+      break;
+    }
+    case 'show-trx-detail': {
+      const id = Number(el?.dataset.trxId);
+      if (!Number.isNaN(id)) showTrxDetail(id);
+      break;
+    }
+    case 'close-expense-detail':
+      closeExpenseDetail();
+      break;
+    case 'toggle-menu': {
+      const id = Number(el?.dataset.menuId);
+      if (!Number.isNaN(id) && window.toggleMenu) window.toggleMenu(id);
+      break;
+    }
+    case 'confirm-delete-menu': {
+      const id = Number(el?.dataset.menuId);
+      if (!Number.isNaN(id) && window.confirmDeleteMenu) window.confirmDeleteMenu(id);
+      break;
+    }
+    case 'toggle-tutorial':
+      if (window.toggleTutorial) window.toggleTutorial(el?.dataset.tutId);
+      break;
+    case 'plat-goto': {
+      const slide = Number(el?.dataset.slide);
+      if (!Number.isNaN(slide)) platGoTo(slide);
+      break;
+    }
+    case 'close-install-banner': {
+      document.getElementById('installBanner')?.remove();
+      break;
+    }
+    case 'close-install-guide': {
+      document.getElementById('installGuideOverlay')?.remove();
+      break;
+    }
+    // ---- Lisensi & pembelian (tombol di-render license.ui.js / purchase.js) ----
+    case 'open-purchase-sheet':
+    case 'buy-gate':
+      openPurchaseSheet();
+      break;
+    case 'contact-via-wa':
+      contactViaWA();
+      break;
+    case 'open-extend-flow':
+      openExtendFlow();
+      break;
+    case 'toggle-manual-key':
+      toggleManualKey(el?.dataset.inputId);
+      break;
+    case 'activate-license': {
+      const input = el?.dataset.inputId ? document.getElementById(el.dataset.inputId) : null;
+      const code = input?.value?.trim();
+      if (code) activateSerial(code);
+      break;
+    }
+    case 'check-license-status':
+      syncLicenseStatus();
+      break;
+    case 'trigger-bukti-input':
+      document.getElementById('buktiInput')?.click();
+      break;
+    case 'handle-bukti-upload':
+      // Dipicu event 'change' pada input file #buktiInput (lihat delegasi change di init).
+      handleBuktiUpload(event);
+      break;
+
+    default:
+      if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) {
+        console.log('[APP] Unhandled data-action:', action);
+      }
+  }
+}
+
+
 async function init() {
   // Close modals: klik di luar (backdrop) tutup modal itu; klik navbar tutup semua.
   // Pakai event delegation di document supaya berlaku juga untuk modal yang
   // dibuat/dirender dinamis setelah init (bukan hanya yang ada saat load).
   document.addEventListener('click', (e) => {
     const t = e.target;
-    // 1) Klik langsung pada backdrop `.modal-overlay` -> tutup modal tsb.
-    //    (Konten modal adalah child, jadi klik konten tidak tertutup.)
     // lockOverlay = hard lock gate (trial habis / lisensi invalid), TIDAK boleh
     // ditutup lewat klik backdrop atau navbar supaya gate-nya gak bisa dilewati.
-    const closeOverlays = () =>
-      document.querySelectorAll('.modal-overlay.show').forEach((o) => {
-        if (o.id !== 'lockOverlay') o.classList.remove('show');
-      });
+    // Pakai closeAllModals()/closeModal() supaya focus trap ikut dibersihkan
+    // (dulu cuma remove class 'show' → keydown listener trap tetap nempel).
+    const closeOverlays = () => closeAllModals({ except: ['lockOverlay'] });
     // 1) Klik langsung pada backdrop `.modal-overlay` -> tutup modal tsb.
     //    (Konten modal adalah child, jadi klik konten tidak tertutup.)
     if (t instanceof Element && t.classList?.contains('modal-overlay') && t.classList.contains('show')) {
-      if (t.id !== 'lockOverlay') t.classList.remove('show');
+      if (t.id !== 'lockOverlay') closeModal(t.id);
       return;
     }
     // 2) Klik menu navigasi (navbar bawah) -> tutup semua modal.
     if (t instanceof Element && t.closest?.('.nav-item')) {
       closeOverlays();
     }
+    // 3) Handle data-action attributes (replaces inline onclick/oninput)
+    const actionEl = t.closest?.('[data-action]');
+    if (actionEl) {
+      const action = actionEl.dataset.action;
+      handleDataAction(action, actionEl, e);
+      return;
+    }
   });
+
+  // Keyboard a11y (P1 audit 2026-08-22): elemen non-native dengan data-action
+  // (mis. #trialChip yang div[role=button]) tidak memicu event click untuk
+  // Enter/Space — delegasikan seperti click di atas.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    const actionEl = t.closest?.('[data-action]');
+    if (!actionEl) return;
+    // Button/link/input menangani key-nya sendiri (browser memicu click) —
+    // jangan eksekusi dobel.
+    if (t.closest('button, a, input, select, textarea, [contenteditable]')) return;
+    e.preventDefault();
+    handleDataAction(actionEl.dataset.action, actionEl, e);
+  });
+
+  // Delegasi input/change (P1 2026-08-22): data-action pada elemen input
+  // (pencarian POS/menu, format bayar, upload file cadangan/bukti) tidak
+  // pernah memicu event click — tanpa ini semua kotak pencarian & unggahan
+  // mati setelah refactor onclick → data-action.
+  const dispatchDataAction = (e) => {
+    if (!(e.target instanceof Element)) return;
+    const actionEl = e.target.closest?.('[data-action]');
+    if (actionEl) handleDataAction(actionEl.dataset.action, actionEl, e);
+  };
+  document.addEventListener('input', dispatchDataAction);
+  document.addEventListener('change', dispatchDataAction);
 
   // License sync first, but never block startup on a transient network failure.
   await runLicenseSync();
@@ -381,7 +819,7 @@ async function init() {
         if (cloud && cloud.license_status === 'aktif') {
           await saveLicenseFromCloud(cloud);
           if (gate) gate.style.display = 'none';
-          document.getElementById('lockOverlay')?.classList.remove('show');
+          closeModal('lockOverlay');
           await boot();
           return;
         }
@@ -472,6 +910,13 @@ async function boot() {
   // try { await checkOnboarding(); } catch (e) { console.error('[BOOT] checkOnboarding gagal:', e); }
   // H1: pulihkan status printer tersimpan
   restorePrinterStatus();
+  // Topping/Ojol: pulih tipe order terakhir dari localStorage
+  try {
+    const saved = localStorage.getItem('kasirsolo:order-type');
+    if (saved && ['dine-in','takeaway','ojol'].includes(saved)) {
+      setOrderType(saved);
+    }
+  } catch (_) {}
   // C2v2: pull profil dari cloud SETIAP boot, berdasarkan unit_id/fingerprint.
   // Device baru / install ulang / wipeIndexedDB akan otomatis dapat profil.
   // Simpan flag pending refresh — akan dieksekusi saat settings module ready.
@@ -512,48 +957,33 @@ async function boot() {
   setupPWA();
 
   // PWA: update install button state di settings
-  try { await updatePWAButton(); } catch (e) { console.warn('[BOOT] updatePWAButton gagal:', e); }
+  try { await updateInstallRow(); } catch (e) { console.warn('[BOOT] updateInstallRow gagal:', e); }
 
   // Subscribe to realtime license updates
   try {
-    const { unit_id } = await ensureUnitId();
-    subscribeToLicenseUpdates(unit_id);
+    const unitId = await ensureUnitId();
+    subscribeToLicenseUpdates(unitId);
   } catch (e) {
-    console.log('Realtime subscription skipped:', e?.message || e);
+    if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('Realtime subscription skipped:', e?.message || e);
   }
 }
 
-// PWA (2026-08-19): Update tombol install di settings berdasarkan status PWA
-async function updatePWAButton() {
-  const installed = checkPWAInstalled();
-  const titleEl = document.getElementById('pwaInstallTitle');
-  const descEl = document.getElementById('pwaInstallDesc');
-  const row = document.getElementById('pwaInstallRow');
-  if (!titleEl) return;
-  if (installed) {
-    titleEl.textContent = '✅ Sudah Terpasang';
-    descEl.textContent = 'Aplikasi sudah berjalan di layar utama';
-    if (row) row.style.opacity = '0.6';
-  } else {
-    titleEl.textContent = 'Pasang Aplikasi';
-    descEl.textContent = 'Buka kayak app native di HP';
-    if (row) row.style.opacity = '1';
-  }
-}
+// PWA (2026-08-19): Update tombol install di settings — pakai updateInstallRow
+// dari pwa.js agar tidak duplikat logika
 
 // Error boundary for nav setup: guard so a DOM/nav issue never blocks the router below.
 try {
-  console.log('[APP] Attaching nav handlers...');
+  if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Attaching nav handlers...');
   const navItems = document.querySelectorAll('.nav-item');
-  console.log('[APP] Found', navItems.length, 'nav items');
+  if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Found', navItems.length, 'nav items');
   navItems.forEach((btn, idx) => {
     btn.addEventListener('click', (e) => {
-      console.log('[APP] Nav clicked:', btn.dataset.page);
+      if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Nav clicked:', btn.dataset.page);
       const page = btn.dataset.page;
       if (page) navigateTo(page);
     });
   });
-  console.log('[APP] Nav handlers attached');
+  if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Nav handlers attached');
 } catch(e) { console.error('[APP] Nav setup failed:', e); }
 
 initRouter();

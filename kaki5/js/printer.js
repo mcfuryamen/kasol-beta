@@ -134,7 +134,7 @@ export async function connectBTPrinter() {
     if (err.name === 'NotFoundError') {
       showToast('Printer tidak ditemukan', 'error');
     } else {
-      showToast('Gagal: ' + err.message, 'error');
+      console.error('Gagal', err); showToast('Gagal', 'error');
     }
     clearPrinterState();
     console.error('BT Error:', err);
@@ -204,7 +204,7 @@ async function sendToPrinter(data) {
       return true;
     } catch (err) {
       if (attempts >= MAX_ATTEMPTS) {
-        showToast('Gagal cetak: ' + err.message, 'error');
+        console.error('Gagal cetak', err); showToast('Gagal cetak', 'error');
         return false;
       }
       // Retry: tunggu sebentar sebelum coba lagi
@@ -256,6 +256,9 @@ export function buildReceiptText(sale, warungName) {
   const timeStr = String(d.getHours()).padStart(2, '0') + ':' +
                   String(d.getMinutes()).padStart(2, '0');
   txt += 'Tgl: ' + dateStr + '  ' + timeStr + LF;
+  // Catatan pesanan (meja/pemesan/ojol) — ikut tercetak di nota
+  const noteTxt = String(sale.orderNote || '').trim();
+  if (noteTxt) txt += 'Note: ' + noteTxt.substring(0, 32) + LF;
   txt += '--------------------------------' + LF;
 
   // Items
@@ -264,9 +267,26 @@ export function buildReceiptText(sale, warungName) {
     const name = safeStr(item.nama, 'Item').substring(0, 16);
     const qty = safeNum(item.qty, 1);
     const hargaJual = safeNum(item.hargaJual, 0);
-    const price = formatRpPlain(qty * hargaJual);
-    txt += name + LF;
-    txt += '  ' + qty + ' x ' + formatRpPlain(hargaJual) + '  = ' + price + LF;
+    const hargaOjol = safeNum(item.hargaOjol, 0);
+    const isOjol = hargaOjol > 0;
+    const effectiveHarga = isOjol ? hargaOjol : hargaJual;
+    // Cetak nama + tandai ojol kalau hargaOjol diisi
+    const label = isOjol ? name + ' [O]' : name;
+    txt += label + LF;
+    const baseLine = '  ' + qty + ' x ' + formatRpPlain(effectiveHarga);
+    // Hitung total baris termasuk topping
+    let lineTotal = effectiveHarga * qty;
+    if (Array.isArray(item.selectedToppings)) {
+      item.selectedToppings.forEach(t => {
+        const th = safeNum(t.harga, 0);
+        if (th > 0) {
+          const tName = safeStr(t.nama, 'Topping').substring(0, 14);
+          txt += '    + ' + tName + ' ' + formatRpPlain(th) + LF;
+          lineTotal += th * qty;
+        }
+      });
+    }
+    txt += baseLine + '  = ' + formatRpPlain(lineTotal) + LF;
   });
 
   // Totals
@@ -351,8 +371,8 @@ function printNotaBrowser(sale, warungName) {
   const items = Array.isArray(sale.items) ? sale.items : [];
   const itemsHtml = items.map(i =>
     '<tr><td>' + escapeHtml(safeStr(i.nama, 'Item')) + '</td>' +
-    '<td style="text-align:center">' + safeNum(i.qty, 1) + '</td>' +
-    '<td style="text-align:right">' + formatRp(safeNum(i.qty, 1) * safeNum(i.hargaJual, 0)) + '</td></tr>'
+    '<td class="kcenter">' + safeNum(i.qty, 1) + '</td>' +
+    '<td class="kright">' + formatRp(safeNum(i.qty, 1) * safeNum(i.hargaJual, 0)) + '</td></tr>'
   ).join('');
 
   const d = new Date(sale.waktu);
@@ -368,13 +388,15 @@ function printNotaBrowser(sale, warungName) {
   printWindow.document.write('<h2>' + escapeHtml(safeStr(warungName, 'Warung Saya')) + '</h2>');
   printWindow.document.write('<p class="sub">Kasir Solo - Kaki Lima</p>');
   printWindow.document.write('<hr>');
-  printWindow.document.write('<p style="font-size:11px">' + dateStr + '</p>');
+  printWindow.document.write('<p class="kfs11">' + dateStr + '</p>');
+  const noteHtml = String(sale.orderNote || '').trim();
+  if (noteHtml) printWindow.document.write('<p class="kfs11"><b>Note:</b> ' + escapeHtml(noteHtml.substring(0, 40)) + '</p>');
   printWindow.document.write('<hr>');
   printWindow.document.write('<table>' + itemsHtml + '</table>');
   printWindow.document.write('<hr>');
-  printWindow.document.write('<table><tr class="total"><td>TOTAL</td><td style="text-align:right">' + formatRp(safeNum(sale.totalHarga, 0)) + '</td></tr>');
-  printWindow.document.write('<tr><td>Bayar</td><td style="text-align:right">' + formatRp(safeNum(sale.bayar, 0)) + '</td></tr>');
-  printWindow.document.write('<tr><td>Kembali</td><td style="text-align:right">' + formatRp(safeNum(sale.kembalian, 0)) + '</td></tr></table>');
+  printWindow.document.write('<table><tr class="total"><td>TOTAL</td><td class="kright">' + formatRp(safeNum(sale.totalHarga, 0)) + '</td></tr>');
+  printWindow.document.write('<tr><td>Bayar</td><td class="kright">' + formatRp(safeNum(sale.bayar, 0)) + '</td></tr>');
+  printWindow.document.write('<tr><td>Kembali</td><td class="kright">' + formatRp(safeNum(sale.kembalian, 0)) + '</td></tr></table>');
   printWindow.document.write('<hr>');
   printWindow.document.write('<p class="footer">Terima kasih!<br>Semoga berkah</p>');
   printWindow.document.write('</body></html>');

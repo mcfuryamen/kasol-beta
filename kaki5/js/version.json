@@ -1,7 +1,10 @@
 {
-  "version": "1.0.13",
-  "cacheBust": "v65",
+  "version": "1.0.18",
+  "cacheBust": "v73",
   "notes": [
-    "🔄 Folder kerja disinkronkan dengan mirror GitHub — restore dari C:\\Users\\Admin\\Documents\\GitHub\\kasol\\kaki5"
+    "🎨 Logo header kini menyatu dengan background (tanpa outline putih)",
+    "📝 Semua kotak isian (field) kini border tunggal yang lebih tipis dan bersih",
+    "📍 Footer info aplikasi hanya tampil di halaman Pengaturan",
+    "⚡ Struktur internal lebih ramping — 66% inline style dimigrasi ke kelas CSS"
   ]
 }

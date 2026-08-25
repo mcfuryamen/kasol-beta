@@ -4,16 +4,17 @@
 
 import { DB } from './db.js';
 import { showToast } from './helpers.js';
-import { cart, setCart, setPosCat, posCat, setLastSaleId } from './app-state.js';
+import { cart, setCart, setPosCat, posCat, setLastSaleId, orderType, setOrderType } from './app-state.js';
 import {
   addToCartLogic, changeQtyLogic, hitungKembalianLogic, calculateTotal,
-  generatePresetNominal
+  generatePresetNominal, parseToppings
 } from './pos.logic.js';
 import {
   renderPOSCatTabsUI, renderPOSMenuUI, renderCartBar,
-  openCartModal, closeCartModal, hitungKembalianUI,
+  openCartModal, closeCartModal, hitungKembalianUI, refreshCartModalTotals,
   formatBayarInputUI, selectAllBayarInput, setNominalBayarUI,
-  showAfterSaleActions
+  showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType,
+  renderOrderNoteBox
 } from './pos.ui.js';
 import { saveCart, loadCart, clearCartStorage, simpanPenjualanSync } from './pos.sync.js';
 
@@ -23,9 +24,9 @@ export {
 } from './pos.logic.js';
 export {
   renderPOSCatTabsUI, renderPOSMenuUI, renderCartBar,
-  openCartModal, closeCartModal, hitungKembalianUI,
+  openCartModal, closeCartModal, hitungKembalianUI, refreshCartModalTotals,
   formatBayarInputUI, selectAllBayarInput, setNominalBayarUI,
-  showAfterSaleActions
+  showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType
 } from './pos.ui.js';
 export {
   saveCart, loadCart, clearCartStorage, simpanPenjualanSync
@@ -65,6 +66,14 @@ export async function loadPOS() {
   const filtered = posCat !== 'Semua' ? menus.filter(m => m.kategori === posCat) : menus;
   renderPOSMenuUI(filtered);
   renderCartBar();
+  // Kotak catatan pesanan: tampil + placeholder sesuai tipe order aktif,
+  // lalu pulihkan draft catatan dari sesi sebelumnya (kalau ada).
+  renderOrderNoteBox();
+  try {
+    const draft = localStorage.getItem('kasirsolo:order-note');
+    const input = document.getElementById('orderNoteInput');
+    if (draft && input && !input.value) input.value = draft;
+  } catch (_) {}
 }
 
 // ---- Category tabs (async: DB query + DOM) ----
@@ -96,7 +105,24 @@ export const renderPOSMenuDebounced = _debouncedRenderPOSMenu;
 export async function addToCart(menuId) {
   const m = await DB.menu.get(menuId);
   if (!m) return;
-  const next = addToCartLogic(cart, menuId, m);
+  const toppings = parseToppings(m.toppingList);
+  const hasOjol = (m.hargaOjol || 0) > 0;
+  // Jika ada topping atau hargaOjol → buka selector dulu, baru masuk keranjang
+  if (toppings.length > 0 || hasOjol) {
+    openMenuSelector(m, ({ selectedToppings = [], orderType: tipe = orderType, qty = 1 }) => {
+      const next = addToCartLogic(cart, menuId, m, selectedToppings, tipe, qty);
+      setCart(next);
+      setOrderType(tipe); // simpan tipe order yang dipilih
+      saveCart();
+      renderPOSMenu();
+      renderCartBar();
+      // Tetap di halaman jualan — user bisa lanjut tambah menu lain.
+      // Feedback cukup lewat cartBar (jumlah item + total) + badge qty di kartu menu.
+    });
+    return;
+  }
+  // Menu tanpa topping + tanpa hargaOjol → langsung masuk keranjang
+  const next = addToCartLogic(cart, menuId, m, [], orderType);
   setCart(next);
   saveCart();
   renderPOSMenu();
@@ -113,6 +139,26 @@ export function changeQty(menuId, delta) {
   if (items.length === 0) { closeCartModal(); renderPOSMenu(); return; }
   openCartModal();
   renderPOSMenu();
+}
+
+// Set qty langsung dari input manual (batas 1–999).
+// rerender=false → update ringan (state + cartBar + badge grid + total modal)
+// TANPA rebuild daftar cart, agar fokus ketikan di input qty tidak hilang.
+export function setCartQty(menuId, qty, rerender = true) {
+  const cur = cart[menuId];
+  if (!cur) return;
+  let target = parseInt(qty, 10);
+  if (Number.isNaN(target)) target = cur.qty; // kotak kosong saat mengetik → pertahankan nilai lama
+  target = Math.min(999, Math.max(1, target));
+  if (target !== cur.qty) {
+    const next = changeQtyLogic(cart, menuId, target - cur.qty);
+    setCart(next);
+    saveCart();
+    renderCartBar();
+    renderPOSMenu(); // badge qty kartu menu (grid di belakang modal — tidak ganggu fokus)
+  }
+  if (rerender) openCartModal(); // sinkron penuh saat blur/change
+  else refreshCartModalTotals(); // ringan saat event input (tiap ketikan)
 }
 
 // ---- Modal (sudah di-export di atas) ----
@@ -136,7 +182,7 @@ export function setNominalBayar(nominal) {
 }
 
 // ---- Simpan penjualan (DB + DOM) ----
-export async function simpanPenjualan() {
+export async function simpanPenjualan(cetakJuga = false) {
   const items = Object.values(cart).filter(c => c.qty > 0);
   if (items.length === 0) { showToast('Keranjang kosong!', 'error'); return; }
 
@@ -154,14 +200,21 @@ export async function simpanPenjualan() {
   const _now = new Date();
   const _tgl = _now.getFullYear() + '-' + String(_now.getMonth()+1).padStart(2,'0') + '-' + String(_now.getDate()).padStart(2,'0');
 
+  // Catatan pesanan (meja/pemesan/ojol) — ikut tersimpan ke record penjualan
+  const orderNote = (document.getElementById('orderNoteInput')?.value || '').trim();
+
   const saleId = await simpanPenjualanSync({
     tanggal: _tgl,
+    orderType,
+    orderNote,
     items: items.map(c => ({
       menuId: c.menu.id,
       nama: c.menu.nama,
       hargaJual: c.menu.hargaJual,
+      hargaOjol: c.menu.hargaOjol || 0,
       hargaModal: c.menu.hargaModal,
-      qty: c.qty
+      qty: c.qty,
+      selectedToppings: c.selectedToppings || []
     })),
     totalHarga,
     totalModal,
@@ -170,12 +223,29 @@ export async function simpanPenjualan() {
     waktu: Date.now()
   });
 
+  // Simpan tipe order terakhir di localStorage untuk sesi berikutnya
+  try { localStorage.setItem('kasirsolo:order-type', orderType); } catch (_) {}
+
   setLastSaleId(saleId);
   setCart({});
   clearCartStorage();
+  // Reset catatan pesanan untuk transaksi berikutnya
+  const noteInput = document.getElementById('orderNoteInput');
+  if (noteInput) noteInput.value = '';
+  try { localStorage.removeItem('kasirsolo:order-note'); } catch (_) {}
   closeCartModal();
   renderCartBar();
   renderPOSMenu();
   showToast('✅ Penjualan tersimpan!');
   showAfterSaleActions();
+  // "Simpan & Cetak": langsung cetak nota via printer Bluetooth setelah tersimpan
+  if (cetakJuga) {
+    try {
+      const { printLastNota } = await import('./printer.js');
+      await printLastNota();
+    } catch (e) {
+      console.error('[POS] cetak setelah simpan:', e?.message || e);
+      showToast('Nota tersimpan, tapi cetak gagal: ' + (e?.message || 'error'), 'error');
+    }
+  }
 }

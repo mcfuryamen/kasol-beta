@@ -6,6 +6,9 @@
 import { setCurrentPage, currentPage } from './app-state.js';
 import { initPage, cleanupPage } from './templates.js';
 import { checkProfileNotification } from './settings.ui.js';
+// closeModal/closeAllModals dipakai di navigateTo(). Sebelum ini closeModal
+// dipanggil tanpa import → ReferenceError setiap kali navigasi ke Pengaturan.
+import { closeModal, closeAllModals } from './modal.js';
 
 // Lazy-loaded page modules (loaded on first navigation)
 const PAGE_MODULES = {
@@ -61,9 +64,8 @@ export async function navigateTo(page) {
 
   // Pindah halaman / klik navbar -> tutup semua modal yang terbuka.
   // (lockOverlay = hard lock gate; dijaga supaya gak bisa ditutup via navigasi.)
-  document.querySelectorAll('.modal-overlay.show').forEach((o) => {
-    if (o.id !== 'lockOverlay') o.classList.remove('show');
-  });
+  // Lewat closeAllModals() supaya focus trap tiap modal ikut dibersihkan.
+  closeAllModals({ except: ['lockOverlay'] });
 
   const prev = currentPage;
   setCurrentPage(page);
@@ -84,13 +86,10 @@ export async function navigateTo(page) {
   // Banner "lengkapi profil": tampil di semua halaman kecuali pengaturan
   // (di pengaturan user mengisi profil, jadi banner disembunyikan agar tidak
   // menutupi form — banner akan muncul lagi saat pindah halaman lain).
-  const profBanner = document.getElementById('profileBanner');
-  if (profBanner) {
-    if (page === 'pengaturan') {
-      profBanner.classList.remove('show');
-    } else {
-      await checkProfileNotification();
-    }
+  if (page === 'pengaturan') {
+    closeModal('profileBanner');
+  } else {
+    await checkProfileNotification();
   }
 
   // Cleanup previous page
