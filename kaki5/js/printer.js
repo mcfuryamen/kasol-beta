@@ -264,9 +264,26 @@ export function buildReceiptText(sale, warungName) {
     const name = safeStr(item.nama, 'Item').substring(0, 16);
     const qty = safeNum(item.qty, 1);
     const hargaJual = safeNum(item.hargaJual, 0);
-    const price = formatRpPlain(qty * hargaJual);
-    txt += name + LF;
-    txt += '  ' + qty + ' x ' + formatRpPlain(hargaJual) + '  = ' + price + LF;
+    const hargaOjol = safeNum(item.hargaOjol, 0);
+    const isOjol = hargaOjol > 0;
+    const effectiveHarga = isOjol ? hargaOjol : hargaJual;
+    // Cetak nama + tandai ojol kalau hargaOjol diisi
+    const label = isOjol ? name + ' [O]' : name;
+    txt += label + LF;
+    const baseLine = '  ' + qty + ' x ' + formatRpPlain(effectiveHarga);
+    // Hitung total baris termasuk topping
+    let lineTotal = effectiveHarga * qty;
+    if (Array.isArray(item.selectedToppings)) {
+      item.selectedToppings.forEach(t => {
+        const th = safeNum(t.harga, 0);
+        if (th > 0) {
+          const tName = safeStr(t.nama, 'Topping').substring(0, 14);
+          txt += '    + ' + tName + ' ' + formatRpPlain(th) + LF;
+          lineTotal += th * qty;
+        }
+      });
+    }
+    txt += baseLine + '  = ' + formatRpPlain(lineTotal) + LF;
   });
 
   // Totals

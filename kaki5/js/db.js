@@ -33,6 +33,18 @@ db.version(3).stores({
   platformMessages: '++id, order, visibleFrom, visibleUntil'
 });
 
+// version 4: tambah `toppingList` (JSON string) dan `hargaOjol` ke tabel menu
+//    untuk fitur topping per-menu dan harga khusus ojol — migration-free,
+//    Dexie otomatis menangani field baru di baris yang sudah ada.
+db.version(4).stores({
+  menu: '++id, nama, kategori, hargaJual, hargaModal, aktif, urutan',
+  penjualan: '++id, tanggal, items, totalHarga, totalModal, bayar, kembalian, waktu',
+  pengeluaran: '++id, tanggal, keterangan, kategori, jumlah, waktu',
+  pengaturan: 'key',
+  settings: 'key',
+  platformMessages: '++id, order, visibleFrom, visibleUntil'
+});
+
 // ==================== SETTINGS ====================
 // `settings` uses { key, value } rows keyed on `key`.
 export async function getSetting(key, defaultVal) {

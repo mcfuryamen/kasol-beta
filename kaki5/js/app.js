@@ -26,9 +26,10 @@ import { showTrxDetail, closeTrxDetail, hapusPenjualan } from './trxdetail.js';
 import { showExpenseDetail, closeExpenseDetail } from './expensedetail.js';
 import { subscribeToLicenseUpdates, openPurchaseSheet, purchaseShowUpload, handleBuktiUpload, submitPurchase, pollLicenseStatus } from './purchase.js';
 import { syncNow as _ksrSyncNow } from './settings.sync.js';
+import { saveCart } from './pos.sync.js';
 import { APP_VERSION, APP_VERSION_LABEL } from './version.js';
 import { startUpdateWatcher } from './update.js';
-import { setReportPeriod, setReportDate, setCustomStart, setCustomEnd, setPosCat, setCurrentPage, setCart, setSelectedTrxId, setLastSaleId, setPlatCurrentSlide, setPlatAutoTimer } from './app-state.js';
+import { setReportPeriod, setReportDate, setCustomStart, setCustomEnd, setPosCat, setCurrentPage, setCart, setSelectedTrxId, setLastSaleId, setPlatCurrentSlide, setPlatAutoTimer, orderType, setOrderType } from './app-state.js';
 import { openModal, closeModal, closeAllModals, isModalOpen, toggleModal, registerModalSelector } from './modal.js';
 
 // Register custom selector for tcModal (custom inline-styled structure)
@@ -149,6 +150,9 @@ window.closeTrxDetail     = closeTrxDetail;
 window.hapusPenjualan     = hapusPenjualan;
 window.showExpenseDetail  = showExpenseDetail;
 window.installPWA         = installPWA;
+window.selectTopping      = selectTopping;
+window.applySelectedTopping = applySelectedTopping;
+window._ksr_toggleOrderType = (tipe) => { if (window.toggleOrderType) window.toggleOrderType(tipe); };
 window.renderPlatformCarousel = renderPlatformCarousel;
 window._ksr_platGoTo = (slideIdx) => {
   platGoTo(slideIdx);
@@ -461,6 +465,35 @@ function handleDataAction(action, el, event) {
       break;
     case 'save-sale':
       if (window.simpanPenjualan) window.simpanPenjualan();
+      break;
+    case 'switch-order-type': {
+      const tipe = (t.closest?.('[data-tipe]') || {}).dataset?.tipe || 'dine-in';
+      if (window.toggleOrderType) window.toggleOrderType(tipe);
+      break;
+    }
+    case 'select-topping': {
+      const menuId = (t.closest?.('[data-menu-id]') || {}).dataset?.menuId;
+      if (menuId && window.selectTopping) window.selectTopping(Number(menuId));
+      break;
+    }
+    case 'remove-topping': {
+      const el = t.closest?.('[data-nama]');
+      const nama = el?.dataset?.nama;
+      const menuId = el?.closest?.('[data-menu-id]')?.dataset?.menuId;
+      if (nama && menuId && cart[menuId]) {
+        const next = { ...cart };
+        next[menuId] = {
+          ...next[menuId],
+          selectedToppings: (next[menuId].selectedToppings || []).filter(x => x.nama !== nama)
+        };
+        setCart(next);
+        saveCart();
+        openCartModal();
+      }
+      break;
+    }
+    case 'apply-topping':
+      if (window.applySelectedTopping) window.applySelectedTopping();
       break;
     case 'print-last-nota':
       if (window.printLastNota) window.printLastNota();
@@ -827,6 +860,13 @@ async function boot() {
   // try { await checkOnboarding(); } catch (e) { console.error('[BOOT] checkOnboarding gagal:', e); }
   // H1: pulihkan status printer tersimpan
   restorePrinterStatus();
+  // Topping/Ojol: pulih tipe order terakhir dari localStorage
+  try {
+    const saved = localStorage.getItem('kasirsolo:order-type');
+    if (saved && ['dine-in','takeaway','ojol'].includes(saved)) {
+      setOrderType(saved);
+    }
+  } catch (_) {}
   // C2v2: pull profil dari cloud SETIAP boot, berdasarkan unit_id/fingerprint.
   // Device baru / install ulang / wipeIndexedDB akan otomatis dapat profil.
   // Simpan flag pending refresh — akan dieksekusi saat settings module ready.

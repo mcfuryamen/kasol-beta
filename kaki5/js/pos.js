@@ -4,7 +4,7 @@
 
 import { DB } from './db.js';
 import { showToast } from './helpers.js';
-import { cart, setCart, setPosCat, posCat, setLastSaleId } from './app-state.js';
+import { cart, setCart, setPosCat, posCat, setLastSaleId, orderType, setOrderType } from './app-state.js';
 import {
   addToCartLogic, changeQtyLogic, hitungKembalianLogic, calculateTotal,
   generatePresetNominal
@@ -13,7 +13,7 @@ import {
   renderPOSCatTabsUI, renderPOSMenuUI, renderCartBar,
   openCartModal, closeCartModal, hitungKembalianUI,
   formatBayarInputUI, selectAllBayarInput, setNominalBayarUI,
-  showAfterSaleActions
+  showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType
 } from './pos.ui.js';
 import { saveCart, loadCart, clearCartStorage, simpanPenjualanSync } from './pos.sync.js';
 
@@ -96,7 +96,7 @@ export const renderPOSMenuDebounced = _debouncedRenderPOSMenu;
 export async function addToCart(menuId) {
   const m = await DB.menu.get(menuId);
   if (!m) return;
-  const next = addToCartLogic(cart, menuId, m);
+  const next = addToCartLogic(cart, menuId, m, [], orderType);
   setCart(next);
   saveCart();
   renderPOSMenu();
@@ -156,12 +156,15 @@ export async function simpanPenjualan() {
 
   const saleId = await simpanPenjualanSync({
     tanggal: _tgl,
+    orderType,
     items: items.map(c => ({
       menuId: c.menu.id,
       nama: c.menu.nama,
       hargaJual: c.menu.hargaJual,
+      hargaOjol: c.menu.hargaOjol || 0,
       hargaModal: c.menu.hargaModal,
-      qty: c.qty
+      qty: c.qty,
+      selectedToppings: c.selectedToppings || []
     })),
     totalHarga,
     totalModal,
@@ -169,6 +172,9 @@ export async function simpanPenjualan() {
     kembalian: bayar - totalHarga,
     waktu: Date.now()
   });
+
+  // Simpan tipe order terakhir di localStorage untuk sesi berikutnya
+  try { localStorage.setItem('kasirsolo:order-type', orderType); } catch (_) {}
 
   setLastSaleId(saleId);
   setCart({});
