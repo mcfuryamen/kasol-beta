@@ -10,6 +10,7 @@
 import { DB, getSetting } from './db.js';
 import { escapeHtml, formatRp, showToast } from './helpers.js';
 import { selectedTrxId, lastSaleId } from './app-state.js';
+import { normalizeToppingQtys } from './pos.logic.js';
 
 // ── StatePrinter (H1: persistensi koneksi) ─────────────────────────────────
 const BT_STATE_KEY = 'printer_bluetooth_state';
@@ -281,16 +282,16 @@ export function buildReceiptText(sale, warungName, alamat = '') {
     const label = isOjol ? name + ' [O]' : name;
     txt += label + LF;
     const baseLine = '  ' + qty + ' x ' + formatRpPlain(effectiveHarga);
-    // Hitung total baris termasuk topping (qty per-topping dari toppingQtys,
-    // fallback ke qty menu untuk data lama / field tidak ada)
+    // Hitung total baris termasuk topping (qty per-topping via normalizeToppingQtys;
+    // fallback: data lama tanpa field -> qty=1; legacy toppingQty Number -> qty itu)
     let lineTotal = effectiveHarga * qty;
-    const toppingQtys = (item.toppingQtys && typeof item.toppingQtys === 'object') ? item.toppingQtys : {};
+    const qtys = normalizeToppingQtys(item);
     if (Array.isArray(item.selectedToppings)) {
       item.selectedToppings.forEach(t => {
         const th = safeNum(t.harga, 0);
         if (th > 0) {
           const tName = safeStr(t.nama, 'Topping').substring(0, 14);
-          const tq = Math.max(1, parseInt(toppingQtys[t.nama], 10) || qty);
+          const tq = Math.max(1, parseInt(qtys[t.nama], 10) || 1);
           txt += '    + ' + tName + ' x' + tq + ' ' + formatRpPlain(th) + LF;
           lineTotal += th * tq;
         }
@@ -387,13 +388,13 @@ function printNotaBrowser(sale, warungName, alamat = '') {
     const hargaOjol = safeNum(i.hargaOjol, 0);
     const base = hargaOjol > 0 ? hargaOjol : safeNum(i.hargaJual, 0);
     let lineTotal = base * qty;
-    // Topping ikut tercetak di bawah nama item (qty per-topping)
+    // Topping ikut tercetak di bawah nama item (qty per-topping via normalizeToppingQtys)
     let toppingsHtml = '';
-    const toppingQtys = (i.toppingQtys && typeof i.toppingQtys === 'object') ? i.toppingQtys : {};
+    const qtys = normalizeToppingQtys(i);
     if (Array.isArray(i.selectedToppings)) {
       toppingsHtml = i.selectedToppings.map(t => {
         const th = safeNum(t.harga, 0);
-        const tq = Math.max(1, parseInt(toppingQtys[t.nama], 10) || qty);
+        const tq = Math.max(1, parseInt(qtys[t.nama], 10) || 1);
         lineTotal += th * tq;
         return '<div style="font-size:10px;color:#444;padding-left:8px">+ ' +
           escapeHtml(safeStr(t.nama, 'Topping')) + ' ×' + tq + (th > 0 ? ' ' + formatRp(th) + ' = ' + formatRp(th * tq) : '') + '</div>';

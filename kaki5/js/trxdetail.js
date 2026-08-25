@@ -6,7 +6,7 @@ import { showConfirm } from './confirm.js';
 import { loadBeranda } from './beranda.js';
 import { loadReport } from './laporan.js';
 import { openModal, closeModal } from './modal.js';
-import { lineTotal } from './pos.logic.js';
+import { lineTotal, normalizeToppingQtys } from './pos.logic.js';
 
 export async function showTrxDetail(id) {
   setSelectedTrxId(id);
@@ -29,9 +29,9 @@ export async function showTrxDetail(id) {
     s.items.forEach(i => {
       const itemTotal = lineTotal(i);
       html += `<tr style="border-top:1px solid var(--border)"><td class="kp10 kfw600">${escapeHtml(i.nama)}`;
-      // Topping list (dengan qty per-topping)
+      // Topping list (dengan qty per-topping — sinkron dengan nota/cart via normalizeToppingQtys)
       if (Array.isArray(i.selectedToppings) && i.selectedToppings.length > 0) {
-        const qtys = i.toppingQtys || {};
+        const qtys = normalizeToppingQtys(i);
         const toppingLines = i.selectedToppings.map(t => {
           const tq = Math.max(1, parseInt(qtys[t.nama], 10) || 1);
           return `<div style="font-size:11px;color:var(--text2);font-weight:500;padding-left:10px;margin-top:2px">+ ${escapeHtml(t.nama)} ×${tq} <span style="color:var(--text3)">${formatRp(t.harga)}</span></div>`;

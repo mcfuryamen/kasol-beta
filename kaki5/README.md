@@ -35,7 +35,7 @@ kaki5/
 ├── index.html          ← Shell HTML (Single-source CSS + ESM lazy loading)
 ├── server.cjs          ← HTTP server dev port 8086 (no-cache)
 ├── dexie.min.js        ← Library Dexie 3.2.4
-├── sw.js               ← Service Worker v90 (single-source cache)
+├── sw.js               ← Service Worker v91 (single-source cache)
 ├── vercel.json         ← Konfigurasi Vercel
 ├── css/
 │   └── style.css       ← Single-source CSS (CSS variables, reset, layout, components, responsive breakpoints)

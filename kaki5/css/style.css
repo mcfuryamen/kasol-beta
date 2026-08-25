@@ -672,6 +672,7 @@ body.modal-open .main-content{overflow:hidden}
 .kreq{color:var(--red);font-weight:700}
 .kop85{opacity:.85}
 .kfw400{font-weight:400}
+.knote{font-size:11px;color:var(--text3);font-weight:400;margin-left:6px}
 .kno-underline{text-decoration:none}
 .kjc-center{justify-content:center}
 .kdivider{border-top:2px solid var(--border);margin-top:12px;padding-top:12px}
@@ -702,7 +703,7 @@ body.modal-open .main-content{overflow:hidden}
 /* Topping & Ojol (opsi ringan — field tambahan di tabel menu) */
 .ojol-tag{display:inline-block;background:#FFF3E0;color:#E65100;font-size:10px;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:4px;vertical-align:middle}
 .ojol-badge{display:inline-block;background:#FFF3E0;color:#E65100;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px}
-.cart-name-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.cart-name-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
 .cart-toppings{margin-bottom:6px}
 .topping-tag{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);color:var(--green);font-size:11px;font-weight:600;padding:2px 6px;border-radius:6px;margin:2px}
 .topping-remove{cursor:pointer;font-weight:700;color:var(--red);margin-left:2px}

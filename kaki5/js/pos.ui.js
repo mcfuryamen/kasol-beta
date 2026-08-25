@@ -3,7 +3,7 @@
 
 import { escapeHtml, formatRp } from './helpers.js';
 import { cart, posCat, orderType, setOrderType, setCart } from './app-state.js';
-import { generatePresetNominal, parseToppings, toppingHarga, hargaEfektif } from './pos.logic.js';
+import { generatePresetNominal, parseToppings, toppingHarga, hargaEfektif, normalizeToppingQtys } from './pos.logic.js';
 import { openModal, closeModal } from './modal.js';
 
 let _toppingTargetMenuId = null; // menuId yang topping-nya sedang dipilih (di cart)
@@ -415,14 +415,14 @@ export async function openCartModal() {
     const hasToppings = toppings.length > 0;
     const totalLine = lineTotal(c);
     const selected = c.selectedToppings || [];
-    const qtys = c.toppingQtys || {};
+    const qtys = normalizeToppingQtys(c);
     // Tampilkan harga sesuai tipe order (bukan harga jual default)
     const displayHargaTipe = orderType === 'ojol' && c.menu.hargaOjol > 0
       ? formatRp(c.menu.hargaOjol)
       : formatRp(c.menu.hargaJual);
-    // Topping tags dengan qty per-topping
+    // Topping tags dengan qty per-topping (di dalam baris nama menu)
     const toppingTags = hasToppings && selected.length > 0
-      ? '<div class="cart-topping-tags" style="margin-top:4px">' + selected.map(t => {
+      ? '<div class="cart-topping-tags" style="margin-left:6px">' + selected.map(t => {
           const tq = Math.max(1, parseInt(qtys[t.nama], 10) || 1);
           return `<span class="topping-tag">+ ${escapeHtml(t.nama)} <b>×${tq}</b> <span class="kgray">${formatRp(t.harga * tq)}</span></span>`;
         }).join('') + '</div>'
@@ -432,8 +432,8 @@ export async function openCartModal() {
         <div class="cart-name-row">
           <span class="cart-name">${escapeHtml(c.menu.nama)}</span>
           <span class="cart-name-price">${displayHargaTipe}</span>
+          ${toppingTags}
         </div>
-        ${toppingTags}
       </div>
       <div class="cart-qty-price">
         <div class="qty-control">
