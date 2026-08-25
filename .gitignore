@@ -108,3 +108,11 @@ kaki5/test_*.js
 kaki5/test_*.cjs
 kaki5/test-*.js
 kaki5/test-import.mjs
+
+# File sementara rename-only cleanup (workspace block hard-delete;
+# file .del/.bak.del adalah rename dari Remove-Item target).
+*.del
+.gitignore-extra*
+
+# Log Playwright MCP (dev-only, tidak di-track)
+.playwright-mcp/
