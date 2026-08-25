@@ -647,7 +647,7 @@ body.modal-open .main-content{overflow:hidden}
 .kgreen{color:var(--green)}.kred{color:var(--red)}.ktext-blue{color:var(--blue)}.ktext-white{color:#fff}.kgray{color:var(--text2)}
 /* Backgrounds */
 .kbg-green{background:var(--green-bg)}.kbg-red{background:var(--red-bg)}.kbg-orange{background:var(--orange-bg)}.kbg-blue{background:var(--blue-bg)}
-.kbg-green-b{background:var(--green-bg);border-color:#A5D6A7}.kbg-red-b{background:var(--red-bg);border-color:#EF9A9A}.kbg-blue-b{background:var(--blue-bg);border-color:#90CAF9}
+.kbg-green-b{background:var(--green-bg);border-color:#A5D6A7}.kbg-red-b{background:var(--red-bg);border-color:#EF9A9A}.kbg-blue-b{background:var(--blue-bg);border-color:#90CAF9}.kbg-orange-b{background:var(--orange-bg);border-color:#FFCC80}
 /* Card-like containers */
 .kinfo-card{background:var(--green-bg);padding:12px;border-radius:8px;margin-top:12px}
 .kwarn-card{background:var(--orange-bg);padding:12px;border-radius:8px;margin-top:12px}

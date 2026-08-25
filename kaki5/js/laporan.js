@@ -121,11 +121,11 @@ export async function loadReport() {
       <div class="stat-label">📈 Untung Bersih</div>
       <div class="stat-value ${profit>=0?'blue':'red'}">${formatRp(profit)}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card kbg-orange-b">
       <div class="stat-label">🛒 Transaksi</div>
       <div class="stat-value orange">${sales.length}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card kbg-orange-b">
       <div class="stat-label">🍽️ Porsi Terjual</div>
       <div class="stat-value orange">${totalQty}</div>
     </div>

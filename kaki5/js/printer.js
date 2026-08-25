@@ -217,7 +217,7 @@ async function sendToPrinter(data) {
 }
 
 // ── Build Receipt (M2: validasi defensif, L2: configurable width) ──────────
-export function buildReceiptText(sale, warungName) {
+export function buildReceiptText(sale, warungName, alamat = '') {
   const ESC = String.fromCharCode(27);
   const GS = String.fromCharCode(29);
   const LF = String.fromCharCode(10);
@@ -244,7 +244,9 @@ export function buildReceiptText(sale, warungName) {
   // Center align
   txt += ESC + 'a' + String.fromCharCode(1);
   txt += safeName + LF;
-  txt += 'Kasir Solo - Kaki Lima' + LF;
+  // Alamat usaha di header (jika diisi di Pengaturan)
+  const alamatTxt = String(alamat || '').trim();
+  if (alamatTxt) txt += alamatTxt + LF;
   txt += '================================' + LF;
 
   // Left align
@@ -256,9 +258,14 @@ export function buildReceiptText(sale, warungName) {
   const timeStr = String(d.getHours()).padStart(2, '0') + ':' +
                   String(d.getMinutes()).padStart(2, '0');
   txt += 'Tgl: ' + dateStr + '  ' + timeStr + LF;
-  // Catatan pesanan (meja/pemesan/ojol) — ikut tercetak di nota
+  // Tipe pesanan selalu tercetak (kiri), catatan pesanan di kanan
+  const ORDER_TYPE_LABELS = { 'dine-in': 'Dine-in', 'takeaway': 'Take-away', 'ojol': 'Ojol' };
+  const typeLabel = ORDER_TYPE_LABELS[sale.orderType] || 'Dine-in';
   const noteTxt = String(sale.orderNote || '').trim();
-  if (noteTxt) txt += 'Note: ' + noteTxt.substring(0, 32) + LF;
+  const notePart = noteTxt ? 'Note: ' + noteTxt : '';
+  const maxNoteLen = PRINT_WIDTH - typeLabel.length - 1;
+  const notePartFit = notePart.length > maxNoteLen ? notePart.substring(0, Math.max(0, maxNoteLen)) : notePart;
+  txt += (notePartFit ? padLine(typeLabel, notePartFit, PRINT_WIDTH) : typeLabel) + LF;
   txt += '--------------------------------' + LF;
 
   // Items
@@ -302,8 +309,8 @@ export function buildReceiptText(sale, warungName) {
 
   // Center
   txt += ESC + 'a' + String.fromCharCode(1);
-  txt += 'Terima kasih!' + LF;
-  txt += 'Semoga berkah' + LF;
+  txt += 'Terima kasih! Semoga berkah' + LF;
+  txt += 'Kasir Solo - Kaki Lima' + LF;
   txt += LF + LF + LF;
 
   // Cut (if supported)
@@ -332,14 +339,15 @@ export async function printNota() {
   if (!sale) { showToast('Transaksi tidak ditemukan', 'error'); return; }
 
   const warungName = await getSetting('namaWarung', 'Warung Saya');
+  const alamatUsaha = await getSetting('alamat', '');
 
   if (btCharacteristic) {
-    const receipt = buildReceiptText(sale, warungName);
+    const receipt = buildReceiptText(sale, warungName, alamatUsaha);
     const ok = await sendToPrinter(receipt);
     if (ok) showToast('✅ Nota berhasil dicetak!');
   } else {
     // Fallback: browser print
-    printNotaBrowser(sale, warungName);
+    printNotaBrowser(sale, warungName, alamatUsaha);
   }
 }
 
@@ -350,18 +358,19 @@ export async function printLastNota() {
   if (!sale) { showToast('Transaksi tidak ditemukan', 'error'); return; }
 
   const warungName = await getSetting('namaWarung', 'Warung Saya');
+  const alamatUsaha = await getSetting('alamat', '');
 
   if (btCharacteristic) {
-    const receipt = buildReceiptText(sale, warungName);
+    const receipt = buildReceiptText(sale, warungName, alamatUsaha);
     const ok = await sendToPrinter(receipt);
     if (ok) showToast('✅ Nota berhasil dicetak!');
   } else {
-    printNotaBrowser(sale, warungName);
+    printNotaBrowser(sale, warungName, alamatUsaha);
   }
 }
 
 // ── Browser Print Fallback ─────────────────────────────────────────────────
-function printNotaBrowser(sale, warungName) {
+function printNotaBrowser(sale, warungName, alamat = '') {
   // M2: validasi defensif
   if (!sale || typeof sale !== 'object') {
     showToast('Data transaksi tidak valid', 'error');
@@ -369,11 +378,26 @@ function printNotaBrowser(sale, warungName) {
   }
 
   const items = Array.isArray(sale.items) ? sale.items : [];
-  const itemsHtml = items.map(i =>
-    '<tr><td>' + escapeHtml(safeStr(i.nama, 'Item')) + '</td>' +
-    '<td class="kcenter">' + safeNum(i.qty, 1) + '</td>' +
-    '<td class="kright">' + formatRp(safeNum(i.qty, 1) * safeNum(i.hargaJual, 0)) + '</td></tr>'
-  ).join('');
+  const itemsHtml = items.map(i => {
+    const qty = safeNum(i.qty, 1);
+    // Harga efektif: hargaOjol dipakai bila terisi, sama seperti jalur thermal
+    const hargaOjol = safeNum(i.hargaOjol, 0);
+    const base = hargaOjol > 0 ? hargaOjol : safeNum(i.hargaJual, 0);
+    let lineTotal = base * qty;
+    // Topping ikut tercetak di bawah nama item
+    let toppingsHtml = '';
+    if (Array.isArray(i.selectedToppings)) {
+      toppingsHtml = i.selectedToppings.map(t => {
+        const th = safeNum(t.harga, 0);
+        lineTotal += th * qty;
+        return '<div style="font-size:10px;color:#444;padding-left:8px">+ ' +
+          escapeHtml(safeStr(t.nama, 'Topping')) + (th > 0 ? ' ' + formatRp(th) : '') + '</div>';
+      }).join('');
+    }
+    return '<tr><td>' + escapeHtml(safeStr(i.nama, 'Item')) + toppingsHtml + '</td>' +
+      '<td class="kcenter">' + qty + '</td>' +
+      '<td class="kright">' + formatRp(lineTotal) + '</td></tr>';
+  }).join('');
 
   const d = new Date(sale.waktu);
   if (isNaN(d.getTime())) d.setTime(Date.now());
@@ -386,11 +410,16 @@ function printNotaBrowser(sale, warungName) {
   const printWindow = window.open('', '_blank', 'width=320,height=600');
   printWindow.document.write('<html><head><title>Nota</title><style>body{font-family:monospace;font-size:12px;width:280px;margin:0 auto;padding:8px}h2{text-align:center;margin:0;font-size:14px}p.sub{text-align:center;margin:2px 0;font-size:11px;color:#666}hr{border:none;border-top:1px dashed #000;margin:6px 0}table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:11px;vertical-align:top}.total{font-weight:bold;font-size:13px}.footer{text-align:center;margin-top:8px;font-size:11px}@media print{body{width:100%}}</style></head><body>');
   printWindow.document.write('<h2>' + escapeHtml(safeStr(warungName, 'Warung Saya')) + '</h2>');
-  printWindow.document.write('<p class="sub">Kasir Solo - Kaki Lima</p>');
+  const alamatTxt = String(alamat || '').trim();
+  if (alamatTxt) printWindow.document.write('<p class="sub">' + escapeHtml(alamatTxt) + '</p>');
   printWindow.document.write('<hr>');
   printWindow.document.write('<p class="kfs11">' + dateStr + '</p>');
+  // Tipe pesanan selalu tampil (kiri), catatan pesanan di kanan
+  const ORDER_TYPE_LABELS = { 'dine-in': 'Dine-in', 'takeaway': 'Take-away', 'ojol': 'Ojol' };
+  const typeLabel = ORDER_TYPE_LABELS[sale.orderType] || 'Dine-in';
   const noteHtml = String(sale.orderNote || '').trim();
-  if (noteHtml) printWindow.document.write('<p class="kfs11"><b>Note:</b> ' + escapeHtml(noteHtml.substring(0, 40)) + '</p>');
+  printWindow.document.write('<p class="kfs11" style="display:flex;justify-content:space-between;gap:8px"><span>' + escapeHtml(typeLabel) + '</span>' +
+    (noteHtml ? '<span style="text-align:right"><b>Note:</b> ' + escapeHtml(noteHtml) + '</span>' : '') + '</p>');
   printWindow.document.write('<hr>');
   printWindow.document.write('<table>' + itemsHtml + '</table>');
   printWindow.document.write('<hr>');
@@ -398,7 +427,7 @@ function printNotaBrowser(sale, warungName) {
   printWindow.document.write('<tr><td>Bayar</td><td class="kright">' + formatRp(safeNum(sale.bayar, 0)) + '</td></tr>');
   printWindow.document.write('<tr><td>Kembali</td><td class="kright">' + formatRp(safeNum(sale.kembalian, 0)) + '</td></tr></table>');
   printWindow.document.write('<hr>');
-  printWindow.document.write('<p class="footer">Terima kasih!<br>Semoga berkah</p>');
+  printWindow.document.write('<p class="footer">Terima kasih! Semoga berkah<br><span style="font-size:10px;color:#666">Kasir Solo - Kaki Lima</span></p>');
   printWindow.document.write('</body></html>');
   printWindow.document.close();
   setTimeout(() => { printWindow.print(); }, 300);
@@ -410,9 +439,8 @@ export async function testPrint() {
     showToast('Hubungkan printer dulu!', 'error');
     return;
   }
-  const warungName = await getSetting('namaWarung', 'Warung Saya');
 
-  // M1: gunakan buildReceiptText, modifikasi header untuk tes
+  // Header tes langsung via parameter nama warung; footer tes diganti teks singkat
   const receipt = buildReceiptText(
     {
       waktu: Date.now(),
@@ -421,13 +449,11 @@ export async function testPrint() {
       bayar: 0,
       kembalian: 0
     },
-    warungName
+    '=== TES CETAK ===',
+    ''
   );
 
-  // Ganti header default dengan header tes
-  const testTxt = receipt
-    .replace('Kasir Solo - Kaki Lima', '=== TES CETAK ===')
-    .replace('Terima kasih!\nSemoga berkah', 'Printer berfungsi!');
+  const testTxt = receipt.replace('Terima kasih! Semoga berkah', 'Printer berfungsi!');
 
   const ok = await sendToPrinter(testTxt);
   if (ok) showToast('✅ Tes cetak berhasil!');
