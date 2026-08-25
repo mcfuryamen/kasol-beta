@@ -2,6 +2,21 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-25 (iterasi UI halaman Jualan + sinkronisasi chip lisensi)
+- **Kontrol sticky di atas grid menu**: tombol tipe order (🍽️ Dine-in / 🥡 Take-away / 🛵 Ojol) + pencarian + accordion kategori tetap terlihat saat menu di-scroll. Tipe order aktif = tombol primary; harga Ojol otomatis dipakai di grid & keranjang saat 🛵 dipilih.
+- **Catatan pesanan end-to-end**: kotak catatan di bawah tombol tipe order (placeholder dinamis per tipe), draft persist di `localStorage['kasirsolo:order-note']`, tersimpan sebagai `orderNote` di record penjualan, tercetak di nota Bluetooth & nota browser, tampil di detail transaksi & laporan; reset otomatis setelah simpan.
+- **Footer cart baru**: `🖨️ Simpan & Cetak` (simpan dulu → cetak nota; kegagalan printer tidak membatalkan transaksi), Batal & Simpan sama lebar, Simpan oranye tanpa emoji.
+- **Qty bisa diinput manual**: angka qty antara tombol −/＋ di keranjang dan di menu selector kini `<input type="number">`. Saat mengetik, total/harga baris/preset bayar/kembalian ter-update real-time **tanpa rebuild daftar** (fokus ketikan aman — `setCartQty()` + `refreshCartModalTotals()`); sinkron penuh saat blur/Enter. Batas 1–999 (cart) & 1–99 (selector); stepper −/＋ membaca nilai ketikan dulu (tidak menimpa).
+- **Menu selector**: daftar topping jadi **grid 2 kolom** (urutan kiri→kanan lalu ke bawah).
+- **Kartu menu**: badge emoji **horizontal satu baris** — 🧂 (punya topping) & 🛵 (ada harga Ojol) berdampingan di bawah harga; badge qty pindah ke dalam kartu (pill kanan-atas).
+- **Sinkronisasi chip lisensi (`#trialChip`)**: chip kini cermin persis `getLicenseStatus()` (sumber sama dengan gate boot & cek 60 detik). `daysLeft()` jadi async dan memakai jam efektif anti-rollback `getEffectiveNow()` — dulu `Date.now()` mentah membuat chip bisa bertentangan dengan gate saat jam perangkat dimundurkan. Status `revoked` kini tampil "✕ Dicabut", `expired` "Habis", `none` "—". Semua pemanggil `daysLeft` (kartu status, lock overlay, grant extension) ikut di-`await`.
+- **Fix audit**: duplikat id `posCatAccordion`, duplikat `data-action` di `#bayarInput`, duplikat `class` di tombol trial; CSP `connect-src` + `wss://…supabase.co` (realtime); `ensureUnitId()` kembali me-return nilai.
+
+## 2026-08-25 (PWA v3: perbaikan manifest agar prompt install muncul)
+- Tambah `background_color` ke manifest dinamis (`pwa.js`) — Chrome mensyaratkannya untuk install prompt.
+- `purpose` dari string `"any maskable"` → array `["any","maskable"]` (format valid).
+- Hapus referensi screenshot yang tidak ada; bump SW cache v67 → v68 (lanjut ke v85 pada rilis berikutnya).
+
 ## 2026-08-25 (fix PWA install flow — native prompt sekarang dipanggil benar)
 - **Bug**: `checkPWAInstalled()` menilai `navigator.serviceWorker.controller` == PWA terpasang, padahal SW aktif di setiap kunjungan. Akibatnya `isPWAInstalled = true` sebelum prompt muncul, `beforeinstallprompt` ditolak, dan `deferredPrompt` tidak pernah disimpan.
 - **Bug**: `installPWA()` nyaris selalu return karena `isPWAInstalled || checkPWAInstalled()` jadi `true` dari sinyal false-positive — native dialog "Install app" tidak pernah dipanggil, tapi UI tetap ganti ke "Sudah Terpasang" + toast "berhasil" (halu).

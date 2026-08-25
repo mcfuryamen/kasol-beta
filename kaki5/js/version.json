@@ -1,10 +1,10 @@
 {
   "version": "1.0.18",
-  "cacheBust": "v73",
+  "cacheBust": "v85",
   "notes": [
-    "🎨 Logo header kini menyatu dengan background (tanpa outline putih)",
-    "📝 Semua kotak isian (field) kini border tunggal yang lebih tipis dan bersih",
-    "📍 Footer info aplikasi hanya tampil di halaman Pengaturan",
-    "⚡ Struktur internal lebih ramping — 66% inline style dimigrasi ke kelas CSS"
+    "🛒 Halaman Jualan baru: tipe order (Dine-in/Take-away/Ojol) + catatan pesanan yang ikut tercetak di nota",
+    "⌨️ Jumlah item kini bisa diketik langsung di keranjang & pemilih menu (total ter-update real-time)",
+    "🧂🛵 Badge topping & Ojol sejajar horizontal di kartu menu; topping 2 kolom",
+    "🎫 Chip lisensi kini selalu sinkron dengan status lisensi sebenarnya"
   ]
 }

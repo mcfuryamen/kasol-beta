@@ -85,10 +85,13 @@ Berikut diagram alur teks untuk masing‑masing status lisensi:
 
 ### 2.3. Trial Chip di Header (ID: `trialChip`)
 - Letaknya di sebelah kanan header, sebelah tombol “❓ Bantuan”.  
-- Tampilan:  
-  - Aktif: `<div class="trial-label-xs">LISENSI</div><div class="trial-value-sm">✓ Aktif</div>` (warna hijau, tanpa kelas `warn`).  
-  - Trial: `<div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">[X] hari</div>` (warna oranye jika >2 hari, merah jika ≤2 hari; tambah kelas `warn` untuk merah).  
-  - Expired: sama seperti trial dengan teks “Habis” dan kelas `warn`.  
+- **Sumber data tunggal**: `updateTrialChip()` (`license.ui.js`) membaca `getLicenseStatus()` — persis sama dengan gate boot & pengecekan berkala 60 detik, memakai jam efektif anti-rollback (`getEffectiveNow()`), sehingga chip tidak mungkin bertentangan dengan gate.
+- Tampilan (implementasi 2026-08-25):  
+  - Aktif: `<div class="trial-label-xs">LISENSI</div><div class="trial-value-sm">✓ Aktif</div>` (tanpa kelas `warn`).  
+  - Trial: `<div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">[X] hari</div>` (kelas `warn` bila ≤2 hari).  
+  - Expired: `<div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">Habis</div>` + kelas `warn`.  
+  - Revoked: `<div class="trial-label-xs">LISENSI</div><div class="trial-value-sm">✕ Dicabut</div>` + kelas `warn`.  
+  - None (belum ada status): `TRIAL —` tanpa `warn`.  
 - **Interaksi**: klik membuka License Sheet.
 
 ### 2.4. License Gate (Overlay Full‑Screen, ID: `lockOverlay`)

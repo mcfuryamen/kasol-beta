@@ -54,28 +54,34 @@ If you remove an element from `index.html`, either:
 The app uses **one source of truth** for the version — `js/version.js`:
 
 ```
-export const APP_VERSION  = '1.0.0';        // UI label + semantic version
-export const CACHE_BUST   = 'v1';           // app.js script/link query string
+export const APP_VERSION  = '1.0.18';       // UI label + semantic version
+export const CACHE_BUST   = 'v85';          // app.js script/link query string
 ```
 
 A second, independent constant lives in the service worker:
 
 ```
 // sw.js
-const CACHE_NAME = 'kasir-solo-kaki5-v41';  // must match the pattern below
+const CACHE_NAME = 'kasir-solo-kaki5-v85';  // must match the pattern below
 ```
+
+A fifth consumer — `js/version.json` (dipakai update-checker/force-update) — wajib
+membawa `version` & `cacheBust` yang sama.
 
 ### When you ship ANY change to assets (js, css, html, icons)
 
-Bump **all three** in lockstep, or users get stale cached code:
+Bump **all five** in lockstep, or users get stale cached code:
 
 1. `js/version.js` → `APP_VERSION` (and `CACHE_BUST`).
-2. `sw.js` → `CACHE_NAME` version suffix (`v41`, `v42`, …).
+2. `sw.js` → `CACHE_NAME` version suffix (`v85`, `v86`, …).
 3. `index.html` → the cache-busting `?v=`/`?v=` on `<script>`/`<link>` tags.
 4. `README.md` → the documented `?v=` value (it documents what users should see).
+5. `js/version.json` → `version` + `cacheBust` (+ `notes` untuk overlay "Yang baru").
 
-> **Where they live today:** `CACHE_BUST = 'v1'` in version.js drives app.js URLs;
-> `sw.js` `CACHE_NAME` is `v41`. If either moves, update BOTH and this doc's table.
+> **Where they live today:** `CACHE_BUST = 'v85'` in version.js drives app.js URLs;
+> `sw.js` `CACHE_NAME` is `v85`; `version.json` `cacheBust` `v85`. If either moves,
+> update ALL and this doc's table. (2026-08-25: `version.json` pernah tertinggal di
+> v73 sementara kode v85 — sinkronkan lagi bila melihat drift.)
 
 ### Cache version bump checklist (SW precache)
 

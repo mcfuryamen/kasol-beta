@@ -170,6 +170,17 @@ Titik panggil:
 
 > ⚠️ **Pitfall yang sudah diperbaiki**: key `localStorage` bertipe string (`"1"`), sedangkan primary key Dexie number (`1`). `loadCart()` wajib mengonversi id ke `Number()` dan **re-hydrate** objek `menu` dari DB, supaya `db.menu.get("1")` tidak mengembalikan `undefined`.
 
+#### Fitur POS 2026-08-25 (tipe order, catatan, qty manual)
+
+- **Tipe order** (`orderType` di `app-state.js`): `dine-in` / `takeaway` / `ojol`. Tombol di halaman Jualan (bukan modal) — `toggleOrderType()` (`pos.ui.js`) update kelas tombol + re-render grid (harga `hargaOjol` saat ojol). Satu sumber kebenaran; record penjualan menyimpan `orderType`.
+- **Catatan pesanan**: `#orderNoteInput` di bawah tombol tipe order; draft di `localStorage['kasirsolo:order-note']` (restore saat `loadPOS`); `simpanPenjualan()` membaca DOM → kolom `orderNote` di record `penjualan`; dicetak `printer.js` (nota BT & browser), tampil di `trxdetail.js` & `laporan.js`; reset otomatis setelah simpan.
+- **Qty input manual**: angka qty antara −/＋ di cart & menu selector kini `<input type="number">`.
+  - Cart: `data-action="cart-qty-input"` → `handleDataAction` membedakan `event.type`: `input` → `setCartQty(id, val, false)` (update state + cartBar + badge grid + `refreshCartModalTotals()` — **tanpa rebuild `#cartItems` agar fokus tidak hilang**); `change` (blur/Enter) → `setCartQty(id, val, true)` (sinkron penuh via `openCartModal()`).
+  - `setCartQty(menuId, qty, rerender)` (`pos.js`): clamp 1–999, delta dihitung lalu lewat `changeQtyLogic`.
+  - Menu selector: `#menuSelectorQty` input 1–99; `changeMenuSelectorQty` membaca nilai DOM dulu (ketikan manual tidak tertimpa stepper); `confirmMenuSelector` membaca input (fallback state).
+- **Menu selector topping**: `#menuSelectorToppings` grid 2 kolom (`grid-template-columns:1fr 1fr`, auto-flow row = kiri→kanan lalu bawah). Panel topping di cart (`#toppingList`) tidak diubah.
+- **Badge kartu menu**: `.item-badges` (flex horizontal) — 🧂 bila `parseToppings(m.toppingList).length > 0`, 🛵 bila `hargaOjol > 0`; badge qty `.item-qty` pill di dalam kartu.
+
 ### `laporan.js` — Laporan + Pengeluaran (Integrated, v4)
 - **Query batch + group di memory** (bukan N+1): `renderChart(range, period, sales, expenses)` menerima data hasil query tunggal, lalu mengelompokkan per hari/minggu/bulan di memory memakai lookup map `dayIncome`/`dayExpense` → O(n).
 - **Navigasi periode** memakai aritmatika bulan yang benar (`new Date(y, m-2, 1)` / `new Date(y, m, 1)`), bukan `addDays(date, 30)` — menangani lintas tahun (Des→Jan, Jan→Des).
@@ -384,7 +395,8 @@ KK5-A1B2-C3D4-99-X7K9M2
 ```
 
 ### UI Integration
-- **Trial Chip** (top-right header) — onclick → buka license sheet
+- **Trial Chip** (top-right header) — onclick → buka license sheet. `updateTrialChip()` (`license.ui.js`) kini **cermin persis `getLicenseStatus()`** (sumber sama dengan gate boot & interval 60 detik): `active` → "LISENSI ✓ Aktif", `trial` → "TRIAL N hari" (`warn` bila ≤2), `expired` → "TRIAL Habis", `revoked` → "LISENSI ✕ Dicabut", `none` → "—".
+- **`daysLeft()` async + anti-rollback**: sisa hari memakai `getEffectiveNow()` (clock anchor), sama dengan `getLicenseStatus()` — chip/kartu status/lock overlay tidak lagi bisa bertentangan saat jam perangkat dimundurkan. Semua pemanggil `await`.
 - **License Gate** (overlay saat app tidak aktif) — tombol "Coba 7 Hari" / input serial / contact WA
 - **Lock Overlay** (saat trial habis) — info expired + extend via share / activate serial
 - **License Sheet** (bottom modal) — status detail, extend button, activate button, device ID

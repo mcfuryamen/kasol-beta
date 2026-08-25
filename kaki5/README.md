@@ -28,14 +28,14 @@ Aplikasi ini adalah **Progressive Web App (PWA)** berarsitektur **single-page (S
 
 Proyek ini **telah direfactor menjadi arsitektur modular-atomic** dengan pemisahan 3-layer (DATA, LOGIC, UI) untuk maintainability dan scalability. Setiap modul besar (POS, License, Settings) dipecah menjadi 3 file terpisah.
 
-**Total: 35+ files** (naik dari 24 files monolitik)
+**Total: 44 modul JS** (naik dari 24 files monolitik)
 
 ```
 kaki5/
 ├── index.html          ← Shell HTML (Single-source CSS + ESM lazy loading)
 ├── server.cjs          ← HTTP server dev port 8086 (no-cache)
 ├── dexie.min.js        ← Library Dexie 3.2.4
-├── sw.js               ← Service Worker v73 (single-source cache)
+├── sw.js               ← Service Worker v85 (single-source cache)
 ├── vercel.json         ← Konfigurasi Vercel
 ├── css/
 │   └── style.css       ← Single-source CSS (CSS variables, reset, layout, components, responsive breakpoints)
@@ -77,15 +77,15 @@ kaki5/
 
 **UI/UX Changes (v5):**
 - ✅ **Modular-Atomic 3-Layer**: POS, License, Settings dipecah jadi Logic + UI + Sync
-- ✅ **CSS Modular**: 1 file → 13 files (base + 12 component files)
+- ✅ **CSS Single-Source**: kembali 1 file `css/style.css` (eksperimen 13-file modular sudah digabung ulang; dijaga `test-css-drift.js`)
 - ✅ **Lazy Loading**: Critical modules (POS, Beranda) pre-wire, others load on demand
 - ✅ **Debounce Search**: POS dan Menu search di-debounce 300ms
 - ✅ **Router System**: URL hash-based navigation dengan History API
-- ✅ **Service Worker v35**: Modular cache dengan no-cache headers
+- ✅ **Service Worker v85**: Modular cache dengan no-cache headers
 
 **Arsitektur baru (v5):**
 1. `<script src="dexie.min.js">` (global)
-2. `<script type="module" src="js/app.js?v=66">` (ESM entry - lazy loading)
+2. `<script type="module" src="js/app.js?v=85">` (ESM entry - lazy loading)
 
 `app.js` melakukan:
 - Pre-wire critical modules (pos, beranda)
@@ -154,10 +154,15 @@ Nama database: **`KasirSoloKakiLima`**.
 - Tombol **Tambah Menu** (FAB).
 
 ### 3. 🛒 Jualan (POS)
-- Grid menu dengan **pencarian** dan **filter kategori**.
-- Keranjang floating → atur qty → preset button (numeric only, tanpa "Rp") → input uang diterima → hitung **kembalian otomatis** → **Simpan penjualan**.
+- **Tipe order di atas grid**: 🍽️ Dine-in / 🥡 Take-away / 🛵 Ojol — tombol aktif disorot; pilih Ojol → harga `hargaOjol` otomatis dipakai di grid & keranjang.
+- **Kontrol sticky**: tipe order + pencarian + accordion kategori tetap di atas saat menu di-scroll (`.pos-controls`).
+- **Catatan pesanan**: kotak catatan dengan placeholder dinamis per tipe order (meja / nama pemesan / GoFood-GrabFood-ShopeeFood); draft tersimpan otomatis, ikut ke **nota (Bluetooth & browser)**, **detail transaksi**, dan **laporan**; reset setelah tiap transaksi.
+- Grid menu dengan **pencarian** (debounce 300ms) dan **filter kategori** (accordion).
+- **Badge kartu menu**: 🧂 jika menu punya topping, 🛵 jika ada harga Ojol — sejajar horizontal; badge qty (pill) di dalam kartu.
+- **Menu selector** (menu dengan topping / harga Ojol): pilih topping (grid 2 kolom) + qty (stepper −/＋ **atau ketik manual**, 1–99) sebelum masuk keranjang.
+- **Keranjang**: qty via stepper **atau ketik manual** (1–999) — total, harga per baris, preset bayar & kembalian ter-update real-time saat mengetik.
 - **Persist cart**: keranjang disimpan ke `localStorage` (`kaki5-cart`), sehingga tidak hilang saat aplikasi ditutup/dibuka ulang.
-- **Cetak nota** setelah transaksi selesai.
+- **Footer cart**: Batal / **Simpan** / **🖨️ Simpan & Cetak** (simpan dulu, lalu cetak nota — kegagalan printer tidak membatalkan transaksi); kembalian otomatis; preset nominal.
 
 ### 4. 📊 Laporan (+ Pengeluaran)
 - **Integrasi Laporan & Pengeluaran**: Laporan sekarang include pengeluaran di satu halaman.
@@ -268,7 +273,7 @@ Setiap modul besar dipecah menjadi 3 layer terpisah:
     ↓
 [<script src="dexie.min.js">] ← Dexie global tersedia
     ↓
-[<script type="module" src="js/app.js?v=66">] ← ESM entry point
+[<script type="module" src="js/app.js?v=85">] ← ESM entry point
     ↓
 [app.js: Lazy load critical modules first]
     ├─ pos.js (PRE-WIRE)
@@ -318,7 +323,7 @@ cleanup() → saat pindah ke page lain
 | **Persist sementara** | Web Storage API (`localStorage`) | Cart persisted ke kaki5-cart |
 | **Offline/PWA** | Service Worker (`sw.js`) + manifest | Cache-first asset, network-first HTML |
 | **Printer** | Web Bluetooth API | ESC/POS 58/80mm thermal |
-| **License** | HMAC-SHA256 (offline) | Trial 7 hari + share-extend (20x) + serial (KK5 prefix) |
+| **License** | HMAC-SHA256 (offline) + Supabase cloud | Trial 7 hari + share-extend (20x) + serial (KK5 prefix); anti-rollback jam (`clockAnchor`/`getEffectiveNow`); chip header = cermin `getLicenseStatus()` |
 | **Cloud (future)** | Supabase (tahap 2) | Validasi lisensi + sync transaksi (roadmap) |
 
 ---
