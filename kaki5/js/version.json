@@ -1,7 +1,8 @@
 {
-  "version": "1.0.25",
-  "cacheBust": "v93",
+  "version": "1.0.26",
+  "cacheBust": "v94",
   "notes": [
+    "🔒 Layar 'Lisensi Dinonaktifkan' kini SOLID putih penuh — objek di belakangnya tidak terlihat lagi, kartu diposisikan di tengah layar (atas-bawah, kanan-kiri). Rule CSS .revoked-page yang hilang saat konsolidasi CSS modular v72 sudah dikembalikan.",
     "🏷️ Form menu: label disederhanakan — 'Harga Modal', 'Harga Jual', 'Harga Ojol', 'Topping'. Teks penjelasan (opsional/format) pindah ke bawah label dengan font kecil miring (.form-helper).",
     "🧪 test_pos.js: 17 unit test untuk kalkulasi topping (normalize/toppingHarga/lineTotal/calculateTotal) — semua PASS.",
     "🛡️ SW error handling: tangkap rejection `caches.put()` untuk request scheme yang tidak didukung (mis. chrome-extension://) agar tidak terjadi 'Uncaught (in promise)' di console.",

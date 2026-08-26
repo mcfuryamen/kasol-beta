@@ -683,6 +683,12 @@ body.modal-open .main-content{overflow:hidden}
 .kclose-btn{padding:8px;width:40px;height:40px;border-radius:8px;flex-shrink:0}
 .klh16{line-height:1.6}.klh15{line-height:1.5}
 .kgate-box{max-width:440px;width:100%;text-align:center}
+/* Mode "Lisensi Dicabut" (#lockOverlay.revoked-page, toggle di license.ui.js
+   setLockMode): overlay WAJIB solid putih — objek di belakang tidak boleh
+   terlihat — dan kartu #lockRevokedPage di tengah (vertikal & horizontal).
+   Rule ini hilang saat konsolidasi CSS modular (v72) sehingga overlay
+   tampil transparan. */
+#lockOverlay.revoked-page{background:#fff;align-items:center;justify-content:center;padding:24px;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
 .kgreen-box{background:var(--green-bg);border-radius:16px;padding:16px;margin-bottom:16px}
 .kfs40{font-size:40px}
 
