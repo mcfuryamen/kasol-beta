@@ -248,7 +248,7 @@ const TUTORIALS = [
         <ol class="kpl20 kmy8">
                   <li>Tekan chip <b>"TRIAL"</b> di pojok kanan atas untuk buka panel lisensi</li>
                   <li>Tekan <b>"💳 Beli Lisensi"</b> → muncul sheet dengan <b>QRIS</b> atau rekening &amp; nominal</li>
-                  <li>Transfer sesuai nominal, lalu tekan <b>"🧾 Kirim Bukti Bayar"</b> → pilih foto bukti, tekan lagi untuk mengirim</li>
+                  <li>Transfer sesuai nominal, lalu tekan <b>"🧾 Kirim Bukti Pembayaran"</b> → pilih foto bukti, tekan lagi untuk mengirim</li>
                   <li>Admin verifikasi → lisensi diaktifkan otomatis (tunggu beberapa saat)</li>
                 </ol>
                 <p class="kmt16"><b>Aktivasi Kode Lisensi Resmi:</b></p>

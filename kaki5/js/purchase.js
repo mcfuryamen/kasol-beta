@@ -135,7 +135,7 @@ export async function openPurchaseSheet() {
           <span class="ktext2">Bank</span><span class="kfw700">${payInfo.bank || '—'}</span>
         </div>
         <div class="kflex-between kgap8 kmb8 kfs14">
-          <span class="ktext2">No. Rekening</span><span style="font-weight:700;font-family:monospace">${payInfo.accountNumber || '—'}</span>
+          <span class="ktext2">No. Rekening</span><span style="font-size:18px;font-weight:800;font-family:monospace">${payInfo.accountNumber || '—'}</span>
         </div>
         <div style="display:flex;justify-content:space-between;gap:8px;font-size:14px">
           <span class="ktext2">Atas Nama</span><span class="kfw700">${payInfo.accountName || '—'}</span>
@@ -151,13 +151,13 @@ export async function openPurchaseSheet() {
     ? `
       <div style="background:var(--bg2);border-radius:12px;padding:12px 14px;margin-bottom:16px">
         <div class="kflex-between kgap8 kmb8 kfs14">
-          <span class="ktext2">Produk</span><span class="kfw700">${payInfo.productName || 'Kaki Lima'} · ${productCode}</span>
+          <span class="ktext2">Produk</span><span class="kfw700">Kasir Solo - Kaki Lima | ${productCode}</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span class="kfs14 ktext2">Harga Lisensi</span>
           <!-- Harga lama (opsional) dicoret + oranye; HARGA NORMAL TIDAK dicoret.
                NB: <s> WAJIB ditutup di sini — kalau tidak, seluruh konten di
-               bawahnya (QRIS, rekening, Unit ID, cara pembayaran) ikut tercoret. -->
+               bawahnya (QRIS, rekening, cara pembayaran) ikut tercoret. -->
           <span style="display:inline-flex;align-items:baseline;gap:8px">
             ${payInfo.priceBeforeLabel ? `<s style="font-size:13px;color:var(--primary);font-weight:600">${payInfo.priceBeforeLabel}</s>` : ''}
             <span style="font-size:18px;font-weight:800;color:var(--accent,var(--success,#16a34a))">${payInfo.priceLabel}</span>
@@ -166,7 +166,7 @@ export async function openPurchaseSheet() {
       </div>`
     : '';
 
-  // STEP 1 — info pembayaran + tombol "Kirim Bukti Bayar"
+  // STEP 1 — info pembayaran + tombol "Kirim Bukti Pembayaran"
   body.innerHTML = `
     <div class="kmb16">
       <p class="ktext2 kfs14">
@@ -178,27 +178,26 @@ export async function openPurchaseSheet() {
     <div class="kcenter kmb16">${qrisHtml}</div>
     ${bankHtml}
 
-    <div style="background:var(--bg2);border-radius:12px;padding:12px;margin-bottom:16px">
-      <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Unit ID</div>
-      <div style="font-family:monospace;font-size:14px;font-weight:600">${unit_id}</div>
-    </div>
+    <!-- Blok visual "Unit ID" dihapus (permintaan pemilik 2026-08-26) —
+         logika unit_id TETAP jalan: dikirim ke cloud saat kirim bukti &
+         dipakai polling realtime (window._ksr_purchaseUnitId). -->
 
     <div id="purchaseUploadStep" class="kmt16">
       <input type="file" id="buktiInput" accept="image/png,image/jpeg,image/webp" capture="environment" style="display:none" data-action="handle-bukti-upload">
-      <div id="buktiPlaceholder" style="margin-bottom:10px;padding:14px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--text2);font-size:13px">
-        📎 Bukti pembayaran belum dipilih
+      <div id="buktiPlaceholder" style="margin-bottom:10px;padding:14px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--green);font-weight:700;font-size:13px">
+        📎 Lampirkan foto bukti pembayaran di sini
       </div>
       <div id="buktiPreview" style="margin-bottom:10px;text-align:center"></div>
       <button class="btn btn-primary kw-full" data-action="trigger-bukti-input" ${payInfo.isDemo ? 'disabled title="Menunggu konfigurasi pembayaran admin"' : ''} id="submitPurchaseBtn">
-        🧾 ${payInfo.isDemo ? 'Pembayaran belum siap' : 'Kirim Bukti Bayar'}
+        🧾 ${payInfo.isDemo ? 'Pembayaran belum siap' : 'Kirim Bukti Pembayaran'}
       </button>
     </div>
 
-    <div style="margin-top:16px;padding:12px;background:var(--bg2);border-radius:8px;font-size:13px;color:var(--text2)">
+    <div style="margin-top:16px;padding:12px;background:rgba(250,204,21,0.15);border-radius:8px;font-size:13px;color:var(--text2)">
       <strong>📋 Cara Pembayaran:</strong><br>
       1. Scan QRIS di atas atau transfer ke rekening yang tertera<br>
       2. Transfer sesuai nominal (${payInfo.priceLabel || 'lihat info harga'})<br>
-      3. Klik "Kirim Bukti Bayar" untuk memilih foto, lalu klik lagi untuk mengirim<br>
+      3. Klik "Kirim Bukti Pembayaran" untuk memilih foto, lalu klik lagi untuk mengirim<br>
       4. Admin akan memverifikasi & mengaktifkan lisensi Anda
     </div>
   `;
