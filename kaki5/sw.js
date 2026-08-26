@@ -5,7 +5,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v92';
+const CACHE_NAME = 'kasir-solo-kaki5-v93';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

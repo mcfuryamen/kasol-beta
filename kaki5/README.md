@@ -35,7 +35,7 @@ kaki5/
 ├── index.html          ← Shell HTML (Single-source CSS + ESM lazy loading)
 ├── server.cjs          ← HTTP server dev port 8086 (no-cache)
 ├── dexie.min.js        ← Library Dexie 3.2.4
-├── sw.js               ← Service Worker v92 (single-source cache)
+├── sw.js               ← Service Worker v93 (single-source cache)
 ├── vercel.json         ← Konfigurasi Vercel
 ├── css/
 │   └── style.css       ← Single-source CSS (CSS variables, reset, layout, components, responsive breakpoints)
@@ -81,7 +81,7 @@ kaki5/
 - ✅ **Lazy Loading**: Critical modules (POS, Beranda) pre-wire, others load on demand
 - ✅ **Debounce Search**: POS dan Menu search di-debounce 300ms
 - ✅ **Router System**: URL hash-based navigation dengan History API
-- ✅ **Service Worker v92**: Modular cache dengan no-cache headers
+- ✅ **Service Worker v93**: Modular cache dengan no-cache headers
 
 **Arsitektur baru (v5):**
 1. `<script src="dexie.min.js">` (global)

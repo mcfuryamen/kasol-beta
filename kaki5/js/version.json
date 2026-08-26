@@ -1,13 +1,13 @@
 {
-  "version": "1.0.24",
-  "cacheBust": "v92",
+  "version": "1.0.25",
+  "cacheBust": "v93",
   "notes": [
+    "🏷️ Form menu: label disederhanakan — 'Harga Modal', 'Harga Jual', 'Harga Ojol', 'Topping'. Teks penjelasan (opsional/format) pindah ke bawah label dengan font kecil miring (.form-helper).",
+    "🧪 test_pos.js: 17 unit test untuk kalkulasi topping (normalize/toppingHarga/lineTotal/calculateTotal) — semua PASS.",
     "🛡️ SW error handling: tangkap rejection `caches.put()` untuk request scheme yang tidak didukung (mis. chrome-extension://) agar tidak terjadi 'Uncaught (in promise)' di console.",
     "🔄 Auto-update tanpa hard refresh: tambah `controllerchange` listener di app.js. Ketika SW baru mengambil alih controller (skipWaiting → activate → clients.claim), overlay update akan muncul otomatis jika `version.json.cacheBust` berubah.",
     "🔌 CSP connect-src: izinkan `wss://hhywrvedlwljawgxzpkq.supabase.co` di meta CSP agar WebSocket Supabase tidak diblokir oleh browser.",
     "🔁 Sinkron penghitungan topping: trx detail, nota (thermal + browser print), dan cart modal kini menggunakan `normalizeToppingQtys` sebagai SSoT. Data lama `toppingQty` number atau tanpa field tetap fallback aman.",
-    "🧾 Nota: thermal + browser print konsisten — qty per-topping dari `toppingQtys`, fallback 1 via `normalizeToppingQtys`; harga baris = base*qty + Σ(harga topping * qty topping).",
-    "📋 Trx detail: ganti fallback manual `i.toppingQtys || {}` + `|| 1` menjadi `normalizeToppingQtys(i)` agar tidak melenceng dari kalkulasi nota/cart.",
     "🛒 Cart modal: chip topping dipindah ke dalam baris nama menu (di `.cart-name-row`) sebagai inline tag; teks 'berlaku untuk semua item' diubah menjadi gaya note kecil (knote).",
     "🧮 Per-topping qty (refactor): ganti `toppingQty` (Number, qty global) jadi `toppingQtys` (Object {nama: qty}, qty per-topping). Mis. nasi 2 + telur dadar 1, ayam goreng 2 → (5000×2) + (3000×1) + (5000×2) = 23.000. UI: 1 grid penuh per opsi topping, stepper qty inline di kanan (hidden sampai checkbox dicentang). Backward-compat: data lama dengan `toppingQty` number masih terbaca.",
     "📊 KPI Beranda & Laporan: kartu jumlah transaksi / porsi / rata-rata kini punya latar oranye pastel (konsisten dengan pola warna hijau/merah/biru)",
