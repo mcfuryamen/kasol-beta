@@ -184,12 +184,14 @@ export async function openPurchaseSheet() {
 
     <div id="purchaseUploadStep" class="kmt16">
       <input type="file" id="buktiInput" accept="image/png,image/jpeg,image/webp" capture="environment" style="display:none" data-action="handle-bukti-upload">
-      <div id="buktiPlaceholder" style="margin-bottom:10px;padding:14px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--green);font-weight:700;font-size:13px">
-        📎 Lampirkan foto bukti pembayaran di sini
-      </div>
+      <!-- Placeholder "📎 Lampirkan foto..." dihapus (permintaan pemilik 2026-08-26) —
+           state foto kini cukup terlihat dari warna/label tombol + preview di bawah. -->
       <div id="buktiPreview" style="margin-bottom:10px;text-align:center"></div>
-      <button class="btn btn-primary kw-full" data-action="trigger-bukti-input" ${payInfo.isDemo ? 'disabled title="Menunggu konfigurasi pembayaran admin"' : ''} id="submitPurchaseBtn">
-        🧾 ${payInfo.isDemo ? 'Pembayaran belum siap' : 'Kirim Bukti Pembayaran'}
+      <!-- Dua state (permintaan pemilik 2026-08-26): foto belum terpilih → HIJAU
+           "Lampirkan Bukti Pembayaran"; foto sudah terpilih → ORANYE "Kirim Sekarang".
+           Switch state dilakukan di handleBuktiUpload(). -->
+      <button class="btn btn-green kw-full" data-action="trigger-bukti-input" ${payInfo.isDemo ? 'disabled title="Menunggu konfigurasi pembayaran admin"' : ''} id="submitPurchaseBtn">
+        ${payInfo.isDemo ? 'Pembayaran belum siap' : '📎 Lampirkan Bukti Pembayaran'}
       </button>
     </div>
 
@@ -197,7 +199,7 @@ export async function openPurchaseSheet() {
       <strong>📋 Cara Pembayaran:</strong><br>
       1. Scan QRIS di atas atau transfer ke rekening yang tertera<br>
       2. Transfer sesuai nominal (${payInfo.priceLabel || 'lihat info harga'})<br>
-      3. Klik "Kirim Bukti Pembayaran" untuk memilih foto, lalu klik lagi untuk mengirim<br>
+      3. Klik "Lampirkan Bukti Pembayaran" untuk memilih foto, lalu klik "Kirim Sekarang" untuk mengirim<br>
       4. Admin akan memverifikasi & mengaktifkan lisensi Anda
     </div>
   `;
@@ -233,8 +235,6 @@ export async function handleBuktiUpload(event) {
   window._ksr_currentBuktiFile = file;
 
   const preview = document.getElementById('buktiPreview');
-  const placeholder = document.getElementById('buktiPlaceholder');
-  if (placeholder) placeholder.textContent = `✅ ${file.name}`;
   if (preview) {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -244,12 +244,17 @@ export async function handleBuktiUpload(event) {
     reader.readAsDataURL(file);
   }
 
-  // Enable submit button
+  // Switch state tombol (permintaan pemilik 2026-08-26):
+  // HIJAU "Lampirkan Bukti Pembayaran" → ORANYE "Kirim Sekarang".
+  // Aksi klik tetap lewat dispatcher data-action="trigger-bukti-input" (app.js)
+  // — JANGAN pasang btn.onclick lagi (dulu klik kedua membuka file picker
+  // DAN submit bersamaan).
   const btn = document.getElementById('submitPurchaseBtn');
   if (btn) {
     btn.disabled = false;
-    btn.textContent = '🚀 Kirim Bukti Pembayaran';
-    btn.onclick = () => window._ksr_submitPurchase(window._ksr_purchaseUnitId, window._ksr_purchaseDeviceCode);
+    btn.classList.remove('btn-green');
+    btn.classList.add('btn-primary');
+    btn.textContent = '🚀 Kirim Sekarang';
   }
 }
 

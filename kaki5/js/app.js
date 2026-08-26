@@ -731,9 +731,19 @@ function handleDataAction(action, el, event) {
     case 'check-license-status':
       syncLicenseStatus();
       break;
-    case 'trigger-bukti-input':
-      document.getElementById('buktiInput')?.click();
+    case 'trigger-bukti-input': {
+      // Dua state tombol kirim bukti (permintaan pemilik 2026-08-26):
+      // foto belum terpilih → buka file picker (tombol hijau "Lampirkan Bukti
+      // Pembayaran"); foto sudah terpilih → kirim (tombol oranye "Kirim
+      // Sekarang"). Dulu btn.onclick dipasang ganda di handleBuktiUpload
+      // sehingga klik kedua membuka file picker DAN submit bersamaan.
+      if (window._ksr_currentBuktiFile) {
+        window._ksr_submitPurchase(window._ksr_purchaseUnitId, window._ksr_purchaseDeviceCode);
+      } else {
+        document.getElementById('buktiInput')?.click();
+      }
       break;
+    }
     case 'handle-bukti-upload':
       // Dipicu event 'change' pada input file #buktiInput (lihat delegasi change di init).
       handleBuktiUpload(event);
