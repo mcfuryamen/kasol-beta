@@ -292,7 +292,9 @@ async function renderGate(status) {
     lc.style.display = 'none';
   } else {
     ob.style.display = 'none';
-    lc.style.display = '';
+    // 'block' eksplisit: #gateLicenseBlock punya class .khide (display:none),
+    // inline kosong ('') tidak menimpa class -> gate tampil blank putih.
+    lc.style.display = 'block';
     lc.innerHTML = gateLicenseHtml(status);
   }
 }

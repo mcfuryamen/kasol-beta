@@ -114,5 +114,9 @@ kaki5/test-import.mjs
 *.del
 .gitignore-extra*
 
+# File pesan commit sementara (git commit -F)
+.git-commit-msg*.txt
+kaki5/.git-commit-msg*.txt
+
 # Log Playwright MCP (dev-only, tidak di-track)
 .playwright-mcp/
