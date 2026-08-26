@@ -92,6 +92,7 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 /* FORMS */
 .form-group{margin-bottom:16px}
 .form-label{display:block;font-size:14px;font-weight:700;color:var(--text2);margin-bottom:6px}
+.form-helper{font-size:12px;color:var(--text3);font-style:italic;margin-bottom:6px}
 .form-input{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:17px;font-weight:600;background:#fff;color:var(--text);transition:border .2s;-webkit-appearance:none}
 .form-input:focus{outline:none;border-color:var(--primary)}
 .form-input::placeholder{color:#bbb}
