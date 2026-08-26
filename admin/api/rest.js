@@ -34,10 +34,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'method_not_allowed' });
   }
 
-  // Gate fail-closed + constant-time (lihat _gate.js). Kalau ADMIN_API_KEY
-  // belum diset di env → 503 (bukan biarkan lewat).
+  // Gate: cek x-session-key (time-limited, di-mint oleh browser via GET /api/token)
+  // atau x-admin-key (legacy fallback). Lihat _gate.js dan _token.js.
+  // Kalau ADMIN_API_KEY belum di-set → 503 (fail-closed).
   const gate = checkAdminGate(req);
   if (!gate.ok) {
+    // Khusus token_expired: minta browser refresh token dan retry
+    if (gate.error === 'token_expired') {
+      return res.status(401).json({ error: 'token_expired', refresh: true });
+    }
     return res.status(gate.code).json({ error: gate.error });
   }
 

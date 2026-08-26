@@ -3,16 +3,16 @@
  * =============================================================================
  * Generate & verifikasi lisensi SERVER-SIDE.
  *
- * Fix C1 (audit): sebelumnya HMAC salt di-hardcode di client JS dan serial
- * bisa digenerate offline oleh siapa pun. Sekarang:
- *   - Salt produk resmi hanya hidup di SERVER (env LICENSE_SALTS, fallback
- *     konstanta di bawah — TIDAK PERNAH dikirim ke browser).
- *   - Client kirim aksi { generate | verify } + input polos; server yang
- *     memegang crypto & salt lalu memproduksi/ memvalidasi serial.
- *   - Endpoint dilindungi gate ADMIN_API_KEY (sama seperti /api/rest).
+ * Fix (audit 2026-08-23):
+ *   - HMAC salt produk hanya hidup di SERVER. TIDAK PERNAH dikirim ke browser.
+ *   - Client kirim aksi { generate | verify } + input polos; server memegang
+ *     salt lalu memproduksi/memvalidasi serial.
+ *   - Gate: x-session-key (time-limited, di-mint browser via GET /api/token) →
+ *     precedence tertinggi. Fallback x-admin-key (legacy, segera dihapus).
+ *     Lihat api/_gate.js dan api/_token.js.
  *
- * Produk kustom (dibuat via UI) boleh kirim salt override, TAPI hanya saat
- * request (tidak pernah di-bundle statis), dan tetap melewati gate.
+ * Produk kustom (dibuat via UI) boleh kirim salt override, tapi hanya saat
+ * request (tidak pernah di-bundle statis), tetap melewati gate.
  *
  * Environment (Vercel): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_API_KEY,
  *                      LICENSE_SALTS (opsional, JSON override salt per prefix)
@@ -45,9 +45,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'method_not_allowed' });
   }
 
-  // Gate fail-closed + constant-time (sama kebijakan dengan /api/rest).
+  // Gate: x-session-key (di-mint browser via GET /api/token) atau x-admin-key (legacy).
   const gate = checkAdminGate(req);
   if (!gate.ok) {
+    if (gate.error === 'token_expired') {
+      return res.status(401).json({ error: 'token_expired', refresh: true });
+    }
     return res.status(gate.code).json({ error: gate.error });
   }
 

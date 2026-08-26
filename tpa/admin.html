@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#ea580c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Kasir Solo - TPA | Admin / Kepala TPA</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+<style>
+:root{
+  --brand:#ea580c;--brand-light:#fff7ed;--brand-dark:#c2410c;
+  --surface:#ffffff;--surface-dim:#f8fafc;--surface-container:#f1f5f9;--surface-variant:#e2e8f0;
+  --on-surface:#0f172a;--on-surface-variant:#475569;--outline:#cbd5e1;--outline-variant:#e2e8f0;
+  --error:#dc2626;--error-bg:#fef2f2;--success:#16a34a;--success-bg:#f0fdf4;
+  --info:#2563eb;--info-bg:#eff6ff;--warning:#d97706;--warning-bg:#fffbeb;
+  --nav-h:64px;--bar-h:56px;--radius:12px;--radius-full:9999px;
+  --shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 2px 8px rgba(0,0,0,.1);--shadow-lg:0 4px 16px rgba(0,0,0,.12);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--surface-dim);color:var(--on-surface);font-size:14px;line-height:1.5;height:100%;overflow:hidden;-webkit-font-smoothing:antialiased}
+.hidden{display:none!important}
+
+/* Shell */
+.app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.app-bar{background:var(--surface);padding:0 16px;height:var(--bar-h);display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;z-index:30}
+.app-bar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:var(--outline-variant)}
+.app-bar-title{font-size:20px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-bar-sub{font-size:11px;color:var(--on-surface-variant);font-weight:400}
+.bar-btn{width:40px;height:40px;border:none;background:none;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;color:var(--on-surface-variant);flex-shrink:0;position:relative}
+.bar-btn:active{background:var(--surface-container)}
+.page-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + var(--safe-b) + 16px)}
+
+/* Bottom Nav */
+.bottom-nav{background:var(--surface);display:flex;height:var(--nav-h);flex-shrink:0;padding-bottom:var(--safe-b);z-index:40;box-shadow:0 -1px 0 var(--outline-variant)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;padding:8px 4px;color:var(--on-surface-variant);font-family:inherit;transition:color .2s}
+.nav-item.active{color:var(--brand)}
+.nav-pill{width:48px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;transition:background .2s;font-size:20px}
+.nav-item.active .nav-pill{background:var(--brand-light)}
+.nav-label{font-size:11px;font-weight:500}.nav-item.active .nav-label{font-weight:700;color:var(--brand)}
+.nav-item:active .nav-pill{transform:scale(.9)}
+
+/* Sub chips */
+.sub-chips{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0}
+.sub-chips::-webkit-scrollbar{display:none}
+.chip{padding:7px 16px;border-radius:var(--radius-full);border:1px solid var(--outline);background:var(--surface);color:var(--on-surface-variant);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit;flex-shrink:0}
+.chip.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.chip:active{transform:scale(.95)}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b) + 16px);right:16px;width:56px;height:56px;border-radius:16px;background:var(--brand);color:#fff;border:none;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-lg);cursor:pointer;z-index:35;transition:transform .2s}
+.fab:active{transform:scale(.92)}
+
+/* Cards */
+.m-card{background:var(--surface);border-radius:var(--radius);margin:0 16px 12px;box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--outline-variant)}
+.m-card.el{box-shadow:var(--shadow-md);border:none}
+.m-card-body{padding:16px}
+
+/* List */
+.li{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;transition:background .12s;min-height:56px}
+.li:active{background:var(--surface-container)}
+.li+.li{border-top:1px solid var(--outline-variant)}
+.li-icon{width:40px;height:40px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.li-body{flex:1;min-width:0}
+.li-title{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li-sub{font-size:12px;color:var(--on-surface-variant);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li-end{font-size:12px;color:var(--on-surface-variant);flex-shrink:0;text-align:right}
+
+/* Stats */
+.stats-row{display:flex;gap:12px;padding:12px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.stats-row::-webkit-scrollbar{display:none}
+.stat-chip{background:var(--surface);border:1px solid var(--outline-variant);border-radius:var(--radius);padding:14px 18px;min-width:130px;flex-shrink:0}
+.sc-icon{font-size:20px;margin-bottom:4px}.sc-val{font-size:22px;font-weight:800}.sc-lbl{font-size:11px;color:var(--on-surface-variant)}
+
+/* Hero */
+.hero{margin:12px 16px;border-radius:20px;padding:24px 20px;background:linear-gradient(135deg,#ea580c,#f97316,#fb923c);color:#fff;position:relative;overflow:hidden}
+.hero::after{content:'📖';position:absolute;right:-10px;bottom:-15px;font-size:80px;opacity:.15;transform:rotate(-15deg)}
+.hero h2{font-size:22px;font-weight:800;margin-bottom:2px}
+.hero p{font-size:13px;opacity:.85}
+
+/* Badge */
+.badge{display:inline-flex;padding:3px 10px;border-radius:var(--radius-full);font-size:11px;font-weight:600}
+.bg-green{background:var(--success-bg);color:var(--success)}.bg-red{background:var(--error-bg);color:var(--error)}
+.bg-blue{background:var(--info-bg);color:var(--info)}.bg-yellow{background:var(--warning-bg);color:var(--warning)}
+.bg-orange{background:var(--brand-light);color:var(--brand)}.bg-gray{background:var(--surface-container);color:var(--on-surface-variant)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border:none;border-radius:var(--radius-full);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.btn:active{transform:scale(.96)}.btn-p{background:var(--brand);color:#fff}.btn-p:active{opacity:.9}
+.btn-t{background:var(--brand-light);color:var(--brand)}.btn-d{background:var(--error);color:#fff}
+.btn-o{background:none;border:1px solid var(--outline);color:var(--on-surface)}
+.btn-g{background:none;color:var(--on-surface-variant);padding:8px 12px;font-size:13px}
+.btn-full{width:100%}
+.btn-icon{width:40px;height:40px;padding:0;border:none;background:none;border-radius:var(--radius-full);font-size:18px;cursor:pointer;color:var(--on-surface-variant);display:flex;align-items:center;justify-content:center}
+.btn-icon:active{background:var(--surface-container)}
+
+/* Forms */
+.ff{margin-bottom:14px}
+.ff label{display:block;font-size:12px;font-weight:600;color:var(--on-surface-variant);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.fi{width:100%;padding:12px 16px;border:1px solid var(--outline);border-radius:var(--radius);font-size:15px;font-family:inherit;background:var(--surface);color:var(--on-surface);outline:none;transition:border .2s}
+.fi:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(234,88,12,.12)}
+select.fi{-webkit-appearance:menulist;appearance:menulist;cursor:pointer}
+textarea.fi{resize:vertical;min-height:70px}
+.form-row{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+
+/* Bottom Sheet */
+.bs-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;opacity:0;transition:opacity .25s;pointer-events:none}
+.bs-ov.show{opacity:1;pointer-events:auto}
+.bs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:101;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:92vh;display:flex;flex-direction:column}
+.bs.show{transform:translateY(0)}
+.bs-handle{width:32px;height:4px;background:var(--outline);border-radius:2px;margin:12px auto 0;flex-shrink:0}
+.bs-head{padding:14px 20px 6px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.bs-head h3{font-size:18px;font-weight:700}
+.bs-body{padding:8px 20px 20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.bs-foot{padding:12px 20px;padding-bottom:calc(12px + var(--safe-b));border-top:1px solid var(--outline-variant);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+
+/* Attendance */
+.att-opt{padding:10px 4px;border:2px solid var(--outline-variant);border-radius:var(--radius);background:var(--surface);cursor:pointer;text-align:center;font-size:11px;font-weight:600;transition:all .15s;font-family:inherit;color:var(--on-surface-variant)}
+.att-opt:active{transform:scale(.94)}
+.att-opt.s-h{background:var(--success-bg);border-color:var(--success);color:var(--success)}
+.att-opt.s-i{background:var(--info-bg);border-color:var(--info);color:var(--info)}
+.att-opt.s-s{background:var(--warning-bg);border-color:var(--warning);color:var(--warning)}
+.att-opt.s-a{background:var(--error-bg);border-color:var(--error);color:var(--error)}
+
+/* Grade buttons */
+.gr-row{display:flex;gap:6px;flex-wrap:wrap}
+.gr-btn{padding:8px 14px;border:2px solid var(--outline-variant);border-radius:var(--radius-full);background:var(--surface);cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;font-family:inherit;color:var(--on-surface-variant)}
+.gr-btn.active{background:var(--brand);border-color:var(--brand);color:#fff}
+.gr-btn:active{transform:scale(.94)}
+
+/* Snackbar */
+.snack-wrap{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b) + 12px);left:16px;right:16px;z-index:200;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.snack{padding:14px 20px;border-radius:var(--radius);font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.2);animation:snIn .3s;pointer-events:auto;max-width:400px;width:100%}
+.snack.ok{background:#16a34a;color:#fff}.snack.err{background:#dc2626;color:#fff}.snack.inf{background:#1e293b;color:#fff}
+@keyframes snIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* Sum rows */
+.sr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--outline-variant)}
+.sr:last-child{border-bottom:none}
+.sr-l{font-size:13px;color:var(--on-surface-variant)}.sr-v{font-size:14px;font-weight:700}
+.v-green{color:var(--success)}.v-red{color:var(--error)}.v-brand{color:var(--brand)}
+
+/* Search */
+.search{margin:0 16px 12px;position:relative}
+.search input{width:100%;padding:12px 16px 12px 44px;border:none;border-radius:var(--radius-full);font-size:14px;font-family:inherit;background:var(--surface-container);color:var(--on-surface);outline:none}
+.search input:focus{box-shadow:0 0 0 2px var(--brand)}
+.search .si{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--on-surface-variant)}
+
+/* Avatar */
+.av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
+.av-s{width:32px;height:32px;font-size:12px}.av-l{width:48px;height:48px;font-size:18px}.av-xl{width:64px;height:64px;font-size:24px}
+.av-o{background:var(--brand-light);color:var(--brand)}.av-b{background:var(--info-bg);color:var(--info)}.av-g{background:var(--success-bg);color:var(--success)}
+
+/* Section header */
+.sec{padding:20px 16px 8px;display:flex;align-items:center;justify-content:space-between}
+.sec-t{font-size:16px;font-weight:700}
+.sec-a{font-size:13px;font-weight:600;color:var(--brand);background:none;border:none;cursor:pointer;font-family:inherit}
+
+/* Empty */
+.empty{text-align:center;padding:48px 24px;color:var(--on-surface-variant)}
+.empty .ei{font-size:48px;margin-bottom:12px;display:block;opacity:.6}
+.empty .et{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--on-surface)}
+
+/* Misc */
+.flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-4{gap:4px}.gap-8{gap:8px}.gap-12{gap:12px}
+.text-center{text-align:center}.font-bold{font-weight:700}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+@media print{.app-bar,.bottom-nav,.fab,.snack-wrap,.bs,.bs-ov{display:none!important}.page-content{overflow:visible!important;padding:0!important}}
+@media(min-width:768px){.app-shell{max-width:480px;margin:0 auto;box-shadow:var(--shadow-lg);border-left:1px solid var(--outline-variant);border-right:1px solid var(--outline-variant)}}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+</head>
+<body>
+
+<div class="app-shell" id="app">
+  <div class="app-bar">
+    <div style="flex:1;min-width:0">
+      <div class="app-bar-title" id="bar-title">Admin / Kepala TPA</div>
+      <div class="app-bar-sub" id="bar-sub"></div>
+    </div>
+    <button class="bar-btn" onclick="goNotif()" title="Notifikasi">🔔</button>
+    <button class="bar-btn" onclick="showHelp()" title="Bantuan">❓</button>
+    <button class="bar-btn" onclick="showProfile()" id="prof-btn">👤</button>
+  </div>
+  <div class="sub-chips hidden" id="sub-nav"></div>
+  <div class="page-content" id="content"></div>
+  <nav class="bottom-nav" id="bnav"></nav>
+  <button class="fab hidden" id="fab" onclick="onFab()">+</button>
+</div>
+
+<div class="snack-wrap" id="snacks"></div>
+<div class="bs-ov" id="bs-ov" onclick="closeSheet()"></div>
+<div class="bs" id="bs"><div class="bs-handle"></div><div class="bs-head" id="bs-head"><h3 id="bs-title"></h3><button class="btn-icon" onclick="closeSheet()">✕</button></div><div class="bs-body" id="bs-body"></div><div class="bs-foot hidden" id="bs-foot"></div></div>
+
+<script src="https://unpkg.com/dexie@3.2.7/dist/dexie.min.js"></script>
+<script>if(typeof Dexie==='undefined')document.write('<script src="https://cdn.jsdelivr.net/npm/dexie@3.2.7/dist/dexie.min.js"><\/script>')</script>
+<script>
+'use strict';
+const db=new Dexie('KasirSoloTPA');
+db.version(1).stores({
+  locations:'++id,name',users:'++id,role,locationId,name',
+  students:'++id,locationId,guardianId,nis,name,gender,isActive',
+  teachers:'++id,locationId,name,gender,isActive',
+  guardians:'++id,locationId,name,phone',
+  classes:'++id,locationId,name,level,isActive',
+  classStudents:'++id,classId,studentId',classTeachers:'++id,classId,teacherId,isPrimary',
+  schedules:'++id,classId,teacherId,day',academicYears:'++id,locationId,name,isActive',
+  curriculumCategories:'++id,locationId,name,sortOrder',curriculumMaterials:'++id,categoryId,title',
+  classSessions:'++id,classId,teacherId,sessionDate',attendances:'++id,sessionId,studentId,status',
+  hafalanProgress:'++id,studentId,teacherId,surahNumber,type,grade,recordedAt',
+  iqroProgress:'++id,studentId,teacherId,jilid,page,grade,recordedAt',
+  sppTypes:'++id,locationId,name,amount',sppBills:'++id,studentId,sppTypeId,billMonth,status,amount,paidAmount',
+  payments:'++id,billId,studentId,amount,method,paidAt',
+  cashFlows:'++id,locationId,type,category,amount,transactionDate',
+  projects:'++id,locationId,title,status,priority',projectTasks:'++id,projectId,title,status',
+  notifications:'++id,userId,type,title,isRead,createdAt',appSettings:'++id,locationId,key,value'
+});
+
+const SURAH=[{n:1,name:'Al-Fatihah',ayat:7,juz:1},{n:36,name:'Yasin',ayat:83,juz:22},{n:55,name:'Ar-Rahman',ayat:78,juz:27},{n:67,name:'Al-Mulk',ayat:30,juz:29},{n:78,name:'An-Naba',ayat:40,juz:30},{n:87,name:'Al-Ala',ayat:19,juz:30},{n:93,name:'Ad-Dhuha',ayat:11,juz:30},{n:94,name:'Al-Insyirah',ayat:8,juz:30},{n:95,name:'At-Tin',ayat:8,juz:30},{n:96,name:'Al-Alaq',ayat:19,juz:30},{n:97,name:'Al-Qadr',ayat:5,juz:30},{n:103,name:'Al-Asr',ayat:3,juz:30},{n:105,name:'Al-Fil',ayat:5,juz:30},{n:108,name:'Al-Kausar',ayat:3,juz:30},{n:109,name:'Al-Kafirun',ayat:6,juz:30},{n:110,name:'An-Nasr',ayat:3,juz:30},{n:112,name:'Al-Ikhlas',ayat:4,juz:30},{n:113,name:'Al-Falaq',ayat:5,juz:30},{n:114,name:'An-Nas',ayat:6,juz:30}];
+const CASH_IN=['SPP','Infaq','Donasi','Zakat','Sumbangan','Lainnya'];
+const CASH_OUT=['Gaji Guru','Listrik','Air','ATK','Konsumsi','Perawatan','Operasional','Lainnya'];
+const GL={mumtaz:'Mumtaz',jayyid_jiddan:'Jayyid Jiddan',jayyid:'Jayyid',maqbul:'Maqbul',belum_lulus:'Belum Lulus'};
+const GC={mumtaz:'bg-green',jayyid_jiddan:'bg-blue',jayyid:'bg-yellow',maqbul:'bg-orange',belum_lulus:'bg-red',lancar:'bg-green',cukup:'bg-yellow',mengulang:'bg-red'};
+const SC={pending:'bg-yellow',paid:'bg-green',partial:'bg-blue',overdue:'bg-red',planned:'bg-gray',in_progress:'bg-blue',completed:'bg-green'};
+
+function $(id){return document.getElementById(id)}
+function el(t,a,ch){const e=document.createElement(t);if(a)Object.entries(a).forEach(([k,v])=>{if(k==='class')e.className=v;else if(k.startsWith('on'))e[k]=v;else if(k==='html')e.innerHTML=v;else if(k==='text')e.textContent=v;else e.setAttribute(k,v)});if(ch){if(typeof ch==='string')e.innerHTML=ch;else if(Array.isArray(ch))ch.forEach(c=>{if(c)e.appendChild(typeof c==='string'?document.createTextNode(c):c)});else e.appendChild(ch)};return e}
+function ini(n){return(n||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
+function fc(n){return'Rp '+Number(n||0).toLocaleString('id-ID')}
+function fd(d){if(!d)return'-';return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})}
+function fdl(d){if(!d)return'-';return new Date(d).toLocaleDateString('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}
+function today(){return new Date().toISOString().split('T')[0]}
+function snack(t,m){const s=el('div',{class:`snack ${t}`,html:`${t==='ok'?'✓':t==='err'?'✗':'ℹ'} ${m}`});$('snacks').appendChild(s);setTimeout(()=>s.remove(),3500)}
+function openSheet(title,bodyEl,footerEl){
+  $('bs-title').textContent=title;const b=$('bs-body');b.innerHTML='';if(typeof bodyEl==='string')b.innerHTML=bodyEl;else b.appendChild(bodyEl);
+  const f=$('bs-foot');f.innerHTML='';f.classList.toggle('hidden',!footerEl);if(footerEl){if(typeof footerEl==='string')f.innerHTML=footerEl;else f.appendChild(footerEl)}
+  $('bs-ov').classList.add('show');$('bs').classList.add('show');
+}
+function closeSheet(){$('bs-ov').classList.remove('show');$('bs').classList.remove('show')}
+async function delRec(t,id,l){if(!confirm('Hapus '+l+'?'))return;await db[t].delete(id);snack('ok',l+' dihapus');closeSheet();render()}
+
+// Session management via localStorage
+function getSession(){try{return JSON.parse(localStorage.getItem('tpa_session'))}catch{return null}}
+function setSession(s){localStorage.setItem('tpa_session',JSON.stringify(s))}
+function clearSession(){localStorage.removeItem('tpa_session')}
+
+// Seed data
+async function seedDB(){
+  if(await db.locations.count()>0)return;
+  const lid=await db.locations.add({name:'TPA Al-Hikmah',address:'Jl. Masjid No. 1, Kampung Bahagia',phone:'08816566935',headName:'Ustadz Ahmad',isActive:true});
+  await db.academicYears.add({locationId:lid,name:'2026/2027',semester:'ganjil',startDate:'2026-07-01',endDate:'2026-12-31',isActive:true});
+  const cats=['Iqro / Baca Tulis Al-Quran','Hafalan Al-Quran','Tajwid','Fiqh Ibadah','Akhlak & Adab','Doa Harian','Sirah Nabi'];
+  for(let i=0;i<cats.length;i++){
+    const catId=await db.curriculumCategories.add({locationId:lid,name:cats[i],sortOrder:i+1,isActive:true});
+    const mats={0:['Pengenalan Huruf Hijaiyah','Harakat Dasar','Huruf Bersambung','Tanwin','Sukun & Tasydid','Mad Thobi\'i'],1:['Al-Fatihah','An-Nas','Al-Falaq','Al-Ikhlas','Al-Lahab','An-Nasr','Al-Kafirun','Al-Kausar'],2:['Nun Mati & Tanwin','Mim Mati','Mad Far\'i','Waqaf & Ibtida\'','Idgham','Ikhfa\''],3:['Thaharah','Wudhu','Shalat 5 Waktu','Shalat Berjamaah','Puasa Ramadhan'],4:['Adab Makan & Minum','Adab Tidur','Adab di Masjid','Adab kepada Orang Tua','Kejujuran'],5:['Doa Sebelum Makan','Doa Masuk Masjid','Doa Sebelum Tidur','Doa Belajar','Doa untuk Orang Tua'],6:['Kelahiran Nabi','Turunnya Wahyu','Dakwah di Mekkah','Hijrah ke Madinah','Fathu Makkah']};
+    const ml=mats[i]||[];for(let j=0;j<ml.length;j++)await db.curriculumMaterials.add({categoryId:catId,title:ml[j],sortOrder:j+1,level:i<=1?'Dasar':'Menengah',durationMinutes:30,isActive:true});
+  }
+  await db.sppTypes.bulkAdd([{locationId:lid,name:'SPP Bulanan',amount:50000,isRecurring:true,isActive:true},{locationId:lid,name:'Infaq',amount:10000,isRecurring:true,isActive:true}]);
+  const g1=await db.guardians.add({locationId:lid,name:'Bapak Ahmad',relation:'ayah',phone:'081234567890',address:'Kampung Bahagia',isActive:true});
+  const g2=await db.guardians.add({locationId:lid,name:'Ibu Fatimah',relation:'ibu',phone:'081234567891',address:'Kampung Makmur',isActive:true});
+  const t1=await db.teachers.add({locationId:lid,name:'Ustadz Hasan',gender:'L',phone:'081111222333',specialization:'Hafalan',isActive:true});
+  const t2=await db.teachers.add({locationId:lid,name:'Ustadzah Maryam',gender:'P',phone:'081444555666',specialization:'Iqro',isActive:true});
+  const c1=await db.classes.add({locationId:lid,name:'Iqro 1-2',level:'iqro_1',maxStudents:20,room:'Ruang 1',isActive:true});
+  const c2=await db.classes.add({locationId:lid,name:'Juz Amma',level:'juz_amma',maxStudents:15,room:'Ruang 2',isActive:true});
+  await db.classTeachers.bulkAdd([{classId:c1,teacherId:t2,isPrimary:true},{classId:c2,teacherId:t1,isPrimary:true}]);
+  const ns=[['Muhammad Rizki','L',g1],['Aisyah Putri','P',g1],['Abdullah','L',g2],['Khadijah','P',g2],['Umar Faruq','L',g1]];
+  for(let i=0;i<ns.length;i++){const sid=await db.students.add({locationId:lid,guardianId:ns[i][2],nis:'TPA-2026-'+String(i+1).padStart(3,'0'),name:ns[i][0],gender:ns[i][1],joinDate:'2026-07-15',isActive:true});await db.classStudents.add({classId:i<3?c1:c2,studentId:sid})}
+  await db.schedules.bulkAdd([{classId:c1,teacherId:t2,day:'Senin',startTime:'15:30',endTime:'17:00',room:'Ruang 1',isActive:true},{classId:c2,teacherId:t1,day:'Selasa',startTime:'15:30',endTime:'17:00',room:'Ruang 2',isActive:true}]);
+}
+
+// ============================================================
+// SESSION CHECK
+// ============================================================
+let U=null,LOC=null,curTab='home',curSub='';
+
+function checkAuth(){
+  U=getSession();
+  if(!U||U.role!=='admin'){window.location.href='login.html';return false}
+  LOC={id:U.locationId,name:U.locationName};
+  $('prof-btn').textContent=ini(U.name);
+  return true;
+}
+
+function showProfile(){
+  openSheet('Profil',`
+    <div style="text-align:center;padding:12px 0">
+      <div class="av av-xl av-o" style="margin:0 auto 12px">${ini(U.name)}</div>
+      <div style="font-size:18px;font-weight:700">${U.name}</div>
+      <div style="font-size:13px;color:var(--on-surface-variant)">Admin / Kepala TPA</div>
+      <div style="font-size:12px;color:var(--on-surface-variant);margin-top:4px">📍 ${LOC?.name||'-'}</div>
+    </div>
+    <div style="border-top:1px solid var(--outline-variant);margin-top:12px;padding-top:12px">
+      <a href="login.html" class="btn btn-o btn-full" style="text-decoration:none;margin-bottom:8px;display:flex">↩️ Ganti Role</a>
+      <button class="btn btn-d btn-full" onclick="clearSession();window.location.href='login.html'">🚪 Keluar</button>
+    </div>`);
+}
+function goNotif(){curSub='notifications';switchTab(curTab)}
+
+
+const TABS=[
+  {id:'home',icon:'🏠',label:'Beranda'},
+  {id:'data',icon:'👥',label:'Data'},
+  {id:'akademik',icon:'📖',label:'Akademik'},
+  {id:'keuangan',icon:'💰',label:'Keuangan'},
+  {id:'lainnya',icon:'⚙️',label:'Lainnya'},
+];
+const SUBS={
+  data:['students','teachers','guardians','classes','schedules'],
+  akademik:['curriculum','attendance','hafalan','iqro'],
+  keuangan:['payments','cashflow','reports'],
+  lainnya:['certificates','projects','locations','settings','notifications'],
+};
+const SLBL={students:'Santri',teachers:'Ustadz',guardians:'Wali',classes:'Kelas',schedules:'Jadwal',curriculum:'Kurikulum',attendance:'Absensi',hafalan:'Hafalan',iqro:'Iqro',payments:'SPP',cashflow:'Kas',reports:'Laporan',certificates:'Cetak',projects:'Proyek',locations:'Lokasi',settings:'Pengaturan',notifications:'Notifikasi'};
+const TTITLES={home:'Kasir Solo - TPA',data:'Data Master',akademik:'Akademik',keuangan:'Keuangan',lainnya:'Lainnya'};
+const FABS={students:'+',teachers:'+',guardians:'+',classes:'+',hafalan:'📖',iqro:'📕',attendance:'✅',payments:'💰',cashflow:'+',projects:'+',locations:'+'};
+
+function renderNav(){
+  const nav=$('bnav');nav.innerHTML='';
+  TABS.forEach(t=>{nav.innerHTML+=`<button class="nav-item ${t.id===curTab?'active':''}" onclick="switchTab('${t.id}')"><div class="nav-pill">${t.icon}</div><span class="nav-label">${t.label}</span></button>`});
+}
+function switchTab(tab){
+  curTab=tab;renderNav();
+  const subs=SUBS[tab];const sn=$('sub-nav');
+  if(subs){sn.classList.remove('hidden');sn.innerHTML='';curSub=curSub&&subs.includes(curSub)?curSub:subs[0];
+    subs.forEach(s=>{sn.innerHTML+=`<button class="chip ${s===curSub?'active':''}" onclick="curSub='${s}';switchTab('${tab}')">${SLBL[s]||s}</button>`});
+  }else{sn.classList.add('hidden');if(tab==='home')curSub=''}
+  $('bar-title').textContent=TTITLES[tab]||'';$('bar-sub').textContent=curSub?SLBL[curSub]||'':'';
+  const fab=$('fab');const fc=FABS[curSub];fab.classList.toggle('hidden',!fc);if(fc)fab.textContent=fc;
+  render();
+}
+function onFab(){
+  const h={students:showStudentForm,teachers:showTeacherForm,guardians:showGuardianForm,classes:showClassForm,
+    hafalan:showHafalanForm,iqro:showIqroForm,attendance:loadAtt,payments:()=>showPayForm(),
+    cashflow:()=>showCashForm(),projects:showProjectForm,locations:showLocationForm};
+  (h[curSub]||function(){})();
+}
+function render(){
+  const c=$('content');c.innerHTML='';c.scrollTop=0;
+  const pg=curSub||curTab;
+  const r={home:pgHome,students:pgStudents,teachers:pgTeachers,guardians:pgGuardians,classes:pgClasses,schedules:pgSchedules,
+    curriculum:pgCurriculum,attendance:pgAttendance,hafalan:pgHafalan,iqro:pgIqro,
+    payments:pgPayments,cashflow:pgCashFlow,reports:pgReports,certificates:pgCerts,
+    projects:pgProjects,locations:pgLocations,settings:pgSettings,notifications:pgNotifs};
+  (r[pg]||r.home)(c);
+}
+
+
+
+// ============================================================
+// ADMIN PAGES
+// ============================================================
+async function pgHome(c){
+  const lid=U.locationId;
+  const [stu,tea,cls,hToday,bills,cfI,cfO]=await Promise.all([
+    db.students.where('locationId').equals(lid).toArray(),db.teachers.where('locationId').equals(lid).toArray(),
+    db.classes.where('locationId').equals(lid).toArray(),db.hafalanProgress.where('recordedAt').startsWith(today()).toArray(),
+    db.sppBills.toArray(),db.cashFlows.where({locationId:lid,type:'masuk'}).toArray(),db.cashFlows.where({locationId:lid,type:'keluar'}).toArray()
+  ]);
+  const act=stu.filter(s=>s.isActive).length;
+  const tB=bills.reduce((s,b)=>s+b.amount,0),tP=bills.reduce((s,b)=>s+(b.paidAmount||0),0);
+  const sI=cfI.reduce((s,f)=>s+f.amount,0),sO=cfO.reduce((s,f)=>s+f.amount,0);
+  c.innerHTML=`<div class="hero"><p style="opacity:.8">${fdl(new Date())}</p><h2>Assalamu'alaikum 👋</h2><p>${U.name} · ${LOC?.name||''}</p></div>
+    <div class="stats-row"><div class="stat-chip"><div class="sc-icon">👨‍🎓</div><div class="sc-val">${stu.length}</div><div class="sc-lbl">${act} santri aktif</div></div><div class="stat-chip"><div class="sc-icon">👳</div><div class="sc-val">${tea.length}</div><div class="sc-lbl">Ustadz</div></div><div class="stat-chip"><div class="sc-icon">🏫</div><div class="sc-val">${cls.length}</div><div class="sc-lbl">Kelas</div></div><div class="stat-chip"><div class="sc-icon">📖</div><div class="sc-val">${hToday.length}</div><div class="sc-lbl">Setoran hari ini</div></div></div>
+    <div class="m-card el"><div class="m-card-body"><div style="font-weight:700;margin-bottom:8px">💰 Keuangan</div><div class="sr"><span class="sr-l">Tagihan</span><span class="sr-v">${fc(tB)}</span></div><div class="sr"><span class="sr-l">Terbayar</span><span class="sr-v v-green">${fc(tP)}</span></div><div class="sr"><span class="sr-l">Tunggakan</span><span class="sr-v v-red">${fc(tB-tP)}</span></div><div class="sr"><span class="sr-l">Saldo Kas</span><span class="sr-v v-brand" style="font-size:18px">${fc(sI-sO+tP)}</span></div></div></div>
+    <div class="sec"><span class="sec-t">Hafalan Terbaru</span><button class="sec-a" onclick="curSub='hafalan';switchTab('akademik')">Semua →</button></div><div class="m-card" id="h-list"></div>`;
+  const hbox=$('h-list');const rec=await db.hafalanProgress.orderBy('recordedAt').reverse().limit(6).toArray();
+  if(!rec.length){hbox.innerHTML='<div class="empty"><span class="ei">📖</span><div>Belum ada</div></div>';return}
+  for(const h of rec){const s=await db.students.get(h.studentId);hbox.innerHTML+=`<div class="li"><div class="li-icon av av-o">${ini(s?.name)}</div><div class="li-body"><div class="li-title">${s?.name||'-'}</div><div class="li-sub">${h.surahName||''} (${h.ayatFrom}-${h.ayatTo})</div></div><span class="badge ${GC[h.grade]||'bg-gray'}">${GL[h.grade]||h.grade}</span></div>`}
+}
+
+// Students
+async function pgStudents(c){
+  const data=await db.students.where('locationId').equals(U.locationId).toArray();
+  c.innerHTML=`<div class="search"><span class="si">🔍</span><input placeholder="Cari santri..." oninput="filterS(this.value)"></div><div class="m-card" id="s-list"></div>`;
+  window._sD=data;filterS('');
+}
+async function filterS(q){
+  q=q.toLowerCase();const box=$('s-list');box.innerHTML='';
+  const f=(window._sD||[]).filter(s=>!q||s.name.toLowerCase().includes(q)||(s.nis||'').includes(q));
+  if(!f.length){box.innerHTML='<div class="empty"><span class="ei">👨‍🎓</span><div class="et">Belum ada santri</div></div>';return}
+  for(const s of f){const g=s.guardianId?await db.guardians.get(s.guardianId):null;
+    box.innerHTML+=`<div class="li" onclick="showStudentForm(${s.id})"><div class="li-icon av ${s.gender==='L'?'av-b':'av-o'}">${ini(s.name)}</div><div class="li-body"><div class="li-title">${s.name}</div><div class="li-sub">${s.nis||'-'} · ${g?.name||'-'}</div></div><span class="badge ${s.isActive?'bg-green':'bg-gray'}">${s.isActive?'Aktif':'Off'}</span></div>`}
+}
+async function showStudentForm(id){
+  const s=id?await db.students.get(id):null;const gs=await db.guardians.where('locationId').equals(U.locationId).toArray();
+  const gO=gs.map(g=>`<option value="${g.id}" ${s?.guardianId===g.id?'selected':''}>${g.name}</option>`).join('');
+  const body=`<div class="form-row"><div class="ff"><label>Nama *</label><input class="fi" id="sf-n" value="${s?.name||''}"></div><div class="ff"><label>NIS</label><input class="fi" id="sf-nis" value="${s?.nis||''}"></div></div>
+    <div class="form-row"><div class="ff"><label>JK</label><select class="fi" id="sf-g"><option value="L" ${s?.gender==='L'?'selected':''}>Laki-laki</option><option value="P" ${s?.gender==='P'?'selected':''}>Perempuan</option></select></div><div class="ff"><label>Tgl Lahir</label><input class="fi" type="date" id="sf-bd" value="${s?.birthDate||''}"></div></div>
+    <div class="ff"><label>Wali</label><select class="fi" id="sf-w"><option value="">--</option>${gO}</select></div>
+    <div class="ff"><label>Alamat</label><textarea class="fi" id="sf-addr">${s?.address||''}</textarea></div>
+    <div class="ff"><label>Telepon</label><input class="fi" type="tel" id="sf-ph" value="${s?.phone||''}"></div>
+    ${id?`<button class="btn btn-d btn-full" onclick="delRec('students',${id},'Santri')" style="margin-top:8px">🗑 Hapus</button>`:''}`;
+  const ft=el('div',{class:'flex gap-8'});
+  ft.appendChild(el('button',{class:'btn btn-t',text:'Batal',onclick(){closeSheet()}}));
+  ft.appendChild(el('button',{class:'btn btn-p',text:'💾 Simpan',onclick:async()=>{
+    const d={locationId:U.locationId,name:$('sf-n').value.trim(),nis:$('sf-nis').value,gender:$('sf-g').value,birthDate:$('sf-bd').value,guardianId:parseInt($('sf-w').value)||null,address:$('sf-addr').value,phone:$('sf-ph').value,isActive:true,joinDate:s?.joinDate||today()};
+    if(!d.name){snack('err','Nama wajib');return}
+    if(id)await db.students.update(id,d);else await db.students.add(d);
+    snack('ok','Tersimpan');closeSheet();render();
+  }}));
+  openSheet(id?'Edit Santri':'Tambah Santri',body,ft);
+}
+
+// Teachers
+async function pgTeachers(c){
+  const data=await db.teachers.where('locationId').equals(U.locationId).toArray();
+  c.innerHTML='<div class="m-card" id="t-list"></div>';const box=$('t-list');
+  if(!data.length){box.innerHTML='<div class="empty"><span class="ei">👳</span><div class="et">Belum ada</div></div>';return}
+  data.forEach(t=>{box.innerHTML+=`<div class="li" onclick="showTeacherForm(${t.id})"><div class="li-icon av av-b">${ini(t.name)}</div><div class="li-body"><div class="li-title">${t.name}</div><div class="li-sub">${t.specialization||'-'} · ${t.phone||''}</div></div><span class="badge bg-green">Aktif</span></div>`});
+}
+async function showTeacherForm(id){
+  const t=id?await db.teachers.get(id):null;
+  const body=`<div class="form-row"><div class="ff"><label>Nama *</label><input class="fi" id="tf-n" value="${t?.name||''}"></div><div class="ff"><label>JK</label><select class="fi" id="tf-g"><option value="L" ${t?.gender==='L'?'selected':''}>L</option><option value="P" ${t?.gender==='P'?'selected':''}>P</option></select></div></div>
+    <div class="ff"><label>Spesialisasi</label><input class="fi" id="tf-s" value="${t?.specialization||''}" placeholder="Hafalan, Iqro..."></div>
+    <div class="ff"><label>Telepon</label><input class="fi" type="tel" id="tf-p" value="${t?.phone||''}"></div>
+    ${id?`<button class="btn btn-d btn-full" onclick="delRec('teachers',${id},'Ustadz')" style="margin-top:8px">🗑 Hapus</button>`:''}`;
+  const ft=el('div',{class:'flex gap-8'});ft.appendChild(el('button',{class:'btn btn-t',text:'Batal',onclick(){closeSheet()}}));
+  ft.appendChild(el('button',{class:'btn btn-p',text:'💾 Simpan',onclick:async()=>{
+    const d={locationId:U.locationId,name:$('tf-n').value.trim(),gender:$('tf-g').value,specialization:$('tf-s').value,phone:$('tf-p').value,isActive:true};
+    if(!d.name){snack('err','Nama wajib');return}if(id)await db.teachers.update(id,d);else await db.teachers.add(d);snack('ok','Tersimpan');closeSheet();render();
+  }}));openSheet(id?'Edit Ustadz':'Tambah Ustadz',body,ft);
+}
+
+// Guardians
+async function pgGuardians(c){
+  const data=await db.guardians.where('locationId').equals(U.locationId).toArray();
+  c.innerHTML='<div class="m-card" id="g-list"></div>';const box=$('g-list');
+  if(!data.length){box.innerHTML='<div class="empty"><span class="ei">👨‍👩‍👧</span><div class="et">Belum ada</div></div>';return}
+  for(const g of data){const kids=await db.students.where('guardianId').equals(g.id).toArray();
+    box.innerHTML+=`<div class="li" onclick="showGuardianForm(${g.id})"><div class="li-icon av av-g">${ini(g.name)}</div><div class="li-body"><div class="li-title">${g.name} <span class="badge bg-gray">${g.relation||''}</span></div><div class="li-sub">${g.phone||'-'} · ${kids.map(k=>k.name).join(', ')||'Belum ada anak'}</div></div></div>`}
+}
+async function showGuardianForm(id){
+  const g=id?await db.guardians.get(id):null;
+  const body=`<div class="form-row"><div class="ff"><label>Nama *</label><input class="fi" id="gf-n" value="${g?.name||''}"></div><div class="ff"><label>Hubungan</label><select class="fi" id="gf-r"><option value="ayah" ${g?.relation==='ayah'?'selected':''}>Ayah</option><option value="ibu" ${g?.relation==='ibu'?'selected':''}>Ibu</option><option value="wali" ${g?.relation==='wali'?'selected':''}>Wali</option></select></div></div>
+    <div class="ff"><label>Telepon</label><input class="fi" type="tel" id="gf-p" value="${g?.phone||''}"></div>
+    <div class="ff"><label>Alamat</label><textarea class="fi" id="gf-a">${g?.address||''}</textarea></div>
+    ${id?`<button class="btn btn-d btn-full" onclick="delRec('guardians',${id},'Wali')" style="margin-top:8px">🗑 Hapus</button>`:''}`;
+  const ft=el('div',{class:'flex gap-8'});ft.appendChild(el('button',{class:'btn btn-t',text:'Batal',onclick(){closeSheet()}}));
+  ft.appendChild(el('button',{class:'btn btn-p',text:'💾 Simpan',onclick:async()=>{
+    const d={locationId:U.locationId,name:$('gf-n').value.trim(),relation:$('gf-r').value,phone:$('gf-p').value,address:$('gf-a').value,isActive:true};
+    if(!d.name){snack('err','Nama wajib');return}if(id)await db.guardians.update(id,d);else await db.guardians.add(d);snack('ok','Tersimpan');closeSheet();render();
+  }}));openSheet(id?'Edit Wali':'Tambah Wali',body,ft);
+}
+
+// Classes
+async function pgClasses(c){
+  const data=await db.classes.where('locationId').equals(U.locationId).toArray();
+  c.innerHTML='<div id="cl"></div>';const box=$('cl');
+  for(const cls of data){const sc=await db.classStudents.where('classId').equals(cls.id).count();
+    box.innerHTML+=`<div class="m-card el" style="margin:0 16px 12px" onclick="showClassForm(${cls.id})"><div class="m-card-body"><div class="flex items-center gap-12"><div class="av av-l av-o">🏫</div><div style="flex:1"><div style="font-size:15px;font-weight:700">${cls.name}</div><div style="font-size:12px;color:var(--on-surface-variant)">${cls.level||'Umum'} · Ruang ${cls.room||'-'}</div></div><span class="badge bg-blue">👨‍🎓 ${sc}/${cls.maxStudents||30}</span></div></div></div>`}
+}
+async function showClassForm(id){
+  const cls=id?await db.classes.get(id):null;
+  const lvls=[{v:'iqro_1',l:'Iqro 1'},{v:'iqro_2',l:'Iqro 2'},{v:'iqro_3',l:'Iqro 3'},{v:'iqro_4',l:'Iqro 4'},{v:'iqro_5',l:'Iqro 5'},{v:'iqro_6',l:'Iqro 6'},{v:'juz_amma',l:'Juz Amma'},{v:'al_quran',l:'Al-Quran'},{v:'tahfidz',l:'Tahfidz'}];
+  const body=`<div class="form-row"><div class="ff"><label>Nama *</label><input class="fi" id="cf-n" value="${cls?.name||''}"></div><div class="ff"><label>Level</label><select class="fi" id="cf-l"><option value="">--</option>${lvls.map(l=>`<option value="${l.v}" ${cls?.level===l.v?'selected':''}>${l.l}</option>`).join('')}</select></div></div>
+    <div class="form-row"><div class="ff"><label>Ruang</label><input class="fi" id="cf-r" value="${cls?.room||''}"></div><div class="ff"><label>Maks</label><input class="fi" type="number" id="cf-m" value="${cls?.maxStudents||30}"></div></div>
+    ${id?`<button class="btn btn-d btn-full" onclick="delRec('classes',${id},'Kelas')" style="margin-top:8px">🗑 Hapus</button>`:''}`;
+  const ft=el('div',{class:'flex gap-8'});ft.appendChild(el('button',{class:'btn btn-t',text:'Batal',onclick(){closeSheet()}}));
+  ft.appendChild(el('button',{class:'btn btn-p',text:'💾 Simpan',onclick:async()=>{
+    const d={locationId:U.locationId,name:$('cf-n').value.trim(),level:$('cf-l').value,room:$('cf-r').value,maxStudents:parseInt($('cf-m').value)||30,isActive:true};
+    if(!d.name){snack('err','Nama wajib');return}if(id)await db.classes.update(id,d);else await db.classes.add(d);snack('ok','Tersimpan');closeSheet();render();
+  }}));openSheet(id?'Edit Kelas':'Tambah Kelas',body,ft);
+}
+
+// Schedules
+async function pgSchedules(c){
+  const data=await db.schedules.toArray();const days=['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+  c.innerHTML='<div class="m-card" id="sch"></div>';const box=$('sch');
+  if(!data.length){box.innerHTML='<div class="empty"><span class="ei">📅</span><div class="et">Belum ada jadwal</div></div>';return}
+  data.sort((a,b)=>days.indexOf(a.day)-days.indexOf(b.day));
+  for(const s of data){const cls=await db.classes.get(s.classId);const t=s.teacherId?await db.teachers.get(s.teacherId):null;
+    box.innerHTML+=`<div class="li"><div class="li-icon av av-o">${s.day?.slice(0,2)}</div><div class="li-body"><div class="li-title">${s.day} · ${cls?.name||'-'}</div><div class="li-sub">${s.startTime}-${s.endTime} · ${t?.name||'-'}</div></div><button class="btn-icon" onclick="delRec('schedules',${s.id},'Jadwal')">🗑</button></div>`}
+}
+
+// Curriculum
+
+// ============================================================
+// ENHANCED CURRICULUM MODULE
+// ============================================================
+async function pgCurriculum(c){
+  const cats=await db.curriculumCategories.where('locationId').equals(U.locationId).toArray();
+  const allMats=await db.curriculumMaterials.toArray();
+  const totalMats=allMats.length;
+
+  c.innerHTML=`
+    <div class="stats-row">
+      <div class="stat-chip"><div class="sc-icon">📚</div><div class="sc-val">${cats.length}</div><div class="sc-lbl">Kategori</div></div>
+      <div class="stat-chip"><div class="sc-icon">📄</div><div class="sc-val">${totalMats}</div><div class="sc-lbl">Total Materi</div></div>
+    </div>
+    <div id="cur-cats"></div>`;
+
+  const box=$('cur-cats');
+  for(const cat of cats.sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0))){
+    const cm=allMats.filter(m=>m.categoryId===cat.id).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+    const catColors=['#fff7ed','#eff6ff','#f0fdf4','#faf5ff','#fffbeb','#fef2f2','#f0f9ff'];
+    const catEmojis=['📕','🕌','📖','🕋','💎','🤲','📜'];
+    const idx=cats.indexOf(cat);
+    const emoji=catEmojis[idx%catEmojis.length];
+    const bg=catColors[idx%catColors.length];
+
+    box.innerHTML+=`
+      <div class="sec"><span class="sec-t">${emoji} ${cat.name}</span><span class="badge bg-orange">${cm.length} materi</span></div>
+      <div class="m-card">
+        ${cm.length?cm.map((m,i)=>`
+          <div class="li" onclick="showMaterialDetail(${m.id})">
+            <div class="li-icon" style="background:${bg};font-size:14px;font-weight:800;width:32px;height:32px;border-radius:8px">${i+1}</div>
+            <div class="li-body">
+              <div class="li-title">${m.title}</div>
+              <div class="li-sub">${m.level||'Umum'}${m.durationMinutes?' · '+m.durationMinutes+' menit':''}</div>
+            </div>
+            <span style="color:var(--on-surface-variant);font-size:14px">›</span>
+          </div>
+        `).join(''):`
+          <div class="empty" style="padding:20px">
+            <div class="et">Belum ada materi</div>
+            <div style="font-size:12px;margin-top:4px">Tap + untuk menambahkan</div>
+          </div>
+        `}
+      </div>`;
+  }
+}
+
+async function showMaterialDetail(id){
+  const m=await db.curriculumMaterials.get(id);if(!m)return;
+  const cat=await db.curriculumCategories.get(m.categoryId);
+  const body=`
+    <div style="text-align:center;padding:16px 0">
+      <div style="font-size:40px;margin-bottom:8px">📄</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px">${m.title}</div>
+      <span class="badge bg-orange">${cat?.name||'-'}</span>
+    </div>
+    <div style="background:var(--surface-dim);border-radius:var(--radius);padding:14px;margin:12px 0">
+      <div class="sr"><span class="sr-l">Level</span><span class="sr-v">${m.level||'Umum'}</span></div>
+      <div class="sr"><span class="sr-l">Durasi</span><span class="sr-v">${m.durationMinutes||'-'} menit</span></div>
+      <div class="sr"><span class="sr-l">Urutan</span><span class="sr-v">#${m.sortOrder||'-'}</span></div>
+      <div class="sr"><span class="sr-l">Status</span><span class="sr-v">${m.isActive!==false?'✅ Aktif':'❌ Nonaktif'}</span></div>
+    </div>
+    ${m.description?`<div style="margin-top:12px"><div style="font-size:12px;font-weight:600;color:var(--on-surface-variant);margin-bottom:4px">DESKRIPSI</div><div style="font-size:13px;line-height:1.6;color:var(--on-surface-variant)">${m.description}</div></div>`:''}
+    ${m.content?`<div style="margin-top:12px"><div style="font-size:12px;font-weight:600;color:var(--on-surface-variant);margin-bottom:4px">KONTEN MATERI</div><div style="font-size:13px;line-height:1.7;background:var(--surface-dim);padding:14px;border-radius:var(--radius)">${m.content}</div></div>`:''}
+  `;
+  openSheet(m.title,body);
+}
+
+async function pgAttendance(c){
+  const data=await db.classSessions.orderBy('sessionDate').reverse().limit(20).toArray();
+  c.innerHTML='<div class="m-card" id="at"></div>';const box=$('at');
+  if(!data.length){box.innerHTML='<div class="empty"><span class="ei">✅</span><div class="et">Belum ada absensi</div><div>Tap + untuk mulai</div></div>';return}
+  for(const s of data){const cls=await db.classes.get(s.classId);const cnt=await db.attendances.where('sessionId').equals(s.id).count();
+    box.innerHTML+=`<div class="li"><div class="li-icon av av-g">✅</div><div class="li-body"><div class="li-title">${cls?.name||'-'}</div><div class="li-sub">${fd(s.sessionDate)} · ${cnt} santri</div></div></div>`}
+}
+async function loadAtt(){
+  const cls=await db.classes.where('locationId').equals(U.locationId).toArray();
+  if(!cls.length){snack('err','Belum ada kelas');return}
+  openSheet('Input Absensi',`<div class="ff"><label>Kelas</label><select class="fi" id="ac" onchange="loadAS()">${cls.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div><div id="as"></div><div id="asv" style="margin-top:12px"></div>`);
+  loadAS();
+}
+async function loadAS(){
+  const cid=parseInt($('ac')?.value);if(!cid)return;
+  const cs=await db.classStudents.where('classId').equals(cid).toArray();
+  const box=$('as');box.innerHTML='';window._aM={};
+  for(const item of cs){const s=await db.students.get(item.studentId);if(!s)continue;window._aM[s.id]='hadir';
+    box.innerHTML+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div class="av av-s av-o">${ini(s.name)}</div><div style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;width:160px">${['hadir','izin','sakit','alpha'].map(st=>`<button class="att-opt ${st==='hadir'?'s-h':''}" onclick="setA(${s.id},'${st}')" id="a-${s.id}-${st}">${st==='hadir'?'✅':st==='izin'?'📝':st==='sakit'?'🤒':'❌'}</button>`).join('')}</div></div>`}
+  $('asv').innerHTML=`<button class="btn btn-p btn-full" onclick="saveA(${cid})">💾 Simpan Absensi</button>`;
+}
+function setA(sid,st){window._aM[sid]=st;['hadir','izin','sakit','alpha'].forEach(s=>{const b=$(`a-${sid}-${s}`);if(b)b.className=`att-opt ${s===st?'s-'+s[0]:''}`})}
+async function saveA(cid){
+  const sid=await db.classSessions.add({classId:cid,sessionDate:today(),startTime:new Date().toTimeString().slice(0,5)});
+  await db.attendances.bulkAdd(Object.entries(window._aM).map(([s,st])=>({sessionId:sid,studentId:parseInt(s),status:st})));
+  snack('ok','Absensi disimpan!');closeSheet();render();
+}
+
+// Hafalan
+async function pgHafalan(c){
+  const data=await db.hafalanProgress.orderBy('recordedAt').reverse().limit(30).toArray();
+  c.innerHTML='<div class="m-card" id="hl"></div>';const box=$('hl');
+  if(!data.length){box.innerHTML='<div class="empty"><span class="ei">🕌</span><div class="et">Belum ada</div></div>';return}
+  for(const h of data){const s=await db.students.get(h.studentId);
+    box.innerHTML+=`<div class="li"><div class="li-icon av av-o">${ini(s?.name)}</div><div class="li-body"><div class="li-title">${s?.name||'-'}</div><div class="li-sub">${h.surahName} (${h.ayatFrom}-${h.ayatTo}) · ${h.type}</div></div><span class="badge ${GC[h.grade]}">${GL[h.grade]||h.grade}</span></div>`}
+}
+async function showHafalanForm(){
+  const cls=await db.classes.where('locationId').equals(U.locationId).toArray();
+  const sO=SURAH.map(s=>`<option value="${s.n}">${s.n}. ${s.name} (${s.ayat})</option>`).join('');
+  openSheet('Input Hafalan',`
+    <div class="form-row"><div class="ff"><label>Kelas</label><select class="fi" id="hc" onchange="loadHS()">${cls.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div><div class="ff"><label>Santri</label><select class="fi" id="hs"></select></div></div>
+    <div class="ff"><label>Jenis</label><select class="fi" id="ht"><option value="ziyadah">Ziyadah</option><option value="murajaah">Murajaah</option><option value="tasmi">Tasmi'</option></select></div>
+    <div class="ff"><label>Surat</label><select class="fi" id="hsu">${sO}</select></div>
+    <div class="form-row"><div class="ff"><label>Ayat Dari</label><input class="fi" type="number" id="hf" value="1" min="1"></div><div class="ff"><label>Sampai</label><input class="fi" type="number" id="hto" value="7" min="1"></div></div>
+    <div class="ff"><label>Nilai</label><div class="gr-row" id="hgr"></div></div>
+    <div class="ff"><label>Catatan</label><textarea class="fi" id="hn" rows="2"></textarea></div>`,
+    `<button class="btn btn-t" onclick="closeSheet()">Batal</button><button class="btn btn-p" onclick="saveH()">💾 Simpan</button>`);
+  window._hG='jayyid';const gb=$('hgr');
+  Object.entries(GL).forEach(([k,v])=>{gb.innerHTML+=`<button class="gr-btn ${k==='jayyid'?'active':''}" onclick="window._hG='${k}';document.querySelectorAll('#hgr .gr-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${v}</button>`});
+  loadHS();
+}
+async function loadHS(){const cid=parseInt($('hc')?.value);if(!cid)return;const cs=await db.classStudents.where('classId').equals(cid).toArray();const sel=$('hs');sel.innerHTML='<option value="">Pilih...</option>';for(const i of cs){const s=await db.students.get(i.studentId);if(s)sel.innerHTML+=`<option value="${s.id}">${s.name}</option>`}}
+async function saveH(){
+  const sid=parseInt($('hs').value);if(!sid){snack('err','Pilih santri');return}
+  const sn=parseInt($('hsu').value);const su=SURAH.find(s=>s.n===sn);
+  await db.hafalanProgress.add({studentId:sid,surahNumber:sn,surahName:su?.name||'',ayatFrom:parseInt($('hf').value),ayatTo:parseInt($('hto').value),juz:su?.juz,type:$('ht').value,grade:window._hG,notes:$('hn').value,recordedAt:new Date().toISOString()});
+  snack('ok','Hafalan disimpan!');closeSheet();render();
+}
+
+// Iqro
+async function pgIqro(c){
+  const data=await db.iqroProgress.orderBy('recordedAt').reverse().limit(30).toArray();
+  c.innerHTML='<div class="m-card" id="il"></div>';const box=$('il');
+  if(!data.length){box.innerHTML='<div class="empty"><span class="ei">📕</span><div class="et">Belum ada</div></div>';return}
+  for(const h of data){const s=await db.students.get(h.studentId);box.innerHTML+=`<div class="li"><div class="li-icon av av-o">${ini(s?.name)}</div><div class="li-body"><div class="li-title">${s?.name||'-'}</div><div class="li-sub">Jilid ${h.jilid} Hal ${h.page}</div></div><span class="badge ${GC[h.grade]}">${h.grade}</span></div>`}
+}
+async function showIqroForm(){
+  const cls=await db.classes.where('locationId').equals(U.locationId).toArray();
+  openSheet('Input Iqro',`
+    <div class="form-row"><div class="ff"><label>Kelas</label><select class="fi" id="ic" onchange="loadIS()">${cls.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div><div class="ff"><label>Santri</label><select class="fi" id="is2"></select></div></div>
+    <div class="form-row"><div class="ff"><label>Jilid</label><select class="fi" id="ij">${[1,2,3,4,5,6].map(j=>`<option value="${j}">Jilid ${j}</option>`).join('')}</select></div><div class="ff"><label>Halaman</label><input class="fi" type="number" id="ip" value="1" min="1"></div></div>
+    <div class="ff"><label>Nilai</label><div class="gr-row" id="igr"></div></div>
+    <div class="ff"><label>Catatan</label><textarea class="fi" id="in2" rows="2"></textarea></div>`,
+    `<button class="btn btn-t" onclick="closeSheet()">Batal</button><button class="btn btn-p" onclick="saveI()">💾 Simpan</button>`);
+  window._iG='lancar';const gb=$('igr');
+  [{v:'lancar',l:'✅ Lancar'},{v:'cukup',l:'⚡ Cukup'},{v:'mengulang',l:'🔄 Ulang'}].forEach(g=>{
+    gb.innerHTML+=`<button class="gr-btn ${g.v==='lancar'?'active':''}" onclick="window._iG='${g.v}';document.querySelectorAll('#igr .gr-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${g.l}</button>`});
+  loadIS();
+}
+async function loadIS(){const cid=parseInt($('ic')?.value);if(!cid)return;const cs=await db.classStudents.where('classId').equals(cid).toArray();const sel=$('is2');sel.innerHTML='<option value="">Pilih...</option>';for(const i of cs){const s=await db.students.get(i.studentId);if(s)sel.innerHTML+=`<option value="${s.id}">${s.name}</option>`}}
+async function saveI(){const sid=parseInt($('is2').value);if(!sid){snack('err','Pilih santri');return}await db.iqroProgress.add({studentId:sid,jilid:parseInt($('ij').value),page:parseInt($('ip').value),grade:window._iG,notes:$('in2').value,recordedAt:new Date().toISOString()});snack('ok','Iqro disimpan!');closeSheet();render()}
+
+// Payments
+async function pgPayments(c){
+  const bills=await db.sppBills.toArray();const types=await db.sppTypes.toArray();
+  c.innerHTML=`<div style="padding:0 16px 12px"><button class="btn btn-t btn-full" onclick="genBills()">📋 Generate Tagihan</button></div><div class="m-card" id="pl"></div>`;
+  const box=$('pl');if(!bills.length){box.innerHTML='<div class="empty"><span class="ei">💰</span><div class="et">Belum ada tagihan</div></div>';return}
+  for(const b of bills.sort((a,b)=>(b.billMonth||'').localeCompare(a.billMonth))){const s=await db.students.get(b.studentId);const tp=types.find(t=>t.id===b.sppTypeId);
+    box.innerHTML+=`<div class="li" onclick="${b.status!=='paid'?`showPayForm(${b.id})`:''}"><div class="li-icon av av-o">💰</div><div class="li-body"><div class="li-title">${s?.name||'-'} · ${tp?.name||'-'}</div><div class="li-sub">${b.billMonth} · ${fc(b.amount)}</div></div><span class="badge ${SC[b.status]}">${b.status}</span></div>`}
+}
+async function genBills(){const sts=await db.students.where('locationId').equals(U.locationId).filter(s=>s.isActive).toArray();const tps=await db.sppTypes.where('locationId').equals(U.locationId).filter(t=>t.isRecurring&&t.isActive).toArray();const mo=new Date().toISOString().slice(0,7);let n=0;for(const s of sts)for(const t of tps){if(!await db.sppBills.where({studentId:s.id,sppTypeId:t.id,billMonth:mo}).count()){await db.sppBills.add({studentId:s.id,sppTypeId:t.id,billMonth:mo,amount:t.amount,paidAmount:0,status:'pending'});n++}}snack('ok',n+' tagihan');render()}
+async function showPayForm(bid){const b=bid?await db.sppBills.get(bid):null;if(!b)return;const rem=b.amount-(b.paidAmount||0);
+  openSheet('Bayar',`<div class="ff"><label>Sisa</label><input class="fi" value="${fc(rem)}" disabled></div><div class="ff"><label>Bayar</label><input class="fi" type="number" id="pa" value="${rem}"></div><div class="ff"><label>Metode</label><select class="fi" id="pm"><option>tunai</option><option>transfer</option><option>qris</option></select></div>`,
+    `<button class="btn btn-t" onclick="closeSheet()">Batal</button><button class="btn btn-p" onclick="savePay(${bid})">💾 Bayar</button>`);
+}
+async function savePay(bid){const b=await db.sppBills.get(bid);const a=parseFloat($('pa').value);if(!a){snack('err','Jumlah?');return}await db.payments.add({billId:bid,studentId:b.studentId,amount:a,method:$('pm').value,paidAt:new Date().toISOString()});const np=(b.paidAmount||0)+a;await db.sppBills.update(bid,{paidAmount:np,status:np>=b.amount?'paid':np>0?'partial':'pending'});snack('ok','Berhasil!');closeSheet();render()}
+
+// Cash Flow
+async function pgCashFlow(c){
+  const flows=await db.cashFlows.where('locationId').equals(U.locationId).toArray();
+  const tI=flows.filter(f=>f.type==='masuk').reduce((s,f)=>s+f.amount,0),tO=flows.filter(f=>f.type==='keluar').reduce((s,f)=>s+f.amount,0);
+  c.innerHTML=`<div class="stats-row"><div class="stat-chip"><div class="sc-icon">📥</div><div class="sc-val" style="color:var(--success)">${fc(tI)}</div><div class="sc-lbl">Masuk</div></div><div class="stat-chip"><div class="sc-icon">📤</div><div class="sc-val" style="color:var(--error)">${fc(tO)}</div><div class="sc-lbl">Keluar</div></div><div class="stat-chip"><div class="sc-icon">💰</div><div class="sc-val" style="color:var(--brand)">${fc(tI-tO)}</div><div class="sc-lbl">Saldo</div></div></div><div class="m-card" id="cfl"></div>`;
+  const box=$('cfl');if(!flows.length){box.innerHTML='<div class="empty"><span class="ei">🏦</span><div class="et">Belum ada</div></div>';return}
+  flows.sort((a,b)=>(b.transactionDate||'').localeCompare(a.transactionDate||'')).forEach(f=>{box.innerHTML+=`<div class="li"><div class="li-icon av ${f.type==='masuk'?'av-g':'av-o'}">${f.type==='masuk'?'📥':'📤'}</div><div class="li-body"><div class="li-title">${f.category}</div><div class="li-sub">${f.description||'-'} · ${fd(f.transactionDate)}</div></div><span style="font-weight:700;font-size:13px;color:${f.type==='masuk'?'var(--success)':'var(--error)'}">${f.type==='masuk'?'+':'-'}${fc(f.amount)}</span></div>`});
+}
+async function showCashForm(){
+  openSheet('Catat Kas',`<div class="ff"><label>Tipe</label><select class="fi" id="cft" onchange="updCC()"><option value="masuk">📥 Masuk</option><option value="keluar">📤 Keluar</option></select></div><div class="ff"><label>Kategori</label><select class="fi" id="cfc">${CASH_IN.map(c=>`<option>${c}</option>`).join('')}</select></div><div class="ff"><label>Jumlah</label><input class="fi" type="number" id="cfa" placeholder="0"></div><div class="ff"><label>Keterangan</label><input class="fi" id="cfd"></div><div class="ff"><label>Tanggal</label><input class="fi" type="date" id="cfdt" value="${today()}"></div>`,
+    `<button class="btn btn-t" onclick="closeSheet()">Batal</button><button class="btn btn-p" onclick="saveCF()">💾 Simpan</button>`);
+}
+function updCC(){$('cfc').innerHTML=($('cft').value==='masuk'?CASH_IN:CASH_OUT).map(c=>`<option>${c}</option>`).join('')}
+async function saveCF(){const a=parseFloat($('cfa').value);if(!a){snack('err','Jumlah?');return}await db.cashFlows.add({locationId:U.locationId,type:$('cft').value,category:$('cfc').value,amount:a,description:$('cfd').value,transactionDate:$('cfdt').value});snack('ok','Tersimpan');closeSheet();render()}
+
+// Reports
+async function pgReports(c){
+  const [sc,tc,hc,ss,bills,cfI,cfO]=await Promise.all([db.students.where('locationId').equals(U.locationId).count(),db.teachers.where('locationId').equals(U.locationId).count(),db.hafalanProgress.count(),db.classSessions.count(),db.sppBills.toArray(),db.cashFlows.where({locationId:U.locationId,type:'masuk'}).toArray(),db.cashFlows.where({locationId:U.locationId,type:'keluar'}).toArray()]);
+  const tB=bills.reduce((s,b)=>s+b.amount,0),tP=bills.reduce((s,b)=>s+(b.paidAmount||0),0);
+  c.innerHTML=`<div class="m-card el"><div class="m-card-body"><div style="font-weight:700;margin-bottom:8px">📊 Umum</div><div class="sr"><span class="sr-l">Santri</span><span class="sr-v">${sc}</span></div><div class="sr"><span class="sr-l">Ustadz</span><span class="sr-v">${tc}</span></div><div class="sr"><span class="sr-l">Sesi</span><span class="sr-v">${ss}</span></div><div class="sr"><span class="sr-l">Hafalan</span><span class="sr-v">${hc}</span></div></div></div>
+    <div class="m-card el"><div class="m-card-body"><div style="font-weight:700;margin-bottom:8px">💰 Keuangan</div><div class="sr"><span class="sr-l">Tagihan</span><span class="sr-v">${fc(tB)}</span></div><div class="sr"><span class="sr-l">Terbayar</span><span class="sr-v v-green">${fc(tP)}</span></div><div class="sr"><span class="sr-l">Tunggakan</span><span class="sr-v v-red">${fc(tB-tP)}</span></div><div class="sr"><span class="sr-l">Kas Masuk</span><span class="sr-v v-green">${fc(cfI.reduce((s,f)=>s+f.amount,0))}</span></div><div class="sr"><span class="sr-l">Kas Keluar</span><span class="sr-v v-red">${fc(cfO.reduce((s,f)=>s+f.amount,0))}</span></div></div></div>`;
+}
+
+// Certificates, Projects, Locations, Settings, Notifications
+async function pgCerts(c){c.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px">${[['🪪','Kartu Santri'],['📋','Rapor'],['🎓','Sertifikat'],['🧾','Kwitansi']].map(([i,l])=>`<div class="m-card el" style="margin:0" onclick="snack('inf','Cetak ${l}...')"><div class="m-card-body text-center" style="padding:24px 12px"><span style="font-size:32px;display:block;margin-bottom:8px">${i}</span><div style="font-weight:700">${l}</div></div></div>`).join('')}</div>`}
+async function pgProjects(c){const data=await db.projects.where('locationId').equals(U.locationId).toArray();c.innerHTML='<div id="pjl"></div>';const box=$('pjl');if(!data.length){box.innerHTML='<div class="empty"><span class="ei">📁</span><div class="et">Belum ada proyek</div></div>';return}data.forEach(p=>{box.innerHTML+=`<div class="m-card el" style="margin:0 16px 12px" onclick="showProjectForm(${p.id})"><div class="m-card-body"><div class="flex items-center justify-between" style="margin-bottom:6px"><div style="font-size:15px;font-weight:700">${p.title}</div><span class="badge ${SC[p.status]||'bg-gray'}">${p.status.replace('_',' ')}</span></div>${p.description?`<div style="font-size:12px;color:var(--on-surface-variant)">${p.description}</div>`:''}</div></div>`})}
+async function showProjectForm(id){const p=id?await db.projects.get(id):null;openSheet(id?'Edit Proyek':'Tambah Proyek',`<div class="ff"><label>Judul *</label><input class="fi" id="pt" value="${p?.title||''}"></div><div class="ff"><label>Deskripsi</label><textarea class="fi" id="pd">${p?.description||''}</textarea></div><div class="form-row"><div class="ff"><label>Status</label><select class="fi" id="ps"><option value="planned" ${p?.status==='planned'?'selected':''}>Rencana</option><option value="in_progress" ${p?.status==='in_progress'?'selected':''}>Berjalan</option><option value="completed" ${p?.status==='completed'?'selected':''}>Selesai</option></select></div><div class="ff"><label>Prioritas</label><select class="fi" id="pp"><option value="medium" ${!p||p?.priority==='medium'?'selected':''}>Sedang</option><option value="high" ${p?.priority==='high'?'selected':''}>Tinggi</option><option value="urgent" ${p?.priority==='urgent'?'selected':''}>Urgent</option></select></div></div><div class="ff"><label>Deadline</label><input class="fi" type="date" id="pdd" value="${p?.dueDate||''}"></div>${id?`<button class="btn btn-d btn-full" onclick="delRec('projects',${id},'Proyek')" style="margin-top:8px">🗑 Hapus</button>`:''}`,`<button class="btn btn-t" onclick="closeSheet()">Batal</button><button class="btn btn-p" onclick="savePj(${id||'null'})">💾 Simpan</button>`)}
+async function savePj(id){const d={locationId:U.locationId,title:$('pt').value.trim(),description:$('pd').value,status:$('ps').value,priority:$('pp').value,dueDate:$('pdd').value};if(!d.title){snack('err','Judul?');return}if(id)await db.projects.update(id,d);else await db.projects.add(d);snack('ok','Tersimpan');closeSheet();render()}
+async function pgLocations(c){const data=await db.locations.toArray();c.innerHTML='<div id="lcl"></div>';data.forEach(l=>{$('lcl').innerHTML+=`<div class="m-card el" style="margin:0 16px 12px" onclick="showLocationForm(${l.id})"><div class="m-card-body"><div class="flex items-center gap-12"><div class="av av-l av-o">🏢</div><div><div style="font-size:16px;font-weight:700">${l.name}</div><div style="font-size:12px;color:var(--on-surface-variant)">${l.address||''}</div></div></div></div></div>`})}
+async function showLocationForm(id){const l=id?await db.locations.get(id):null;openSheet(id?'Edit Lokasi':'Tambah Lokasi',`<div class="ff"><label>Nama</label><input class="fi" id="ln" value="${l?.name||''}"></div><div class="ff"><label>Alamat</label><textarea class="fi" id="la">${l?.address||''}</textarea></div><div class="form-row"><div class="ff"><label>Telepon</label><input class="fi" id="lp" value="${l?.phone||''}"></div><div class="ff"><label>Kepala</label><input class="fi" id="lh" value="${l?.headName||''}"></div></div>`,`<button class="btn btn-t" onclick="closeSheet()">Batal</button><button class="btn btn-p" onclick="saveLoc(${id||'null'})">💾 Simpan</button>`)}
+async function saveLoc(id){const d={name:$('ln').value.trim(),address:$('la').value,phone:$('lp').value,headName:$('lh').value,isActive:true};if(id)await db.locations.update(id,d);else await db.locations.add(d);snack('ok','Tersimpan');closeSheet();render()}
+function pgSettings(c){c.innerHTML=`<div class="m-card el"><div class="m-card-body"><div style="font-weight:700;margin-bottom:12px">💾 Backup</div><button class="btn btn-t btn-full" onclick="expD()" style="margin-bottom:8px">📥 Export JSON</button><button class="btn btn-o btn-full" onclick="$('impf').click()">📤 Import</button><input type="file" id="impf" accept=".json" style="display:none" onchange="impD(this)"></div></div><div class="m-card el"><div class="m-card-body"><button class="btn btn-d btn-full" onclick="rstD()">🗑 Reset Semua Data</button></div></div>`}
+async function expD(){const tables=['locations','students','teachers','guardians','classes','classStudents','classTeachers','schedules','curriculumCategories','curriculumMaterials','classSessions','attendances','hafalanProgress','iqroProgress','sppTypes','sppBills','payments','cashFlows','projects','notifications'];const data={};for(const t of tables)data[t]=await db[t].toArray();const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tpa-backup-'+today()+'.json';a.click();snack('ok','Exported!')}
+async function impD(inp){const f=inp.files[0];if(!f)return;const data=JSON.parse(await f.text());if(!confirm('Timpa data?'))return;for(const[t,rows]of Object.entries(data)){if(db[t]){await db[t].clear();await db[t].bulkAdd(rows)}}snack('ok','Imported!');render()}
+async function rstD(){if(!confirm('Hapus SEMUA data?'))return;if(!confirm('YAKIN?'))return;await db.delete();location.reload()}
+async function pgNotifs(c){const data=await db.notifications.orderBy('createdAt').reverse().toArray();c.innerHTML='<div class="m-card" id="nfl"></div>';const box=$('nfl');if(!data.length){box.innerHTML='<div class="empty"><span class="ei">🔔</span><div class="et">Belum ada</div></div>';return}data.forEach(n=>{box.innerHTML+=`<div class="li" style="${!n.isRead?'border-left:3px solid var(--brand)':''}" onclick="markR(${n.id})"><div class="li-icon av ${n.isRead?'av-o':'av-g'}">${{info:'ℹ️',progress:'📖',payment:'💰',attendance:'✅'}[n.type]||'🔔'}</div><div class="li-body"><div class="li-title">${n.title}${!n.isRead?' <span class="badge bg-orange">Baru</span>':''}</div><div class="li-sub">${n.message}</div></div></div>`})}
+async function markR(id){await db.notifications.update(id,{isRead:true});render()}
+
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  if(typeof Dexie==='undefined'){document.body.innerHTML='<div style="padding:40px;text-align:center"><h2>⚠️ Gagal Memuat</h2><p>Butuh internet saat pertama buka</p><a href="login.html">← Kembali</a></div>';return}
+  await seedDB();
+  if(!checkAuth())return;
+  renderNav();switchTab('home');
+});
+
+
+
+// ============================================================
+// HELP / TUTORIAL MODULE (FIXED)
+// ============================================================
+const HELP_ITEMS = [
+        {icon:'🏠',title:'Dashboard',desc:'Melihat ringkasan data TPA: jumlah santri, ustadz, kelas, keuangan, dan hafalan terbaru.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Beranda di bottom navigation</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Dashboard menampilkan statistik utama TPA</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Scroll ke bawah untuk melihat hafalan terbaru</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Tap "Semua →" untuk melihat detail</div></div>`},
+        {icon:'👨‍🎓',title:'Kelola Santri',desc:'Menambah, mengedit, dan menghapus data santri.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Data → pilih chip Santri</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Tap tombol + (FAB) untuk tambah santri baru</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Isi form: nama, NIS, JK, wali, alamat</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Tap 💾 Simpan</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">5</div><div style="font-size:13px">Untuk edit, tap nama santri di daftar</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">6</div><div style="font-size:13px">Untuk hapus, buka edit lalu scroll ke bawah</div></div>`},
+        {icon:'👳',title:'Kelola Ustadz',desc:'Mengelola data pengajar/ustadz.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Data → chip Ustadz</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Tap + untuk tambah ustadz baru</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Isi nama, spesialisasi (Hafalan/Iqro/Tajwid), telepon</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Tap 💾 Simpan</div></div>`},
+        {icon:'🏫',title:'Kelola Kelas',desc:'Membuat kelas dan mengatur level & ruangan.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Data → chip Kelas</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Tap + untuk tambah kelas</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Pilih level (Iqro 1-6, Juz Amma, Tahfidz)</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Atur ruangan dan kapasitas maksimal</div></div>`},
+        {icon:'📖',title:'Kurikulum',desc:'Melihat dan mengelola materi pembelajaran 7 pilar kurikulum.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Akademik → chip Kurikulum</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Lihat daftar materi per kategori</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Tap materi untuk melihat detail</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Materi sudah di-seed otomatis: Iqro, Hafalan, Tajwid, Fiqh, Akhlak, Doa, Sirah</div></div>`},
+        {icon:'✅',title:'Absensi',desc:'Merekam kehadiran santri per kelas per hari.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Akademik → chip Absensi</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Tap + (FAB) untuk input absensi baru</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Pilih kelas dari dropdown</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Tap ✅/📝/🤒/❌ untuk setiap santri</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">5</div><div style="font-size:13px">Tap 💾 Simpan Absensi</div></div>`},
+        {icon:'🕌',title:'Input Hafalan',desc:'Mencatat progres hafalan Al-Quran santri.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Akademik → chip Hafalan</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Tap + (FAB) untuk input baru</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Pilih kelas → pilih santri</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Pilih jenis: Ziyadah/Murajaah/Tasmi'</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">5</div><div style="font-size:13px">Pilih surat dan rentang ayat</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">6</div><div style="font-size:13px">Pilih nilai: Mumtaz → Belum Lulus</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">7</div><div style="font-size:13px">Tap 💾 Simpan</div></div>`},
+        {icon:'📕',title:'Input Iqro',desc:'Mencatat progres Iqro santri.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Akademik → chip Iqro</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Tap + (FAB) untuk input baru</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Pilih kelas → santri → jilid → halaman</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Pilih nilai: Lancar/Cukup/Mengulang</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">5</div><div style="font-size:13px">Tap 💾 Simpan</div></div>`},
+        {icon:'💰',title:'Pembayaran SPP',desc:'Mengelola tagihan dan pembayaran SPP santri.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Keuangan → chip SPP</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Tap "Generate Tagihan" untuk buat tagihan bulan ini</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Tap tagihan yang belum lunas → isi jumlah bayar</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Pilih metode: Tunai/Transfer/QRIS</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">5</div><div style="font-size:13px">Status otomatis berubah: Pending → Partial → Paid</div></div>`},
+        {icon:'🏦',title:'Kas Masuk/Keluar',desc:'Mencatat arus kas TPA: infaq, donasi, operasional.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Keuangan → chip Kas</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Lihat ringkasan: Total Masuk, Keluar, Saldo</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Tap + untuk catat transaksi baru</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Pilih tipe (Masuk/Keluar) → kategori → jumlah</div></div>`},
+        {icon:'💾',title:'Backup & Restore',desc:'Export dan import data untuk keamanan.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Lainnya → chip Pengaturan</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Tap "Export JSON" untuk backup</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">File JSON terdownload ke perangkat</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Untuk restore: tap "Import" → pilih file JSON</div></div>`},
+];
+
+function showHelp(){
+  let listHtml='<div style="text-align:center;padding:8px 0 16px"><div style="font-size:40px;margin-bottom:8px">📚</div><div style="font-size:16px;font-weight:800">Bantuan & Tutorial</div><p style="font-size:12px;color:var(--on-surface-variant)">Tap topik untuk melihat panduan langkah demi langkah</p></div>';
+  HELP_ITEMS.forEach((h,i)=>{
+    listHtml+=`<div class="li" style="border-bottom:1px solid var(--outline-variant);cursor:pointer" onclick="showTutorial(${i})"><div class="li-icon av av-o" style="font-size:18px">${h.icon}</div><div class="li-body"><div class="li-title">${h.title}</div><div class="li-sub">${h.desc}</div></div><span style="color:var(--brand);font-size:14px;font-weight:700">›</span></div>`;
+  });
+  openSheet('📚 Bantuan',listHtml);
+}
+
+function showTutorial(idx){
+  const h=HELP_ITEMS[idx];if(!h)return;
+  // Close current sheet and open tutorial detail
+  closeSheet();
+  setTimeout(()=>{
+    openSheet(h.icon+' '+h.title,`
+      <div style="background:var(--brand-light);border-radius:var(--radius);padding:16px;margin-bottom:16px;text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">${h.icon}</div>
+        <div style="font-size:16px;font-weight:800">${h.title}</div>
+        <p style="font-size:13px;color:var(--on-surface-variant);margin-top:4px">${h.desc}</p>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--on-surface-variant);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📋 Langkah-langkah</div>
+      <div style="background:var(--surface-dim);border-radius:var(--radius);padding:4px 12px">
+        ${h.steps}
+      </div>
+    `,`<button class="btn btn-t" onclick="closeSheet();setTimeout(showHelp,200)">← Kembali</button><button class="btn btn-p" onclick="closeSheet()">Mengerti 👍</button>`);
+  },250);
+}
+
+
+</script>
+</body></html>

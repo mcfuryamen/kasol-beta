@@ -125,7 +125,7 @@ function escapeHtmlText(s) {
 // Event-driven cek update (bukan polling berkala): sekali saat boot, sekali tiap
 // app balik ke foreground, dan saat kembali online. Juga dorong SW update biar
 // event updatefound ke-trigger (mekanisme PWA di pwa.js).
-async function checkForUpdate() {
+export async function checkForUpdate() {
   try {
     const remote = await fetchRemoteVersion();
     if (remote.cacheBust !== CACHE_BUST) {

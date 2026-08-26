@@ -29,7 +29,7 @@ import { syncNow as _ksrSyncNow } from './settings.sync.js';
 import { saveCart } from './pos.sync.js';
 import { selectTopping, applySelectedTopping, toggleOrderType, openMenuSelector, confirmMenuSelector, closeMenuSelector, changeMenuSelectorQty, changeToppingQty, syncToppingStepperVisibility } from './pos.ui.js';
 import { APP_VERSION, APP_VERSION_LABEL } from './version.js';
-import { startUpdateWatcher } from './update.js';
+import { startUpdateWatcher, checkForUpdate } from './update.js';
 import { setReportPeriod, setReportDate, setCustomStart, setCustomEnd, setPosCat, setCurrentPage, setCart, setSelectedTrxId, setLastSaleId, setPlatCurrentSlide, setPlatAutoTimer, orderType, setOrderType } from './app-state.js';
 import { openModal, closeModal, closeAllModals, isModalOpen, toggleModal, registerModalSelector } from './modal.js';
 
@@ -1014,6 +1014,14 @@ init();
 // Deteksi update jalan di SEMUA state lisensi (aktif/trial/expired/locked),
 // bukan cuma di boot() yang hanya dipanggil saat lisensi aktif/trial.
 startUpdateWatcher();
+
+// Ketika SW baru mengambil alih controller (skipWaiting -> activate ->
+// clients.claim), paksa cek update agar overlay muncul tanpa hard refresh.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (typeof checkForUpdate === 'function') checkForUpdate();
+  });
+}
 
 // ---- Version (P1/N7): single source of truth wired to window + DOM ----
 window.APP_VERSION = APP_VERSION;

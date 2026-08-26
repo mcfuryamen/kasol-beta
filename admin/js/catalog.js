@@ -118,9 +118,8 @@ export function renderCatalog() {
       <div class="catalog-card-meta">${escapeHtml(app.kodeProduk || app.appType || '—')} · ${formatRupiah(app.price || 0)}</div>
       <div class="catalog-card-category">${getCategoryLabel(app.category)}</div>
             <div class="catalog-card-domain">
-              ${statusChip(app)}
-              ${app.storeUrl ? `<a href="${escapeHtml(app.storeUrl)}" target="_blank" rel="noopener" class="domain-chip domain-vercel">🌐 Live</a>` : ''}
-              ${app.vercelUrl ? `<a href="${escapeHtml(app.vercelUrl)}" target="_blank" rel="noopener" class="domain-chip domain-vercel">▲ Vercel</a>` : ''}
+              ${app.storeUrl ? `<a href="${escapeHtml(app.storeUrl)}" target="_blank" rel="noopener" class="domain-chip ${statusChipClass(app)}">${statusChipLabel(app)}</a>` : statusChip(app)}
+              ${app.vercelUrl && !app.storeUrl ? `<a href="${escapeHtml(app.vercelUrl)}" target="_blank" rel="noopener" class="domain-chip domain-vercel">▲ Vercel</a>` : ''}
             </div>
             ${app.hot ? '<span class="catalog-card-hot">🔥 Hot</span>' : ''}
       <div class="catalog-card-actions">
@@ -178,6 +177,20 @@ function statusChip(app) {
   };
   const b = map[s] || map.development;
   return `<span class="domain-chip ${b.cls}">${b.label}</span>`;
+}
+
+/** Return CSS class untuk status chip (untuk dipakai di <a>) */
+function statusChipClass(app) {
+  const s = resolveProductStatus(app);
+  const map = { live: 'domain-live', ready: 'domain-ready', maintenance: 'domain-maint', development: 'domain-none' };
+  return map[s] || 'domain-none';
+}
+
+/** Return label untuk status chip (untuk dipakai di <a>) */
+function statusChipLabel(app) {
+  const s = resolveProductStatus(app);
+  const map = { live: '● LIVE', ready: '● READY', maintenance: '🛠 MAINTENANCE', development: '◆ DEVELOPMENT' };
+  return map[s] || '◆ DEVELOPMENT';
 }
 
 /**
@@ -285,7 +298,7 @@ window.openCatalogSheet = function(idx = null) {
           </div>
     <div class="btn-block-row mt12">
       <button class="btn btn-outline" onclick="closeCatalogSheet()">Batal</button>
-      <button class="btn btn-primary" onclick="saveCatalogApp(${idx})">${isEdit ? 'Simpan Perubahan' : 'Tambah Aplikasi'}</button>
+      <button class="btn btn-primary" onclick="saveCatalogApp(${idx})">${isEdit ? 'Simpan' : 'Tambah'}</button>
     </div>
   `;
 

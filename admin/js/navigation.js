@@ -23,9 +23,7 @@ const PAGE_META = {
 function setPageMeta(screen) {
   const meta = PAGE_META[screen] || {};
   const pt = document.getElementById('pageTitle');
-  const ps = document.getElementById('pageSubtitle');
   if (pt) pt.textContent = meta.title || screen;
-  if (ps) ps.textContent = meta.subtitle || '';
 }
 
 /**
@@ -34,7 +32,7 @@ function setPageMeta(screen) {
 export function initNavigation() {
   sidebar = document.querySelector('.sidebar');
   sidebarOverlay = document.getElementById('sidebarOverlay');
-  navItems = document.querySelectorAll('.nav-link, .nav-item, .sb-link');
+  navItems = document.querySelectorAll('.nav-link, .nav-item, .sb-link, .bnav-item');
 
   // Hamburger is already in HTML (topbar-right)
   hamburger = document.querySelector('.menu-toggle, .hamburger');
@@ -119,26 +117,21 @@ function handleHashChange() {
  * @param {string} [clientView] - Client view mode ('analitik' | 'kelola'), only for 'klien' screen
  */
 export function switchScreen(screen, clientView) {
-  // Update sidebar links — parent and children must be mutually exclusive
-  document.querySelectorAll('.nav-link, .sb-link').forEach(link => {
+  // Update sidebar links + bottom nav — semua nav item pakai logika yang sama
+  document.querySelectorAll('.nav-link, .sb-link, .bnav-item').forEach(link => {
     const ls = link.dataset.screen;
     const lc = link.dataset.clientView;
     let isActive = false;
     if (!lc) {
-      // Parent: active only when no clientView AND no child is active
+      // Item tanpa clientView (Dashboard, Katalog, Pengaturan): aktif hanya saat screen cocok
       isActive = ls === screen && !clientView;
     } else {
-      // Child: active only when both screen AND clientView match
+      // Item dengan clientView (Analitik, Kelola): aktif hanya saat screen + view cocok
       isActive = ls === screen && lc === clientView;
     }
     link.classList.toggle('active', isActive);
     if (isActive) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
-  });
-
-  // Update bottom nav (only .nav-item; .nav-link belongs to sidebar and is handled above)
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.classList.toggle('active', item.dataset.screen === screen);
   });
 
   // Update screens
@@ -206,9 +199,10 @@ export function updateActiveScreen(screen, clientView) {
     if (isActive) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   });
-  document.querySelectorAll('.nav-item').forEach(item => {
+  document.querySelectorAll('.bnav-item').forEach(item => {
     const isActive = item.dataset.screen === screen;
     item.classList.toggle('active', isActive);
+    item.setAttribute('aria-current', isActive ? 'page' : 'false');
   });
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.toggle('active', s.id === `screen-${screen}`);

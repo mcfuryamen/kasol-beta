@@ -5,7 +5,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v91';
+const CACHE_NAME = 'kasir-solo-kaki5-v92';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -116,7 +116,7 @@ self.addEventListener('fetch', event => {
         return cached || fetch(request).then(response => {
           if (response && response.status === 200) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+            caches.open(CACHE_NAME).then(cache => cache.put(request, clone)).catch(() => {});
           }
           return response;
         }).catch(() => {
@@ -133,15 +133,10 @@ self.addEventListener('fetch', event => {
       .then(response => {
         if (response && response.status === 200 && response.type === 'basic') {
           // Abaikan request dengan scheme yang tidak didukung Cache API
-          // (mis. chrome-extension:// dari plugin browser)
-          try {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-          } catch (e) {
-            if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) {
-              console.warn('[SW] Cache skip:', request.url, e.message);
-            }
-          }
+          // (mis. chrome-extension:// dari plugin browser) — tangkap rejection
+          // agar tidak terjadi "Uncaught (in promise)" di console.
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, clone)).catch(() => {});
         }
         return response;
       })

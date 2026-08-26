@@ -19,25 +19,41 @@
  * ke JWT admin (JWT_SECRET sudah disiapkan di env) = follow-up terpisah.
  */
 
-import { timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual, createHmac } from 'node:crypto';
+import { validateSessionToken } from './_token.js';
 
-const KEY = process.env.ADMIN_API_KEY || '';
+const ADMIN_KEY = process.env.ADMIN_API_KEY || '';
 
+/**
+ * Cek apakah kredensial yang masuk valid. Prioritas: x-session-key (time-limited,
+ * di-generate server-side) → fallback x-admin-key (legacy, untuk backward compat).
+ *
+ * Sesuai logika audit: ADMIN_API_KEY seharusnya TIDAK PERNAH dikirim dari browser.
+ * Fungsi ini tetap ada untuk cadangan environment yang belum migrasi penuh.
+ */
 export function checkAdminGate(req) {
-  // Fail-closed: kalau key belum diset, jangan pernah biarkan request lewat.
-  if (!KEY) {
+  // Fail-closed: kalau admin key belum di-set, jangan pernah biarkan request lewat.
+  if (!ADMIN_KEY) {
     return { ok: false, code: 503, error: 'server_not_configured' };
   }
+
+  // ── Prioritas 1: x-session-key (time-limited, derivasi admin key, tidak diekspos) ──
+  const sessionKey = req.headers['x-session-key'];
+  if (typeof sessionKey === 'string' && sessionKey.length > 0) {
+    const v = validateSessionToken(ADMIN_KEY, sessionKey);
+    if (v.ok) return { ok: true };
+    if (v.error === 'token_expired') return { ok: false, code: 401, error: 'token_expired' };
+    return v;
+  }
+
+  // ── Prioritas 2: x-admin-key (legacy — fallback, segera dihilangkan) ──
   const supplied = req.headers['x-admin-key'];
-  if (typeof supplied !== 'string' || supplied.length === 0) {
-    return { ok: false, code: 401, error: 'unauthorized' };
+  if (typeof supplied === 'string' && supplied.length > 0) {
+    const a = Buffer.from(supplied, 'utf8');
+    const b = Buffer.from(ADMIN_KEY, 'utf8');
+    const equal = a.length === b.length && timingSafeEqual(a, b);
+    if (equal) return { ok: true };
   }
-  const a = Buffer.from(supplied, 'utf8');
-  const b = Buffer.from(KEY, 'utf8');
-  // Panjang sama divalidasi eksplisit + banding pakai constant-time.
-  const equal = a.length === b.length && timingSafeEqual(a, b);
-  if (!equal) {
-    return { ok: false, code: 401, error: 'unauthorized' };
-  }
-  return { ok: true };
+
+  return { ok: false, code: 401, error: 'unauthorized' };
 }
