@@ -119,7 +119,7 @@ export async function openPurchaseSheet() {
   const qrisHtml = hasQris
     ? `<img src="${payInfo.qrisUrl}" style="width:100%;max-width:300px;border-radius:12px;margin-bottom:12px" alt="QRIS">
        <div class="kcenter kmb12">
-         <a href="${payInfo.qrisUrl}" download="qris-kasirsolo.png" class="btn btn-ghost btn-sm">⤓ Unduh QRIS</a>
+         <a href="${payInfo.qrisUrl}" download="qris-kasirsolo.png" class="btn btn-outline btn-sm">⤓ Unduh QRIS</a>
        </div>`
     : `<div style="text-align:center;padding:20px;border:1px dashed var(--line,var(--border));border-radius:12px;color:var(--text2)">
          <div class="kfs30 kmb8">▦</div>
@@ -155,8 +155,11 @@ export async function openPurchaseSheet() {
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span class="kfs14 ktext2">Harga Lisensi</span>
+          <!-- Harga lama (opsional) dicoret + oranye; HARGA NORMAL TIDAK dicoret.
+               NB: <s> WAJIB ditutup di sini — kalau tidak, seluruh konten di
+               bawahnya (QRIS, rekening, Unit ID, cara pembayaran) ikut tercoret. -->
           <span style="display:inline-flex;align-items:baseline;gap:8px">
-            ${payInfo.priceBeforeLabel ? `<s style="font-size:13px;color:var(--text3,#999);font-weight:600">${payInfo.priceBeforeLabel} ` : ''}
+            ${payInfo.priceBeforeLabel ? `<s style="font-size:13px;color:var(--primary);font-weight:600">${payInfo.priceBeforeLabel}</s>` : ''}
             <span style="font-size:18px;font-weight:800;color:var(--accent,var(--success,#16a34a))">${payInfo.priceLabel}</span>
           </span>
         </div>
