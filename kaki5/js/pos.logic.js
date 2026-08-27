@@ -59,8 +59,13 @@ export function hargaEfektif(item, orderType) {
 //     di-REPLACE dengan nilai dari argumen (bukan union).
 //     Topping yang tidak ada di argumen dihapus dari toppingQtys.
 export function addToCartLogic(cart, menuId, menu, selectedToppings = [], orderType = 'dine-in', qty = 1, selectedToppingQtys = null) {
+  // Blokir item titipan yang stoknya habis
+  if (menu.pakaiStok && (menu.stok || 0) <= 0) return cart;
   const addQty = Math.max(1, parseInt(qty, 10) || 1);
   const existing = cart[menuId];
+  // Blokir oversell: qty di keranjang (existing + tambahan) tidak boleh melebihi stok
+  const pendingQty = (existing ? existing.qty : 0) + addQty;
+  if (menu.pakaiStok && pendingQty > (menu.stok || 0)) return cart;
 
   // Bangun map qty topping akhir dari argumen.
   const finalQtys = {};
@@ -106,6 +111,8 @@ export function changeQtyLogic(cart, menuId, delta) {
     const { [menuId]: _, ...rest } = cart;
     return rest;
   }
+  // Blokir kalau pakaiStok dan qty melebihi stok
+  if (item.menu.pakaiStok && newQty > (item.menu.stok || 0)) return cart;
   return { ...cart, [menuId]: { ...item, qty: newQty } };
 }
 

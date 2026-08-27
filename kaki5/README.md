@@ -35,7 +35,7 @@ kaki5/
 ├── index.html          ← Shell HTML (Single-source CSS + ESM lazy loading)
 ├── server.cjs          ← HTTP server dev port 8086 (no-cache)
 ├── dexie.min.js        ← Library Dexie 3.2.4
-├── sw.js               ← Service Worker v98 (single-source cache)
+├── sw.js               ← Service Worker v99 (single-source cache)
 ├── vercel.json         ← Konfigurasi Vercel
 ├── css/
 │   └── style.css       ← Single-source CSS (CSS variables, reset, layout, components, responsive breakpoints)
@@ -81,7 +81,7 @@ kaki5/
 - ✅ **Lazy Loading**: Critical modules (POS, Beranda) pre-wire, others load on demand
 - ✅ **Debounce Search**: POS dan Menu search di-debounce 300ms
 - ✅ **Router System**: URL hash-based navigation dengan History API
-- ✅ **Service Worker v98**: Modular cache dengan no-cache headers
+- ✅ **Service Worker v99**: Modular cache dengan no-cache headers
 
 **Arsitektur baru (v5):**
 1. `<script src="dexie.min.js">` (global)
@@ -190,6 +190,13 @@ Fitur lain:
 - **Printer Bluetooth** (hubungkan / cetak tes / putuskan).
 - Info kontak developer + versi.
 - **🎫 Kelola Lisensi** — tombol akses license sheet (status, extend, activate).
+  - **Opsi 3 (1 serial = 1 unit_id = 1 profil)**: saat serial dimasukkan di
+    perangkat baru, app memanggil RPC Supabase `device_assign`. Profil lokal
+    (nama warung / no WA) **cocok** dengan profil cloud → `unit_id` perangkat
+    di-reassign (perangkat jadi pemilik); **tidak cocok** → lisensi ditolak +
+    **lock overlay "hubungi admin"**. Serial tidak dikenal = `serial-not-found`.
+    Modul: `js/license.sync.js` (`verifyAndAssignSerial`), backend
+    `supabase/migration-device-assign.sql`.
 
 ### 6. ❓ Bantuan (Help & Tutorial)
 - Panduan singkat cara memakai Kasir Solo - Kaki Lima.
@@ -323,8 +330,8 @@ cleanup() → saat pindah ke page lain
 | **Persist sementara** | Web Storage API (`localStorage`) | Cart persisted ke kaki5-cart |
 | **Offline/PWA** | Service Worker (`sw.js`) + manifest | Cache-first asset, network-first HTML |
 | **Printer** | Web Bluetooth API | ESC/POS 58/80mm thermal |
-| **License** | HMAC-SHA256 (offline) + Supabase cloud | Trial 7 hari + share-extend (20x) + serial (KK5 prefix); anti-rollback jam (`clockAnchor`/`getEffectiveNow`); chip header = cermin `getLicenseStatus()` |
-| **Cloud (future)** | Supabase (tahap 2) | Validasi lisensi + sync transaksi (roadmap) |
+| **License** | HMAC-SHA256 (offline) + Supabase cloud | Trial 7 hari + share-extend (20x) + serial (KK5 prefix); anti-rollback jam (`clockAnchor`/`getEffectiveNow`); chip header = cermin `getLicenseStatus()`. **Opsi 3**: pemindahan serial ke perangkat baru diverifikasi server-side via RPC `device_assign` (1 serial = 1 unit = 1 profil); tak cocok → lock overlay |
+| **Cloud (Verifikasi Lisensi)** | Supabase RPC `device_assign` / `device_known` (SECURITY DEFINER) | Penegakan kepemilikan serial server-side (Opsi 3); fallback offline (HMAC lokal) — lihat `supabase/migration-device-assign.sql` |
 
 ---
 

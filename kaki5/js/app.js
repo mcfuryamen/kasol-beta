@@ -50,7 +50,7 @@ let _berandaModule = null;
 
 // Wire page modules on first use
 const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput' };
-const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu' };
+const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu', addCustomSuplayer: 'addCustomSuplayer', addCustomKategori: 'addCustomKategori', openReturModal: 'openReturModal', closeReturModal: 'closeReturModal', confirmRetur: 'confirmRetur' };
 const _laporanWireMap = { __wired: false, loadReport: 'loadReport', setReportPeriod: 'setReportPeriodUI', setReportPeriodUI: 'setReportPeriodUI', navReportDate: 'navReportDate', toggleExpenseCat: 'toggleExpenseCat', setCustomDate: 'setCustomDate', toggleCustomPicker: 'toggleCustomPicker', pickDate: 'pickDate', pickWeek: 'pickWeek', pickMonth: 'pickMonth', pickCustomDate: 'pickCustomDate' };
 const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaWarung: 'saveNamaWarung', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification' };
 const _bantuanWireMap = { __wired: false, initBantuan: 'initBantuan', toggleTutorial: 'toggleTutorial' };
@@ -320,8 +320,13 @@ function gateLicenseHtml(status) {
 
 window._ksr_buyGate = () => openPurchaseSheet();
 
-// Periodic license re-check (60s) -- updates trial chip/cards, shows lock on expiry
-setInterval(() => { checkLicenseGate(); }, 60000);
+// Periodic license re-check (60s) -- cloud-first: sync dari Supabase dulu
+// (SSoT server), baru checkLicenseGate baca lokal yang sudah match cloud.
+// Tanpa ini, kalau admin cabut/aktivasi dari konsol, butuh refresh manual.
+setInterval(() => {
+  if (!navigator.onLine) { checkLicenseGate(); return; }
+  runLicenseSync().finally(() => checkLicenseGate());
+}, 60000);
 
 // License sync is event-driven: startup, reconnect, and foreground visibility.
 window.addEventListener('online', () => {
@@ -416,10 +421,37 @@ function handleDataAction(action, el, event) {
     case 'report-period-custom':
       if (window.setReportPeriod) window.setReportPeriod('custom');
       break;
+    case 'setor-konsinyasi': {
+      const sp = el?.dataset?.suplayer || '';
+      const utang = parseInt(el?.dataset?.utang) || 0;
+      if (window.openExpenseForm) {
+        window.openExpenseForm({
+          keterangan: `Setoran ${sp} · ${new Date().toLocaleDateString('id-ID')}`,
+          kategori: 'Setoran Konsinyasi',
+          jumlah: utang > 0 ? utang : ''
+        });
+      }
+      break;
+    }
 
     // Menu
     case 'menu-search':
       if (window.renderMenuListDebounced) window.renderMenuListDebounced();
+      break;
+    case 'add-suplayer-custom':
+      if (window.addCustomSuplayer) window.addCustomSuplayer();
+      break;
+    case 'add-kategori-custom':
+      if (window.addCustomKategori) window.addCustomKategori();
+      break;
+    case 'retur-menu':
+      if (window.openReturModal) window.openReturModal(Number(el?.dataset?.menuId));
+      break;
+    case 'close-retur-modal':
+      if (window.closeReturModal) window.closeReturModal();
+      break;
+    case 'confirm-retur-menu':
+      if (window.confirmRetur) window.confirmRetur();
       break;
     case 'open-menu-form': {
       // Tombol ✏️ edit di kartu menu membawa data-menu-id (mode edit);
@@ -903,6 +935,31 @@ async function init() {
 let _licenseSyncInFlight = null;
 let _pendingProfilePullRefresh = false; // C2v2: pending UI refresh after cloud pull
 
+/**
+ * Opsi 3 — lock-boot: verifikasi bahwa lisensi AKTIF lokal masih cocok dengan
+ * profil baris serial di cloud. Kalau serial sudah di-reassign ke perangkat/
+ * profil lain yang berbeda, langsung tampilkan lock overlay profil-mismatch
+ * dan hentikan pemakaian (tidak menunggu aksi manual aktivasi).
+ */
+async function verifyBootLicenseAssignment() {
+  if (!navigator.onLine) return;
+  const { getLicense } = await import('./license.logic.js');
+  const lic = await getLicense();
+  if (!lic || lic.status !== 'active' || !lic.serial) return; // hanya lisensi aktif
+
+  const { verifyAndAssignSerial } = await import('./license.sync.js');
+  const { getUnitId } = await import('./license.logic.js');
+  const unitId = await getUnitId();
+  const v = await verifyAndAssignSerial(lic.serial, unitId);
+  if (!v.ok && v.reason === 'profile-mismatch') {
+    const { renderProfileMismatchOverlay } = await import('./license.ui.js');
+    await renderProfileMismatchOverlay();
+    return;
+  }
+  // reason 'serial-not-found' / 'network' / 'assigned' → biarkan state berjalan
+  // (not-found juga ditangani oleh syncLicenseStatus; network = offline bebas).
+}
+
 async function runLicenseSync() {
   if (!navigator.onLine || _licenseSyncInFlight) return _licenseSyncInFlight;
   _licenseSyncInFlight = syncLicenseStatus().then(async result => {
@@ -936,10 +993,51 @@ async function restorePrinterStatus() {
 
 async function boot() {
   await ensureUnitId();
-  // Boot harus tahan banting: satu langkah gagal tidak boleh mematikan sync
-  // profil (dulu loadBeranda error = ensureSynced tak pernah terpanggil).
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // FASE 1: SYNC DULU SEBELUM APA-PUN (permintaan 2026-08-27)
+  // Urutan: sync lisensi → pull profil cloud → inject ke IndexedDB
+  // Baru setelah itu render UI. Supaya data yang ditampilkan SELALU fresh.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // 1a) Sync lisensi dari cloud → lokal (termasuk pull profil jika license aktif)
+  try { await runLicenseSync(); } catch (e) { console.warn('[BOOT] license sync gagal:', e?.message || e); }
+
+  // 1a-bis) Opsi 3 lock-boot: kalau lisensi AKTIF dan online, verifikasi sekali lagi
+  // bahwa profil perangkat masih cocok dengan baris serial di cloud. Bila profil
+  // tidak cocok (serial dipindah ke perangkat lain yg profil beda), aplikasi
+  // langsung DIKUNCI — pencegahan pemakaian silang serial.
+  try { await verifyBootLicenseAssignment(); } catch (e) { console.warn('[BOOT] verify assignment gagal:', e?.message || e); }
+
+  // 1a-bis) Opsi 3 lock-boot: kalau lisensi AKTIF dan online, verifikasi sekali lagi
+  // bahwa profil perangkat masih cocok dengan baris serial di cloud. Bila profil
+  // tidak cocok (serial dipindah ke perangkat lain yg profil beda), aplikasi
+  // langsung DIKUNCI — pencegahan pemakaian silang serial.
+  try { await verifyBootLicenseAssignment(); } catch (e) { console.warn('[BOOT] verify assignment gagal:', e?.message || e); }
+
+  // 1b) Pull profil dari cloud → IndexedDB (broad pull, tidak hanya saat license aktif).
+  //     DI-AWAIT supaya data profil sudah ada di IndexedDB SEBELUM render UI.
+  //     Device baru / install ulang / wipeIndexedDB akan otomatis dapat profil.
+  let profilePulled = false;
+  try {
+    await pullCloudProfileIfOnline();
+    profilePulled = true;
+    console.log('[BOOT] Profil cloud berhasil di-pull ke lokal.');
+  } catch (e) {
+    console.warn('[BOOT] cloud profile pull gagal:', e?.message || e);
+  }
+
+  // 1c) Push lokal → cloud (backfill user lama, self-healing baris hilang).
+  //     Setelah pull selesai, push perubahan lokal ke cloud supaya sinkron.
+  //     Self-healing (T29): flag "synced" diverifikasi ke server.
+  try { await ensureSynced({ silent: true }); } catch (e) { console.warn('[BOOT] sync profil:', e?.message || e); }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // FASE 2: RENDER UI (data sudah fresh di IndexedDB)
+  // ═══════════════════════════════════════════════════════════════════════
+
   try { await loadBeranda(); } catch (e) { console.error('[BOOT] loadBeranda gagal:', e); }
-  // try { await checkOnboarding(); } catch (e) { console.error('[BOOT] checkOnboarding gagal:', e); }
+
   // H1: pulihkan status printer tersimpan
   restorePrinterStatus();
   // Topping/Ojol: pulih tipe order terakhir dari localStorage
@@ -949,20 +1047,21 @@ async function boot() {
       setOrderType(saved);
     }
   } catch (_) {}
-  // C2v2: pull profil dari cloud SETIAP boot, berdasarkan unit_id/fingerprint.
-  // Device baru / install ulang / wipeIndexedDB akan otomatis dapat profil.
-  // Simpan flag pending refresh — akan dieksekusi saat settings module ready.
-  pullCloudProfileIfOnline().then(() => {
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // FASE 3: POST-BOOT (background tasks, UI refresh, retry loop)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Refresh settings UI jika profile pull selesai — pastikan settings
+  // menampilkan data terbaru dari cloud.
+  if (profilePulled) {
     if (typeof loadSettings === 'function') {
-      loadSettings().catch(e => console.warn('[BOOT] settings refresh after pull gagal:', e));
+      try { await loadSettings(); } catch (e) { console.warn('[BOOT] settings refresh after pull gagal:', e); }
     } else {
       _pendingProfilePullRefresh = true;
     }
-  }).catch(e => console.warn('[BOOT] cloud profile pull gagal:', e?.message || e));
-  // Backfill otomatis: user yang sudah pakai (data cuma lokal) di-push sekali.
-  // Self-healing (T29): flag "synced" diverifikasi ke server — baris hilang
-  // otomatis di-push ulang. Gagal → status pending → retry loop tiap 5 menit.
-  ensureSynced({ silent: true }).catch(e => console.warn('[BOOT] sync profil:', e?.message || e));
+  }
+
   startSyncRetryLoop();
   // T19 (audit 2026-08-17/M9): settings module wajib ke-wire untuk banner
   // profil, tapi boot TIDAK BOLEH menggantung selamanya kalau modul itu gagal

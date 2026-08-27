@@ -1,22 +1,7 @@
 {
-  "version": "1.0.30",
-  "cacheBust": "v98",
+  "version": "1.0.31",
+  "cacheBust": "v99",
   "notes": [
-    "💳 Tombol kirim bukti pembayaran jadi dua state (permintaan pemilik 2026-08-26): foto belum terpilih → tombol HIJAU \"📎 Lampirkan Bukti Pembayaran\"; foto sudah terpilih → tombol ORANYE \"🚀 Kirim Sekarang\". Placeholder \"📎 Lampirkan foto bukti pembayaran di sini\" dihapus. Bonus: klik kedua tidak lagi membuka file picker + mengirim bersamaan (handler ganda dihapus — aksi lewat dispatcher data-action).",
-    "💳 Sheet Beli Lisensi (penyempurnaan visual): nomor rekening diperbesar (18px bold); blok tampilan Unit ID dihapus dari sheet (logika unit_id tetap jalan — ikut terkirim ke cloud & polling realtime); blok 📋 Cara Pembayaran diberi latar kuning soft (rgba kuning + opacity); label tombol jadi \"Kirim Bukti Pembayaran\"; placeholder bukti jadi \"📎 Lampirkan foto bukti pembayaran di sini\" (hijau tebal); baris Produk tampil \"Kasir Solo - Kaki Lima | KK5\"; tombol ✕ sheet beli diberi border oranye. Teks langkah pembayaran & halaman Bantuan ikut disinkronkan.",
-    "🖥️ Fix layar blank putih saat gate lisensi: untuk perangkat yang sudah pernah onboarded (trial habis / lisensi nonaktif), blok konten gate (#gateLicenseBlock) tidak muncul karena inline style kosong tidak menimpa class .khide. Kini display:'block' eksplisit — kartu 'Masa Coba Gratis Habis' + tombol Beli Lisensi tampil normal.",
-    "💳 Sheet Beli Lisensi: bug tag <s> tidak ditutup membuat SEMUA konten di bawah harga tercoret (QRIS, rekening, Unit ID, bukti, cara pembayaran) — sudah diperbaiki. Harga lama (opsional) kini dicoret warna oranye; harga normal tidak dicoret; baris harga rata kanan; tombol Unduh QRIS jadi outline oranye.",
-    "🔒 Layar 'Lisensi Dinonaktifkan' kini SOLID putih penuh — objek di belakangnya tidak terlihat lagi, kartu diposisikan di tengah layar (atas-bawah, kanan-kiri). Rule CSS .revoked-page yang hilang saat konsolidasi CSS modular v72 sudah dikembalikan.",
-    "🏷️ Form menu: label disederhanakan — 'Harga Modal', 'Harga Jual', 'Harga Ojol', 'Topping'. Teks penjelasan (opsional/format) pindah ke bawah label dengan font kecil miring (.form-helper).",
-    "🧪 test_pos.js: 17 unit test untuk kalkulasi topping (normalize/toppingHarga/lineTotal/calculateTotal) — semua PASS.",
-    "🛡️ SW error handling: tangkap rejection `caches.put()` untuk request scheme yang tidak didukung (mis. chrome-extension://) agar tidak terjadi 'Uncaught (in promise)' di console.",
-    "🔄 Auto-update tanpa hard refresh: tambah `controllerchange` listener di app.js. Ketika SW baru mengambil alih controller (skipWaiting → activate → clients.claim), overlay update akan muncul otomatis jika `version.json.cacheBust` berubah.",
-    "🔌 CSP connect-src: izinkan `wss://hhywrvedlwljawgxzpkq.supabase.co` di meta CSP agar WebSocket Supabase tidak diblokir oleh browser.",
-    "🔁 Sinkron penghitungan topping: trx detail, nota (thermal + browser print), dan cart modal kini menggunakan `normalizeToppingQtys` sebagai SSoT. Data lama `toppingQty` number atau tanpa field tetap fallback aman.",
-    "🛒 Cart modal: chip topping dipindah ke dalam baris nama menu (di `.cart-name-row`) sebagai inline tag; teks 'berlaku untuk semua item' diubah menjadi gaya note kecil (knote).",
-    "🧮 Per-topping qty (refactor): ganti `toppingQty` (Number, qty global) jadi `toppingQtys` (Object {nama: qty}, qty per-topping). Mis. nasi 2 + telur dadar 1, ayam goreng 2 → (5000×2) + (3000×1) + (5000×2) = 23.000. UI: 1 grid penuh per opsi topping, stepper qty inline di kanan (hidden sampai checkbox dicentang). Backward-compat: data lama dengan `toppingQty` number masih terbaca.",
-    "📊 KPI Beranda & Laporan: kartu jumlah transaksi / porsi / rata-rata kini punya latar oranye pastel (konsisten dengan pola warna hijau/merah/biru)",
-    "📐 Form Menu: field Harga Modal & Harga Jual dalam grid 2 kolom (utilitas kgrid-2col-gap8); urutan dibalik (Modal kiri, Jual kanan)",
-    "🧾 Restruk nota: tipe pesanan selalu tampil (kiri) + catatan di kanan, topping muncul per-item, alamat usaha tampil di header, footer Terima kasih + Semoga berkah jadi 1 baris, sub-line Kasir Solo pindah ke paling bawah"
+    "🤝 Fitur Konsinyasi (v1): item titipan dari suplayer, field `suplayer` + `pakaiStok` + `stok` + `retur` di tabel menu (DB v5). Suplayer 'Umum' = menu sendiri; ≠ Umum = titipan (auto kategori 'Titipan'). Form menu: combobox Kategori + Suplayer (grid 2 kolom) + toggle Pakai Stok. Halaman Menu: badge 'Titipan', info stok, visual dim saat stok 0, tombol Retur ↩️. Kasir: blokir item stok 0, kurangi stok saat checkout. Laporan: blok Konsinyasi per suplayer (terjual, sisa utang, stok tersisa, setoran). Pengeluaran: kategori 'Setoran Konsinyasi' + prefill dari tombol 💰 Setor."
   ]
 }

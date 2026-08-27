@@ -5,7 +5,7 @@
 // User TIDAK perlu request serial manual — cukup beli (QRIS) & tunggu
 // verifikasi admin. Input serial manual hanya fallback offline.
 import { ensureSynced, pullCloudProfileTo } from './sync.js';
-import { getUnitId, getDeviceCode, getLicense, markLicenseRevoked, bumpClockAnchor } from './license.logic.js';
+import { getUnitId, getDeviceCode, getInstallId, getLicense, markLicenseRevoked, bumpClockAnchor } from './license.logic.js';
 import { setSetting } from './db.js';
 import { rateLimiters } from './helpers.pure.js';
 
@@ -31,7 +31,7 @@ async function readLicenseRow(sb, unitId) {
   try {
     const { data, error } = await sb
       .from('clients')
-      .select('license_status, license_serial, license_expires_at, first_seen')
+      .select('license_status, license_serial, license_expires_at, first_seen, nama_warung, nama_pemilik, no_whatsapp, provinsi_id, provinsi, kabkota_id, kabkota, kecamatan_id, kecamatan, desa_id, desa, alamat_detail')
       .eq('unit_id', unitId)
       .eq('app_type', APP_TYPE)
       .maybeSingle();
@@ -244,7 +244,68 @@ async function recheckRowWithSession(sb) {
   }
 }
 
-// Lazy-import UI refresh (NO DOM in this module, but we need it post-pull)
+/**
+ * Baca profil klien lokal (sumber UI settings) untuk dicocokkan ke cloud.
+ * @returns {{nama_warung:string, nama_pemilik:string, no_whatsapp:string}}
+ */
+async function readLocalProfile() {
+  const { getSetting } = await import('./db.js');
+  const [nama_warung, nama_pemilik, no_whatsapp] = await Promise.all([
+    getSetting('namaWarung', ''),
+    getSetting('namaPemilik', ''),
+    getSetting('noWhatsapp', '')
+  ]);
+  return { nama_warung, nama_pemilik, no_whatsapp };
+}
+
+/**
+ * Verifikasi & assign serial (Opsi 3: 1 serial = 1 unit_id = 1 profil).
+ *
+ * Ketika user memasukkan sebuah serial di perangkat tertentu, alur ini
+ * memintakan ke RPC `device_assign`:
+ *   - profil lokal COCOK dengan cloud (nama warung / no WA) → unit_id
+ *     perangkat ini di-reassign ke baris milik serial tsb (perangkat jadi
+ *     pemilik), lalu serial dipakai.
+ *   - profil TIDAK cocok  → RPC menolak ('profile-mismatch'), aplikasi tidak
+ *     boleh mengaktifkan — lock layar + hubungi admin.
+ *   - serial tidak ada    → 'serial-not-found'.
+ *
+ * @param {string} serial Serial yang dimasukkan user.
+ * @param {string} unitId unit_id perangkat (baru / kandidat).
+ * @returns {Promise<{ok:boolean, reason?:string, message?:string}>}
+ */
+export async function verifyAndAssignSerial(serial, unitId) {
+  const sb = getSupabaseClient();
+  if (!sb) return { ok: false, reason: 'network' };
+  try {
+    const profile = await readLocalProfile();
+    const deviceCode = await getDeviceCode();
+    const installId = await getInstallId();
+    const { data, error } = await sb.rpc('device_assign', {
+      p_serial: serial,
+      p_profile: profile,
+      p_new_unit_id: unitId,
+      p_new_device_code: deviceCode,
+      p_new_install_id: installId,
+      p_app_type: APP_TYPE
+    });
+    if (error) {
+      console.warn('[ASSIGN] device_assign RPC error:', error?.message || error);
+      throw error;
+    }
+    const res = data || {};
+    if (!res.ok) {
+      console.warn('[ASSIGN] ditolak:', res.reason);
+      return { ok: false, reason: res.reason || 'rejected' };
+    }
+    return { ok: true, reason: res.reason || 'assigned' };
+  } catch (e) {
+    console.warn('[ASSIGN] gagal panggil device_assign:', e?.message || e);
+    return { ok: false, reason: 'network' };
+  }
+}
+
+// Lazy-export UI refresh (NO DOM in this module, but we need it post-pull)
 async function refreshSettingsUI() {
   try {
     const { loadSettings } = await import('./settings.js');

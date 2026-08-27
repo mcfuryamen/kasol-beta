@@ -422,6 +422,7 @@ curl -X POST "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/datab
 |------|-----------|
 | `supabase/migration-clients.sql` | SQL create table `clients` + RLS + trigger |
 | `supabase/migration-device-claim.sql` | RPC `device_known` (SECURITY DEFINER) — onboarding once-per-device lintas browser + transfer ownership anon |
+| `supabase/migration-device-assign.sql` | RPC `device_assign` (SECURITY DEFINER) — Opsi 3: reassign `unit_id` saat serial dipakai di perangkat baru (profil cocok) / tolak bila tidak cocok |
 | `admin/js/license-core.js` | Pure logic HMAC-SHA256 + Base32 (generate/verify) |
 | `admin/js/clients.js` | CRM module + generate serial di sheet |
 | `kaki5/js/sync.js` | `ensureSynced()` — push profil ke clients (onboarding + update profil) |

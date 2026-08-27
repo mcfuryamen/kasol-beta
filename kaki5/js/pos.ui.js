@@ -430,7 +430,10 @@ export async function openCartModal() {
     return `<div class="cart-item" data-menu-id="${c.menu.id}">
       <div class="cart-info">
         <div class="cart-name-row">
-          <span class="cart-name">${escapeHtml(c.menu.nama)}</span>
+          <span class="cart-name">${escapeHtml(c.menu.nama)}` +
+          (c.menu.suplayer && c.menu.suplayer !== 'Umum' ? '<span class="badge-titipan">Titipan</span>' : '') +
+          (c.menu.pakaiStok ? `<span class="badge-stok${(c.menu.stok || 0) <= 0 ? ' badge-stok-habis' : ''}">📦 ${c.menu.stok}</span>` : '') +
+          `</span>
           <span class="cart-name-price">${displayHargaTipe}</span>
           ${toppingTags}
         </div>

@@ -1,5 +1,5 @@
 // ==================== MENU MANAGEMENT (ESM) ====================
-import { DB } from './db.js';
+import { DB, getSetting, setSetting } from './db.js';
 import { escapeHtml, formatRp, showToast } from './helpers.js';
 import { currentPage } from './app-state.js';
 import { showConfirm } from './confirm.js';
@@ -74,13 +74,22 @@ export async function renderMenuList() {
       <div class="card-title">${escapeHtml(catEmoji(cat))} ${escapeHtml(cat)}</div>`;
     items.forEach(m => {
       const untung = m.hargaJual - m.hargaModal;
-      html += `<div class="trx-item">
+      const isTitipan = m.suplayer && m.suplayer !== 'Umum';
+      const isStokHabis = m.pakaiStok && m.stok <= 0;
+      const isDim = isStokHabis || !m.aktif;
+      html += `<div class="trx-item" style="${isDim ? 'opacity:0.45' : ''}">
         <div class="trx-icon" style="background:${m.aktif?'var(--green-bg)':'#f5f5f5'};color:${m.aktif?'var(--green)':'#bbb'};font-size:18px">${m.aktif?'✅':'⏸️'}</div>
         <div class="trx-info">
-          <div class="trx-title">${escapeHtml(m.nama)}</div>
-          <div class="trx-sub">Modal ${formatRp(m.hargaModal)} · Untung ${formatRp(untung)}</div>
+          <div class="trx-title">${escapeHtml(m.nama)}` +
+            (isTitipan ? '<span class="badge-titipan">Titipan</span>' : '') +
+            (m.pakaiStok ? `<span class="badge-stok${isStokHabis?' badge-stok-habis':''}">📦 ${m.stok}</span>` : '') +
+          `</div>
+          <div class="trx-sub">Modal ${formatRp(m.hargaModal)} · Untung ${formatRp(untung)}` +
+            (isTitipan ? ` · 🧾 ${escapeHtml(m.suplayer)}` : '') +
+          `</div>
         </div>
         <div style="display:flex;gap:4px">
+          ${isTitipan && m.pakaiStok ? `<button class="btn-icon btn-ghost kwh44 kgreen" data-action="retur-menu" data-menu-id="${m.id}" title="Retur">↩️</button>` : ''}
           <button class="btn-icon btn-ghost kwh44" data-action="open-menu-form" data-menu-id="${m.id}">✏️</button>
           <button class="btn-icon btn-ghost kwh44" data-action="toggle-menu" data-menu-id="${m.id}">${m.aktif?'⏸️':'▶️'}</button>
           <button class="btn-icon btn-ghost kwh44 kred" data-action="confirm-delete-menu" data-menu-id="${m.id}">🗑️</button>
@@ -120,6 +129,19 @@ export async function openMenuForm(id) {
       document.getElementById('menuToppingList').value = toppings.map(t => t.nama + '|' + t.harga).join('\n');
       // Harga ojol: 0 = tidak di-set
       document.getElementById('menuHargaOjol').value = m.hargaOjol || '';
+      // Konsinyasi
+      const suplayer = m.suplayer || 'Umum';
+      document.getElementById('menuSuplayerVal').value = suplayer;
+      document.getElementById('menuPakaiStok').checked = !!m.pakaiStok;
+      document.getElementById('menuStok').value = m.stok ?? '';
+      // Setelah suplayer di-set, baru populate select + select value
+      await populateSuplayerSelect(suplayer);
+      await populateKategoriSelect(m.kategori);
+      // Auto-on Pakai Stok saat suplayer ≠ Umum
+      document.getElementById('menuSuplayerSelect').onchange = syncPakaiStokToggle; // onchange agar tidak menumpuk listener (audit 2026-08-19)
+      document.getElementById('menuPakaiStok').onchange = syncStokVisibility;
+      bindPakaiStokUserOverride();
+      syncStokVisibility();
     } else {
       document.getElementById('editMenuId').value = '';
       document.getElementById('menuModalTitle').textContent = '🍽️ Tambah Menu';
@@ -129,6 +151,15 @@ export async function openMenuForm(id) {
       document.getElementById('menuHargaModal').value = '';
       document.getElementById('menuToppingList').value = '';
       document.getElementById('menuHargaOjol').value = '';
+      document.getElementById('menuSuplayerVal').value = 'Umum';
+      document.getElementById('menuPakaiStok').checked = false;
+      document.getElementById('menuStok').value = '';
+      await populateSuplayerSelect('Umum');
+      await populateKategoriSelect('Makanan');
+      document.getElementById('menuSuplayerSelect').onchange = syncPakaiStokToggle; // onchange agar tidak menumpuk listener (audit 2026-08-19)
+      document.getElementById('menuPakaiStok').onchange = syncStokVisibility;
+      bindPakaiStokUserOverride();
+      syncStokVisibility();
     }
     await openModal('menuModal');
   } finally {
@@ -159,6 +190,92 @@ export function buildToppingListString(toppings) {
   return JSON.stringify(toppings.filter(t => t.nama && t.nama.trim()));
 }
 
+// ── Konsinyasi helpers ───────────────────────────────────────────────────────
+
+const _CAT_OPTIONS = ['Makanan','Minuman','Snack','Lainnya','Titipan'];
+
+async function populateSuplayerSelect(selected) {
+  const sel = document.getElementById('menuSuplayerSelect');
+  const custom = (await getSetting('suplayerCustom', [])) || [];
+  sel.innerHTML = '<option value="Umum">🏠 Umum (Menu Sendiri)</option>' +
+    custom.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+  sel.value = selected || 'Umum';
+}
+
+async function populateKategoriSelect(selected) {
+  const sel = document.getElementById('menuKategori');
+  const custom = (await getSetting('kategoriCustom', [])) || [];
+  sel.innerHTML = _CAT_OPTIONS.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(catLabel(c))}</option>`).join('') +
+    custom.map(c => `<option value="${escapeHtml(c)}">📦 ${escapeHtml(c)}</option>`).join('');
+  sel.value = selected || 'Makanan';
+}
+
+export async function addCustomSuplayer() {
+  const name = prompt('Nama suplayer baru:').trim();
+  if (!name || name === 'Umum') {
+    if (name === 'Umum') showToast('Nama "Umum" sudah ada!', 'error');
+    return;
+  }
+  const custom = (await getSetting('suplayerCustom', [])) || [];
+  if (custom.includes(name)) { showToast('Suplayer sudah ada!', 'error'); return; }
+  custom.push(name);
+  await setSetting('suplayerCustom', custom);
+  await populateSuplayerSelect(name);
+  showToast(`✅ Suplayer "${name}" ditambahkan`);
+}
+
+export async function addCustomKategori() {
+  const name = prompt('Nama kategori baru:').trim();
+  if (!name) return;
+  const all = [..._CAT_OPTIONS, ...((await getSetting('kategoriCustom', [])) || [])];
+  if (all.includes(name)) { showToast('Kategori sudah ada!', 'error'); return; }
+  const custom = (await getSetting('kategoriCustom', [])) || [];
+  custom.push(name);
+  await setSetting('kategoriCustom', custom);
+  await populateKategoriSelect(name);
+  showToast(`✅ Kategori "${name}" ditambahkan`);
+}
+
+// ── Stok toggle: auto-on saat suplayer ≠ Umum, hormati override user ──────
+export function syncPakaiStokToggle() {
+  const sel = document.getElementById('menuSuplayerSelect');
+  const cb = document.getElementById('menuPakaiStok');
+  if (!sel || !cb) return;
+  // Pakai Stok boleh auto-on saat ganti suplayer ke non-Umum,
+  // tapi hormati pilihan user jika user pernah mengaktifkan/menonaktifkan secara manual.
+  if (sel.value && sel.value !== 'Umum') {
+    if (cb.dataset.userSet !== '1') {
+      cb.checked = true;
+    }
+  } else {
+    // Suplayer kembali ke Umum → jika user belum pernah override, matikan juga.
+    if (cb.dataset.userSet !== '1') {
+      cb.checked = false;
+    }
+  }
+  syncStokVisibility();
+}
+
+export function syncStokVisibility() {
+  const cb = document.getElementById('menuPakaiStok');
+  const wrap = document.getElementById('menuStokWrap');
+  if (!cb || !wrap) return;
+  wrap.style.display = cb.checked ? 'block' : 'none';
+}
+
+// Tandai bahwa user pernah meng-toggle Pakai Stok secara manual.
+// Dipasang sekali saat form dibuka (lihat openMenuForm/openMenuFormBaru) agar
+// auto-on di syncPakaiStokToggle tidak memaksa menyalakan checkbox.
+export function bindPakaiStokUserOverride() {
+  const cb = document.getElementById('menuPakaiStok');
+  if (!cb || cb.dataset.bound === '1') return;
+  cb.dataset.bound = '1';
+  const onUser = () => { cb.dataset.userSet = cb.checked ? '1' : '0'; };
+  cb.addEventListener('change', onUser);
+  // Inisialisasi userSet sesuai kondisi awal checkbox (mode edit)
+  cb.dataset.userSet = cb.checked ? '1' : '0';
+}
+
 // Parse textarea "Susu|1000\nExtra Gula|500" → [{nama, harga}]
 export function parseToppingTextarea(raw) {
   if (!raw || !raw.trim()) return [];
@@ -172,22 +289,31 @@ export function parseToppingTextarea(raw) {
 export async function saveMenu() {
   const id = document.getElementById('editMenuId').value;
   const nama = document.getElementById('menuNama').value.trim();
-  const kategori = document.getElementById('menuKategori').value;
+  let kategori = document.getElementById('menuKategori').value;
   const hargaJual = parseInt(document.getElementById('menuHargaJual').value) || 0;
   const hargaModal = parseInt(document.getElementById('menuHargaModal').value) || 0;
   const hargaOjol = parseInt(document.getElementById('menuHargaOjol').value) || 0;
   const toppingRaw = document.getElementById('menuToppingList').value || '';
   const toppingList = buildToppingListString(parseToppingTextarea(toppingRaw));
+  const suplayer = document.getElementById('menuSuplayerSelect').value || 'Umum';
+  const pakaiStok = document.getElementById('menuPakaiStok').checked ? 1 : 0;
+  const stok = pakaiStok ? Math.max(0, parseInt(document.getElementById('menuStok').value) || 0) : 0;
 
   if (!nama) { showToast('Nama menu harus diisi!', 'error'); return; }
   if (hargaJual <= 0) { showToast('Harga jual harus diisi!', 'error'); return; }
 
-  const updateData = { nama, kategori, hargaJual, hargaModal, hargaOjol, toppingList };
+  // (Audit 2026-08-19) Dihapus: auto-overwrite kategori jadi 'Titipan' menghapus pilihan user.
+  // Penandaan titipan cukup dari field suplayer (lihat badge di daftar & laporan konsinyasi).
+
+  const updateData = { nama, kategori, hargaJual, hargaModal, hargaOjol, toppingList, suplayer, pakaiStok, stok };
   if (id) {
+    // Pertahankan retur yang sudah ada; jangan overwrite
+    const existing = await DB.menu.get(parseInt(id));
+    if (existing) updateData.retur = existing.retur || 0;
     await DB.menu.update(parseInt(id), updateData);
     showToast('✅ Menu diperbarui!');
   } else {
-    await DB.menu.add({ ...updateData, aktif: 1, urutan: Date.now() });
+    await DB.menu.add({ ...updateData, aktif: 1, urutan: Date.now(), retur: 0 });
     showToast('✅ Menu ditambahkan!');
   }
   closeMenuModal();
@@ -209,6 +335,39 @@ export function confirmDeleteMenu(id) {
     await renderMenuList();
     showToast('Menu dihapus');
   });
+}
+
+// ── Retur Barang ─────────────────────────────────────────────────────────────
+
+export async function openReturModal(id) {
+  const m = await DB.menu.get(id);
+  if (!m) return;
+  document.getElementById('returMenuId').value = id;
+  document.getElementById('returMenuInfo').innerHTML =
+    `<b>${escapeHtml(m.nama)}</b> — Suplayer: ${escapeHtml(m.suplayer || 'Umum')}<br>Stok saat ini: <b>${m.stok ?? 0}</b>`;
+  document.getElementById('returQty').value = '';
+  await openModal('returModal');
+  document.getElementById('returQty').focus();
+}
+
+export function closeReturModal() {
+  closeModal('returModal');
+}
+
+export async function confirmRetur() {
+  const id = parseInt(document.getElementById('returMenuId').value);
+  const qty = parseInt(document.getElementById('returQty').value) || 0;
+  if (qty <= 0) { showToast('Jumlah retur harus > 0', 'error'); return; }
+  const m = await DB.menu.get(id);
+  if (!m) return;
+  if (qty > (m.stok || 0)) { showToast('Jumlah retur melebihi stok!', 'error'); return; }
+  const newStok = Math.max(0, (m.stok || 0) - qty);
+  const newRetur = (m.retur || 0) + qty;
+  await DB.menu.update(id, { stok: newStok, retur: newRetur });
+  closeReturModal();
+  showToast(`✅ Retur ${qty}x "${m.nama}" dicatat`);
+  await renderMenuList();
+  if (currentPage === 'jualan') loadPOS();
 }
 
 // Export debounced version for oninput handler

@@ -295,8 +295,63 @@ async function restoreClientLicense(id) {
   }
 }
 
+/** Reassign unit_id CLIENT secara manual (Opsi 3: 1 serial → 1 unit_id → 1 profil).
+ *  Dipakai bila perangkat berpindah tanpa jalur otomatis device_assign, atau ada
+ *  unit_id yang salah/korup di sisi admin. Validasi konflik unit_id terhadap klien
+ *  lain yang masih AKTIF sebelum disimpan ke Supabase.
+ */
+async function reassignClientUnit(id) {
+  const row = clients.find((x) => x.id === id);
+  if (!row) return;
+
+  const curUnit = row.unit_id || '';
+  const curDevice = row.device_code || '';
+  const newUnit = prompt(
+    'Reassign unit untuk "' + (row.nama_warung || curDevice || 'klien ini') + '".\n\n'
+    + 'Aturan (Opsi 3): 1 serial → 1 unit_id → 1 profil.\n'
+    + 'Mengubah unit_id di sini TIDAK mengubah serial/js aktivasi.\n\n'
+    + 'Unit ID saat ini  : ' + curUnit + '\n'
+    + 'Device code saat ini : ' + curDevice + '\n\n'
+    + 'Masukkan Unit ID BARU:',
+    curUnit || ''
+  );
+  if (newUnit === null) return;
+  const unit = String(newUnit || '').trim();
+  if (!unit) { showToast('Unit ID tidak boleh kosong', 2500, 'error'); return; }
+  if (unit === curUnit) { showToast('Unit ID tidak berubah', 1800, 'info'); return; }
+
+  // Konflik: unit_id sudah terpakai klien lain yang masih AKTIF (lisensi berjalan)
+  const conflict = clients.find((x) => x.id !== id && x.unit_id === unit && x.status === 'aktif');
+  if (conflict) {
+    showToast('Unit ID ' + unit + ' sudah dipakai klien aktif: ' + (conflict.nama_warung || conflict.device_code || 'lainnya'), 3500, 'error');
+    return;
+  }
+
+  // Optimistic update supaya UI langsung merespon
+  const prev = { ...row };
+  clients = clients.map((x) => x.id === id ? { ...x, unit_id: unit } : x);
+  if (clientView === 'kelola') renderKanban(); else renderAnalytics();
+
+  try {
+    const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      data: { unit_id: unit },
+      headers: { Prefer: 'return=representation' }
+    });
+    if (!res.ok) throw new Error('Failed to reassign');
+    showToast('↔️ Unit ID → ' + unit, 2500, 'success');
+  } catch (e) {
+    // Rollback
+    clients = clients.map((x) => x.id === id ? prev : x);
+    if (clientView === 'kelola') renderKanban(); else renderAnalytics();
+    console.error('[reassignClientUnit]', e);
+    showToast('Gagal reassign unit', 2500, 'error');
+  }
+}
+
 window.revokeClientLicense = revokeClientLicense;
 window.restoreClientLicense = restoreClientLicense;
+window.reassignClientUnit = reassignClientUnit;
 
 /** Render all (stats + view aktif) */
 // --- Ikon helper utk info perangkat klien ---
@@ -468,6 +523,7 @@ function kanbanCardHtml(c) {
         </div>
         <div class="kb-head-btn">${statusCta(c, esc)}</div>
         <div class="kb-head-btn kb-lic-btn">
+          <button type="button" class="btn btn-outline btn-sm" title="Reassign unit_id (pindah perangkat)" onclick="event.stopPropagation();reassignClientUnit('${esc(c.id)}')">↔️ Unit</button>
           ${c.status === 'aktif'
             ? `<button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation();revokeClientLicense('${esc(c.id)}')">🚫 Cabut</button>`
             : `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();restoreClientLicense('${esc(c.id)}')">🟢 Aktifkan</button>`}

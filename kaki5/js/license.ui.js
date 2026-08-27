@@ -284,6 +284,21 @@ export async function checkLicenseGate() {
   const gateEl = document.getElementById('licenseGate');
   if (gateEl && gateEl.style.display !== 'none') return;
 
+  // Cloud-first: kalau cloud=aktif tapi lokal=revoked (admin aktivasi ulang
+  // setelah pencabutan), sync cloud → lokal dulu SEBELUM cek status lokal.
+  // Tanpa ini, check berikutnya akan render overlay revoked terus walau
+  // cloud sebenarnya sudah aktif. (Bug aktivasi-ulang setelah cabut 2026-08-26.)
+  if (document.getElementById('lockLicenseStatusArea')) {
+    const active = await renderLicenseStatusArea('lockLicenseStatusArea', 'lockLicenseInput');
+    if (active) {
+      if (_updateTrialChip) _updateTrialChip();
+      if (_renderLicenseInfoCard) _renderLicenseInfoCard();
+      const lock = document.getElementById('lockOverlay');
+      if (lock) closeModal('lockOverlay');
+      return;
+    }
+  }
+
   const lic = await getLicense();
   const left = await daysLeft(lic);
   // Sinkronkan mode lockOverlay: revoked = halaman penuh putih, lainnya kartu
@@ -300,19 +315,6 @@ export async function checkLicenseGate() {
     if (_renderLicenseInfoCard) _renderLicenseInfoCard();
     closeModal('lockOverlay');
     return;
-  }
-  // not licensed (trial running or expired) - cloud-first always sync
-  const lockArea = document.getElementById('lockLicenseStatusArea');
-  if (lockArea) {
-    // Cloud aktif -> persist local + unlock otomatis (berlaku juga saat trial berjalan).
-    const active = await renderLicenseStatusArea('lockLicenseStatusArea', 'lockLicenseInput');
-    if (active) {
-      if (_updateTrialChip) _updateTrialChip();
-      if (_renderLicenseInfoCard) _renderLicenseInfoCard();
-      const lock = document.getElementById('lockOverlay');
-      if (lock) closeModal('lockOverlay');
-      return;
-    }
   }
   if (_updateTrialChip) _updateTrialChip();
   if (_renderLicenseInfoCard) _renderLicenseInfoCard();
@@ -447,7 +449,7 @@ export async function grantExtension() {
 }
 
 export async function activateLicense(inputId) {
-  const { activateSerial } = await import('./license.logic.js');
+  const { activateSerial, getUnitId } = await import('./license.logic.js');
   const { showToast } = await import('./helpers.js');
   const { closeOverlay } = await import('./license.ui.js');
   const { rateLimiters } = await import('./helpers.pure.js');
@@ -461,6 +463,35 @@ export async function activateLicense(inputId) {
   const key = (document.getElementById(inputId).value || '').trim().toUpperCase();
   if (!key) { showToast('Masukkan kode lisensi', 'error'); return; }
   showToast('Memeriksa lisensi...');
+
+  // ── Opsi 3: verifikasi & assign serial ke cloud DULU (1 serial = 1 unit = 1 profil).
+  // Kalau online, pastikan profil perangkat cocok dengan baris serial di server.
+  // - `assigned`       → unit_id/device direassign ke baris tsb; list tetap lanjut aktif.
+  // - `profile-mismatch` → lisensi ditolak & aplikasi DIKUNCI (hubungi admin).
+  // - `serial-not-found` → serial tidak ada di server admin.
+  // - `network`        → offline; fallback ke validasi HMAC lokal (jalan seperti dulu).
+  if (navigator.onLine) {
+    const { verifyAndAssignSerial } = await import('./license.sync.js');
+    const unitId = await getUnitId();
+    const v = await verifyAndAssignSerial(key, unitId);
+    if (!v.ok) {
+      if (v.reason === 'profile-mismatch') {
+        renderProfileMismatchOverlay();
+        showToast('Profil perangkat tidak cocok dengan serial ini. Hubungi admin.', 'error', 5000);
+        return;
+      }
+      if (v.reason === 'serial-not-found') {
+        showToast('Serial tidak terdaftar di admin. Periksa kembali kode.', 'error');
+        return;
+      }
+      if (v.reason !== 'network') {
+        showToast('Lisensi ditolak (' + (v.reason || 'unknown') + '). Hubungi admin.', 'error');
+        return;
+      }
+      // reason === 'network' → lanjut offline di bawah
+    }
+  }
+
   const res = await activateSerial(key);
   if (res.valid) {
     if (_updateTrialChip) _updateTrialChip();
@@ -473,4 +504,39 @@ export async function activateLicense(inputId) {
   } else {
     showToast(res.message || 'Kode lisensi tidak valid', 'error');
   }
+}
+
+// Lock overlay penuh (mode revoked) saat profil perangkat TIDAK cocok dengan
+// serial — aplikasi terkunci dan hanya bisa hubungi admin / beli lisensi baru.
+// Tidak ada tombol tutup (mirip halaman "Lisensi Dicabut").
+export function renderProfileMismatchOverlay() {
+  setLockMode('revoked');
+  const page = document.getElementById('lockRevokedPage');
+  if (page) {
+    page.innerHTML = `
+      <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px" alt="Logo">
+      <div class="kfs22 kfw800 kmb8">Kasir Solo</div>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
+      <div style="font-size:17px;font-weight:800;color:var(--red)">Profil Tidak Cocok</div>
+      <p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Lisensi ini terikat ke profil usaha lain.<br>Data usaha perangkat ini harus sesuai dengan data lisensi agar bisa digunakan.</p>
+      <div class="license-actions license-actions-row">
+        <button class="btn btn-primary" data-action="contact-via-wa">💬 Hubungi Admin</button>
+      </div>
+      <div class="kfs12 ktext3 kmt14">Perbaiki profil di Pengaturan, atau beli lisensi baru yang sesuai dengan usaha Anda.</div>
+    `;
+  }
+  const area = document.getElementById('lockLicenseStatusArea');
+  if (area) area.innerHTML = '';
+  // Fallback kalau lockRevokedPage absen (mis. boot sebelum DOM modal siap):
+  // render ke konten utama overlay supaya aplikasi tetap terkunci.
+  if (!page) {
+    const lockEl = document.getElementById('lockOverlay');
+    const holder = lockEl && lockEl.querySelector('.modal-body, .mdl-body, [data-modal-body]');
+    if (holder) holder.innerHTML = `
+      <div style="padding:24px;text-align:center">
+        <div style="font-size:18px;font-weight:800;color:var(--red)">Profil Tidak Cocok</div>
+        <p style="font-size:13px;color:var(--text2);margin:10px 0">Lisensi ini terikat ke profil usaha lain.<br>Perbaiki profil di Pengaturan, atau hubungi admin.</p>
+      </div>`;
+  }
+  openModal('lockOverlay');
 }

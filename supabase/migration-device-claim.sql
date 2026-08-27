@@ -40,13 +40,21 @@ declare
   v_found_id   uuid;
   v_exists     boolean;
 begin
-  -- Match by unit_id ATAU device_code (device_code = fingerprint hardware stabil,
-  -- unit_id bisa berubah antar-versi). device_code paling andal.
-  select id into v_found_id
-    from public.clients
-   where unit_id = p_unit_id
-      or (p_device_code is not null and device_code = p_device_code)
-   limit 1;
+  -- Match by unit_id KANONIKAL dulu (unit_id = K5-<deviceCode> adalah bentuk
+    -- paling deterministik & diclaim oleh row Sate Bocil). Fallback device_code
+    -- HANYA bila unit_id tidak ketemu. Ini mencegah memilih row yang device_code-nya
+    -- sama tapi unit_id beda, lalu update unit_id -> duplicate key violation.
+    select id into v_found_id
+      from public.clients
+     where unit_id = p_unit_id
+     limit 1;
+
+    if v_found_id is null and p_device_code is not null then
+      select id into v_found_id
+        from public.clients
+       where device_code = p_device_code
+       limit 1;
+    end if;
 
   v_exists := v_found_id is not null;
 

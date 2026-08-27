@@ -368,18 +368,46 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="modal-handle"></div>
 <div class="modal-title" id="menuModalTitle">🍽️ Tambah Menu</div>
 <input type="hidden" id="editMenuId">
+<input type="hidden" id="menuSuplayerVal">
 <div class="form-group">
 <label class="form-label">Nama Menu</label>
 <input type="text" class="form-input" id="menuNama" placeholder="Contoh: Nasi Goreng">
 </div>
-<div class="form-group">
-<label class="form-label">Kategori</label>
-<select class="form-input" id="menuKategori">
-<option value="Makanan">🍚 Makanan</option>
-<option value="Minuman">🥤 Minuman</option>
-<option value="Snack">🍢 Snack / Jajanan</option>
-<option value="Lainnya">📦 Lainnya</option>
-</select>
+<div class="kgrid-konsinyasi">
+  <div class="form-group">
+    <label class="form-label">Kategori</label>
+    <div style="display:flex;gap:6px;align-items:center">
+      <select class="form-input" id="menuKategori" style="flex:1;min-width:0">
+        <option value="Makanan">🍚 Makanan</option>
+        <option value="Minuman">🥤 Minuman</option>
+        <option value="Snack">🍢 Snack / Jajanan</option>
+        <option value="Lainnya">📦 Lainnya</option>
+        <option value="Titipan">📦 Titipan</option>
+      </select>
+      <button class="btn btn-ghost btn-sm kwh44" style="flex-shrink:0" data-action="add-kategori-custom" title="Tambah kategori">+</button>
+    </div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Suplayer</label>
+    <div style="display:flex;gap:6px;align-items:center">
+      <select class="form-input" id="menuSuplayerSelect" style="flex:1;min-width:0">
+        <option value="Umum">🏠 Umum (Menu Sendiri)</option>
+      </select>
+      <button class="btn btn-ghost btn-sm kwh44" style="flex-shrink:0" data-action="add-suplayer-custom" title="Tambah suplayer">+</button>
+    </div>
+  </div>
+</div>
+<div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:6px 0">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <label class="form-label" style="margin:0">📦 Pakai Stok</label>
+    <label class="toggle-switch" style="margin:0">
+      <input type="checkbox" id="menuPakaiStok">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <div id="menuStokWrap" style="display:none;margin-top:10px">
+    <input type="number" class="form-input" id="menuStok" placeholder="Jumlah stok awal" inputmode="numeric" min="0">
+  </div>
 </div>
 <div class="kgrid-2col-gap8">
 <div class="form-group">
@@ -408,6 +436,26 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 </div>
 
+<!-- RETUR MODAL -->
+<div class="modal-overlay" id="returModal" role="dialog" aria-modal="true" aria-labelledby="returModalTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="returModalTitle">↩️ Retur Barang</div>
+<input type="hidden" id="returMenuId">
+<div class="form-group">
+  <div id="returMenuInfo" style="background:var(--card);border-radius:8px;padding:12px;font-size:14px"></div>
+</div>
+<div class="form-group">
+  <label class="form-label">Jumlah yang Dikembalikan</label>
+  <input type="number" class="form-input" id="returQty" inputmode="numeric" min="1" placeholder="Contoh: 3">
+</div>
+<div class="btn-row">
+  <button class="btn btn-secondary" data-action="close-retur-modal">Batal</button>
+  <button class="btn btn-primary" data-action="confirm-retur-menu">💾 Retur</button>
+</div>
+</div>
+</div>
+
 <!-- EXPENSE FORM MODAL -->
 <div class="modal-overlay" id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
 <div class="modal">
@@ -425,6 +473,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <option value="Gas & BBM">⛽ Gas & BBM</option>
 <option value="Sewa Tempat">🏪 Sewa Tempat / Lapak</option>
 <option value="Peralatan">🍳 Peralatan</option>
+<option value="Setoran Konsinyasi">🤝 Setoran Konsinyasi</option>
 <option value="Lainnya">📦 Lainnya</option>
 </select>
 </div>
@@ -666,7 +715,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=98"></script>
+  <script type="module" src="js/app.js?v=99"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

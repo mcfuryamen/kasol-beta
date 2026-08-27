@@ -7,11 +7,11 @@ import { expDate } from './app-state.js';
 import { loadReport } from './laporan.js';
 import { openModal, closeModal } from './modal.js';
 
-export async function openExpenseForm() {
+export async function openExpenseForm(prefill = {}) {
   document.getElementById('editExpenseId').value = '';
-  document.getElementById('expKeterangan').value = '';
-  document.getElementById('expKategori').value = 'Bahan Baku';
-  document.getElementById('expJumlah').value = '';
+  document.getElementById('expKeterangan').value = prefill.keterangan || '';
+  document.getElementById('expKategori').value = prefill.kategori || 'Bahan Baku';
+  document.getElementById('expJumlah').value = prefill.jumlah || '';
   await openModal('expenseModal');
 }
 
@@ -32,6 +32,9 @@ export async function saveExpense() {
     keterangan,
     kategori,
     jumlah,
+    suplayer: kategori === 'Setoran Konsinyasi'
+      ? keterangan.match(/^Setoran (.+?) ·/)?.[1] || ''
+      : '',
     waktu: Date.now()
   });
 

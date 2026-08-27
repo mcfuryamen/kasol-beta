@@ -39,7 +39,7 @@ export {
   renderLicenseStatusArea, checkCloudStatusAndUnlock, toggleManualKey,
   checkLicenseGate, updateTrialChip, openLicenseSheet, renderLicenseInfoCard,
   contactViaWA, openExtendFlow, tryShare, grantExtension, activateLicense,
-  enforceRevoked
+  enforceRevoked, renderProfileMismatchOverlay
 } from './license.ui.js';
 
 // Re-export sync functions
@@ -47,6 +47,7 @@ export {
   syncLicenseStatus,
   fetchLicenseStatusFromCloud,
   isDeviceKnownOnCloud,
+  verifyAndAssignSerial,    // NEW: Opsi 3 — verifikasi serial + reassign unit_id
   fetchProductSalt,          // NEW: fetch salt from Supabase products table
   getSupabaseClient
 } from './license.sync.js';

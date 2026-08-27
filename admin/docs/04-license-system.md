@@ -307,6 +307,13 @@ async function isValidSerial(serial, myDeviceCode, activationDate) {
 > **Catatan status:** Langkah 5–6 (validasi server via Supabase) adalah **arah
 > target**. Sampai `admin/` tersinkron ke Supabase, langkah ini dilewati dan
 > validasi hanya mengandalkan HMAC lokal (langkah 4). Lihat `../CLOUD-ROADMAP.md`.
+>
+> **Opsi 3 (2026-08-27):** validasi kepemilikan serial kini **server-side**.
+> Admin `kaki5`/`retail`/`rosok` memanggil RPC `device_assign` saat serial dipakai
+> di perangkat baru (model 1 serial = 1 unit_id = 1 profil). Profil cocok (nama
+> warung / no WA) → `unit_id` di-reassign; tak cocok → tolak + lock overlay. Admin
+> bisa memindahkan lisensi antar-unit lewat tombol **"↔️ Unit"** (`admin/js/clients.js`
+> `reassignClientUnit`). Rujukan: `supabase/migration-device-assign.sql`.
 
 ---
 

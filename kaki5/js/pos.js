@@ -224,6 +224,19 @@ export async function simpanPenjualan(cetakJuga = false) {
     waktu: Date.now()
   });
 
+  // Kurangi stok untuk item titipan yang pakaiStok. Re-read stok dari DB
+  // untuk hindari decrement dari snapshot cart yang mungkin sudah stale
+  // (mis. ada retur / edit stok saat item masih di cart).
+  for (const c of items) {
+    if (c.menu.pakaiStok) {
+      const fresh = await DB.menu.get(c.menu.id);
+      if (!fresh || !fresh.pakaiStok) continue;
+      const currentStok = fresh.stok || 0;
+      const newStok = Math.max(0, currentStok - c.qty);
+      await DB.menu.update(c.menu.id, { stok: newStok });
+    }
+  }
+
   // Simpan tipe order terakhir di localStorage untuk sesi berikutnya
   try { localStorage.setItem('kasirsolo:order-type', orderType); } catch (_) {}
 

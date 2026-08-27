@@ -68,8 +68,14 @@ di Dexie (Lapisan C) sampai Lapisan B aktif. Ini menjaga privasi & kesederhanaan
 dan memisahkan "data pelanggan & lisensi" dari "data penjualan".
 
 > ⚠️ **Catatan status:** `admin/` kini **sudah terhubung Supabase** (katalog CRUD +
-> tab Klien/CRM). Validasi lisensi di app klien masih **offline** (HMAC lokal);
-> arah yang benar tetap **server-side via Supabase** dengan fallback offline.
+> tab Klien/CRM). Validasi lisensi **inti** (generate + verify HMAC) tetap offline
+> tetapi **penegakan kepemilikan serial kini server-side**: RPC `device_assign`
+> (Supabase) memverifikasi kecocokan profil (nama warung / no WA) saat serial
+> dipakai di perangkat baru dengan model **1 serial = 1 unit_id = 1 profil**
+> (Opsi 3, 2026-08-27). Profil cocok → `unit_id` di-reassign; tidak cocok →
+> lisensi ditolak + lock overlay "hubungi admin". Rujukan: `kaki5/js/license.sync.js`
+> (`verifyAndAssignSerial`), `admin/js/clients.js` (`reassignClientUnit`),
+> `supabase/migration-device-assign.sql`.
 
 ---
 
@@ -137,6 +143,10 @@ disinkronkan ke cloud **wajib** membawa:
 3. **`unitId` ditetapkan sejak awal** di `settings` tiap app.
 4. **Offline-first adalah fitur** — premium menambah sync, bukan mengganti Dexie.
 5. **Validasi lisensi target = Supabase (server-side)**, dengan fallback offline.
+   Sejak 2026-08-27, kepemilikan serial ditegakkan server-side via RPC
+   `device_assign` (model 1 serial = 1 unit_id = 1 profil) — klien offline tetap
+   jalan (HMAC lokal) tetapi pemindahan serial ke perangkat lain selalu
+   diverifikasi terhadap cloud.
 6. **Dashboards Hub = read-only** terhadap Lapisan B (tidak menulis transaksi).
 
 ---

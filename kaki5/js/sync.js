@@ -63,6 +63,37 @@ export function isSyncConfigured() {
   return !!getClient();
 }
 
+// ============================================================================
+// Auth session helper (C2v3, 2026-08-27)
+// RLS policy pada tabel `clients` mengizinkan SELECT jika
+//   auth.uid() = user_id  ATAU  unit_id claim di JWT = clients.unit_id.
+// Saat boot, belum ada session → token kosong → query mentok RLS.
+// Fungsi ini MENJAMIN ada session anonim yang user_metadata-nya membawa
+// claim `unit_id`. Reuse di pullCloudProfileIfOnline dan ensureSynced.
+// Return { ok, userId }; tidak pernah throw.
+// ============================================================================
+export async function ensureAuthSession(sb) {
+  try {
+    if (!sb) return { ok: false, reason: 'no-client' };
+    const unitId = await getUnitId();
+    const { data: sessData } = await sb.auth.getSession();
+    if (sessData?.session?.user?.id) {
+      const metaUnit = sessData.session.user.user_metadata?.unit_id;
+      if (!metaUnit || metaUnit !== unitId) {
+        try { await sb.auth.updateUser({ data: { unit_id: unitId } }); }
+        catch (_claimErr) { console.warn('[AUTH] claim unit_id update skipped:', _claimErr?.message || _claimErr); }
+      }
+      return { ok: true, userId: sessData.session.user.id };
+    }
+    const { data: anon, error: auErr } = await sb.auth
+      .signInAnonymously({ options: { data: { unit_id: unitId } } });
+    if (auErr) return { ok: false, reason: 'signin', error: auErr };
+    return { ok: true, userId: anon?.user?.id };
+  } catch (e) {
+    return { ok: false, reason: 'error', error: e };
+  }
+}
+
 /** Snapshot konfigurasi untuk panel Diagnosa (tanpa menjalankan sync). */
 export function getSyncClientDebug() {
   return {
@@ -208,24 +239,13 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
     // jangan signIn baru tiap kali — itu bikin user anonim baru & RLS auth.uid() mismatch.
     const unitId = await getUnitId();
     let userId = null;
-    const { data: sessData } = await sb.auth.getSession();
-    if (sessData?.session?.user?.id) {
-      userId = sessData.session.user.id;
-      // Sesi lama tanpa claim unit_id di user_metadata: update metadata biar
-      // claim refresh & jalur policy 'unit_id' aktif walau anon session ganti.
-      const metaUnit = sessData.session.user.user_metadata?.unit_id;
-      if (!metaUnit || metaUnit !== unitId) {
-        try {
-          await sb.auth.updateUser({ data: { unit_id: unitId } });
-        } catch (_claimErr) {
-          console.warn('claim unit_id skipped:', _claimErr?.message || _claimErr);
-        }
-      }
+    const auth = await ensureAuthSession(sb);
+    if (auth.ok) {
+      userId = auth.userId;
+    } else if (auth.reason === 'signin') {
+      throw auth.error;
     } else {
-      const { data: anon, error: auErr } = await sb.auth
-        .signInAnonymously({ options: { data: { unit_id: unitId } } });
-      if (auErr) throw auErr;
-      userId = anon?.user?.id;
+      throw new Error('auth session gagal: ' + (auth.reason || 'unknown'));
     }
     const payload = await buildPayload(unitId);
     // Klaim device lama lebih dulu agar update profil tidak mentok RLS
@@ -363,13 +383,55 @@ export async function pullCloudProfileIfOnline() {
   const sb = getClient();
   if (!sb || !navigator.onLine) return;
   try {
+    // 1) Pastikan ada session anon bermetadata unit_id — TANPA ini RLS block
+    //    semua SELECT clients (auth.uid()/unit_id claim kosong saat boot).
+    const auth = await ensureAuthSession(sb);
+    if (!auth.ok) {
+      console.warn('[C2v2] ensureAuthSession gagal:', auth.reason, auth.error?.message || '');
+      return;
+    }
     const unitId = await getUnitId();
-    const { data: client } = await sb
+    const deviceCode = await getDeviceCode();
+
+    // 2) CLAIM device DULU via RPC `device_known` (SECURITY DEFINER, bypass RLS).
+    //    RPC mencocokkan row by unit_id ATAU device_code lalu men-SET
+    //    user_id = auth.uid(). Setelah itu SELECT by unit_id/device_code lolos
+    //    policy `auth.uid() = user_id` — inilah kunci fix RLS untuk pull.
+    //    Dipanggil untuk semua path (bukan cuma fallback) agar row selalu
+    //    ter-assign ke session anonim yang sama seperti push.
+    const { error: claimErr } = await sb.rpc('device_known', {
+      p_unit_id: unitId,
+      p_device_code: deviceCode,
+      p_app_type: APP_TYPE
+    });
+    if (claimErr) {
+      console.warn('[C2v2] device_known gagal:', claimErr?.message || claimErr);
+      return;
+    }
+
+    let { data: client } = await sb
       .from('clients')
       .select('*')
       .eq('unit_id', unitId)
       .eq('app_type', APP_TYPE)
       .maybeSingle();
+    // Fallback: query by device_code if unit_id not found (unit_id mismatch).
+    if (!client && deviceCode) {
+      const { data: byDevice } = await sb
+        .from('clients')
+        .select('*')
+        .eq('device_code', deviceCode)
+        .eq('app_type', APP_TYPE)
+        .maybeSingle();
+      if (byDevice) {
+        client = byDevice;
+        // Sync local unit_id to match cloud's unit_id
+        if (byDevice.unit_id && byDevice.unit_id !== unitId) {
+          await setSetting('unitId', byDevice.unit_id);
+          console.log(`[C2v2] Unit ID disinkronkan ke cloud: ${byDevice.unit_id}`);
+        }
+      }
+    }
     if (!client) return;
     await pullCloudProfileTo(client);
   } catch (e) {

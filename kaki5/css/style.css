@@ -679,6 +679,12 @@ body.modal-open .main-content{overflow:hidden}
 .kdivider{border-top:2px solid var(--border);margin-top:12px;padding-top:12px}
 .kgrid-2col-gap12{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;margin-bottom:12px}
 .kgrid-2col-gap8{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* Grid Kategori+Suplayer: di HP stack vertikal biar dropdown muat */
+.kgrid-konsinyasi{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:480px){.kgrid-konsinyasi{grid-template-columns:1fr;gap:10px}}
+/* Select di form Konsinyasi: padding cukup biar text/arrow gak ke-crop */
+.kgrid-konsinyasi select.form-input{padding:10px 32px 10px 12px;min-height:44px;font-size:15px}
+.kgrid-konsinyasi .form-input{width:auto}
 .kkembalian-box{background:var(--green-bg);border-radius:12px;padding:14px 16px;text-align:center;display:flex;align-items:center;justify-content:center}
 .kclose-btn{padding:8px;width:40px;height:40px;border-radius:8px;flex-shrink:0}
 .klh16{line-height:1.6}.klh15{line-height:1.5}
@@ -781,3 +787,16 @@ body.modal-open .main-content{overflow:hidden}
 .pos-cat-accordion.open{max-height:300px;padding:8px 12px}
 .pos-cat-accordion-inner{display:flex;flex-wrap:wrap;gap:8px}
 .pos-cat-accordion-inner .btn{font-size:13px;min-height:36px;padding:8px 14px;width:auto;flex:0 0 auto}
+
+/* Konsinyasi badges */
+.badge-titipan{display:inline-block;background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle}
+.badge-stok{display:inline-block;background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle}
+.badge-stok-habis{background:#ffebee;color:#c62828}
+
+/* Toggle switch (konsinyasi stok) */
+.toggle-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.2s}
+.toggle-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle-switch input:checked+.toggle-slider{background:var(--primary)}
+.toggle-switch input:checked+.toggle-slider::before{transform:translateX(20px)}

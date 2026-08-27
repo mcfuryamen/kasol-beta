@@ -45,6 +45,19 @@ db.version(4).stores({
   platformMessages: '++id, order, visibleFrom, visibleUntil'
 });
 
+// version 5: konsinyasi — field `suplayer`, `pakaiStok`, `stok`, `retur` di tabel menu.
+//    Field baru migration-free (Dexie handle otomatis).
+//    `suplayer` di-index agar bisa grouping per suplayer di laporan.
+//    `settings.kategoriCustom` & `settings.suplayerCustom` simpan daftar custom.
+db.version(5).stores({
+  menu: '++id, nama, kategori, hargaJual, hargaModal, aktif, urutan, suplayer',
+  penjualan: '++id, tanggal, items, totalHarga, totalModal, bayar, kembalian, waktu',
+  pengeluaran: '++id, tanggal, keterangan, kategori, jumlah, waktu',
+  pengaturan: 'key',
+  settings: 'key',
+  platformMessages: '++id, order, visibleFrom, visibleUntil'
+});
+
 // ==================== SETTINGS ====================
 // `settings` uses { key, value } rows keyed on `key`.
 export async function getSetting(key, defaultVal) {

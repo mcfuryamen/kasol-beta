@@ -313,7 +313,10 @@ export async function submitPurchase(unitId, deviceCode) {
       p_device_code: deviceCode,
       p_app_type: APP_TYPE
     });
-    if (claimError) throw claimError;
+    // Idempotent: kalau device_known INSERT gagal karena unit_id sudah ada
+    // (Postgres 23505 duplicate key), anggap sukses — baris sudah ada, klaim
+    // owner dianggap done. Update berikutnya akan update baris yang sama.
+    if (claimError && claimError.code !== '23505') throw claimError;
 
     const { error: insertError } = await sb
       .from('clients')

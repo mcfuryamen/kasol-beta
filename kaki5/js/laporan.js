@@ -225,6 +225,70 @@ export async function loadReport() {
     html += '</div>';
   }
 
+  // ── Blok Konsinyasi ──────────────────────────────────────────────────────
+  const allMenus = await DB.menu.toArray();
+  const titipan = allMenus.filter(m => m.suplayer && m.suplayer !== 'Umum');
+  if (titipan.length > 0) {
+    // Hitung terjual per menu dari sales di periode ini
+    const terjualPerMenu = {};
+    sales.forEach(s => {
+      (s.items || []).forEach(i => { terjualPerMenu[i.menuId] = (terjualPerMenu[i.menuId] || 0) + (i.qty || 0); });
+    });
+    // Hitung setoran per suplayer dari expense "Setoran Konsinyasi"
+    const setorPerSuplayer = {};
+    expenses.filter(e => e.kategori === 'Setoran Konsinyasi').forEach(e => {
+      const sp = e.keterangan?.match(/^Setoran (.+?) ·/)?.[1] || e.suplayer || 'Lainnya';
+      setorPerSuplayer[sp] = (setorPerSuplayer[sp] || 0) + (e.jumlah || 0);
+    });
+
+    // Group per suplayer
+    const bySuplayer = {};
+    titipan.forEach(m => {
+      const sp = m.suplayer || 'Lainnya';
+      if (!bySuplayer[sp]) bySuplayer[sp] = [];
+      bySuplayer[sp].push(m);
+    });
+
+    let konsoHtml = '<div class="card"><div class="card-title">🤝 Konsinyasi</div>';
+    for (const [sp, items] of Object.entries(bySuplayer)) {
+      let spTerjual = 0, spUtang = 0, spStok = 0;
+      items.forEach(m => {
+        const tj = terjualPerMenu[m.id] || 0;
+        spTerjual += tj;
+        spUtang += tj * (m.hargaModal || 0);
+        spStok += m.pakaiStok ? (m.stok || 0) : 0;
+      });
+      const spSetor = setorPerSuplayer[sp] || 0;
+      const spUtangSisa = spUtang - spSetor;
+      konsoHtml += `<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-weight:700;font-size:15px">${escapeHtml(sp)}</div>
+          <div style="font-size:11px;color:var(--text3)">${items.length} item titipan</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="text-align:center;background:#e8f5e9;border-radius:8px;padding:8px">
+            <div style="font-size:20px;font-weight:800;color:var(--green)">${spTerjual}</div>
+            <div style="font-size:11px;color:var(--text2)">Terjual</div>
+          </div>
+          <div style="text-align:center;background:#fff3e0;border-radius:8px;padding:8px">
+            <div style="font-size:20px;font-weight:800;color:var(--orange)">${formatRp(spUtangSisa)}</div>
+            <div style="font-size:11px;color:var(--text2)">Sisa Utang</div>
+          </div>
+          <div style="text-align:center;background:#e3f2fd;border-radius:8px;padding:8px">
+            <div style="font-size:20px;font-weight:800;color:var(--primary)">${spStok}</div>
+            <div style="font-size:11px;color:var(--text2)">Stok Tersisa</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
+          Total Modal Terjual: ${formatRp(spUtang)} · Sudah Disetor: ${formatRp(spSetor)}
+        </div>
+        <button class="btn btn-primary kwh40" style="width:100%;font-size:13px" data-action="setor-konsinyasi" data-suplayer="${escapeHtml(sp)}" data-utang="${spUtangSisa}">💰 Setor</button>
+      </div>`;
+    }
+    konsoHtml += '</div>';
+    html += konsoHtml;
+  }
+
   // Riwayat transaksi — dipisahkan/di-group per Hari & Tanggal
   if (sales.length > 0) {
     // Group by tanggal (YYYY-MM-DD)

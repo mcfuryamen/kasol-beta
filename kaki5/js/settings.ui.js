@@ -92,8 +92,16 @@ export async function saveOwner() {
   await saveOwnerLogic({ namaPemilik: owner });
   document.getElementById('settingOwner').textContent = owner || '—';
   closeOwnerModal();
-  showToast('✅ Nama pemilik disimpan!');
-  ensureSynced({ force: true });
+  try {
+    const syncResult = await ensureSynced({ force: true });
+    if (syncResult?.ok) {
+      showToast('✅ Nama pemilik disimpan & tersinkron!');
+    } else {
+      showToast('✅ Nama pemilik disimpan lokal — gagal sinkron.', 'warning', { duration: 6000 });
+    }
+  } catch (_) {
+    showToast('✅ Nama pemilik disimpan lokal — gagal sinkron.', 'warning', { duration: 6000 });
+  }
   checkProfileNotification();
 }
 
@@ -115,8 +123,16 @@ export async function saveWa() {
   await saveWaLogic({ normalized: res.normalized });
   document.getElementById('settingWa').textContent = formatPhoneDisplay(res.normalized);
   closeWaModal();
-  showToast('✅ Nomor WhatsApp disimpan!');
-  ensureSynced({ force: true });
+  try {
+    const syncResult = await ensureSynced({ force: true });
+    if (syncResult?.ok) {
+      showToast('✅ Nomor WhatsApp disimpan & tersinkron!');
+    } else {
+      showToast('✅ WhatsApp disimpan lokal — gagal sinkron.', 'warning', { duration: 6000 });
+    }
+  } catch (_) {
+    showToast('✅ WhatsApp disimpan lokal — gagal sinkron.', 'warning', { duration: 6000 });
+  }
   checkProfileNotification();
 }
 
@@ -170,8 +186,18 @@ export async function saveAlamat() {
   await saveAlamatLogic(payload);
   document.getElementById('settingAlamat').textContent = await regionSummary();
   closeAlamatModal();
-  showToast('✅ Alamat disimpan!');
-  ensureSynced({ force: true });
+  // Sinkronkan profil ke server + tampilkan hasil ke user.
+  // Di-await supaya user tahu hasilnya (sukses/gagal) secara kontekstual.
+  try {
+    const syncResult = await ensureSynced({ force: true });
+    if (syncResult?.ok) {
+      showToast('✅ Alamat disimpan & tersinkron!');
+    } else {
+      showToast('✅ Alamat disimpan lokal — gagal sinkron ke server.', 'warning', { duration: 6000 });
+    }
+  } catch (_) {
+    showToast('✅ Alamat disimpan lokal — gagal sinkron ke server.', 'warning', { duration: 6000 });
+  }
   checkProfileNotification();
 }
 
@@ -192,7 +218,15 @@ export async function saveNamaWarung() {
   if (el) el.textContent = nama;
   document.getElementById('settingName').textContent = nama;
   closeNameModal();
-  showToast('✅ Nama warung disimpan!');
-  ensureSynced({ force: true });
+  try {
+    const syncResult = await ensureSynced({ force: true });
+    if (syncResult?.ok) {
+      showToast('✅ Nama warung disimpan & tersinkron!');
+    } else {
+      showToast('✅ Nama warung disimpan lokal — gagal sinkron.', 'warning', { duration: 6000 });
+    }
+  } catch (_) {
+    showToast('✅ Nama warung disimpan lokal — gagal sinkron.', 'warning', { duration: 6000 });
+  }
   checkProfileNotification();
 }

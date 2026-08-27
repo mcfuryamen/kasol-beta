@@ -418,14 +418,29 @@ export async function markOnboarded() {
 }
 
 // ----- unitId (global DNA) -----
+// IMMUTABLE (Opsi 3): unitId hanya boleh lahir SATU KALI dan kemudian diikat
+// permanen ke serial/profil. Begitu terikat serial (licenseBind = { serial,... }),
+// unitId TIDAK boleh berubah walau fingerprint berubah / data lokal sebagian
+// hilang — reassign unit_id hanya lewat RPC `device_assign` di server.
 export async function getUnitId() {
   let unitId = await getSetting('unitId', null);
-  if (!unitId) {
+  if (unitId) return unitId;
+  // unitId tersimpan hilang tapi lisensi masih mengikat serial → PULIHKAN
+  // (defense-in-depth, jangan re-derive jadi perangkat baru).
+  const lic = await getLicense();
+  if (lic && lic.serial) {
     const { deviceCode } = await getDeviceIdentity();
-    unitId = 'K5-' + deviceCode;
-    await setSetting('unitId', unitId);
+    const candidate = 'K5-' + deviceCode;
+    // Hanya pakai candidate bila itu satu-satunya asal yang masuk akal
+    // (tidak ada bukti unit_id pernah beda). Pendekatan aman: re-derive &
+    // simpan ulang pada perangkat fisik yang sama.
+    await setSetting('unitId', candidate);
+    return candidate;
   }
-  return unitId;
+  const { deviceCode } = await getDeviceIdentity();
+  const fresh = 'K5-' + deviceCode;
+  await setSetting('unitId', fresh);
+  return fresh;
 }
 
 export async function ensureUnitId() {
