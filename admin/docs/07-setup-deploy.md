@@ -56,7 +56,7 @@ masih hardcoded dan belum aman.
 4. Atur:
    - **Root Directory**: `admin/`
    - **Framework Preset**: Other
-   - **Build Command**: `node scripts/build-env-loader.mjs`
+   - **Build Command**: *(kosong — static deploy, tidak ada build step env)*
    - **Output Directory**: `.`
    - **Install Command**: *(kosong)*
 5. Klik **Deploy**
@@ -90,7 +90,6 @@ git push origin preview
 {
   "version": 2,
   "framework": null,
-  "buildCommand": "node scripts/build-env-loader.mjs",
   "outputDirectory": ".",
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
@@ -151,7 +150,7 @@ admin/
 │   ├── _gate.js        # Cek ADMIN_API_KEY (fail-closed, constant-time)
 │   ├── rest.js         # Proxy Supabase (whitelist tabel)
 │   └── license.js      # Generate/verifikasi serial (salt server-side)
-├── scripts/            # build-env-loader.mjs (di-generate saat build)
+├── scripts/            # util dev (env-loader dibuat STATIS, di-commit; bukan build step)
 ├── tests/              # license-integration.test.mjs
 ├── vercel.json         # Vercel config
 ├── .vercelignore       # Vercel ignore

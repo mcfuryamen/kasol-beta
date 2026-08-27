@@ -3,6 +3,15 @@
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
 
+## [1.6.2] - (Deploy Preview FIX)
+
+> Menghentikan kegagalan build preview Vercel ketika env `SUPABASE_*` Preview kosong (opini #2 = samakan pola kaki5).
+
+### 🚀 Deploy
+- **`buildCommand` dihapus** dari `vercel.json` (kini static deploy, seperti kaki5) → preview tidak lagi menjalankan fail-closed `build-env-loader.mjs` yang `exit 1` saat `SUPABASE_URL` kosong.
+- `js/env-loader.js` diubah jadi **STATIS & di-commit** (dihapus dari `.gitignore`), hanya memuat var publik `SUPABASE_URL` + `SUPABASE_ANON_KEY`. Service key & ADMIN_API_KEY tetap server-side `api/*`.
+- Dokumentasi `docs/07`, `docs/08`, `CHANGELOG` diperbarui agar tidak lagi menyebut build-env-loader sebagai build step.
+
 ## [1.6.1] - (2026-08-17: Perbaikan Audit P1)
 
 > Audit menyeluruh aplikasi admin → perbaikan bug fungsional & pembersihan kode mati.
@@ -446,14 +455,14 @@ espondWith(undefined).
 
 ### â˜ï¸ Supabase
 - **Wiring dipulihkan:** `js/env-loader.js` + `js/supabase-client.js` + tag script di `index.html` (file sempat tidak ada di produksi).
-- **Build step baru:** `scripts/build-env-loader.mjs` menulis `js/env-loader.js` dari **Vercel environment variables / konektor Supabase** saat deploy â€” key **tidak pernah di-commit**. Fail-safe (exit 0 jika env kosong).
+- **Build step DIHAPUS:** `buildCommand` dihapus dari `vercel.json` (kaki5 pattern) â€” `js/env-loader.js` kini **STATIS & di-commit** hanya berisi var publik (`SUPABASE_URL`, `SUPABASE_ANON_KEY`). Service key + ADMIN_API_KEY hanya server-side `api/*`. Preview tidak lagi gagal build saat env Preview kosong.
 
 ### ðŸ§¹ Pembersihan
 - Buang unused import (catalog, license-ui, navigation, settings), dedupe `escapeHtml` di dashboard (import dari utils).
 - Manifest shortcut `/#overview` â†’ `/#dashboard`; SW cache `v1` â†’ `v2`; `.vercelignore` kecualikan `migrate-catalog-to-supabase.html` & `run-migration.html`.
 
 ### ðŸš€ Deploy
-- **GitHub Actions tidak dipakai lagi** (semua `.github/workflows/*` dihapus). Deploy via **Vercel git integration (auto-detect)** â€” project `kasir-admin`, Root Directory `admin/`, build command `node scripts/build-env-loader.mjs`.
+- **GitHub Actions tidak dipakai lagi** (semua `.github/workflows/*` dihapus). Deploy via **Vercel git integration (auto-detect)** â€” project `kasir-admin`, Root Directory `admin/`, **tanpa build command** (static deploy).
 
 ---
 

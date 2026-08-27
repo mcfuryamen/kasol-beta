@@ -185,7 +185,7 @@ Buckets: `qris` **public** (QRIS merchant), `bukti` **private** (foto bukti tran
 
 | File | Purpose |
 |------|---------|
-| `js/env-loader.js` | Load env vars ke `window` (SUPABASE_URL, ANON_KEY, ADMIN_API_KEY gate) — **GENERATED at build**; TIDAK pernah berisi SERVICE_KEY |
+| `js/env-loader.js` | Load env vars publik ke `window` (SUPABASE_URL, ANON_KEY) — **STATIS & di-commit** (bukan generated at build, tanpa buildCommand)
 | `js/supabase-client.js` | Supabase REST client untuk landing (anon key) |
 | `js/api.js` | Helper `supabaseFetch()` — semua operasi data lewat Vercel Serverless `/api/rest`; plus `supabaseStorageSign()` untuk **signed URL** bukti bayar (bucket `bukti` privat) |
 | `api/rest.js` | **Vercel Serverless Proxy** — satu-satunya tempat service_role key (server-side); whitelist tabel `clients`/`products` (leads & pembelian di-drop 2026-08-11) + fn activate-license + handler `storageSign` (signed URL bukti) |
@@ -257,7 +257,7 @@ const result = await LicenseCore.verifySerial(prefix, salt, serialRaw, deviceCod
 ### Admin → Supabase (Products & Clients)
 ```
 Browser (admin)
-  └─ Service Role Key (.env.local → build → env-loader.js)
+  └─ fetch() → Vercel Serverless /api/rest (service_role key, server-side)
       └─ POST/PATCH/DELETE /rest/v1/products
       └─ GET/PATCH/DELETE /rest/v1/clients
           └─ Supabase Cloud (RLS bypassed by service_role)
@@ -309,7 +309,7 @@ SUPABASE_SERVICE_ROLE_KEY=svc_...   # HANYA server-side, dibaca api/rest.js
 ADMIN_API_KEY=xxx                    # gate proxy — WAJIB di-set (fail-closed: jika kosong → 503, bukan terbuka)
 ```
 
-> **Phase A (FIXED):** service_role key TIDAK lagi di-inject ke client. Build command `node scripts/build-env-loader.mjs` hanya menulis `SUPABASE_URL`, `SUPABASE_ANON_KEY`, dan `SUPABASE_ADMIN_KEY` (gate) ke `js/env-loader.js`. Service key hidup **hanya** di Vercel Serverless `/api/rest`.
+> **Phase A (FIXED):** service_role key TIDAK ada di client. `js/env-loader.js` adalah **statis & di-commit** (tanpa build step; `buildCommand` dihapus dari `vercel.json`) dan hanya memuat `SUPABASE_URL` + `SUPABASE_ANON_KEY` (publik). Service key + ADMIN_API_KEY hidup **hanya** di Vercel Serverless `/api/rest`. Preview & production memakai env-vars Vercel yang konsisten; tidak ada fail-closed saat build.
 >
 > **H1 (FIXED v1.3.2):** gate `/api/rest` & `/api/license` memakai helper `api/_gate.js` — **fail-closed + constant-time** (`timingSafeEqual`). Jika `ADMIN_API_KEY` tidak diset di env, kedua endpoint return `503 server_not_configured`, TIDAK pernah membiarkan request lewat. Login admin resmi tetap ditunda (lihat `../CONTEXT.md`); upgrade ke JWT admin = follow-up terpisah.
 
