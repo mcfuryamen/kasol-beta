@@ -101,16 +101,52 @@ Tidak ada secrets GitHub Actions lagi (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_
 
 ## 📝 Development Flow
 
-```bash
-# Edit file di folder aplikasi (produksi: C:\Users\Admin\Documents\kasol\<app>)
-# Sync → mirror: jalankan script sync (sync-to-mirror.sh, whitelist)
-# Commit ke mirror (manual, di folder mirror):
-git add <app>/
-git commit -m "feat: ..."
-# Push ke GitHub (manual, dilakukan oleh pengguna):
+Alur standar menjaga **production/main tetap bersih & fungsional**:
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  1. FOLDER KERJA (produksi)                                       │
+│     C:\Users\Admin\Documents\kasol\<app>                          │
+│     → edit & uji di sini. Commit WORKING TREE LOKAL bila perlu    │
+└───────────────────────────┬──────────────────────────────────────┘
+                            │ sync (sync-to-mirror.sh, whitelist)
+                            ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  2. MIRROR (C:\Users\Admin\Documents\GitHub\kasol)                │
+│     → commit ke mirror (manual, di folder mirror):                │
+│        git add <app>/ && git commit -m "feat: ..."                │
+└───────────────────────────┬──────────────────────────────────────┘
+                            │ push
+                            ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  3. PREVIEW (branch non-utama, e.g. `preview`)                    │
+│     → push dari mirror → Vercel deploy ke URL preview             │
+│        (xxx--kasir-<app>.vercel.app)                              │
+└───────────────────────────┬──────────────────────────────────────┘
+        ada error?           │ stabil?
+        ▲                    ▼
+        └── kembali ke langkah 1          ┌────────────────────────────────┐
+        (kerja → mirror → preview,        │  4. MERGE KE MAIN (production)  │
+         ulangi hingga stabil)            │     → PR/merge `preview` → main  │
+                                          │     → Vercel deploy production   │
+                                          │     (main = production, bersih)  │
+                                          └────────────────────────────────┘
 ```
 
-Selective deploy ditangani Vercel via **npm workspaces** ("Skip Unaffected Projects") — per-app otomatis, tanpa script `vercel-ignore.sh`.
+```bash
+# 1. Folder kerja — edit & uji (produksi: C:\Users\Admin\Documents\kasol\<app>)
+# 2. Sync → mirror: jalankan script sync (sync-to-mirror.sh, whitelist)
+#    lalu commit ke mirror (manual, di folder mirror C:\Users\Admin\Documents\GitHub\kasol):
+git add <app>/
+git commit -m "feat: ..."
+# 3. Push ke branch PREVIEW (bukan main) dari mirror untuk tes:
+git push origin preview
+#    → cek URL preview Vercel. Jika ada error, kembali ke langkah 1 & ulangi.
+# 4. Stabil → merge ke main (production):
+#    (via pull request atau merge lokal dari mirror)
+```
+
+> ⚠️ **Aturan:** `main`/production **hanya** menerima perubahan yang sudah stabil & lolos preview. Jangan commit/output dari folder kerja langsung ke `main` — lewati alur mirror → preview dulu. Selective deploy ditangani Vercel via **npm workspaces** ("Skip Unaffected Projects") — per-app otomatis, tanpa script `vercel-ignore.sh`.
 
 ## 🔗 Domain Mapping (Opsional)
 
@@ -123,7 +159,9 @@ Selective deploy ditangani Vercel via **npm workspaces** ("Skip Unaffected Proje
 
 ## 🧪 Preview URLs
 
-Setiap **push ke branch non-utama / Pull Request** menghasilkan preview URL Vercel (mis. `xxx--kasir-rosok.vercel.app`). Deploy production terjadi pada push ke branch utama.
+Setiap **push ke branch non-utama / Pull Request** menghasilkan preview URL Vercel (mis. `xxx--kasir-rosok.vercel.app`). Deploy production terjadi pada **merge ke branch utama (`main`)**.
+
+**Alur kaitannya:** pengembangan berjalan dari folder kerja → commit ke mirror → push ke branch `preview` (non-utama) untuk tes di URL preview. Setelah stabil baru di-merge ke `main` → deploy production. Ini menjaga `main`/production tetap bersih & fungsional.
 
 ## 📊 Monitoring
 

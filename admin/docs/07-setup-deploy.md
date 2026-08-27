@@ -68,16 +68,19 @@ masih hardcoded dan belum aman.
 cd /c/Users/Admin/Documents/kasol/admin
 cp -r . /c/Users/Admin/Documents/GitHub/kasol/admin/
 
-# 2. Commit & push dari monorepo root
+# 2. Commit & push dari monorepo root ke branch PREVIEW (bukan main)
 cd /c/Users/Admin/Documents/GitHub/kasol
 git add admin/
 git commit -m "admin: <deskripsi perubahan>"
-git push origin main
+git push origin preview
 
-# 3. Vercel auto-deploy dari GitHub
+# 3. Vercel auto-deploy preview dari branch preview → tes di URL preview
+#    (xxx--kasir-admin.vercel.app). Jika ada error, kembali ke langkah 1 & ulangi.
+
+# 4. Setelah stabil → merge ke main (production) → Vercel deploy production
 ```
 
-> **Note:** GitHub Actions workflows sudah dihapus. Deploy dilakukan manual push → Vercel auto-detect changes.
+> **Note:** GitHub Actions workflows sudah dihapus. Deploy dilakukan manual push → Vercel auto-detect changes. `main`/production hanya menerima perubahan yang sudah stabil & lolos preview.
 
 ### File Konfigurasi Vercel
 

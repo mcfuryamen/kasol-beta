@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', init);
 ## 5. Deploy & CI/CD (ekosistem kasol)
 
 - `kaki5` di-deploy sebagai **static site** ke **Vercel** lewat **git integration (auto-detect)** dari repo root `kasol` — project `kasir-kaki5` dengan root directory `kaki5/`.
-- GitHub Actions **tidak dipakai** — Vercel auto-deploy setiap push ke branch utama.
+- GitHub Actions **tidak dipakai** — Vercel auto-deploy: push ke branch non-utama (`preview`) → URL preview; merge ke `main` → production. Alur: folder kerja → commit ke mirror → push `preview` → tes → stabil → merge `main`.
 - `vercel.json` menyediakan:
   - `cleanUrls: true` — tanpa ekstensi file.
   - SPA rewrite `/(.*) → /index.html` — semua jalur dikembalikan ke shell.

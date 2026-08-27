@@ -493,7 +493,7 @@ overlay force-update), `CACHE_NAME` (`sw.js`), `?v=` (`index.html` & README).
 
 > GitHub Actions **tidak dipakai** lagi. Semua `.github/workflows/*` sudah dihapus. Deploy otomatis lewat **Vercel git integration** (auto-detect).
 
-Setiap aplikasi = satu **Vercel project** terhubung ke repo dengan **Root Directory** = folder aplikasi. Push ke branch utama → Vercel deploy project yang foldernya berubah. Tidak ada secrets CI (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_*`).
+Setiap aplikasi = satu **Vercel project** terhubung ke repo dengan **Root Directory** = folder aplikasi. **Push ke branch non-utama (`preview`) → Vercel deploy ke URL preview**; **merge ke branch utama (`main`) → deploy production**. Alur kerja: folder kerja → commit ke mirror → push `preview` → tes → stabil → merge ke `main`. Tidak ada secrets CI (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_*`).
 
 | App | Vercel Project | Root Directory | Build Command |
 |-----|----------------|----------------|---------------|
