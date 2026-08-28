@@ -361,15 +361,21 @@ export async function pullCloudProfileTo(cloudClient) {
     alamat_detail: 'alamat'
   };
   let changed = 0;
+  let skipped = 0;
   for (const [col, key] of Object.entries(mapping)) {
     const val = cloudClient[col];
     // C2v2: overwrite juga bila nilai kosong/'' — cloud bisa jadi sengaja
     // membersihkan field (buffer profile). Jangan skip empty string.
     if (val !== undefined && val !== null) {
+      let local;
+      try { local = await getSetting(key, undefined); } catch (_) { local = undefined; }
+      // Hanya tulis bila benar-benar berubah — mencegah loop log & write
+      // IndexedDB yang sia-sia dari pemicu ganda (boot + realtime + verify).
+      if (local === val) { skipped++; continue; }
       try { await setSetting(key, val); changed++; } catch (_) { /* abaikan */ }
     }
   }
-  if (changed > 0) console.log(`[C2] pullCloudProfileTo: ${changed} field profil di-sync dari cloud`);
+  if (changed > 0) console.log(`[C2] pullCloudProfileTo: ${changed} field profil di-sync dari cloud (${skipped} tidak berubah)`);
 }
 
 // ============================================================================

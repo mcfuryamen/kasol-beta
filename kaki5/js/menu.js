@@ -105,6 +105,22 @@ export async function renderMenuList() {
 // dengan async DB.menu.get() di openMenuForm (audit 2026-08-09).
 let _menuFormInFlight = false;
 
+// DOM null-safe helper — setelemen properti tanpa crash bila elemen belum
+// ada di DOM (mis. form modal belum ter-render / stale cache). Audit error
+// console "Cannot set properties of null (setting 'checked')" (2026-08-28).
+function setElemChecked(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.checked = !!val;
+}
+function setElemValue(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val ?? '';
+}
+function setElemOnChange(id, fn) {
+  const el = document.getElementById(id);
+  if (el) el.onchange = fn;
+}
+
 export async function openMenuForm(id) {
   // Tunggu form sebelumnya selesai di-render sebelum mulai yang baru.
   // Loop dengan jeda pendek, max ~3 detik biar tidak hang kalau ada error.
@@ -118,61 +134,63 @@ export async function openMenuForm(id) {
       if (!m) return;
       // Re-check: kalau ada click lagi saat kita await, abort
       if (!_menuFormInFlight) return;
-      document.getElementById('editMenuId').value = id;
-      document.getElementById('menuModalTitle').textContent = '✏️ Edit Menu';
-      document.getElementById('menuNama').value = m.nama;
-      document.getElementById('menuKategori').value = m.kategori;
-      document.getElementById('menuHargaJual').value = m.hargaJual;
-      document.getElementById('menuHargaModal').value = m.hargaModal;
+      setElemValue('editMenuId', id);
+      const titleEl = document.getElementById('menuModalTitle');
+      if (titleEl) titleEl.textContent = '✏️ Edit Menu';
+      setElemValue('menuNama', m.nama);
+      setElemValue('menuKategori', m.kategori);
+      setElemValue('menuHargaJual', m.hargaJual);
+      setElemValue('menuHargaModal', m.hargaModal);
       // Topping list: render sebagai baris terpisah "nama|harga" di textarea
       const toppings = parseToppingList(m.toppingList);
-      document.getElementById('menuToppingList').value = toppings.map(t => t.nama + '|' + t.harga).join('\n');
+      setElemValue('menuToppingList', toppings.map(t => t.nama + '|' + t.harga).join('\n'));
       // Harga ojol: 0 = tidak di-set
-      document.getElementById('menuHargaOjol').value = m.hargaOjol || '';
+      setElemValue('menuHargaOjol', m.hargaOjol || '');
       // Konsinyasi
       const suplayer = m.suplayer || 'Umum';
-      document.getElementById('menuSuplayerVal').value = suplayer;
-      document.getElementById('menuPakaiStok').checked = !!m.pakaiStok;
-      document.getElementById('menuStok').value = m.stok ?? '';
+      setElemValue('menuSuplayerVal', suplayer);
+      setElemChecked('menuPakaiStok', !!m.pakaiStok);
+      setElemValue('menuStok', m.stok ?? '');
       // Setelah suplayer di-set, baru populate select + select value
       await populateSuplayerSelect(suplayer);
       await populateKategoriSelect(m.kategori);
       // Auto-on Pakai Stok saat suplayer ≠ Umum
-      document.getElementById('menuSuplayerSelect').onchange = syncPakaiStokToggle; // onchange agar tidak menumpuk listener (audit 2026-08-19)
-      document.getElementById('menuPakaiStok').onchange = syncStokVisibility;
+      setElemOnChange('menuSuplayerSelect', syncPakaiStokToggle); // onchange agar tidak menumpuk listener (audit 2026-08-19)
+      setElemOnChange('menuPakaiStok', syncStokVisibility);
       bindPakaiStokUserOverride();
       syncStokVisibility();
             // Toggle Harga Ojol & Topping (aktif jika punya nilai)
-            document.getElementById('menuOjolToggle').checked = !!m.hargaOjol;
-            document.getElementById('menuToppingToggle').checked = !!(m.toppingList || '');
-            document.getElementById('menuOjolToggle').onchange = syncOjolVisibility;
-            document.getElementById('menuToppingToggle').onchange = syncToppingVisibility;
+            setElemChecked('menuOjolToggle', !!m.hargaOjol);
+            setElemChecked('menuToppingToggle', !!(m.toppingList || ''));
+            setElemOnChange('menuOjolToggle', syncOjolVisibility);
+            setElemOnChange('menuToppingToggle', syncToppingVisibility);
             bindOjolToppingToggles();
             syncOjolVisibility();
             syncToppingVisibility();
           } else {
-      document.getElementById('editMenuId').value = '';
-      document.getElementById('menuModalTitle').textContent = '🍽️ Tambah Menu';
-      document.getElementById('menuNama').value = '';
-      document.getElementById('menuKategori').value = 'Makanan';
-      document.getElementById('menuHargaJual').value = '';
-      document.getElementById('menuHargaModal').value = '';
-      document.getElementById('menuToppingList').value = '';
-      document.getElementById('menuHargaOjol').value = '';
-      document.getElementById('menuSuplayerVal').value = 'Umum';
-      document.getElementById('menuPakaiStok').checked = false;
-      document.getElementById('menuStok').value = '';
+      setElemValue('editMenuId', '');
+      const titleEl = document.getElementById('menuModalTitle');
+      if (titleEl) titleEl.textContent = '🍽️ Tambah Menu';
+      setElemValue('menuNama', '');
+      setElemValue('menuKategori', 'Makanan');
+      setElemValue('menuHargaJual', '');
+      setElemValue('menuHargaModal', '');
+      setElemValue('menuToppingList', '');
+      setElemValue('menuHargaOjol', '');
+      setElemValue('menuSuplayerVal', 'Umum');
+      setElemChecked('menuPakaiStok', false);
+      setElemValue('menuStok', '');
       await populateSuplayerSelect('Umum');
       await populateKategoriSelect('Makanan');
-      document.getElementById('menuSuplayerSelect').onchange = syncPakaiStokToggle; // onchange agar tidak menumpuk listener (audit 2026-08-19)
-      document.getElementById('menuPakaiStok').onchange = syncStokVisibility;
+      setElemOnChange('menuSuplayerSelect', syncPakaiStokToggle); // onchange agar tidak menumpuk listener (audit 2026-08-19)
+      setElemOnChange('menuPakaiStok', syncStokVisibility);
       bindPakaiStokUserOverride();
       syncStokVisibility();
             // Toggle Harga Ojol & Topping default mati
-            document.getElementById('menuOjolToggle').checked = false;
-            document.getElementById('menuToppingToggle').checked = false;
-            document.getElementById('menuOjolToggle').onchange = syncOjolVisibility;
-            document.getElementById('menuToppingToggle').onchange = syncToppingVisibility;
+            setElemChecked('menuOjolToggle', false);
+            setElemChecked('menuToppingToggle', false);
+            setElemOnChange('menuOjolToggle', syncOjolVisibility);
+            setElemOnChange('menuToppingToggle', syncToppingVisibility);
             bindOjolToppingToggles();
             syncOjolVisibility();
             syncToppingVisibility();

@@ -78,7 +78,7 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .btn-row .btn{flex:1}
 
 /* Aksi (Batal/Simpan dst) tetap terlihat saat konten modal discroll -> sticky di bawah modal */
-.modal .btn-row{position:sticky;bottom:0;z-index:40;background:var(--card);margin-top:20px;padding:14px 0 4px;border-top:1px solid var(--border)}
+.modal .btn-row{position:sticky;bottom:0;z-index:40;background:var(--card);margin-top:28px;padding:14px 0 4px;border-top:1px solid var(--border)}
 
 /* menuSelectorModal: Batal kecil (auto), Tambah ke Keranjang full-width */
 #menuSelectorModal .btn-row .btn:first-child{flex:0;width:auto;min-width:80px}
