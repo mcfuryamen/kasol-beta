@@ -50,7 +50,7 @@ let _berandaModule = null;
 
 // Wire page modules on first use
 const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput' };
-const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu', addCustomSuplayer: 'addCustomSuplayer', addCustomKategori: 'addCustomKategori', openReturModal: 'openReturModal', closeReturModal: 'closeReturModal', confirmRetur: 'confirmRetur' };
+const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu', addCustomSuplayer: 'addCustomSuplayer', addCustomKategori: 'addCustomKategori', pickKategori: 'pickKategori', pickSuplayer: 'pickSuplayer', syncPakaiStokToggle: 'syncPakaiStokToggle', openReturModal: 'openReturModal', closeReturModal: 'closeReturModal', confirmRetur: 'confirmRetur' };
 const _laporanWireMap = { __wired: false, loadReport: 'loadReport', setReportPeriod: 'setReportPeriodUI', setReportPeriodUI: 'setReportPeriodUI', navReportDate: 'navReportDate', toggleExpenseCat: 'toggleExpenseCat', setCustomDate: 'setCustomDate', toggleCustomPicker: 'toggleCustomPicker', pickDate: 'pickDate', pickWeek: 'pickWeek', pickMonth: 'pickMonth', pickCustomDate: 'pickCustomDate' };
 const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaWarung: 'saveNamaWarung', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification' };
 const _bantuanWireMap = { __wired: false, initBantuan: 'initBantuan', toggleTutorial: 'toggleTutorial' };
@@ -355,6 +355,22 @@ if (_gateEl) {
 
 // ==================== DATA ACTION HANDLER ====================
 // Central handler for all data-action attributes (replaces inline onclick/oninput)
+
+// Buka/tutup panel accordion form menu (Kategori & Suplayer).
+// Saat satu dibuka, yang lain otomatis tertutup agar tidak berdempetan.
+function toggleAccordion(id) {
+  const target = document.getElementById(id);
+  if (!target) return;
+  // Kelas 'open' dipasang di parent .acc (selector CSS .acc.open .acc-panel)
+  const acc = target.closest('.acc') || target;
+  const willOpen = !acc.classList.contains('open');
+  // Tutup panel accordion lainnya di form menu (mutual exclusion)
+  ['menuKategoriAcc', 'menuSuplayerAcc'].forEach((oid) => {
+    if (oid !== id) document.getElementById(oid)?.closest('.acc')?.classList.remove('open');
+  });
+  acc.classList.toggle('open', willOpen);
+}
+
 function handleDataAction(action, el, event) {
   switch (action) {
     // Navigation
@@ -443,6 +459,18 @@ function handleDataAction(action, el, event) {
       break;
     case 'add-kategori-custom':
       if (window.addCustomKategori) window.addCustomKategori();
+      break;
+    case 'toggle-kategori-acc':
+      toggleAccordion('menuKategoriAcc');
+      break;
+    case 'toggle-suplayer-acc':
+      toggleAccordion('menuSuplayerAcc');
+      break;
+    case 'pick-kategori':
+      if (window.pickKategori) window.pickKategori(el?.dataset.value ?? '');
+      break;
+    case 'pick-suplayer':
+      if (window.pickSuplayer) window.pickSuplayer(el?.dataset.value ?? '');
       break;
     case 'retur-menu':
       if (window.openReturModal) window.openReturModal(Number(el?.dataset?.menuId));

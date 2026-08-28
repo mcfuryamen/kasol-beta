@@ -142,7 +142,15 @@ export async function openMenuForm(id) {
       document.getElementById('menuPakaiStok').onchange = syncStokVisibility;
       bindPakaiStokUserOverride();
       syncStokVisibility();
-    } else {
+            // Toggle Harga Ojol & Topping (aktif jika punya nilai)
+            document.getElementById('menuOjolToggle').checked = !!m.hargaOjol;
+            document.getElementById('menuToppingToggle').checked = !!(m.toppingList || '');
+            document.getElementById('menuOjolToggle').onchange = syncOjolVisibility;
+            document.getElementById('menuToppingToggle').onchange = syncToppingVisibility;
+            bindOjolToppingToggles();
+            syncOjolVisibility();
+            syncToppingVisibility();
+          } else {
       document.getElementById('editMenuId').value = '';
       document.getElementById('menuModalTitle').textContent = '🍽️ Tambah Menu';
       document.getElementById('menuNama').value = '';
@@ -160,8 +168,16 @@ export async function openMenuForm(id) {
       document.getElementById('menuPakaiStok').onchange = syncStokVisibility;
       bindPakaiStokUserOverride();
       syncStokVisibility();
-    }
-    await openModal('menuModal');
+            // Toggle Harga Ojol & Topping default mati
+            document.getElementById('menuOjolToggle').checked = false;
+            document.getElementById('menuToppingToggle').checked = false;
+            document.getElementById('menuOjolToggle').onchange = syncOjolVisibility;
+            document.getElementById('menuToppingToggle').onchange = syncToppingVisibility;
+            bindOjolToppingToggles();
+            syncOjolVisibility();
+            syncToppingVisibility();
+          }
+          await openModal('menuModal');
   } finally {
     _menuFormInFlight = false;
   }
@@ -194,12 +210,17 @@ export function buildToppingListString(toppings) {
 
 const _CAT_OPTIONS = ['Makanan','Minuman','Snack','Lainnya','Titipan'];
 
+export function escapeAttr(v) {
+  return String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 async function populateSuplayerSelect(selected) {
   const sel = document.getElementById('menuSuplayerSelect');
   const custom = (await getSetting('suplayerCustom', [])) || [];
-  sel.innerHTML = '<option value="Umum">🏠 Umum (Menu Sendiri)</option>' +
+  sel.innerHTML = '<option value="Umum">🏠 Umum</option>' +
     custom.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   sel.value = selected || 'Umum';
+  await renderSuplayerAcc();
 }
 
 async function populateKategoriSelect(selected) {
@@ -208,6 +229,67 @@ async function populateKategoriSelect(selected) {
   sel.innerHTML = _CAT_OPTIONS.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(catLabel(c))}</option>`).join('') +
     custom.map(c => `<option value="${escapeHtml(c)}">📦 ${escapeHtml(c)}</option>`).join('');
   sel.value = selected || 'Makanan';
+  await renderKategoriOptions();
+}
+
+// ── Accordion Kategori & Suplayer di form menu ───────────────────────────────
+// Opsi dirender sebagai tombol chip; mengkliknya memilih nilai & mencatatnya
+// ke select tersembunyi (agar saveMenu/syncPakaiStokToggle tetap bekerja).
+
+async function renderKategoriOptions(selectedVal) {
+  const box = document.getElementById('menuKategoriOptions');
+  const sel = document.getElementById('menuKategori');
+  if (!box || !sel) return;
+  const custom = (await getSetting('kategoriCustom', [])) || [];
+  const opts = [..._CAT_OPTIONS, ...custom];
+  box.innerHTML = opts.map(v => {
+    const label = custom.includes(v) ? '📦 ' + v : catLabel(v);
+    return `<button type="button" class="acc-opt${v === sel.value ? ' selected' : ''}" data-action="pick-kategori" data-value="${escapeAttr(v)}">${escapeHtml(label)}</button>`;
+  }).join('') || '<span class="acc-empty">Belum ada kategori</span>';
+  box.insertAdjacentHTML('beforeend',
+    `<button type="button" class="acc-add" data-action="add-kategori-custom">＋ Tambah Kategori</button>`);
+  updateTrigger('menuKategoriTriggerVal', catLabel(sel.value));
+}
+
+async function renderSuplayerAcc(selVal) {
+  const box = document.getElementById('menuSuplayerOptions');
+  const sel = document.getElementById('menuSuplayerSelect');
+  if (!box || !sel) return;
+  const custom = (await getSetting('suplayerCustom', [])) || [];
+  const opts = ['Umum', ...custom];
+  box.innerHTML = opts.map(v => {
+    const label = v === 'Umum' ? '🏠 Umum' : v;
+    return `<button type="button" class="acc-opt${v === sel.value ? ' selected' : ''}" data-action="pick-suplayer" data-value="${escapeAttr(v)}">${escapeHtml(label)}</button>`;
+  }).join('');
+  box.insertAdjacentHTML('beforeend',
+    `<button type="button" class="acc-add" data-action="add-suplayer-custom">＋ Tambah Suplayer</button>`);
+  updateTrigger('menuSuplayerTriggerVal', sel.value === 'Umum' ? '🏠 Umum' : sel.value);
+}
+
+function updateTrigger(elId, labelText) {
+  const el = document.getElementById(elId);
+  if (el) el.textContent = labelText;
+}
+
+// Fungsi publik: pilih opsi kategori dari accordion
+export async function pickKategori(value) {
+  const sel = document.getElementById('menuKategori');
+  if (!sel) return;
+  sel.value = value;
+  await renderKategoriOptions(value);
+  const acc = document.getElementById('menuKategoriAcc');
+  acc?.closest('.acc')?.classList.remove('open');
+}
+
+// Fungsi publik: pilih opsi suplayer dari accordion
+export async function pickSuplayer(value) {
+  const sel = document.getElementById('menuSuplayerSelect');
+  if (!sel) return;
+  sel.value = value;
+  await renderSuplayerAcc(value);
+  const acc = document.getElementById('menuSuplayerAcc');
+  acc?.closest('.acc')?.classList.remove('open');
+  if (window.syncPakaiStokToggle) syncPakaiStokToggle();
 }
 
 export async function addCustomSuplayer() {
@@ -274,6 +356,28 @@ export function bindPakaiStokUserOverride() {
   cb.addEventListener('change', onUser);
   // Inisialisasi userSet sesuai kondisi awal checkbox (mode edit)
   cb.dataset.userSet = cb.checked ? '1' : '0';
+}
+
+// ── Toggle Harga Ojol & Topping (pola sama dgn Pakai Stok) ──────────────────
+export function syncOjolVisibility() {
+  const cb = document.getElementById('menuOjolToggle');
+  const wrap = document.getElementById('menuOjolWrap');
+  if (!cb || !wrap) return;
+  wrap.style.display = cb.checked ? 'block' : 'none';
+}
+
+export function syncToppingVisibility() {
+  const cb = document.getElementById('menuToppingToggle');
+  const wrap = document.getElementById('menuToppingWrap');
+  if (!cb || !wrap) return;
+  wrap.style.display = cb.checked ? 'block' : 'none';
+}
+
+export function bindOjolToppingToggles() {
+  const ojol = document.getElementById('menuOjolToggle');
+  const top = document.getElementById('menuToppingToggle');
+  if (ojol && !ojol.dataset.bound) { ojol.dataset.bound = '1'; ojol.addEventListener('change', syncOjolVisibility); }
+  if (top && !top.dataset.bound) { top.dataset.bound = '1'; top.addEventListener('change', syncToppingVisibility); }
 }
 
 // Parse textarea "Susu|1000\nExtra Gula|500" → [{nama, harga}]

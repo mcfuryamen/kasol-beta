@@ -373,27 +373,46 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <label class="form-label">Nama Menu</label>
 <input type="text" class="form-input" id="menuNama" placeholder="Contoh: Nasi Goreng">
 </div>
+<div class="kgrid-2col-gap8">
+<div class="form-group">
+<label class="form-label">Harga Modal</label>
+<input type="number" class="form-input" id="menuHargaModal" placeholder="Contoh: 8000" inputmode="numeric">
+</div>
+<div class="form-group">
+<label class="form-label">Harga Jual</label>
+<input type="number" class="form-input" id="menuHargaJual" placeholder="Contoh: 15000" inputmode="numeric">
+</div>
+</div>
 <div class="kgrid-konsinyasi">
   <div class="form-group">
     <label class="form-label">Kategori</label>
-    <div style="display:flex;gap:6px;align-items:center">
-      <select class="form-input" id="menuKategori" style="flex:1;min-width:0">
-        <option value="Makanan">🍚 Makanan</option>
-        <option value="Minuman">🥤 Minuman</option>
-        <option value="Snack">🍢 Snack / Jajanan</option>
-        <option value="Lainnya">📦 Lainnya</option>
-        <option value="Titipan">📦 Titipan</option>
-      </select>
-      <button class="btn btn-ghost btn-sm kwh44" style="flex-shrink:0" data-action="add-kategori-custom" title="Tambah kategori">+</button>
+    <!-- Select tersembunyi: kompatibel utk logika simpan & set nilai -->
+    <select id="menuKategori" style="display:none"><option value="Makanan">🍚 Makanan</option></select>
+    <div class="acc">
+      <button type="button" class="form-input acc-trigger" data-action="toggle-kategori-acc">
+        <span class="acc-trigger-value" id="menuKategoriTriggerVal">🍚 Makanan</span>
+        <span class="acc-caret">▾</span>
+      </button>
+      <div class="acc-panel" id="menuKategoriAcc">
+        <div class="acc-inner">
+          <div class="acc-options" id="menuKategoriOptions"></div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="form-group">
     <label class="form-label">Suplayer</label>
-    <div style="display:flex;gap:6px;align-items:center">
-      <select class="form-input" id="menuSuplayerSelect" style="flex:1;min-width:0">
-        <option value="Umum">🏠 Umum (Menu Sendiri)</option>
-      </select>
-      <button class="btn btn-ghost btn-sm kwh44" style="flex-shrink:0" data-action="add-suplayer-custom" title="Tambah suplayer">+</button>
+    <select id="menuSuplayerSelect" style="display:none" class="form-input"><option value="Umum">🏠 Umum</option></select>
+    <div class="acc">
+      <button type="button" class="form-input acc-trigger" data-action="toggle-suplayer-acc">
+        <span class="acc-trigger-value" id="menuSuplayerTriggerVal">🏠 Umum</span>
+        <span class="acc-caret">▾</span>
+      </button>
+      <div class="acc-panel" id="menuSuplayerAcc">
+        <div class="acc-inner">
+          <div class="acc-options" id="menuSuplayerOptions"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -409,25 +428,31 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
     <input type="number" class="form-input" id="menuStok" placeholder="Jumlah stok awal" inputmode="numeric" min="0">
   </div>
 </div>
-<div class="kgrid-2col-gap8">
-<div class="form-group">
-<label class="form-label">Harga Modal</label>
-<input type="number" class="form-input" id="menuHargaModal" placeholder="Contoh: 8000" inputmode="numeric">
+<div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:6px 0">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <label class="form-label" style="margin:0">🛵 Harga Ojol</label>
+    <label class="toggle-switch" style="margin:0">
+      <input type="checkbox" id="menuOjolToggle">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <div id="menuOjolWrap" style="display:none;margin-top:10px">
+    <div class="form-helper" style="margin:0 0 8px">Kosongkan jika sama dengan harga jual</div>
+    <input type="number" class="form-input" id="menuHargaOjol" placeholder="Contoh: 18000" inputmode="numeric">
+  </div>
 </div>
-<div class="form-group">
-<label class="form-label">Harga Jual</label>
-<input type="number" class="form-input" id="menuHargaJual" placeholder="Contoh: 15000" inputmode="numeric">
-</div>
-</div>
-<div class="form-group">
-<label class="form-label">Harga Ojol</label>
-<div class="form-helper">Opsional, kosongkan jika sama dengan harga jual</div>
-<input type="number" class="form-input" id="menuHargaOjol" placeholder="Contoh: 18000" inputmode="numeric">
-</div>
-<div class="form-group">
-<label class="form-label">Topping</label>
-<div class="form-helper">Satu per baris, format: <code>Nama Topping|Harga</code></div>
-<textarea class="form-input" id="menuToppingList" rows="3" placeholder="Contoh:&#10;Extra Gula|1000&#10;Lemon|2000&#10;Boba|3000"></textarea>
+<div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:6px 0">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <label class="form-label" style="margin:0">🍥 Topping</label>
+    <label class="toggle-switch" style="margin:0">
+      <input type="checkbox" id="menuToppingToggle">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <div id="menuToppingWrap" style="display:none;margin-top:10px">
+    <div class="form-helper" style="margin:0 0 8px">Satu per baris, format: <code>Nama Topping|Harga</code></div>
+    <textarea class="form-input" id="menuToppingList" rows="3" placeholder="Contoh:&#10;Extra Gula|1000&#10;Lemon|2000&#10;Boba|3000"></textarea>
+  </div>
 </div>
 <div class="btn-row">
 <button class="btn btn-secondary" data-action="close-menu-modal">Batal</button>

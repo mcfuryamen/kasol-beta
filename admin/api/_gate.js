@@ -42,7 +42,8 @@ export function checkAdminGate(req) {
   if (typeof sessionKey === 'string' && sessionKey.length > 0) {
     const v = validateSessionToken(ADMIN_KEY, sessionKey);
     if (v.ok) return { ok: true };
-    if (v.error === 'token_expired') return { ok: false, code: 401, error: 'token_expired' };
+    if (v.error === 'token_expired') return { ok: false, code: 401, error: 'token_expired', refresh: true };
+    if (v.error === 'unauthorized') return { ok: false, code: 401, error: 'token_unauthorized', refresh: true };
     return v;
   }
 
