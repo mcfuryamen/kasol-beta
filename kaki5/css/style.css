@@ -77,6 +77,9 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .btn-row{display:flex;gap:8px}
 .btn-row .btn{flex:1}
 
+/* Aksi (Batal/Simpan dst) tetap terlihat saat konten modal discroll -> sticky di bawah modal */
+.modal .btn-row{position:sticky;bottom:0;z-index:40;background:var(--card);margin-top:20px;padding:14px 0 4px;border-top:1px solid var(--border)}
+
 /* menuSelectorModal: Batal kecil (auto), Tambah ke Keranjang full-width */
 #menuSelectorModal .btn-row .btn:first-child{flex:0;width:auto;min-width:80px}
 
@@ -679,12 +682,38 @@ body.modal-open .main-content{overflow:hidden}
 .kdivider{border-top:2px solid var(--border);margin-top:12px;padding-top:12px}
 .kgrid-2col-gap12{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;margin-bottom:12px}
 .kgrid-2col-gap8{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-/* Grid Kategori+Suplayer: di HP stack vertikal biar dropdown muat */
-.kgrid-konsinyasi{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-@media (max-width:480px){.kgrid-konsinyasi{grid-template-columns:1fr;gap:10px}}
-/* Select di form Konsinyasi: padding cukup biar text/arrow gak ke-crop */
-.kgrid-konsinyasi select.form-input{padding:10px 32px 10px 12px;min-height:44px;font-size:15px}
-.kgrid-konsinyasi .form-input{width:auto}
+/* Grid Kategori+Suplayer: selalu 2 kolom sejajar, kolom melebar penuh mengisi area */
+.kgrid-konsinyasi{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+/* Select di form Kategori+Suplayer: isi penuh kolom */
+.kgrid-konsinyasi select.form-input{width:100%;padding:10px 32px 10px 12px;min-height:44px;font-size:15px}
+/* Trigger accordion & kotak: melebar penuh mengisi kolomnya */
+.kgrid-konsinyasi .acc{width:100%}
+.kgrid-konsinyasi .acc-trigger{width:100%}
+/* [[ FORM MENU ]] Accordion Kategori & Suplayer (melebar penuh di form-group)
+   Select tersembunyi tetap dipakai untuk logika simpan; accordion hanya UI. */
+.acc{width:100%}
+.acc-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;width:100%;text-align:left;min-height:44px;font-size:15px}
+.acc-trigger-value{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-caret{flex-shrink:0;font-size:12px;color:var(--text2);transition:transform .2s ease;pointer-events:none}
+.acc.open .acc-caret{transform:rotate(180deg)}
+.acc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .22s ease;width:100%}
+.acc-inner{min-height:0;overflow:hidden;width:100%}
+/* Kontainer opsi terpisah dari tombol: saat akordeon terbuka, panel melebar penuh
+   area modal (mengolopas penuh, bergaya dropdown) tapi tombol tetap di kolomnya. */
+#menuModal .modal{position:relative}
+.acc.open .acc-panel{grid-template-rows:1fr;position:absolute;top:auto;left:0;right:0;width:auto;z-index:30;
+  background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);
+  padding:14px 16px}
+.acc.open .acc-inner{width:100%}
+.acc-options{display:flex;flex-wrap:wrap;flex-direction:row;gap:8px;padding:10px 0 2px}
+.acc-opt{width:auto;text-align:left;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:14px;cursor:pointer}
+.acc-opt:hover{background:var(--green-bg)}
+.acc-opt.selected{background:var(--green-bg);border-color:var(--primary);color:var(--primary);font-weight:600}
+.acc-empty{font-size:13px;color:var(--text2);padding:6px 0}
+.acc-add{width:auto;margin-top:0;padding:10px 14px;border-radius:8px;border:1px dashed var(--primary);background:var(--green-bg);color:var(--primary);font-size:14px;font-weight:600;cursor:pointer;text-align:center;align-self:center}
+.acc-add:hover{background:#e6f7ee}
+/* Panel accordion menutup penuh lebar form-group */
+.kgrid-konsinyasi .form-group{min-width:0}
 .kkembalian-box{background:var(--green-bg);border-radius:12px;padding:14px 16px;text-align:center;display:flex;align-items:center;justify-content:center}
 .kclose-btn{padding:8px;width:40px;height:40px;border-radius:8px;flex-shrink:0}
 .klh16{line-height:1.6}.klh15{line-height:1.5}

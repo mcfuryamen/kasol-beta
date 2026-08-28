@@ -158,18 +158,19 @@ export async function supabaseFetch(path, { method = 'GET', data, headers = {} }
 
     const contentType = r.headers.get('content-type') || '';
 
-    // Token expired → refresh dan retry
+        // Token invalid (expired/unauthorized) → refresh dan retry
     if (r.status === 401 && contentType.includes('application/json')) {
       let body;
       try { body = await r.json(); } catch { body = {}; }
-      if (body?.refresh || body?.error === 'token_expired') {
+          if (body?.refresh || body?.error === 'token_expired' || body?.error === 'token_unauthorized') {
         clearStoredToken();
         await refreshSessionToken(true);
-        hdrs['x-session-key'] = currentToken;
-        retries++;
-        continue;
-      }
-    }
+            const newHeaders = await authHeaders();
+            Object.assign(hdrs, newHeaders);
+            retries++;
+            continue;
+          }
+        }
 
     if (contentType.includes('application/json')) {
       let json = null;
@@ -196,10 +197,11 @@ export async function supabaseStorageSign(bucket, objectPath) {
 
     if (r.status === 401) {
       const body = await r.json().catch(() => ({}));
-      if (body?.refresh || body?.error === 'token_expired') {
+          if (body?.refresh || body?.error === 'token_expired' || body?.error === 'token_unauthorized') {
         clearStoredToken();
         await refreshSessionToken(true);
-        hdrs['x-session-key'] = currentToken;
+        const newHeaders = await authHeaders();
+        Object.assign(hdrs, newHeaders);
         retries++;
         continue;
       }
@@ -239,10 +241,11 @@ export async function supabaseStorageUpload(bucket, file) {
 
     if (r.status === 401) {
       const body = await r.json().catch(() => ({}));
-      if (body?.refresh || body?.error === 'token_expired') {
+          if (body?.refresh || body?.error === 'token_expired' || body?.error === 'token_unauthorized') {
         clearStoredToken();
         await refreshSessionToken(true);
-        hdrs['x-session-key'] = currentToken;
+        const newHeaders = await authHeaders();
+        Object.assign(hdrs, newHeaders);
         retries++;
         continue;
       }
@@ -277,10 +280,11 @@ export async function licenseApi(action, payload) {
 
     if (r.status === 401) {
       const body = await r.json().catch(() => ({}));
-      if (body?.refresh || body?.error === 'token_expired') {
+          if (body?.refresh || body?.error === 'token_expired' || body?.error === 'token_unauthorized') {
         clearStoredToken();
         await refreshSessionToken(true);
-        hdrs['x-session-key'] = currentToken;
+        const newHeaders = await authHeaders();
+        Object.assign(hdrs, newHeaders);
         retries++;
         continue;
       }

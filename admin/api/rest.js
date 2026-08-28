@@ -39,9 +39,9 @@ export default async function handler(req, res) {
   // Kalau ADMIN_API_KEY belum di-set → 503 (fail-closed).
   const gate = checkAdminGate(req);
   if (!gate.ok) {
-    // Khusus token_expired: minta browser refresh token dan retry
-    if (gate.error === 'token_expired') {
-      return res.status(401).json({ error: 'token_expired', refresh: true });
+      // Token invalid (expired/unauthorized) → minta browser refresh token & retry, yg mana pun, pakai flag refresh
+      if (gate.error === 'token_expired' || gate.error === 'token_unauthorized') {
+        return res.status(401).json({ error: gate.error, refresh: true });
     }
     return res.status(gate.code).json({ error: gate.error });
   }

@@ -48,11 +48,12 @@ export default async function handler(req, res) {
   // Gate: x-session-key (di-mint browser via GET /api/token) atau x-admin-key (legacy).
   const gate = checkAdminGate(req);
   if (!gate.ok) {
-    if (gate.error === 'token_expired') {
-      return res.status(401).json({ error: 'token_expired', refresh: true });
+      // Token invalid (expired/unauthorized) → minta browser refresh token & retry via flag refresh
+      if (gate.error === 'token_expired' || gate.error === 'token_unauthorized') {
+        return res.status(401).json({ error: gate.error, refresh: true });
+      }
+      return res.status(gate.code).json({ error: gate.error });
     }
-    return res.status(gate.code).json({ error: gate.error });
-  }
 
   let body;
   try {
