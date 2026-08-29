@@ -32,7 +32,7 @@ create index if not exists clients_status_idx on public.clients (status);
 -- 2) BACKFILL : gabungkan data `leads` → `clients` (merge by unit_id)
 --    Jika baris clients belum ada utk unit_id tsb, INSERT baru dari lead.
 -- ----------------------------------------------------------------------------
-insert into public.clients (unit_id, app_type, device_code, nama_warung, no_whatsapp, alamat_detail, email, status, source, notes, user_id, created_at, updated_at, lead_source)
+insert into public.clients (unit_id, app_type, device_code, nama_usaha, no_whatsapp, alamat_detail, email, status, source, notes, user_id, created_at, updated_at, lead_source)
 select l.unit_id,
        l.app_type,
        coalesce(NULLIF(l.unit_id, ''), 'XXXX-XXXX'),

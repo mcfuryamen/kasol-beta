@@ -2,7 +2,7 @@
 // Pure functions only — NO DOM access, NO window references.
 // Handles validation, data transformation, and raw DB save logic.
 
-import { getSetting, setSetting } from './db.js';
+import { getSetting, setSetting, DB } from './db.js';
 import { validatePhone } from './helpers.js';
 
 // State pilihan wilayah Alamat
@@ -72,12 +72,23 @@ export async function saveAlamatLogic(data) {
   await setSetting('desa', data.desa);
 }
 
-export async function saveNamaWarungLogic(data) {
-  await setSetting('namaWarung', data.nama.trim());
+export async function saveNamaUsahaLogic(data) {
+  await setSetting('namaUsaha', data.nama.trim());
+  // Bereskan kunci lama agar tidak ada duplikasi data.
+  try { await DB.settings.delete('namaWarung'); } catch (_) { /* abaikan */ }
 }
 
 export async function loadSettingsData() {
-  const nama = await getSetting('namaWarung', 'Warung Saya');
+  let nama = await getSetting('namaUsaha', null);
+  // Migrasi kompatibel: perangkat lama masih menyimpan 'namaWarung'.
+  if (nama == null) {
+    nama = await getSetting('namaWarung', 'Warung Saya');
+    if (nama && nama !== 'Warung Saya') {
+      await setSetting('namaUsaha', nama);
+        try { await DB.settings.delete('namaWarung'); } catch (_) { /* abaikan */ }
+    }
+  }
+  if (nama == null || nama === '') nama = 'Warung Saya';
   const owner = await getSetting('namaPemilik', '—');
   const wa = await getSetting('noWhatsapp', '—');
   const sync = await getSetting('sync', null);

@@ -160,7 +160,7 @@ async function updateClientStatus(id, status) {
 async function revokeClientLicense(id) {
   const c = clients.find((x) => x.id === id);
   if (!c) return;
-  const danger = confirm('Revoke lisensi untuk "' + (c.nama_warung || c.device_code || 'klien ini') + '"?\n\nLisensi akan dicabut, perangkat akan terkunci, dan klien tidak bisa memakai aplikasi sampai dipulihkan. Lanjutkan?');
+  const danger = confirm('Revoke lisensi untuk "' + (c.nama_usaha || c.nama_warung || c.device_code || 'klien ini') + '"?\n\nLisensi akan dicabut, perangkat akan terkunci, dan klien tidak bisa memakai aplikasi sampai dipulihkan. Lanjutkan?');
   if (!danger) return;
 
   // optimistic update supaya UI langsung merespon
@@ -307,7 +307,7 @@ async function reassignClientUnit(id) {
   const curUnit = row.unit_id || '';
   const curDevice = row.device_code || '';
   const newUnit = prompt(
-    'Reassign unit untuk "' + (row.nama_warung || curDevice || 'klien ini') + '".\n\n'
+    'Reassign unit untuk "' + (row.nama_usaha || row.nama_warung || curDevice || 'klien ini') + '".\n\n'
     + 'Aturan (Opsi 3): 1 serial → 1 unit_id → 1 profil.\n'
     + 'Mengubah unit_id di sini TIDAK mengubah serial/js aktivasi.\n\n'
     + 'Unit ID saat ini  : ' + curUnit + '\n'
@@ -323,7 +323,7 @@ async function reassignClientUnit(id) {
   // Konflik: unit_id sudah terpakai klien lain yang masih AKTIF (lisensi berjalan)
   const conflict = clients.find((x) => x.id !== id && x.unit_id === unit && x.status === 'aktif');
   if (conflict) {
-    showToast('Unit ID ' + unit + ' sudah dipakai klien aktif: ' + (conflict.nama_warung || conflict.device_code || 'lainnya'), 3500, 'error');
+    showToast('Unit ID ' + unit + ' sudah dipakai klien aktif: ' + (conflict.nama_usaha || conflict.nama_warung || conflict.device_code || 'lainnya'), 3500, 'error');
     return;
   }
 
@@ -381,7 +381,7 @@ function renderKanban() {
   if (!host) return;
   host.hidden = false; // pastikan board tampil (bisa ke-set true oleh flow openClient)
   const q = (document.getElementById('clientsSearch')?.value || '').toLowerCase();
-  const qNorm = (c) => [c.nama_warung, c.nama_pemilik, c.device_code, c.no_whatsapp, c.email, c.kabkota, c.provinsi, c.unit_id, c.serial]
+  const qNorm = (c) => [c.nama_usaha, c.nama_warung, c.nama_pemilik, c.device_code, c.no_whatsapp, c.email, c.kabkota, c.provinsi, c.unit_id, c.serial]
     .some((v) => (v || '').toLowerCase().includes(q));
   const appF = document.getElementById('clientsAppFilter')?.value || '';
   const rows = clients.filter((c) => {
@@ -517,7 +517,7 @@ function kanbanCardHtml(c) {
       <div class="kb-head" role="button" tabindex="0" aria-expanded="false" onclick="toggleCardDetail(this)">
         <span class="client-avatar">${m.icon}</span>
         <div class="kb-title">
-          <strong class="kb-card-name">${esc(c.nama_warung || '—')}</strong>
+          <strong class="kb-card-name">${esc(c.nama_usaha || c.nama_warung || '—')}</strong>
           <span class="kb-card-sub">${esc(m.label)}${m.kodeProduk ? ' · ' + esc(m.kodeProduk) : ''}${c.device_code ? ' · ' + esc(c.device_code) : ''}</span>
           ${statusCtxHtml(c, esc)}
         </div>
@@ -541,7 +541,7 @@ function kanbanCardHtml(c) {
                 <div class="kb-info-r"><span class="kb-info-l">Aplikasi</span><span class="kb-info-v">${esc(m.label)}${m.kodeProduk ? ' · ' + esc(m.kodeProduk) : ''}</span></div>
                 <div class="kb-info-r"><span class="kb-info-l">Device Code</span><span class="kb-info-v mono">${esc(c.device_code || '—')}</span></div>
                 ${c.device_type || c.browser ? `<div class="kb-info-r"><span class="kb-info-l">Perangkat</span><span class="kb-info-v">${deviceInfoHtml(c, esc)}</span></div>` : ''}
-                <div class="kb-info-r"><span class="kb-info-l">Nama Usaha</span><span class="kb-info-v">${esc(c.nama_warung || '—')}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Nama Usaha</span><span class="kb-info-v">${esc(c.nama_usaha || c.nama_warung || '—')}</span></div>
                 ${harga ? `<div class="kb-info-r"><span class="kb-info-l">Harga Deal</span><span class="kb-info-v">Rp ${harga.toLocaleString('id-ID')}</span></div>` : ''}
                 <div class="kb-info-r"><span class="kb-info-l">Dilihat</span><span class="kb-info-v">${formatRelativeTime(c.last_seen)}</span></div>
               </div>
@@ -648,7 +648,7 @@ function renderAnalytics() {
   const rows = clients.filter((c) => {
     if (appF && c.app_type !== appF) return false;
     if (!q) return true;
-    return [c.nama_warung, c.nama_pemilik, c.device_code, c.no_whatsapp, c.kabkota, c.provinsi]
+    return [c.nama_usaha, c.nama_warung, c.nama_pemilik, c.device_code, c.no_whatsapp, c.kabkota, c.provinsi]
       .some((v) => (v || '').toLowerCase().includes(q));
   });
 

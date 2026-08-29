@@ -12,7 +12,7 @@ export {
   saveOwnerLogic,
   saveWaLogic,
   saveAlamatLogic,
-  saveNamaWarungLogic,
+  saveNamaUsahaLogic,
   loadSettingsData,
   checkProfileNotificationData,
   region
@@ -33,7 +33,7 @@ export {
   saveAlamat,
   openNameModal,
   closeNameModal,
-  saveNamaWarung
+  saveNamaUsaha
 } from './settings.ui.js';
 
 // Sync module

@@ -15,7 +15,7 @@ create table if not exists public.clients (
   app_type      text not null,              -- kaki5 | rosok | gerobak | retail | ...
   device_code   text not null,              -- contoh: XXXX-XXXX
   install_id    text,
-  nama_warung   text,
+  nama_usaha    text,
   nama_pemilik  text,
   no_whatsapp   text,
   -- Wilayah Indonesia (id kanonik + nama, untuk agregasi analitik yang akurat)

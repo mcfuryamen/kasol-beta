@@ -189,7 +189,7 @@ function renderRecentActivity() {
         <div class="row-item" onclick="openClientAccordion('${escapeHtml(c.id)}')" data-open-client="${escapeHtml(c.id)}" role="button" tabindex="0">
           <div class="row-icon">${statusIcon(c.status)}</div>
           <div class="row-body">
-            <div class="row-title">${escapeHtml(c.nama_warung || '—')}</div>
+            <div class="row-title">${escapeHtml(c.nama_usaha || c.nama_warung || '—')}</div>
             <div class="row-sub">${escapeHtml(c.app_type || '—')} • ${formatDate(c.last_seen || c.created_at)}</div>
           </div>
           <span class="badge ${stageMeta(c.status).tone}">${statusLabel(c.status)}</span>

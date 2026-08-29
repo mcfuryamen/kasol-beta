@@ -81,10 +81,10 @@ export async function runSyncDiagnostics() {
 
     // Baris clients sekarang
     try {
-      const { data, error } = await sb.from('clients').select('unit_id, nama_warung, last_seen').eq('unit_id', unitId).maybeSingle();
+      const { data, error } = await sb.from('clients').select('unit_id, nama_usaha, last_seen').eq('unit_id', unitId).maybeSingle();
       if (error) steps.push(step('8. Baris profil di server (sebelum sync)', FAIL, 'Select error: ' + error.message));
       else steps.push(step('8. Baris profil di server (sebelum sync)', data ? OK : WARN,
-        data ? `Ada: ${data.nama_warung || '(tanpa nama)'} · last_seen ${data.last_seen || '—'}` : 'Belum ada baris untuk unit ini.'));
+        data ? `Ada: ${data.nama_usaha || '(tanpa nama)'} · last_seen ${data.last_seen || '—'}` : 'Belum ada baris untuk unit ini.'));
     } catch (e) {
       steps.push(step('8. Baris profil di server (sebelum sync)', FAIL, 'Select gagal: ' + (e?.message || e)));
     }

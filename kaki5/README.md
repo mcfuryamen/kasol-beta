@@ -192,7 +192,7 @@ Fitur lain:
 - **🎫 Kelola Lisensi** — tombol akses license sheet (status, extend, activate).
   - **Opsi 3 (1 serial = 1 unit_id = 1 profil)**: saat serial dimasukkan di
     perangkat baru, app memanggil RPC Supabase `device_assign`. Profil lokal
-    (nama warung / no WA) **cocok** dengan profil cloud → `unit_id` perangkat
+    (nama usaha / no WA) **cocok** dengan profil cloud → `unit_id` perangkat
     di-reassign (perangkat jadi pemilik); **tidak cocok** → lisensi ditolak +
     **lock overlay "hubungi admin"**. Serial tidak dikenal = `serial-not-found`.
     Modul: `js/license.sync.js` (`verifyAndAssignSerial`), backend
@@ -227,7 +227,7 @@ Fitur lain:
 
 ## 🔒 Keamanan (XSS Sanitization)
 
-Karena banyak konten di-render dari input pengguna (nama menu, keterangan pengeluaran, nama warung), semua nilai dinamis **di-sanitasi** sebelum ditampilkan. Ini mencegah serangan **XSS (Cross-Site Scripting)**.
+Karena banyak konten di-render dari input pengguna (nama menu, keterangan pengeluaran, nama usaha), semua nilai dinamis **di-sanitasi** sebelum ditampilkan. Ini mencegah serangan **XSS (Cross-Site Scripting)**.
 
 - `escapeHtml(s)` — escape `<`, `>`, `&`, `"`, `'`.
 - `buildSafeHtml(strings, ...values)` — template tag; nilai otomatis di-escape, HTML mentah hanya lewat `{__raw:true}` untuk literal yang dipercaya (hard-coded).

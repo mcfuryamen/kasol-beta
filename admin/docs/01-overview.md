@@ -87,7 +87,7 @@ Menampilkan ringkasan data bisnis (6 KPI gradient cards):
 ### 2. Klien (CRM) Management
 
 Tabel interaktif untuk mengelola profil outlet dari aplikasi klien (onboarding + update profil):
-- **Kolom**: Nama Warung, Device Code, Aplikasi, Nama Pemilik, No. WhatsApp, Wilayah, Status Aktif
+- **Kolom**: Nama Usaha, Device Code, Aplikasi, Nama Pemilik, No. WhatsApp, Wilayah, Status Aktif
 - **Toolbar**: Search real-time (nama/device/WA/wilayah) + Filter aplikasi dropdown
 - **Actions**: Generate lisensi per klien (device code auto-fill), Edit profil, Hapus (konfirmasi)
 - **Stats**: Total Outlet, Aktif 30 hari, Per Aplikasi, Sebaran Wilayah

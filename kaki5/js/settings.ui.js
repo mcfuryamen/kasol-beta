@@ -10,7 +10,7 @@ import {
   saveOwnerLogic,
   saveWaLogic,
   saveAlamatLogic,
-  saveNamaWarungLogic,
+  saveNamaUsahaLogic,
   loadSettingsData,
   checkProfileNotificationData
 } from './settings.logic.js';
@@ -202,7 +202,7 @@ export async function saveAlamat() {
 }
 
 export async function openNameModal() {
-  document.getElementById('inputNamaWarung').value = document.getElementById('settingName')?.textContent || '';
+  document.getElementById('inputNamaUsaha').value = document.getElementById('settingName')?.textContent || '';
   await openModal('nameModal');
 }
 
@@ -210,23 +210,23 @@ export function closeNameModal() {
   closeModal('nameModal');
 }
 
-export async function saveNamaWarung() {
-  const nama = document.getElementById('inputNamaWarung').value.trim();
+export async function saveNamaUsaha() {
+  const nama = document.getElementById('inputNamaUsaha').value.trim();
   if (!nama) { showToast('Nama tidak boleh kosong!', 'error'); return; }
-  await saveNamaWarungLogic({ nama });
-  const el = document.getElementById('namaWarung');
+  await saveNamaUsahaLogic({ nama });
+  const el = document.getElementById('namaUsaha');
   if (el) el.textContent = nama;
   document.getElementById('settingName').textContent = nama;
   closeNameModal();
   try {
     const syncResult = await ensureSynced({ force: true });
     if (syncResult?.ok) {
-      showToast('✅ Nama warung disimpan & tersinkron!');
+      showToast('✅ Nama usaha disimpan & tersinkron!');
     } else {
-      showToast('✅ Nama warung disimpan lokal — gagal sinkron.', 'warning', { duration: 6000 });
+      showToast('✅ Nama usaha disimpan lokal — gagal sinkron.', 'warning', { duration: 6000 });
     }
   } catch (_) {
-    showToast('✅ Nama warung disimpan lokal — gagal sinkron.', 'warning', { duration: 6000 });
+    showToast('✅ Nama usaha disimpan lokal — gagal sinkron.', 'warning', { duration: 6000 });
   }
   checkProfileNotification();
 }

@@ -41,7 +41,7 @@ drop policy if exists "anon_insert_leads" on public.leads;
 -- 4) Backfill: salin profil yang sudah tersinkron di `clients` ke `leads`
 --    (sekali jalan, aman di-idempotent-kan via unique unit_id).
 insert into public.leads (unit_id, name, wa, address, app_type, source, status)
-select c.unit_id, c.nama_warung, c.no_whatsapp, c.alamat_detail, c.app_type,
+select c.unit_id, c.nama_usaha, c.no_whatsapp, c.alamat_detail, c.app_type,
        'app-' || c.app_type, 'baru'
 from public.clients c
 on conflict (unit_id) do nothing;

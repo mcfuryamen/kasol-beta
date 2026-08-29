@@ -31,7 +31,7 @@ async function readLicenseRow(sb, unitId) {
   try {
     const { data, error } = await sb
       .from('clients')
-      .select('license_status, license_serial, license_expires_at, first_seen, nama_warung, nama_pemilik, no_whatsapp, provinsi_id, provinsi, kabkota_id, kabkota, kecamatan_id, kecamatan, desa_id, desa, alamat_detail')
+      .select('license_status, license_serial, license_expires_at, first_seen, nama_usaha, nama_pemilik, no_whatsapp, provinsi_id, provinsi, kabkota_id, kabkota, kecamatan_id, kecamatan, desa_id, desa, alamat_detail')
       .eq('unit_id', unitId)
       .eq('app_type', APP_TYPE)
       .maybeSingle();
@@ -246,16 +246,18 @@ async function recheckRowWithSession(sb) {
 
 /**
  * Baca profil klien lokal (sumber UI settings) untuk dicocokkan ke cloud.
- * @returns {{nama_warung:string, nama_pemilik:string, no_whatsapp:string}}
+ * @returns {{nama_usaha:string, nama_pemilik:string, no_whatsapp:string}}
  */
 async function readLocalProfile() {
   const { getSetting } = await import('./db.js');
-  const [nama_warung, nama_pemilik, no_whatsapp] = await Promise.all([
-    getSetting('namaWarung', ''),
+  let nama_usaha = await getSetting('namaUsaha', '');
+  // Perangkat lama masih memakai kunci 'namaWarung'.
+  if (!nama_usaha) nama_usaha = await getSetting('namaWarung', '');
+  const [nama_pemilik, no_whatsapp] = await Promise.all([
     getSetting('namaPemilik', ''),
     getSetting('noWhatsapp', '')
   ]);
-  return { nama_warung, nama_pemilik, no_whatsapp };
+  return { nama_usaha, nama_pemilik, no_whatsapp };
 }
 
 /**
@@ -263,7 +265,7 @@ async function readLocalProfile() {
  *
  * Ketika user memasukkan sebuah serial di perangkat tertentu, alur ini
  * memintakan ke RPC `device_assign`:
- *   - profil lokal COCOK dengan cloud (nama warung / no WA) → unit_id
+ *   - profil lokal COCOK dengan cloud (nama usaha / no WA) → unit_id
  *     perangkat ini di-reassign ke baris milik serial tsb (perangkat jadi
  *     pemilik), lalu serial dipakai.
  *   - profil TIDAK cocok  → RPC menolak ('profile-mismatch'), aplikasi tidak

@@ -77,7 +77,7 @@ masuk (source `app-kaki5` dll) hingga `aktif`/`batal`, dengan 2 mode tampilan: *
 
 | Kolom | Isi | Aksi |
 |-------|-----|------|
-| Warung / Pemilik | `nama_warung`, `nama_pemilik` | — |
+| Warung / Pemilik | `nama_usaha`, `nama_pemilik` | — |
 | WhatsApp | `no_whatsapp` | Klik buka `wa.me` link |
 | Aplikasi | `app_type` | — |
 | Wilayah | `kabkota`, `provinsi` | — |

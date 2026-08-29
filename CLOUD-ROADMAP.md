@@ -72,7 +72,7 @@ dan memisahkan "data pelanggan & lisensi" dari "data penjualan".
 > ⚠️ **Catatan status:** `admin/` kini **sudah terhubung Supabase** (katalog CRUD +
 > tab Klien/CRM). Validasi lisensi **inti** (generate + verify HMAC) tetap offline
 > tetapi **penegakan kepemilikan serial kini server-side**: RPC `device_assign`
-> (Supabase) memverifikasi kecocokan profil (nama warung / no WA) saat serial
+> (Supabase) memverifikasi kecocokan profil (nama usaha / no WA) saat serial
 > dipakai di perangkat baru dengan model **1 serial = 1 unit_id = 1 profil**
 > (Opsi 3, 2026-08-27). Profil cocok → `unit_id` di-reassign; tidak cocok →
 > lisensi ditolak + lock overlay "hubungi admin". Rujukan: `kaki5/js/license.sync.js`

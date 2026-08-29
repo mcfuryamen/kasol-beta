@@ -105,7 +105,7 @@ Render dipanggil dari `beranda.js`; jika tabel kosong, dipakai 3 banner demo (`d
 Kunci disimpan di **`settings`** tabel (`{ key, value }`, diakses via `getSetting`/`setSetting` di `db.js`):
 ```js
 {
-  key: 'namaWarung',      value: 'Warung Maju'
+  key: 'namaUsaha',      value: 'Warung Maju'
   key: 'namaPemilik',     value: 'Ibu Siti'       // 🆕 Wajib saat onboarding
   key: 'noWhatsapp',      value: '081234567890'   // 🆕 Wajib saat onboarding
   key: 'alamat',          value: 'Jl. Merdeka 1'  // 🆕 Wajib saat onboarding (form pengaturan)
@@ -320,7 +320,7 @@ python -m http.server 8123 --bind 127.0.0.1   # → http://127.0.0.1:8123/
 ```
 
 Checksheet smoke test browser:
-1. Onboarding tampil & nama warung tersimpan.
+1. Onboarding tampil & nama usaha tersimpan.
 2. `0` error di console; semua modul + asset ter-load 200.
 3. Cart persist: tambah item → `localStorage` → reload → cart muncul lagi.
 4. Simpan penjualan → cart & storage bersih, laporan ter-update.
@@ -434,7 +434,7 @@ Halaman pengaturan menampilkan kartu **"📋 Info Usaha"** dengan 4 editable fie
 
 | Field | Setting Key | Modal | Validasi | Tujuan |
 |---|---|---|---|---|
-| Nama Usaha | `namaWarung` | nameModal | Not empty | Display di beranda header |
+| Nama Usaha | `namaUsaha` | nameModal | Not empty | Display di beranda header |
 | Nama Pemilik | `namaPemilik` | ownerModal | Not empty | Push ke Supabase CRM |
 | No. WhatsApp | `noWhatsapp` | waModal | Not empty | Contact number |
 | Alamat | `alamat` + wilayah 4-level | alamatModal | Not empty | Lokasi unit (cloud sync: Prov→Kab→Kec→Desa) |
@@ -498,7 +498,7 @@ export function isSyncConfigured()
   app_type:     'kaki5',
   device_code:  await getDeviceCode(),    // XXXX-XXXX
   install_id:   await getInstallId(),
-  nama_warung, nama_pemilik, no_whatsapp,
+  nama_usaha, nama_pemilik, no_whatsapp,
   provinsi_id, provinsi,
   kabkota_id,  kabkota,
   kecamatan_id, kecamatan,
@@ -512,7 +512,7 @@ export function isSyncConfigured()
 1. `clients` (wajib) — profil identitas outlet
 2. `leads` (opsional, graceful catch) — data CRM marketing; gagal tidak memutus sync clients
 
-> **Bug fix 2026-08-10**: Sebelumnya `ensureSynced()` skip bila `state.status === 'synced'` (tanpa force). Sekarang semua save memanggil `{ force: true }` agar perubahan alamat/pemilik/WA/nama warung selalu ter-sync.
+> **Bug fix 2026-08-10**: Sebelumnya `ensureSynced()` skip bila `state.status === 'synced'` (tanpa force). Sekarang semua save memanggil `{ force: true }` agar perubahan alamat/pemilik/WA/nama usaha selalu ter-sync.
 
 ---
 

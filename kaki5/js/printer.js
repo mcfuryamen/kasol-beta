@@ -342,7 +342,8 @@ export async function printNota() {
   const sale = await DB.penjualan.get(id);
   if (!sale) { showToast('Transaksi tidak ditemukan', 'error'); return; }
 
-  const warungName = await getSetting('namaWarung', 'Warung Saya');
+  let warungName = await getSetting('namaUsaha', '');
+  if (!warungName) warungName = await getSetting('namaWarung', 'Warung Saya');
   const alamatUsaha = await getSetting('alamat', '');
 
   if (btCharacteristic) {
@@ -361,7 +362,8 @@ export async function printLastNota() {
   const sale = await DB.penjualan.get(id);
   if (!sale) { showToast('Transaksi tidak ditemukan', 'error'); return; }
 
-  const warungName = await getSetting('namaWarung', 'Warung Saya');
+  let warungName = await getSetting('namaUsaha', '');
+  if (!warungName) warungName = await getSetting('namaWarung', 'Warung Saya');
   const alamatUsaha = await getSetting('alamat', '');
 
   if (btCharacteristic) {
@@ -446,7 +448,7 @@ export async function testPrint() {
     return;
   }
 
-  // Header tes langsung via parameter nama warung; footer tes diganti teks singkat
+  // Header tes langsung via parameter nama usaha; footer tes diganti teks singkat
   const receipt = buildReceiptText(
     {
       waktu: Date.now(),

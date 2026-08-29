@@ -312,7 +312,7 @@ narasi ramah, fungsi tersembunyi di balik tombol akses** — targetnya pengguna 
 | 9 | **PWA Install Detection** | Deteksi otomatis kalau PWA sudah terinstal (standalone display-mode, iOS standalone, SW controlling, localStorage flag). Tidak tampilkan banner install jika sudah terpasang. Persist flag ke localStorage, listen `display-mode` change. Update versi: **overlay force-update full-screen** (`#updateOverlay`) dengan catatan rilis dari `version.json.notes` + tombol OKE → `performForceUpdate()` (SW update → reload → profil tersinkron). Referensi: `kaki5/js/pwa.js`, `kaki5/js/update.js`. |
 
 **Pola kode wajib (dari kaki5):**
-- `settings.js` → `saveOwner/saveWa/saveAlamat/saveNamaWarung` semua akhiri dengan `ensureSynced(); checkProfileNotification();`.
+- `settings.js` → `saveOwner/saveWa/saveAlamat/saveNamaUsaha` semua akhiri dengan `ensureSynced(); checkProfileNotification();`.
 - `sync.js` → `ensureSynced({force,silent})`; `isSyncConfigured()`.
 - `region.js` → `setupRegionPicker({provSel,kabSel,kecSel,desaSel,state})`, state membaca `.provinsi_id/.provinsi/.../.desa_id/.desa`.
 - `index.html` → banner `#profileBanner` + kelas `.prof-banner-*`; halaman Bantuan `#bantuanContent`.
@@ -369,7 +369,7 @@ arsitektur: [`CLOUD-ROADMAP.md`](./CLOUD-ROADMAP.md) (Lapisan A).
 
 ### Tabel `clients` (1 baris per outlet)
 Kunci natural = `unit_id`. Kolom: `unit_id, app_type, device_code, install_id,`
-`nama_warung, nama_pemilik, no_whatsapp,`
+`nama_usaha, nama_pemilik, no_whatsapp,`
 `provinsi_id/provinsi, kabkota_id/kabkota, kecamatan_id/kecamatan, desa_id/desa, alamat_detail,`
 `first_seen, last_seen, user_id`.
 

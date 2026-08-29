@@ -1,21 +1,15 @@
 -- ============================================================================
--- KASOL — DEVICE ASSIGN (reassign unit_id saat serial dipakai di perangkat baru)
--- Model kepemilikan: 1 serial = 1 unit_id = 1 profil (Opsi 3, 2026-08-27).
---
--- Menyelesaikan kasus: serial lisensi milik warung A dipasang di perangkat B.
---   * profil perangkat B COCOK dengan profil cloud (nama usaha / no WA)  → unit_id
---     di-reassign ke perangkat B (perangkat itu jadi "pemilik" cloud).
---   * profil TIDAK cocok → TOLAK (tanpa mengubah apa pun). Klien aplikasi
---     menampilkan lock overlay + hubungi admin.
---
--- Catatan penting: perangkat yang mencoba claim SERIAL lama milik profil lain
--- tidak boleh menghapus/mengambil alih baris dengan unit_id/device_code yang
--- cocok. Fungsi ini HANYA menulis bila kecocokan profil terbukti.
---
--- Keamanan: SECURITY DEFINER (bypass RLS). Return jsonb berisi {ok, reason,
--- unit_id, license_status} — tidak membocorkan field sensitif.
+-- KASOL — RENAME "nama warung" → "nama usaha" (lebih generik)
+-- Jalankan SEKALI via Management API / Supabase SQL Editor.
+-- Mengubah:  clients.nama_warung → clients.nama_usaha
+--            device_assign      → baca kolom & p_profile 'nama_usaha'
+-- Semua aplikasi klien sudah menggunakan format baru bersamaan dengan migrasi ini.
 -- ============================================================================
 
+-- 1) Rename kolom pada tabel clients (data lama ikut pindah).
+alter table public.clients rename column nama_warung to nama_usaha;
+
+-- 2) Perbarui fungsi device_assign agar baca kolom & p_profile 'nama_usaha'.
 create or replace function public.device_assign(
   p_serial          text,
   p_profile         jsonb,        -- { nama_usaha?, nama_pemilik?, no_whatsapp? }

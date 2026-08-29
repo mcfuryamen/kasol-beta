@@ -137,9 +137,10 @@ async function reportSyncError(stage, err) {
 }
 
 async function buildPayload(unitId) {
-  const [namaWarung, pemilik, wa, provId, prov, kabId, kab, kecId, kec, desaId, desa, alamat] =
+  const [namaUsaha, pemilik, wa, provId, prov, kabId, kab, kecId, kec, desaId, desa, alamat] =
     await Promise.all([
-      getSetting('namaWarung', ''), getSetting('namaPemilik', ''),
+      getSetting('namaUsaha', '') || getSetting('namaWarung', ''),
+      getSetting('namaPemilik', ''),
       getSetting('noWhatsapp', ''), getSetting('provinsiId', ''),
       getSetting('provinsi', ''),  getSetting('kabkotaId', ''),
       getSetting('kabkota', ''),   getSetting('kecamatanId', ''),
@@ -151,7 +152,7 @@ async function buildPayload(unitId) {
     app_type:     APP_TYPE,
     device_code:  await getDeviceCode(),
     install_id:   await getInstallId(),
-    nama_warung:  namaWarung,
+    nama_usaha:   namaUsaha,
     nama_pemilik: pemilik,
     no_whatsapp:  wa,
     provinsi_id:  provId,  provinsi:  prov,
@@ -229,7 +230,7 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
   }
 
   // jangan push kalau profil belum diisi
-  if (!(await getSetting('namaWarung', ''))) {
+  if (!(await getSetting('namaUsaha', '')) && !(await getSetting('namaWarung', ''))) {
     return { ok: false, reason: 'no-profile', stage: 'profile' };
   }
 
@@ -347,7 +348,7 @@ export async function pullCloudProfileTo(cloudClient) {
   if (!cloudClient || typeof cloudClient !== 'object') return;
   // Mapping kolom clients (snake_case) → key settings (camelCase)
   const mapping = {
-    nama_warung:   'namaWarung',
+    nama_usaha:    'namaUsaha',
     nama_pemilik:  'namaPemilik',
     no_whatsapp:   'noWhatsapp',
     provinsi_id:   'provinsiId',

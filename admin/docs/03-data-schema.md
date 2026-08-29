@@ -61,7 +61,7 @@ Detail struktur data localStorage (tahap awal) dan rencana schema Supabase.
 ```json
 {
   "unit_id": "K5-018T-MCER",
-  "nama_warung": "Bakso Mblenger",
+  "nama_usaha": "Bakso Mblenger",
   "nama_pemilik": "Amin",
   "no_whatsapp": "62852369853",
   "app_type": "kaki5",

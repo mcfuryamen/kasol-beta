@@ -7,8 +7,10 @@ export const loadBeranda = withPageLoading('recentTrx', async function () {
   document.getElementById('greetText').textContent = getGreeting();
   document.getElementById('todayDate').textContent = dayName(todayStr()) + ', ' + formatDate(todayStr());
 
-  const nama = await getSetting('namaWarung', 'Warung Saya');
-  const namaEl = document.getElementById('namaWarung');
+  let nama = await getSetting('namaUsaha', null);
+  if (nama == null) nama = await getSetting('namaWarung', 'Warung Saya');
+  if (nama == null || nama === '') nama = 'Warung Saya';
+  const namaEl = document.getElementById('namaUsaha');
   if (namaEl) namaEl.textContent = nama;
 
   const tgl = todayStr();
