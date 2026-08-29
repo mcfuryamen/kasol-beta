@@ -144,38 +144,51 @@ Migrasi ke cloud dengan RLS (Row Level Security):
 
 ## 🚢 Deploy
 
-### Vercel (Production)
+### Vercel (Production — admin-kasol)
 
-**Strategi:** Manual push ke GitHub, Vercel auto-deploy (no GitHub Actions workflow)
+**Strategi:** Push ke repo `kasol` (GitHub) → Vercel auto-deploy
 
 ```bash
-# 1. Sync produksi ke mirror
-cd /c/Users/Admin/Documents/kasol/admin
-cp -r . /c/Users/Admin/Documents/GitHub/kasol/admin/
+# 1. Edit di folder produksi
+#    C:\Users\Admin\Documents\kasol\admin\
 
-# 2. Commit & push dari monorepo root
-cd /c/Users/Admin/Documents/GitHub/kasol
+# 2. Commit & push
+cd /c/Users/Admin/Documents/kasol
 git add admin/
 git commit -m "admin: <deskripsi perubahan>"
 git push origin main
 
-# 3. Vercel auto-deploy dari GitHub (configured via Vercel dashboard)
+# 3. Vercel auto-deploy (project: kasol, root: admin/)
 ```
 
 **Vercel Project Settings:**
+- **Project:** `kasol` (watching repo `mcfury/kasol`, branch `main`)
 - **Root Directory:** `admin/`
 - **Framework Preset:** Other
 - **Build Command:** *(leave empty)*
 - **Output Directory:** `.`
 - **Install Command:** *(leave empty)*
+- **Domain:** admin-kasol.vercel.app
 
-**File Config:**
-- `vercel.json` — SPA rewrites + caching headers
-- `.vercelignore` — ignore docs/, *.md, node_modules
+### Vercel (Beta — control-beta)
 
-**Domain:** Akan dikonfigurasi sebagai subdomain (e.g., `admin.kasirsolo.com`)
+**Tujuan:** testing admin dashboard dengan data Supabase staging (kasol-beta). Deploy otomatis setiap push ke branch `kasol-beta`.
 
-> **Note:** GitHub Actions workflows sudah dihapus. Deploy dilakukan manual push → Vercel auto-detect changes.
+```bash
+# Deploy otomatis — push ke branch kasol-beta
+git checkout kasol-beta
+# ... edit ...
+git push origin kasol-beta
+# → control-beta.vercel.app auto-deploy
+```
+
+**Vercel Project Settings:**
+- **Project:** `control-beta` (watching repo `mcfury/kasol-beta`, branch `main`)
+- **Root Directory:** `admin/`
+- **Domain:** ctrlbeta.vercel.app
+- **Env:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_API_KEY` (tipe: sensitive)
+
+**Catatan:** Env vars tipe "sensitive" tidak bisa dibaca via Management API (hanya envelope). Untuk patch value, gunakan PATCH `/v13/projects/{id}/env` dengan field `value` + `target` saja (jangan kirim `type`).
 
 ---
 
@@ -245,13 +258,14 @@ export const ADMIN_PASSWORD = 'admin123';  // ← GANTI
 - 4-tier responsive layout
 - DESIGN.md formal spec
 
-### 🔄 Fase 2 — Cloud Integration (In Progress)
-- [ ] Supabase project setup
-- [ ] Migration SQL (schema dari `docs/03-data-schema.md`)
-- [ ] Update `storage.js` ke Supabase client
-- [ ] RLS policies (owner write, team read)
-- [ ] Supabase Auth integration
-- [ ] License server-side validation
+### ✅ Fase 2 — Cloud Integration (Selesai)
+- ✅ Supabase project setup (kasol, region ap-southeast-1)
+- ✅ Schema: `products`, `clients` (pipeline konsolidasi v1.4.0)
+- ✅ `storage.js` → Supabase REST via `/api/rest` (proxy + gate)
+- ✅ RLS policies (service_role untuk admin, anon untuk klien)
+- ✅ License server-side validation (`/api/license` + HMAC)
+- ✅ Katalog `products` — kode_produk, tx_quota, salt
+- ✅ Klien `clients` — pipeline CRM, kuota transaksi, adjust admin
 
 ### 📋 Fase 3 — Dashboard Hub (Planned)
 - [ ] Client-facing dashboard (`hub.kasirsolo.com`)
@@ -290,9 +304,10 @@ Proprietary — PT Mesin Kasir Solo
 
 ## 🔗 Links
 
-- **Live Demo:** TBD (production deployment pending)
+- **Live (Production):** https://admin-kasol.vercel.app
+- **Live (Beta):** https://ctrlbeta.vercel.app
 - **Landing Page:** `../landing/`
-- **Aplikasi Klien:** `../rosok/`, `../gerobak/`, `../kaki5/`, `../retail/`
+- **Aplikasi Klien:** `../kaki5/`
 - **Design System:** [`DESIGN.md`](DESIGN.md)
 - **Cloud Roadmap:** [`../CLOUD-ROADMAP.md`](../CLOUD-ROADMAP.md)
 

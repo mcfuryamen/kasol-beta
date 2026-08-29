@@ -3,6 +3,20 @@
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
 
+## [1.7.0] - 2026-08-29 (Kuota Transaksi + Migrasi Nama Usaha)
+
+### Kuota Transaksi (fitur baru kaki5 v116)
+- **Katalog produk**: field `tx_quota` (integer) — kuota transaksi gratis per bulan untuk tier gratis.
+  - Badge di kartu: "🎁 Kuota gratis: N transaksi/bulan"
+  - Form sheet: input number, step 10, placeholder "mis. 100"
+- **Klien/CRM**: tampilan kuota transaksi per device:
+  - Badge "Kuota: N/M" dengan warna hijau/merah
+  - Tombol adjust: −10, +10, +50 (PATCH `clients.tx_adjust`)
+  - Tombol ↺ Reset Pakai (PATCH `tx_used: 0, tx_month: null`)
+
+### Migrasi Nama Usaha
+- Kolom `nama_warung` di `clients` dimigrasi ke `nama_usaha`.
+
 ## [1.6.2] - (Deploy Preview FIX)
 
 > Menghentikan kegagalan build preview Vercel ketika env `SUPABASE_*` Preview kosong (opini #2 = samakan pola kaki5).

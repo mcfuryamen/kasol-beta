@@ -2,6 +2,18 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-29 (v119 / 1.0.50: UI polish kuota — progress bar hijau, tombol singkat, horizontal)
+- **Progress bar hijau**: progress `linear-gradient(90deg,var(--green),#388e3c)` menggantikan oranye untuk quota bar (`license.ui.js` + inline `animation:none` di kartu kuota agar tidak bertabrakan dengan keyframe lama).
+- **Label tombol pendek**: "💳 Beli Lisensi" (singkat, tanpa keterangan) + "💬 Tanya Admin" disederhanakan — keduanya kini sejajar horisontal di bawah kartu lisensi (`license-actions-row`, flex row `justify-content:center`).
+- **Pindahkan tombol admin**: tombol "💬 Tanya Admin" dikeluarkan dari dalam kartu kuota ke baris terpisah horizontal sejajar tombol beli.
+
+## 2026-08-29 (v118 / 1.0.49: fix produk query 400 — kolom asli `kode_produk` & `salt`)
+- **Produk 400 fix**: `fetchProductSalt()` (`license.sync.js`) sebelumnya query `.eq('prefix', PRODUCT_PREFIX)` → selalu 400 (kolom `prefix` tidak ada di tabel `products`). Kini benar pakai `.eq('kode_produk', PRODUCT_PREFIX)` + select `salt` (bukan `salt_hmac`/`salt_version`). Bug ini sudah berjalan berbulan-bulan — selalu jatuh ke local fallback (salt identik jadi tidak ada yang pecah, tapi cloud sync tidak berjalan).
+- **`fetchTxQuotaConfig()`**: juga diperbaiki ke `.eq('kode_produk', PRODUCT_PREFIX)` (konsisten).
+
+## 2026-08-29 (v117 / 1.0.48: 📜 Dokumen card fix — pindah ke dalam `#page-bantuan`)
+- **📜 Dokumen card salah tempat**: kartu "Syarat & Ketentuan" di Bantuan muncul di **semua halaman** (di luar `#page-bantuan` div, sebelum closing `</div>`). Diperbaiki dengan memindahkan closing `</div>` sehingga card berada di dalam `#page-bantuan`.
+
 ## 2026-08-29 (v116 / 1.0.47: kuota transaksi per bulan menggantikan trial waktu)
 - **Konsep baru tier gratis (keputusan pemilik)**: tanpa batas waktu 7 hari — gratis = **kuota transaksi selesai per bulan kalender** (default 100, diatur admin via `products.tx_quota` di kartu produk admin; di-cache lokal agar offline). Kuota segar otomatis tiap awal bulan.
 - **Penghitung anti-reset**: tiap penjualan selesai (`pos.sync.simpanPenjualanSync`) menaikkan `txUsed` (IndexedDB + localStorage). Reconcile cloud di `syncLicenseStatus`: adopsi `clients.tx_used` bila lebih besar (hapus data/ganti browser tidak menurunkan), push lokal bila lebih besar (pemakaian offline), `tx_adjust` (bonus/kurang dari admin) selalu ikut cloud, reset admin (`tx_month=null` + `tx_updated_at` baru) dihormati via `txLastPushAt` LWW.
