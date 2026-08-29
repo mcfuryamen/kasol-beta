@@ -1,9 +1,8 @@
 {
-  "version": "1.0.33",
-  "cacheBust": "v102",
+  "version": "1.0.34",
+  "cacheBust": "v103",
   "notes": [
-    "🛡️ Status lisensi kini selalu jujur mengikuti server — chip tidak lagi bisa membeku di 'Aktif' kalau lisensi belum tercatat di cloud",
-    "☁️ Profil usaha: cloud = sumber kebenaran. Data lokal tidak lagi bisa menimpa server; perubahan dari form profil tetap terkirim",
-    "🔧 Perbaikan internal kecil (pemeriksaan ganda saat aplikasi dinyalakan)"
+    "🔧 Perbaikan tampilan Menu: pilihan Kategori & Suplayer kini terbuka di tempatnya — tidak lagi melayang menutupi daftar menu",
+    "🛡️ Status lisensi & profil tetap mengikuti server (perbaikan kemarin berlanjut)"
   ]
 }
