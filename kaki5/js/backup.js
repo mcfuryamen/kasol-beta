@@ -7,8 +7,9 @@ import { setCart } from './app-state.js';
 import { showConfirm } from './confirm.js';
 import { clearCartStorage } from './pos.js';
 import { navigateTo } from './navigation.js';
-import { getDeviceIdentity } from './license.logic.js';
+import { getDeviceIdentity, getUnitId } from './license.logic.js';
 import { hmacSignature, b32Encode } from './license.logic.js';
+import { getSupabaseClient } from './license.sync.js';
 
 // Kunci settings yang TIDAK boleh keluar-masuk file cadangan (T7, audit
 // 2026-08-17/H5): lisensi aktif di file cadangan bisa diklon ke perangkat lain
@@ -48,17 +49,43 @@ export async function verifyBackupSignature(data, expectedSig) {
   return actualSig === expectedSig;
 }
 
-export async function exportData() {
-  // Cadangan = DATA PRODUK & TRANSAKSI saja (permintaan pemilik 2026-08-29).
-  // Profil usaha TIDAK ikut — sumber kebenarannya Supabase (di-pull otomatis
-  // saat boot/online). Lisensi & identitas perangkat juga tidak ikut (T7/H5).
-  const data = {
+// Payload cadangan bersama (file lokal & cloud): PRODUK & TRANSAKSI saja
+// (permintaan pemilik 2026-08-29) — profil usaha sumber kebenarannya Supabase.
+async function buildBackupPayload() {
+  return {
     version: 2,
     exportDate: new Date().toISOString(),
     menu: await DB.menu.toArray(),
     penjualan: await DB.penjualan.toArray(),
     pengeluaran: await DB.pengeluaran.toArray()
   };
+}
+
+// Terapkan isi cadangan: clear + bulkAdd 3 tabel dalam SATU transaksi atomik
+// (gagal di tengah = rollback total). Dipakai restore file lokal & cloud.
+async function applyBackupData(data) {
+  data.penjualan = data.penjualan || [];
+  data.pengeluaran = data.pengeluaran || [];
+  await DB.transaction(
+    'rw',
+    [DB.menu, DB.penjualan, DB.pengeluaran],
+    async () => {
+      await DB.menu.clear();
+      await DB.penjualan.clear();
+      await DB.pengeluaran.clear();
+      if (data.menu.length) await DB.menu.bulkAdd(data.menu);
+      if (data.penjualan.length) await DB.penjualan.bulkAdd(data.penjualan);
+      if (data.pengeluaran.length) await DB.pengeluaran.bulkAdd(data.pengeluaran);
+    }
+  );
+  clearCartStorage();
+}
+
+export async function exportData() {
+  // Cadangan = DATA PRODUK & TRANSAKSI saja (permintaan pemilik 2026-08-29).
+  // Profil usaha TIDAK ikut — sumber kebenarannya Supabase (di-pull otomatis
+  // saat boot/online). Lisensi & identitas perangkat juga tidak ikut (T7/H5).
+  const data = await buildBackupPayload();
   
   // Generate HMAC signature for integrity verification
   const signature = await generateBackupSignature(data);
@@ -177,27 +204,11 @@ export async function importData(event) {
 
     showConfirm('📂', 'Produk & transaksi akan diganti dengan data dari file cadangan. Profil usaha tidak berubah (mengikuti data server). Lanjut?', 'Ya, Pulihkan', async () => {
       try {
-        // TRANSAKSI (T6): clear + insert satu paket atomik. Gagal di tabel mana
-        // pun = rollback total — data lama tetap utuh (dulu: clear duluan tanpa
-        // transaksi, file rusak di tengah = data lenyap).
         // v2 (2026-08-29): HANYA produk & transaksi. settings/pengaturan/
         // platformMessages di file lama DIABAIKAN — profil usaha sumber
         // kebenarannya Supabase dan di-pull ulang otomatis setelah restore.
-        await DB.transaction(
-          'rw',
-          [DB.menu, DB.penjualan, DB.pengeluaran],
-          async () => {
-            await DB.menu.clear();
-            await DB.penjualan.clear();
-            await DB.pengeluaran.clear();
+        await applyBackupData(data);
 
-            if (data.menu.length) await DB.menu.bulkAdd(data.menu);
-            if (data.penjualan.length) await DB.penjualan.bulkAdd(data.penjualan);
-            if (data.pengeluaran.length) await DB.pengeluaran.bulkAdd(data.pengeluaran);
-          }
-        );
-
-        clearCartStorage();
         showToast('✅ Produk & transaksi berhasil dipulihkan!');
         navigateTo('beranda');
         // Profil tetap mengikuti Supabase — segarkan dari server (non-blocking).
@@ -212,6 +223,76 @@ export async function importData(event) {
     showToast('Gagal membaca file!', 'error');
   }
   event.target.value = '';
+}
+
+// ==================== CADANGAN CLOUD (Supabase Storage) ====================
+// Bucket 'backups' (privat, limit 5MB/file). Path: <unit_id>/cadangan-*.json.
+// RLS 'kaki5 backups *': tiap unit cuma bisa akses folder unit-nya sendiri
+// (dicocokkan lewat clients.user_id = auth.uid()). Profil TIDAK ikut —
+// sumber kebenarannya Supabase. Tanpa signature device-bound agar cadangan
+// tetap bisa dipulihkan lintas perangkat (ganti HP / install ulang).
+const CLOUD_BUCKET = 'backups';
+const CLOUD_KEEP = 10; // simpan maksimal 10 versi terakhir per unit
+
+async function cloudCtx() {
+  const sb = getSupabaseClient();
+  if (!sb || !navigator.onLine) return null;
+  const unitId = await getUnitId();
+  return unitId ? { sb, unitId } : null;
+}
+
+export async function cloudSaveBackup() {
+  const ctx = await cloudCtx();
+  if (!ctx) { showToast('Tidak bisa terhubung ke cloud. Cek internet & coba lagi.', 'error', { duration: 5000 }); return; }
+  const { sb, unitId } = ctx;
+  try {
+    const data = await buildBackupPayload();
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const path = `${unitId}/cadangan-${stamp}.json`;
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    const { error } = await sb.storage.from(CLOUD_BUCKET).upload(path, blob, { contentType: 'application/json', upsert: false });
+    if (error) throw error;
+    // Housekeeping: sisakan CLOUD_KEEP versi terbaru per unit.
+    const { data: files } = await sb.storage.from(CLOUD_BUCKET).list(unitId, { sortBy: { column: 'created_at', order: 'desc' } });
+    const stale = (files || []).filter(f => f.name !== `${path.split('/').pop()}`).slice(Math.max(0, CLOUD_KEEP - 1));
+    if (stale.length) await sb.storage.from(CLOUD_BUCKET).remove(stale.map(f => `${unitId}/${f.name}`));
+    showToast('✅ Cadangan tersimpan ke cloud!');
+  } catch (e) {
+    console.error('[BACKUP] cloud save gagal:', e);
+    showToast('Gagal simpan ke cloud: ' + String(e?.message || e).slice(0, 100), 'error', { duration: 6000 });
+  }
+}
+
+export async function cloudRestoreLatest() {
+  const ctx = await cloudCtx();
+  if (!ctx) { showToast('Tidak bisa terhubung ke cloud. Cek internet & coba lagi.', 'error', { duration: 5000 }); return; }
+  const { sb, unitId } = ctx;
+  try {
+    const { data: files, error: listErr } = await sb.storage.from(CLOUD_BUCKET).list(unitId, { sortBy: { column: 'created_at', order: 'desc' } });
+    if (listErr) throw listErr;
+    const latest = (files || []).find(f => f.name.endsWith('.json'));
+    if (!latest) { showToast('Belum ada cadangan di cloud. Simpan dulu ya!', 'info', { duration: 5000 }); return; }
+    const { data: blob, error: dlErr } = await sb.storage.from(CLOUD_BUCKET).download(`${unitId}/${latest.name}`);
+    if (dlErr) throw dlErr;
+    const data = JSON.parse(await blob.text());
+    const err = await validateBackup(data);
+    if (err) { showToast(err, 'error', { duration: 6000 }); return; }
+    const tanggal = latest.name.replace('cadangan-', '').replace('.json', '').slice(0, 16).replace('T', ' ');
+    showConfirm('☁️', `Pulihkan cadangan cloud (${tanggal})? Produk & transaksi akan diganti. Profil tidak berubah. Lanjut?`, 'Ya, Pulihkan', async () => {
+      try {
+        await applyBackupData(data);
+        showToast('✅ Produk & transaksi dipulihkan dari cloud!');
+        navigateTo('beranda');
+        import('./sync.js').then(m => m.pullCloudProfileIfOnline()).catch(() => {});
+      } catch (err) {
+        console.error('[CloudRestore] failed:', err);
+        showToast('Pemulihan dibatalkan — data lama tetap utuh.', 'error', { duration: 6000 });
+      }
+    });
+  } catch (e) {
+    console.error('[BACKUP] cloud restore gagal:', e);
+    showToast('Gagal ambil dari cloud: ' + String(e?.message || e).slice(0, 100), 'error', { duration: 6000 });
+  }
 }
 
 export function confirmClearAll() {

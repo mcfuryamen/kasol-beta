@@ -547,6 +547,12 @@ function handleDataAction(action, el, event) {
     case 'export-data':
       if (window.exportData) window.exportData();
       break;
+    case 'cloud-backup':
+      import('./backup.js').then(m => m.cloudSaveBackup()).catch(() => {});
+      break;
+    case 'cloud-restore-latest':
+      import('./backup.js').then(m => m.cloudRestoreLatest()).catch(() => {});
+      break;
     case 'trigger-import':
       document.getElementById('importFile')?.click();
       break;
