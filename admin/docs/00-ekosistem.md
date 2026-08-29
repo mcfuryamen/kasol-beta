@@ -9,6 +9,11 @@ Panduan lengkap arsitektur, data flow, dan integrasi seluruh komponen ekosistem 
 > offline saat ini (yang masih dipakai karena `admin/` belum sinkron ke Supabase).
 > Rujukan roadmap menyeluruh: **`../CLOUD-ROADMAP.md`**.
 >
+> 🚀 **Alur Deploy (2-Mirror):** Folder kerja tidak pernah push langsung ke GitHub.
+> Rilis mengalir mirrored — `push-beta.ps1` → repo **BETA** `kasol-beta` (URL `*.vercel.app`),
+> lalu stabil → `push-live.ps1` → repo **LIVE** `kasol` (URL `*.kasirsolo.com`).
+> Detail: **`../DEPLOYMENT.md`**.
+>
 > ⚠️ **Pipeline (2026-08-11):** tabel `leads` & `pembelian` di-DROP. Funnel kini
 > satu tabel `clients` (baru/dihubungi/tertarik/menunggu_verifikasi/aktif/batal) —
 > dikelola di admin lewat UI Klien List + Kanban.

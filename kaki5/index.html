@@ -99,9 +99,9 @@
 <div class="pos-controls">
 <!-- Tipe order: dine-in / takeaway / ojol -->
 <div id="orderTypeButtons">
-  <button class="btn btn-sm btn-primary" data-action="switch-order-type" data-tipe="dine-in">🍽️ Dine-in</button>
-  <button class="btn btn-sm btn-ghost"   data-action="switch-order-type" data-tipe="takeaway">🥡 Take-away</button>
-  <button class="btn btn-sm btn-ghost"   data-action="switch-order-type" data-tipe="ojol">🛵 Ojol</button>
+  <button class="btn btn-sm btn-primary" data-action="switch-order-type" data-tipe="dine-in">Dine-in</button>
+  <button class="btn btn-sm btn-ghost"   data-action="switch-order-type" data-tipe="takeaway">Take-away</button>
+  <button class="btn btn-sm btn-ghost"   data-action="switch-order-type" data-tipe="ojol">Ojol</button>
 </div>
 <!-- Catatan pesanan (akordeon): keterangan tambahan sesuai tipe order -->
 <div id="orderNoteBox" class="order-note-box" style="display:none">
@@ -416,29 +416,31 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
     </div>
   </div>
 </div>
-<div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:6px 0">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-    <label class="form-label" style="margin:0">📦 Pakai Stok</label>
-    <label class="toggle-switch" style="margin:0">
-      <input type="checkbox" id="menuPakaiStok">
-      <span class="toggle-slider"></span>
-    </label>
+<div class="kgrid-stokojol">
+  <div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <label class="form-label" style="margin:0">📦 Pakai Stok</label>
+      <label class="toggle-switch" style="margin:0">
+        <input type="checkbox" id="menuPakaiStok">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div id="menuStokWrap" style="display:none;margin-top:10px">
+      <input type="number" class="form-input" id="menuStok" placeholder="Jumlah stok awal" inputmode="numeric" min="0">
+    </div>
   </div>
-  <div id="menuStokWrap" style="display:none;margin-top:10px">
-    <input type="number" class="form-input" id="menuStok" placeholder="Jumlah stok awal" inputmode="numeric" min="0">
-  </div>
-</div>
-<div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:6px 0">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-    <label class="form-label" style="margin:0">🛵 Harga Ojol</label>
-    <label class="toggle-switch" style="margin:0">
-      <input type="checkbox" id="menuOjolToggle">
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-  <div id="menuOjolWrap" style="display:none;margin-top:10px">
-    <div class="form-helper" style="margin:0 0 8px">Kosongkan jika sama dengan harga jual</div>
-    <input type="number" class="form-input" id="menuHargaOjol" placeholder="Contoh: 18000" inputmode="numeric">
+  <div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <label class="form-label" style="margin:0">🛵 Harga Ojol</label>
+      <label class="toggle-switch" style="margin:0">
+        <input type="checkbox" id="menuOjolToggle">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div id="menuOjolWrap" style="display:none;margin-top:10px">
+      <div class="form-helper" style="margin:0 0 8px">Kosongkan jika sama dengan harga jual</div>
+      <input type="number" class="form-input" id="menuHargaOjol" placeholder="Contoh: 18000" inputmode="numeric">
+    </div>
   </div>
 </div>
 <div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:6px 0">

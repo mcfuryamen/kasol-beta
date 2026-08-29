@@ -137,7 +137,7 @@ Peta lengkap seluruh aplikasi dan komponen dalam ekosistem Kasir Solo — PT Mes
 1. Salin reference code lisensi dari admin dashboard
 2. Ganti `PRODUCT_PREFIX` dan `PRODUCT_SALT`
 3. Simpan data transaksi di Dexie (offline)
-4. Deploy ke Vercel
+4. Deploy ke Vercel (mengikuti **alur 2-mirror** ekosistem — lihat [`DEPLOYMENT.md`](../../DEPLOYMENT.md): folder kerja tidak push langsung ke GitHub; rilis lewat mirror `kasol-beta` (BETA, `*.vercel.app`) lalu `kasol` (LIVE, `*.kasirsolo.com`))
 
 ---
 

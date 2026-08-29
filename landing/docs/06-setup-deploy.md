@@ -59,9 +59,9 @@ landing/
    - **Install Command**: (kosong)
 5. Klik **Deploy**
 
-### Langkah 2: Hubungkan Git (no GitHub Actions)
+### Langkah 2: Hubungkan Git (Alur 2-Mirror)
 
-Hubungkan project `kasir-solo-landing` ke repo monorepo `kasol` dengan **Root Directory = `landing/`** (Vercel → Project → Settings → Git). **GitHub Actions tidak dipakai** (workflow sudah dihapus). Push ke branch utama → Vercel auto-deploy.
+Hubungkan project `kasir-solo-landing` ke repo **BETA `kasol-beta`** (URL `landing.vercel.app`) dan repo **LIVE `kasol`** (URL `kasirsolo.com`), keduanya dengan **Root Directory = `landing/`** (Vercel → Project → Settings → Git). **GitHub Actions tidak dipakai** (workflow sudah dihapus). Rilis mengalir 2 mirror (folder kerja **tidak** push langsung ke GitHub) — via `push-beta.ps1` → GitHub BETA main, lalu stabil → `push-live.ps1` → GitHub LIVE main.
 
 ### Langkah 3: Domain Custom
 
@@ -77,17 +77,27 @@ Tidak ada GitHub Actions secrets. Vercel environment variables (mis. `SUPABASE_U
 
 ---
 
-## 🔄 Flow Deployment
+## 🔄 Flow Deployment (Alur 2-Mirror)
 
 ```
-  Developer            Vercel (git integration)
-     │                         │
-     │  git push origin main ──►│  auto-detect (root dir landing/)
-     │                         │  build (no-op)
-     │                         │  deploy static files
-     │                         │
-     │◄────────────────────────│  production URL
+  Folder kerja            Mirror Beta                 Mirror Live
+  (produksi)              kasol-beta                  kasol
+     │                         │                         │
+     │  edit & uji             │                         │
+     │────────────────────────►│  push-beta.ps1          │
+     │                         │  (sync+squash)          │
+     │                         │  push BETA main ───────►│
+     │                         │  deploy -> *.vercel.app │
+     │                         │                         │
+     │                         │  stabil? ──────────────►│ push-live.ps1
+     │                         │                         │ (sync+squash)
+     │                         │                         │ push LIVE main
+     │                         │                         │ deploy -> kasirsolo.com
 ```
+
+Folder kerja **tidak pernah push langsung ke GitHub**. Semua rilis melewati
+mirror beta (`push-beta.ps1`) dulu untuk pengujian; baru setelah stabil
+di-promote ke live (`push-live.ps1`). Referensi lengkap: [`DEPLOYMENT.md`](../../DEPLOYMENT.md).
 
 ---
 

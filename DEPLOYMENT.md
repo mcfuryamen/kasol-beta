@@ -1,10 +1,12 @@
-# Kasir Solo - Multi App Repository
+# Kasir Solo - Multiple Apps Repository
 
 Repository ini berisi semua aplikasi Kasir Solo dalam satu monorepo. Setiap aplikasi di-deploy secara terpisah ke Vercel sebagai **static site tanpa build step**.
 
 > **Catatan:** Deploy **TIDAK lagi memakai GitHub Actions.** Semua workflow `.github/workflows/*` sudah dihapus. Deploy sekarang otomatis oleh **Vercel git integration** (auto-detect) per project.
 >
 > **Catatan (2026-08):** Selective deploy memakai fitur **Vercel "Skip Unaffected Projects"** via **npm workspaces** — bukan `vercel-ignore.sh`. Detail di bawah.
+>
+> **Catatan (2026-08-28) — ALUR RILIS 2-MIRROR:** Folder kerja TIDAK pernah langsung di-push ke GitHub. Rilis mengalir melalui 2 mirror lokal: **`kasol-beta`** (→ GitHub BETA, subdomain `vercel.app`) dan **`kasol`** (→ GitHub LIVE, custom domain `kasirsolo.com`). Lihat [§ Alur Rilis](#-alur-rilis-2-mirror).
 
 ## 📁 Struktur Aplikasi
 
@@ -99,54 +101,55 @@ Tidak ada secrets GitHub Actions lagi (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_
 - **`dexie.min.js` harus di-track git** untuk tiap app PWA yang meng-load-nya (kaki5, rosok, admin, retail). Root `.gitignore` meng-ignore `*.min.js`, jadi tiap app wajib punya pengecualian `!<app>/dexie.min.js`. Kalau tidak, file tidak masuk repo → deploy = `Dexie is not defined` (app mati).
 - Bump versi cache di `sw.js` setiap ada perubahan aset agar PWA pengguna tidak menyimpan versi lama.
 
-## 📝 Development Flow
+## 📝 Development Flow (Alur 2-Mirror)
 
-Alur standar menjaga **production/main tetap bersih & fungsional**:
+Folder kerja **tidak pernah push langsung ke GitHub**. Semua rilis mengalir
+melalui **2 mirror lokal** yang masing-masing mewakili satu lingkungan deploy:
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│  1. FOLDER KERJA (produksi)                                       │
-│     C:\Users\Admin\Documents\kasol\<app>                          │
-│     → edit & uji di sini. Commit WORKING TREE LOKAL bila perlu    │
-└───────────────────────────┬──────────────────────────────────────┘
-                            │ sync (sync-to-mirror.sh, whitelist)
-                            ▼
-┌──────────────────────────────────────────────────────────────────┐
-│  2. MIRROR (C:\Users\Admin\Documents\GitHub\kasol)                │
-│     → commit ke mirror (manual, di folder mirror):                │
-│        git add <app>/ && git commit -m "feat: ..."                │
-└───────────────────────────┬──────────────────────────────────────┘
-                            │ push
-                            ▼
-┌──────────────────────────────────────────────────────────────────┐
-│  3. PREVIEW (branch non-utama, e.g. `preview`)                    │
-│     → push dari mirror → Vercel deploy ke URL preview             │
-│        (xxx--kasir-<app>.vercel.app)                              │
-└───────────────────────────┬──────────────────────────────────────┘
-        ada error?           │ stabil?
-        ▲                    ▼
-        └── kembali ke langkah 1          ┌────────────────────────────────┐
-        (kerja → mirror → preview,        │  4. MERGE KE MAIN (production)  │
-         ulangi hingga stabil)            │     → PR/merge `preview` → main  │
-                                          │     → Vercel deploy production   │
-                                          │     (main = production, bersih)  │
-                                          └────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│  1. FOLDER KERJA (produksi/kerja harian)                                 │
+│     C:\Users\Admin\Documents\kasol\<app>                                 │
+│     → edit & uji di sini. Commit WORKING TREE LOKAL bila perlu           │
+└────────────────────────────────┬─────────────────────────────────────────┘
+                                 │ sync (push-beta.ps1: squash → GitHub BETA main)
+                                 ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│  2. MIRROR BETA  C:\Users\Admin\Documents\GitHub\kasol-beta              │
+│     GitHub utama: BETA (main)                                            │
+│     URL (Vercel): https://<app>.vercel.app                               │
+│     → push-beta.ps1: sinkron kerja → squash sekali → push GitHub BETA    │
+└────────────────────────────────┬─────────────────────────────────────────┘
+        ada error?               │ stabil (tes manual di URL beta)?
+        ▲                        ▼
+        └── kembali ke langkah 1 ┌─────────────────────────────────────────────────┐
+            (kerja → beta,       │  3. MIRROR LIVE  C:\Users\Admin\Documents\GitHub\kasol
+             ulangi hingga       │     GitHub: LIVE (main)                        │
+             stabil)             │     URL: https://<app>.kasirsolo.com           │
+                                 │     → push-live.ps1: fetch beta main → sync →  │
+                                 │       squash sekali → push GitHub LIVE         │
+                                 └─────────────────────────────────────────────────┘
 ```
 
-```bash
-# 1. Folder kerja — edit & uji (produksi: C:\Users\Admin\Documents\kasol\<app>)
-# 2. Sync → mirror: jalankan script sync (sync-to-mirror.sh, whitelist)
-#    lalu commit ke mirror (manual, di folder mirror C:\Users\Admin\Documents\GitHub\kasol):
-git add <app>/
-git commit -m "feat: ..."
-# 3. Push ke branch PREVIEW (bukan main) dari mirror untuk tes:
-git push origin preview
-#    → cek URL preview Vercel. Jika ada error, kembali ke langkah 1 & ulangi.
-# 4. Stabil → merge ke main (production):
-#    (via pull request atau merge lokal dari mirror)
+```powershell
+# 1. Folder kerja — edit & uji, commit lokal bila perlu
+# 2. Rilis BETA — jalankan dari folder kerja:
+.\push-beta.ps1
+#    → sinkron worktree ke mirror kasol-beta, squash pull-request sekali,
+#      push GitHub BETA main → Vercel deploy URL <app>.vercel.app (beta)
+# 3. Tes di URL beta. Jika ada error → kembali ke langkah 1 & ulangi.
+# 4. Rilis LIVE (hanya dari beta yang sudah stabil) — jalankan dari mirror beta:
+.\push-live.ps1
+#    → fetch beta main → sinkron ke mirror kasol, squash sekali,
+#      push GitHub LIVE main → Vercel deploy URL <app>.kasirsolo.com (live)
 ```
 
-> ⚠️ **Aturan:** `main`/production **hanya** menerima perubahan yang sudah stabil & lolos preview. Jangan commit/output dari folder kerja langsung ke `main` — lewati alur mirror → preview dulu. Selective deploy ditangani Vercel via **npm workspaces** ("Skip Unaffected Projects") — per-app otomatis, tanpa script `vercel-ignore.sh`.
+> ⚠️ **Aturan:** Folder kerja **tidak boleh push langsung ke GitHub**.
+> - History GitHub selalu bersih: setiap rilis di-squash **satu commit snapshot**,
+>   tanpa secret, tanpa riwayat kerja menengah.
+> - LIVE hanya menerima snapshot dari BETA yang sudah stabil & lolos uji.
+> - Selective deploy ditangani Vercel via **npm workspaces** ("Skip Unaffected
+>   Projects") — per-app otomatis, tanpa script `vercel-ignore.sh`.
 
 ## 🔗 Domain Mapping (Opsional)
 
@@ -157,11 +160,16 @@ git push origin preview
 - `kasirsolo.com` → Landing Page
 - `admin` / `hub.kasirsolo.com` → Dashboard admin
 
-## 🧪 Preview URLs
+## 🧪 Preview / URL per Lingkungan
 
-Setiap **push ke branch non-utama / Pull Request** menghasilkan preview URL Vercel (mis. `xxx--kasir-rosok.vercel.app`). Deploy production terjadi pada **merge ke branch utama (`main`)**.
+Setiap app punya **2 proyek Vercel** (dua environment) yang masing-masing terhubung ke repo GitHub berbeda:
 
-**Alur kaitannya:** pengembangan berjalan dari folder kerja → commit ke mirror → push ke branch `preview` (non-utama) untuk tes di URL preview. Setelah stabil baru di-merge ke `main` → deploy production. Ini menjaga `main`/production tetap bersih & fungsional.
+| Lingkungan | Repo GitHub (main) | URL (Vercel) | Isi |
+|------------|--------------------|--------------|-----|
+| **BETA** | `mcfuryamen/kasol-beta` | `<app>.vercel.app` | Snapshot stabil sementara dari folder kerja, untuk pengujian |
+| **LIVE** | `mcfuryamen/kasol` | `<app>.kasirsolo.com` | Snapshot beta yang sudah stabil & disetujui klien |
+
+**Alur kaitannya:** pengembangan berjalan dari folder kerja → `push-beta.ps1` (sync ke mirror beta, squash, push GitHub BETA main → deploy `<app>.vercel.app`). Stabil → `push-live.ps1` (fetch beta main, sync ke mirror live, squash, push GitHub LIVE main → deploy `<app>.kasirsolo.com`). Ini menjaga LIVE tetap bersih & fungsional.
 
 ## 📊 Monitoring
 

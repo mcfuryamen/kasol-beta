@@ -277,9 +277,9 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 #page-pengaturan.active{display:grid;gap:16px;grid-template-columns:1fr}
 
 /* SEARCH */
-.search-box{display:flex;align-items:center;gap:8px;margin-bottom:12px;position:relative}
-.search-box input{flex:1;padding:12px 16px 12px 44px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-weight:600;background:#fff}
-.search-box .btn{flex:0 0 auto;width:auto;min-width:0}
+.search-box{display:flex;align-items:center;gap:8px;margin-bottom:12px;position:relative;width:100%;min-width:0;max-width:100%}
+.search-box input{flex:1;min-width:0;padding:12px 16px 12px 44px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-weight:600;background:#fff}
+.search-box .btn{flex:0 0 auto;width:auto;min-width:0;white-space:nowrap}
 .search-box input:focus{outline:none;border-color:var(--primary)}
 .search-box .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--text3)}
 
@@ -476,6 +476,8 @@ input[type=number]{-moz-appearance:textfield}
 
   .search-box input{padding:10px 12px 10px 40px;font-size:14px}
   .search-box .search-icon{left:12px;font-size:16px}
+  /* Search box tetap sejajar horizontal: padatkan tombol Kategori agar input tetap lega */
+  .search-box .btn{padding:8px 10px;font-size:13px;min-height:42px;gap:4px}
   #orderTypeButtons .btn{padding:10px 10px;font-size:13px;min-height:42px}
 
   .menu-item .item-name{font-size:12.5px}
@@ -487,6 +489,8 @@ input[type=number]{-moz-appearance:textfield}
   .form-group{margin-bottom:14px}
   .form-input{padding:12px 14px;font-size:16px}
   .kgrid-2col-gap8,.kgrid-konsinyasi{gap:8px}
+  /* HP kecil: semua field diurutkan vertikal (1 kolom) */
+  .kgrid-2col-gap8.kgrid-2col-gap8,.kgrid-2col-gap12.kgrid-2col-gap12,.kgrid-konsinyasi.kgrid-konsinyasi,.kgrid-stokojol.kgrid-stokojol{grid-template-columns:1fr;gap:10px}
   .toggle-switch{transform:scale(.9)}
 
   /* Kartu transaksi: kompak */
@@ -745,6 +749,9 @@ body.modal-open .main-content{overflow:hidden}
 .kdivider{border-top:2px solid var(--border);margin-top:12px;padding-top:12px}
 .kgrid-2col-gap12{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;margin-bottom:12px}
 .kgrid-2col-gap8{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* Grid blok Stok + Harga Ojol: 2 kolom (desktop/tablet/HP normal), 1 kolom di HP kecil */
+.kgrid-stokojol{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0}
+.kgrid-stokojol .form-group{min-width:0}
 /* Grid Kategori+Suplayer: selalu 2 kolom sejajar, kolom melebar penuh mengisi area */
 .kgrid-konsinyasi{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
 /* Select di form Kategori+Suplayer: isi penuh kolom */
@@ -868,7 +875,7 @@ body.modal-open .main-content{overflow:hidden}
 #menuSelectorQty:focus,.ms-qty-input:focus{outline:none;border-color:var(--primary)}
 
 /* Kontrol POS sticky: tipe order + cari + kategori tetap di atas saat menu discroll */
-.pos-controls{position:sticky;top:0;z-index:20;background:var(--bg);padding-bottom:8px}
+.pos-controls{position:sticky;top:0;z-index:20;background:var(--bg);padding-bottom:8px;min-width:0}
 /* Catatan pesanan (akordeon di bawah tombol tipe order) */
 .order-note-box{margin:-2px 0 12px}
 .order-note-box .form-input{font-size:14px;padding:10px 14px;background:#fff}

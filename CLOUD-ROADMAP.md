@@ -2,7 +2,9 @@
 
 > **Dokumen global** yang mendokumentasikan arsitektur cloud & roadmap ekosistem
 > KASIRSOLO. Baca bersama [`CONTEXT.md`](./CONTEXT.md) (standar ekosistem) dan
-> [`DEPLOYMENT.md`](./DEPLOYMENT.md) (monorepo & deploy).
+> [`DEPLOYMENT.md`](./DEPLOYMENT.md) (monorepo & deploy — **alur rilis 2-mirror**:
+> folder kerja → `kasol-beta` (BETA, `vercel.app`) → stabil → `kasol` (LIVE,
+> `kasirsolo.com`); folder kerja tidak pernah push langsung ke GitHub).
 >
 > Status: **Konsep / Roadmap** — beberapa bagian sudah berjalan (Meta/CRM),
 > sebagian lagi rencana (Data Bisnis & Dashboard Hub). Detail implementasi bisa

@@ -61,26 +61,27 @@ masih hardcoded dan belum aman.
    - **Install Command**: *(kosong)*
 5. Klik **Deploy**
 
-### Deploy Workflow (Manual Push)
+### Deploy Workflow (Alur 2-Mirror)
 
-```bash
-# 1. Sync produksi ke mirror
-cd /c/Users/Admin/Documents/kasol/admin
-cp -r . /c/Users/Admin/Documents/GitHub/kasol/admin/
+> Referensi alur lengkap: [`DEPLOYMENT.md`](../../DEPLOYMENT.md). Folder kerja
+> **tidak pernah push langsung ke GitHub**; rilis mengalir 2 mirror.
 
-# 2. Commit & push dari monorepo root ke branch PREVIEW (bukan main)
-cd /c/Users/Admin/Documents/GitHub/kasol
-git add admin/
-git commit -m "admin: <deskripsi perubahan>"
-git push origin preview
+```powershell
+# 1. Rilis BETA — jalankan di folder kerja (root kasol):
+.\push-beta.ps1
+#    → sync admin/ ke mirror kasol-beta → squash 1 commit → push GitHub BETA main
+#    → Vercel deploy URL beta: https://admin.vercel.app (mis.)
+#    Tes di URL beta. Jika ada error → perbaiki di folder kerja, rilis beta lagi.
 
-# 3. Vercel auto-deploy preview dari branch preview → tes di URL preview
-#    (xxx--kasir-admin.vercel.app). Jika ada error, kembali ke langkah 1 & ulangi.
-
-# 4. Setelah stabil → merge ke main (production) → Vercel deploy production
+# 2. Rilis LIVE (hanya dari beta yang sudah stabil) — jalankan di folder mirror kasol-beta:
+.\push-live.ps1
+#    → fetch GitHub BETA main → sync ke mirror kasol → squash 1 commit
+#    → push GitHub LIVE main → Vercel deploy URL live: https://admin.kasirsolo.com (mis.)
 ```
 
-> **Note:** GitHub Actions workflows sudah dihapus. Deploy dilakukan manual push → Vercel auto-detect changes. `main`/production hanya menerima perubahan yang sudah stabil & lolos preview.
+> **Note:** GitHub Actions workflows sudah dihapus. Rilis dilakukan via
+> `push-beta.ps1`/`push-live.ps1` (squash 1 commit snapshot) → Vercel
+> auto-detect. LIVE hanya menerima snapshot dari BETA yang sudah stabil & lolos uji.
 
 ### File Konfigurasi Vercel
 

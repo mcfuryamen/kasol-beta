@@ -40,6 +40,19 @@ Lihat [Printer](11-printer.md) untuk detail.
 - Akun hosting (Vercel/Netlify/Cloudflare Pages, atau VPS)
 - (Opsional) Akun Supabase untuk database
 
+### Alur Rilis (Ekosistem Kasol — 2-Mirror)
+
+> Jika `minimarket` rilis sebagai bagian ekosistem kasol, ikut alur **2-mirror**
+> (folder kerja **tidak push langsung ke GitHub**; referensi
+> [`DEPLOYMENT.md`](../../DEPLOYMENT.md)):
+>
+> 1. **BETA** — `.\push-beta.ps1` di folder kerja → sync ke mirror `kasol-beta` →
+>    squash 1 commit → push GitHub BETA main → deploy URL `*.vercel.app`. Tes di sini.
+> 2. Error? → perbaiki di folder kerja, rilis beta lagi.
+> 3. **LIVE** — dari mirror beta, `.\push-live.ps1` → fetch BETA main → sync ke
+>    mirror `kasol` → squash → push GitHub LIVE main → deploy custom domain
+>    `kasirsolo.com`. Hanya dari beta yang stabil.
+
 ### Build
 
 ```bash

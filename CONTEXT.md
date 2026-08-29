@@ -489,11 +489,17 @@ overlay force-update), `CACHE_NAME` (`sw.js`), `?v=` (`index.html` & README).
 }
 ```
 
-### Deployment — Vercel Git Integration (tanpa GitHub Actions)
+### Deployment — Alur 2-Mirror (Vercel Git Integration, tanpa GitHub Actions)
 
 > GitHub Actions **tidak dipakai** lagi. Semua `.github/workflows/*` sudah dihapus. Deploy otomatis lewat **Vercel git integration** (auto-detect).
 
-Setiap aplikasi = satu **Vercel project** terhubung ke repo dengan **Root Directory** = folder aplikasi. **Push ke branch non-utama (`preview`) → Vercel deploy ke URL preview**; **merge ke branch utama (`main`) → deploy production**. Alur kerja: folder kerja → commit ke mirror → push `preview` → tes → stabil → merge ke `main`. Tidak ada secrets CI (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_*`).
+**Folder kerja TIDAK pernah push langsung ke GitHub.** Setiap app punya **2 proyek Vercel** (dua environment) yang terhubung ke repo GitHub berbeda:
+
+1. **BETA** — mirror `kasol-beta` → push GitHub BETA main → deploy `<app>.vercel.app`. Dijalankan dari folder kerja via `.\push-beta.ps1` (sync worktree, squash 1 commit snapshot, push).
+2. **LIVE** — mirror `kasol` → push GitHub LIVE main → deploy `<app>.kasirsolo.com`. Dijalankan dari mirror beta via `.\push-live.ps1` (fetch beta main, sync, squash, push) — hanya dari beta yang **stabil**.
+3. Ada error di URL beta? → kembali ke folder kerja, perbaiki, rilis beta lagi (langkah 1) sampai stabil, baru rilis live.
+
+Tidak ada secrets CI (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_*`).
 
 | App | Vercel Project | Root Directory | Build Command |
 |-----|----------------|----------------|---------------|
