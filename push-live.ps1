@@ -1,10 +1,11 @@
-# push-live.ps1
+﻿# push-live.ps1
 # ============================================================
 # Alur rilis kasol LIVE:
-#   kasol-beta (main, snapshot stabil) -> kasol live (main)
-#   -> squash ke 1 commit bersih -> push GitHub kasol (main)
+#   kasol-beta (main, snapshot stabil) -> mirror kasol live (fetch, TANPA branch preview)
+#   -> squash ke 1 commit bersih (orphan _release -> main)
+#   -> push GitHub kasol (main)
 # Hanya rilis BETA yang stabil yang boleh naik ke LIVE.
-# Semua push GitHub selalu ke branch MAIN.
+# Semua push GitHub selalu ke branch MAIN — tidak ada branch preview.
 # ============================================================
 param(
   [string]$LiveDir = "C:\Users\Admin\Documents\GitHub\kasol",
@@ -54,14 +55,14 @@ function Test-TreeSecret([string]$dir, [switch]$Cached) {
   return ($script:secretHits.Count -gt 0)
 }
 
-# Drift detector: pastikan snapshot live main identik dengan beta main.
-# Sumber snapshot push-live = beta main, target = live main index. Mengembalikan
-# $true jika ada drift. Lihat Test-TreeDrift di push-beta.ps1 untuk konteks.
-function Test-TreeDrift([string]$SourceDir, [string]$TargetDir) {
-  $src = & git -C $SourceDir ls-tree -r --name-only main 2>$null | Sort-Object
-  $tgt = & git -C $TargetDir ls-tree -r --name-only HEAD 2>$null | Sort-Object
+# Drift detector: bandingkan pohon REF sumber vs STAGED INDEX mirror
+# (isi persis yang akan di-commit — pengecekan sebelum commit).
+# Mengembalikan $true jika ada drift. Lihat push-beta.ps1 untuk konteks.
+function Test-SnapshotDrift([string]$SrcRepo, [string]$SrcRef, [string]$TgtRepo) {
+  $src = & git -C $SrcRepo ls-tree -r --name-only $SrcRef 2>$null | Sort-Object
+  $tgt = & git -C $TgtRepo ls-files --cached 2>$null | Sort-Object
   if (-not $tgt) {
-    Write-Host ('     [DRIFT] Target {0} belum punya branch main — lewati cek.' -f $TargetDir) -ForegroundColor Yellow
+    Write-Host "     [DRIFT] Index target $TgtRepo kosong — lewati cek." -ForegroundColor Yellow
     return $false
   }
   $onlySrc = @($src | Where-Object { $_ -notin $tgt })
@@ -71,15 +72,15 @@ function Test-TreeDrift([string]$SourceDir, [string]$TargetDir) {
     Write-Host ('     Drift check OK: {0} file identik.' -f $srcLen) -ForegroundColor Green
     return $false
   }
-  Write-Host ('[DRIFT] Snapshot tidak identik antara {0} dan {1}' -f $SourceDir, $TargetDir) -ForegroundColor Yellow
+  Write-Host ('[DRIFT] Snapshot tidak identik: {0} ({1}) vs index {2}' -f $SrcRepo, $SrcRef, $TgtRepo) -ForegroundColor Yellow
   if ($onlySrc.Count -gt 0) {
     $onlySrcLen = $onlySrc.Count
-    Write-Host ('  Ada di source tapi TIDAK di target ({0} file, max 50):' -f $onlySrcLen) -ForegroundColor Yellow
+    Write-Host ('  Ada di source tapi TIDAK di snapshot ({0} file, max 50):' -f $onlySrcLen) -ForegroundColor Yellow
     $onlySrc | Select-Object -First 50 | ForEach-Object { Write-Host ('    + {0}' -f $_) }
   }
   if ($onlyTgt.Count -gt 0) {
     $onlyTgtLen = $onlyTgt.Count
-    Write-Host ('  Ada di target tapi TIDAK di source ({0} file, max 50):' -f $onlyTgtLen) -ForegroundColor Yellow
+    Write-Host ('  Ada di snapshot tapi TIDAK di source ({0} file, max 50):' -f $onlyTgtLen) -ForegroundColor Yellow
     $onlyTgt | Select-Object -First 50 | ForEach-Object { Write-Host ('    - {0}' -f $_) }
   }
   return $true
@@ -89,56 +90,44 @@ function Test-TreeDrift([string]$SourceDir, [string]$TargetDir) {
 Write-Host "==> [1/6] Ambil snapshot stabil dari kasol-beta (main)" -ForegroundColor Cyan
 Invoke-Git $LiveDir @("fetch", $BetaDir, "main:refs/beta/main")
 
-Write-Host "==> [2/6] Sync kasol live (main) ke snapshot beta" -ForegroundColor Cyan
-Invoke-Git $LiveDir @("switch", "main")
-Invoke-Git $LiveDir @("reset", "--hard", "refs/beta/main")
-# Pindah dari main supaya bisa hapus branch main nanti (git tidak bisa hapus branch aktif)
-Invoke-Git $LiveDir @("switch", "preview")
+Write-Host "==> [2/6] Simpan SHA rilis sebelumnya (referensi rollback)" -ForegroundColor Cyan
+$prevMainSha = & git -C $LiveDir rev-parse main 2>$null
+if ($prevMainSha) { Write-Host "     Rilis sebelumnya: $prevMainSha" }
 
-# Verifikasi secret di working tree
-if (Test-TreeSecret $LiveDir) {
-  Write-Host "[FAIL] Working tree kasol live mengandung pola secret:" -ForegroundColor Red
-  $script:secretHits | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
-  exit 1
-}
-
-Write-Host "==> [3/6] Buat snapshot squash bersih di branch main" -ForegroundColor Cyan
-& git -C $LiveDir branch -D main 2>$null
-Invoke-Git $LiveDir @("switch", "--orphan", "main")
-# Orphan checkout mengosongkan working tree — restore semua file dari pohon beta/main
+Write-Host "==> [3/6] Bangun snapshot squash bersih dari beta main" -ForegroundColor Cyan
+# Tanpa branch preview: snapshot dibangun di branch sementara `_release`
+# (orphan), lalu di-rename jadi `main` setelah commit.
+& git -C $LiveDir branch -D _release 2>$null
+Invoke-Git $LiveDir @("switch", "--orphan", "_release")
 Invoke-Git $LiveDir @("checkout", "refs/beta/main", "--", ".")
-# Index orphan sekarang terisi file dari snapshot beta — staging semua
 Invoke-Git $LiveDir @("add", "-A")
 
-# Drift guard: snapshot live main harus identik dengan beta main (sumber snapshot)
-if (Test-TreeDrift -SourceDir $BetaDir -TargetDir $LiveDir) {
-  Write-Host "[FAIL] Snapshot live main tidak identik dengan beta main." -ForegroundColor Red
+Write-Host "==> [4/6] Verifikasi snapshot (drift + secret)" -ForegroundColor Cyan
+# Drift guard: staged index HARUS identik dengan beta main (sumber snapshot)
+if (Test-SnapshotDrift -SrcRepo $BetaDir -SrcRef "main" -TgtRepo $LiveDir) {
+  Write-Host "[FAIL] Snapshot live tidak identik dengan beta main." -ForegroundColor Red
   Write-Host "       Pastikan beta main stabil sebelum menjalankan push-live.ps1." -ForegroundColor Red
   exit 1
 }
-
-# Verifikasi ulang index (cached)
+# Verifikasi secret di snapshot (cached)
 if (Test-TreeSecret $LiveDir -Cached) {
-  Write-Host "[FAIL] Snapshot main mengandung pola secret:" -ForegroundColor Red
+  Write-Host "[FAIL] Snapshot mengandung pola secret:" -ForegroundColor Red
   $script:secretHits | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
   exit 1
 }
-
 $fileCount = (git -C $LiveDir diff --cached --name-only | Measure-Object -Line).Lines
 Write-Host "     Snapshot berisi $fileCount file."
-
 Invoke-Git $LiveDir @("commit", "-m", "chore: rilis live $stamp (snapshot bersih, squash dari beta stabil)", "--trailer", "Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>")
 
-Write-Host "==> [4/6] Push ke GitHub kasol live (main)" -ForegroundColor Cyan
+Write-Host "==> [5/6] Ganti `main` & push ke GitHub kasol live" -ForegroundColor Cyan
+& git -C $LiveDir branch -D main 2>$null
+Invoke-Git $LiveDir @("branch", "-m", "main")
 $ans = Read-Host "     Squash snapshot siap. Push --force-with-lease ke GitHub main? (y/N)"
 if ($ans -ne "y") {
-  Write-Host "     Batal. Snapshot main lokal tetap tersimpan di kasol live." -ForegroundColor Yellow
+  Write-Host "     Batal. Snapshot tetap tersimpan di branch main lokal kasol live." -ForegroundColor Yellow
   exit 0
 }
 Invoke-Git $LiveDir @("push", "origin", "main", "--force-with-lease")
-
-Write-Host "==> [5/6] Kembalikan working branch kasol live ke main" -ForegroundColor Cyan
-Invoke-Git $LiveDir @("switch", "main")
 
 Write-Host "==> [6/6] Selesai" -ForegroundColor Green
 Write-Host "     GitHub: https://github.com/mcfuryamen/kasol" -ForegroundColor Green

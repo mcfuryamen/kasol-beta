@@ -1,10 +1,10 @@
-# push-beta.ps1
+﻿# push-beta.ps1
 # ============================================================
 # Alur rilis kasol-beta (BETA):
-#   folder kerja (preview) -> kasol-beta preview
-#                            -> squash ke 1 commit bersih (main)
-#                            -> push GitHub kasol-beta (main)
-# Semua push GitHub selalu ke branch MAIN.
+#   folder kerja (main) -> mirror kasol-beta (fetch langsung, TANPA branch preview)
+#                         -> squash ke 1 commit bersih (orphan _release -> main)
+#                         -> push GitHub kasol-beta (main)
+# Semua push GitHub selalu ke branch MAIN — tidak ada branch preview.
 # ============================================================
 param(
   [string]$WorkDir = "C:\Users\Admin\Documents\kasol",
@@ -54,16 +54,15 @@ function Test-TreeSecret([string]$dir, [switch]$Cached) {
   return ($script:secretHits.Count -gt 0)
 }
 
-# Drift detector: pastikan snapshot beta main identik dengan work HEAD.
-# Mode orphan-squash bisa men-drop file kalau push dilakukan dari revisi
-# yang tidak sinkron dengan work tree (lihat insiden 2026-08-29: 13 file
-# kaki5/ hilang di kq5beta.vercel.app karena snapshot 761b7cc dibuat
-# sebelum file di-add di work tree). Mengembalikan $true jika ada drift.
-function Test-TreeDrift([string]$SourceDir, [string]$TargetDir) {
-  $src = & git -C $SourceDir ls-tree -r --name-only HEAD 2>$null | Sort-Object
-  $tgt = & git -C $TargetDir ls-tree -r --name-only main 2>$null | Sort-Object
+# Drift detector: bandingkan pohon REF sumber vs STAGED INDEX mirror.
+# Index (ls-files --cached) = isi persis yang akan di-commit — pengecekan
+# dilakukan SEBELUM commit, saat branch main baru memang belum ada (orphan).
+# Mengembalikan $true jika ada drift (file hilang / nyasar).
+function Test-SnapshotDrift([string]$SrcRepo, [string]$SrcRef, [string]$TgtRepo) {
+  $src = & git -C $SrcRepo ls-tree -r --name-only $SrcRef 2>$null | Sort-Object
+  $tgt = & git -C $TgtRepo ls-files --cached 2>$null | Sort-Object
   if (-not $tgt) {
-    Write-Host ('     [DRIFT] Target {0} belum punya branch main — lewati cek.' -f $TargetDir) -ForegroundColor Yellow
+    Write-Host "     [DRIFT] Index target $TgtRepo kosong — lewati cek." -ForegroundColor Yellow
     return $false
   }
   $onlySrc = @($src | Where-Object { $_ -notin $tgt })
@@ -73,60 +72,51 @@ function Test-TreeDrift([string]$SourceDir, [string]$TargetDir) {
     Write-Host ('     Drift check OK: {0} file identik.' -f $srcLen) -ForegroundColor Green
     return $false
   }
-  Write-Host ('[DRIFT] Snapshot tidak identik antara {0} dan {1}' -f $SourceDir, $TargetDir) -ForegroundColor Yellow
+  Write-Host ('[DRIFT] Snapshot tidak identik: {0} ({1}) vs index {2}' -f $SrcRepo, $SrcRef, $TgtRepo) -ForegroundColor Yellow
   if ($onlySrc.Count -gt 0) {
     $onlySrcLen = $onlySrc.Count
-    Write-Host ('  Ada di source tapi TIDAK di target ({0} file, max 50):' -f $onlySrcLen) -ForegroundColor Yellow
+    Write-Host ('  Ada di source tapi TIDAK di snapshot ({0} file, max 50):' -f $onlySrcLen) -ForegroundColor Yellow
     $onlySrc | Select-Object -First 50 | ForEach-Object { Write-Host ('    + {0}' -f $_) }
   }
   if ($onlyTgt.Count -gt 0) {
     $onlyTgtLen = $onlyTgt.Count
-    Write-Host ('  Ada di target tapi TIDAK di source ({0} file, max 50):' -f $onlyTgtLen) -ForegroundColor Yellow
+    Write-Host ('  Ada di snapshot tapi TIDAK di source ({0} file, max 50):' -f $onlyTgtLen) -ForegroundColor Yellow
     $onlyTgt | Select-Object -First 50 | ForEach-Object { Write-Host ('    - {0}' -f $_) }
   }
   return $true
 }
 
 # ------------------------------------------------------------
-Write-Host "==> [1/6] Push folder kerja (main) -> kasol-beta preview" -ForegroundColor Cyan
-# Work tree tidak punya branch `preview` — push main:preview langsung
-# (gotcha terdokumentasi di DEPLOYMENT.md "Aturan Penting").
-Invoke-Git $WorkDir @("push", "beta", "main:preview")
+Write-Host "==> [1/6] Fetch folder kerja -> mirror kasol-beta" -ForegroundColor Cyan
+Invoke-Git $BetaDir @("fetch", "--prune", "work")
 
-Write-Host "==> [2/6] Sync kasol-beta preview ke HEAD folder kerja" -ForegroundColor Cyan
-Invoke-Git $BetaDir @("fetch", "work")
-Invoke-Git $BetaDir @("switch", "preview")
-# work/preview tak selalu ada di remote-tracking — work/main selalu ada
-# dan isinya identik dengan yang baru saja di-push (main:preview).
-Invoke-Git $BetaDir @("reset", "--hard", "work/main")
-
-# Capture SHA main lama (rilis terakhir) SEBELUM dihapus di langkah [3/6] —
-# dipakai version-bump check di bawah.
+Write-Host "==> [2/6] Simpan SHA rilis sebelumnya (untuk version-bump check)" -ForegroundColor Cyan
 $prevMainSha = & git -C $BetaDir rev-parse main 2>$null
+if ($prevMainSha) { Write-Host "     Rilis sebelumnya: $prevMainSha" }
 
-# Verifikasi secret di working tree preview
-if (Test-TreeSecret $BetaDir) {
-  Write-Host "[FAIL] Working tree kasol-beta mengandung pola secret:" -ForegroundColor Red
+Write-Host "==> [3/6] Bangun snapshot squash bersih dari work/main" -ForegroundColor Cyan
+# Tanpa branch preview: snapshot dibangun di branch sementara `_release`
+# (orphan — tanpa history), lalu di-rename jadi `main` setelah commit.
+# `checkout work/main -- .` menyalin pohon folder kerja apa adanya —
+# semua file tracked pasti ikut.
+& git -C $BetaDir branch -D _release 2>$null
+Invoke-Git $BetaDir @("switch", "--orphan", "_release")
+Invoke-Git $BetaDir @("checkout", "work/main", "--", ".")
+Invoke-Git $BetaDir @("add", "-A")
+
+Write-Host "==> [4/6] Verifikasi snapshot (drift + secret + version bump)" -ForegroundColor Cyan
+# Drift guard: staged index HARUS identik dengan work HEAD
+if (Test-SnapshotDrift -SrcRepo $WorkDir -SrcRef "HEAD" -TgtRepo $BetaDir) {
+  Write-Host "[FAIL] Snapshot beta kehilangan/menambah file dibanding work HEAD." -ForegroundColor Red
+  Write-Host "       Biasanya karena file nyasar/untracked di mirror kasol-beta." -ForegroundColor Red
+  exit 1
+}
+# Verifikasi secret di snapshot (cached)
+if (Test-TreeSecret $BetaDir -Cached) {
+  Write-Host "[FAIL] Snapshot mengandung pola secret:" -ForegroundColor Red
   $script:secretHits | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
   exit 1
 }
-
-Write-Host "==> [3/6] Buat snapshot squash bersih di branch main" -ForegroundColor Cyan
-& git -C $BetaDir branch -D main 2>$null
-Invoke-Git $BetaDir @("switch", "--orphan", "main")
-# Orphan checkout mengosongkan working tree — restore semua file dari pohon preview
-Invoke-Git $BetaDir @("checkout", "preview", "--", ".")
-# Index orphan sekarang terisi file dari preview — staging semua
-Invoke-Git $BetaDir @("add", "-A")
-
-# Drift guard: snapshot beta main harus identik dengan work HEAD
-if (Test-TreeDrift -SourceDir $WorkDir -TargetDir $BetaDir) {
-  Write-Host "[FAIL] Snapshot beta main kehilangan/menambah file dibanding work HEAD." -ForegroundColor Red
-  Write-Host "       Biasanya ini karena push-beta.ps1 tidak dijalankan setelah file baru di-add." -ForegroundColor Red
-  Write-Host "       Lihat DEPLOYMENT.md alur 'work -> beta'." -ForegroundColor Red
-  exit 1
-}
-
 # Version-bump reminder: rilis kaki5 yang mengubah kode tapi lupa bump
 # kaki5/js/version.json membuat overlay update mati & cache SW tak invalid
 # (insiden v100, 2026-08-29). Non-blocking — hanya peringatan.
@@ -141,29 +131,19 @@ if ($prevMainSha) {
     Write-Host "       sw.js CACHE_NAME, index.html ?v= (lihat komentar KONVENSI RILIS di version.js)." -ForegroundColor Yellow
   }
 }
-
-# Verifikasi ulang index (cached)
-if (Test-TreeSecret $BetaDir -Cached) {
-  Write-Host "[FAIL] Snapshot main mengandung pola secret:" -ForegroundColor Red
-  $script:secretHits | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
-  exit 1
-}
-
 $fileCount = (git -C $BetaDir diff --cached --name-only | Measure-Object -Line).Lines
 Write-Host "     Snapshot berisi $fileCount file."
+Invoke-Git $BetaDir @("commit", "-m", "chore: rilis beta $stamp (snapshot bersih, squash dari folder kerja)", "--trailer", "Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>")
 
-Invoke-Git $BetaDir @("commit", "-m", "chore: rilis beta $stamp (snapshot bersih, squash dari preview)", "--trailer", "Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>")
-
-Write-Host "==> [4/6] Push ke GitHub kasol-beta (main)" -ForegroundColor Cyan
+Write-Host "==> [5/6] Ganti `main` & push ke GitHub kasol-beta" -ForegroundColor Cyan
+& git -C $BetaDir branch -D main 2>$null
+Invoke-Git $BetaDir @("branch", "-m", "main")
 $ans = Read-Host "     Squash snapshot siap. Push --force-with-lease ke GitHub main? (y/N)"
 if ($ans -ne "y") {
-  Write-Host "     Batal. Snapshot main lokal tetap tersimpan di kasol-beta." -ForegroundColor Yellow
+  Write-Host "     Batal. Snapshot tetap tersimpan di branch main lokal kasol-beta." -ForegroundColor Yellow
   exit 0
 }
 Invoke-Git $BetaDir @("push", "origin", "main", "--force-with-lease")
-
-Write-Host "==> [5/6] Kembalikan working branch kasol-beta ke preview" -ForegroundColor Cyan
-Invoke-Git $BetaDir @("switch", "preview")
 
 Write-Host "==> [6/6] Selesai" -ForegroundColor Green
 Write-Host "     GitHub: https://github.com/mcfuryamen/kasol-beta" -ForegroundColor Green

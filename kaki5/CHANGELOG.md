@@ -9,6 +9,7 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
   * Penimpaan baris cloud hanya lewat jalur **user-intent** (`force`: 4 handler form profil di `settings.ui.js` + `syncNow()`).
   * Retry loop (T29) kini `force: true` — janji "akan otomatis dicoba saat online" untuk edit form saat offline tetap terpenuhi.
 - **`boot()`: hapus duplikasi blok `verifyBootLicenseAssignment`** (artefak merge; verifikasi lisensi jalan 2x per boot).
+- **Pipeline rilis dirapikan**: `push-beta.ps1` & `push-live.ps1` tidak lagi memakai branch `preview` sama sekali (permintaan pemilik) — mirror cukup `git fetch` dari sumber, snapshot dibangun di orphan `_release` → rename `main` → push GitHub. Guard drift kini membandingkan **staged index** vs pohon sumber (versi lama membandingkan branch yang saat pengecekan masih unborn = no-op). File `.ps1` wajib UTF-8 dengan BOM agar PowerShell 5.1 tidak salah baca em-dash.
 
 ## 2026-08-29 (v101 / 1.0.32: re-align versi & pulihkan overlay update)
 - **Konvensi rilis pecah di v87-era commit 473231a**: `sw.js` dinaikkan ke v100 + `index.html ?v=100` tanpa menyentuh `version.js`/`version.json` (tetap v99). Akibat kumulatif: overlay update tidak pernah muncul (`remote.cacheBust === CACHE_BUST`), cache SW tidak pernah invalid (user PWA berisiko stuck HTML lama), catatan rilis tidak pernah sampai user.
