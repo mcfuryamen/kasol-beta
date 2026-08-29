@@ -48,8 +48,21 @@ export function selectMenuCat(cat) {
 }
 
 export async function renderMenuList() {
-  const search = (document.getElementById('searchMenuList').value || '').toLowerCase();
-  const allMenus = await DB.menu.toArray();
+  // Null-guard: elemen statis, tapi render tidak boleh mati total kalau
+  // DOM belum siap (TypeError di sini = daftar kosong tanpa pesan).
+  const searchEl = document.getElementById('searchMenuList');
+  const search = ((searchEl && searchEl.value) || '').toLowerCase();
+  let allMenus;
+  try {
+    allMenus = await DB.menu.toArray();
+  } catch (e) {
+    // DB gagal dibaca (mis. Dexie open tertunda saat update): tampilkan
+    // error state + tombol coba lagi — JANGAN biarkan daftar kosong diam.
+    console.error('[MENU] Gagal memuat daftar menu:', e?.message || e);
+    const errBox = document.getElementById('menuListContainer');
+    if (errBox) errBox.innerHTML = '<div class="empty-state" data-action="retry-menu-list" role="button" tabindex="0" style="cursor:pointer"><div class="empty-icon">⚠️</div><div class="empty-text">Gagal memuat menu.<br>Ketuk di sini untuk coba lagi.</div></div>';
+    return;
+  }
   renderMenuCatAccordion(allMenus);
   let menus = allMenus;
   if (_menuCat !== 'Semua') menus = menus.filter(m => m.kategori === _menuCat);

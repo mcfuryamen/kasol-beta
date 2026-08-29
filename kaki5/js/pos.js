@@ -66,10 +66,34 @@ function filterOjol(menus) {
   return orderType === 'ojol' ? menus.filter(m => (m.hargaOjol || 0) > 0) : menus;
 }
 
+// ── Ambil menu aktif (tahan boolean) ──
+// Index 'aktif' TIDAK memuat record dengan nilai boolean (IndexedDB tidak
+// meng-index boolean) — record `aktif: true` (mis. dari restore backup lama)
+// hilang diam-diam dari `where('aktif').equals(1)`. Table scan + filter JS
+// menerima 1 dan true; volume menu ratusan — murah.
+async function getActiveMenus() {
+  return DB.menu.filter(m => m.aktif === 1 || m.aktif === true).toArray();
+}
+
+// Error state bersama: DB gagal dibaca (mis. Dexie open tertunda saat update)
+// → tampilkan pesan + tombol coba lagi, jangan biarkan grid kosong diam.
+function renderPOSError(action) {
+  const grid = document.getElementById('posMenuGrid');
+  if (grid) grid.innerHTML = `<div class="empty-state" data-action="${action}" role="button" tabindex="0" style="grid-column:1/-1;cursor:pointer"><div class="empty-icon">⚠️</div><div class="empty-text">Gagal memuat menu.<br>Ketuk di sini untuk coba lagi.</div></div>`;
+}
+
 export async function loadPOS() {
   await loadCart();
   // Ambil menu SEKALI, lalu pakai untuk tab kategori & grid — hindari 2x query DB.
-  const menus = filterOjol(await DB.menu.where('aktif').equals(1).toArray());
+  let menus;
+  try {
+    menus = filterOjol(await getActiveMenus());
+  } catch (e) {
+    console.error('[POS] Gagal memuat menu:', e?.message || e);
+    renderPOSError('retry-pos');
+    renderCartBar();
+    return;
+  }
   renderPOSCatTabsUI(menus);
   const filtered = posCat !== 'Semua' ? menus.filter(m => m.kategori === posCat) : menus;
   renderPOSMenuUI(filtered);
@@ -86,7 +110,7 @@ export async function loadPOS() {
 
 // ---- Category tabs (async: DB query + DOM) ----
 export async function renderPOSCatTabs() {
-  const menus = filterOjol(await DB.menu.where('aktif').equals(1).toArray());
+  const menus = filterOjol(await getActiveMenus());
   return renderPOSCatTabsUI(menus);
 }
 
@@ -99,8 +123,16 @@ export function selectPosCat(cat) {
 
 // ---- Menu grid (async: DB query + DOM) ----
 export async function renderPOSMenu() {
-  const search = (document.getElementById('searchMenu').value || '').toLowerCase();
-  let menus = filterOjol(await DB.menu.where('aktif').equals(1).toArray());
+  const searchEl = document.getElementById('searchMenu');
+  const search = ((searchEl && searchEl.value) || '').toLowerCase();
+  let menus;
+  try {
+    menus = filterOjol(await getActiveMenus());
+  } catch (e) {
+    console.error('[POS] Gagal memuat menu:', e?.message || e);
+    renderPOSError('retry-pos');
+    return;
+  }
   if (posCat !== 'Semua') menus = menus.filter(m => m.kategori === posCat);
   if (search) menus = menus.filter(m => m.nama.toLowerCase().includes(search));
   renderPOSMenuUI(menus);

@@ -1,8 +1,7 @@
 {
-  "version": "1.0.38",
-  "cacheBust": "v107",
+  "version": "1.0.39",
+  "cacheBust": "v108",
   "notes": [
-    "🗂️ Kartu menu kini berupa akordeon: ketuk baris untuk membuka aksi (edit/jeda/hapus), ketuk menu lain otomatis tertutup — di kanan tampil harga jual",
-    "🧼 Tombol Batal/Simpan di form kini menutup rapi sampai tepi bawah, tidak ada lagi konten yang bocor di belakangnya"
+    "🛡️ Daftar menu & jualan kini tahan gangguan saat update aplikasi — kalau data gagal dimuat, tampil pesan + tombol coba lagi (tidak lagi kosong diam-diam)"
   ]
 }

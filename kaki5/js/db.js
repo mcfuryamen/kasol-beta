@@ -5,6 +5,23 @@ import { showToast } from './helpers.js';
 
 const db = new Dexie('KasirSoloKakiLima');
 
+// Upgrade DB terblokir koneksi lain (mis. tab lama yang masih hidup saat
+// update PWA di-reload): tanpa ini Dexie.open() menggantung tanpa error dan
+// SEMUA daftar (menu/jualan/laporan) tampak "hilang" diam-diam.
+// Reload sekali per tab (sessionStorage guard anti-loop); tab tua biasanya
+// ikut memuat versi terbaru sehingga upgrade lolos setelah reload.
+let _dbBlockedReloaded = false;
+db.on('blocked', () => {
+  if (_dbBlockedReloaded) return;
+  try {
+    if (sessionStorage.getItem('ksr:db-blocked-reload')) return;
+    sessionStorage.setItem('ksr:db-blocked-reload', String(Date.now()));
+  } catch (_) { /* storage blokir — tetap reload sekali */ }
+  _dbBlockedReloaded = true;
+  console.warn('[DB] Upgrade terblokir koneksi lain — memuat ulang halaman...');
+  setTimeout(() => location.reload(), 300);
+});
+
 // version 1: existing tables (unchanged — migration-free)
 db.version(1).stores({
   menu: '++id, nama, kategori, hargaJual, hargaModal, aktif, urutan',

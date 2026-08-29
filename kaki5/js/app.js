@@ -491,6 +491,16 @@ function handleDataAction(action, el, event) {
       acc.classList.toggle('open', willOpen);
       break;
     }
+    case 'retry-menu-list': {
+      // Error state daftar menu (DB gagal dibaca, mis. Dexie open tertunda
+      // saat update PWA) — ketuk kartu ⚠️ untuk coba lagi.
+      import('./menu.js').then(m => m.renderMenuList()).catch(() => {});
+      break;
+    }
+    case 'retry-pos': {
+      import('./pos.js').then(m => m.loadPOS()).catch(() => {});
+      break;
+    }
     case 'open-menu-form': {
       // Tombol ✏️ edit di kartu menu membawa data-menu-id (mode edit);
       // FAB ➕ tidak membawa id (mode tambah). Tanpa ini form edit terbuka kosong.
