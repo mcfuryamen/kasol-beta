@@ -14,7 +14,16 @@
   window.KASIRSOLO_SUPABASE_URL = FALLBACK_URL;
   window.KASIRSOLO_SUPABASE_ANON_KEY = FALLBACK_ANON_KEY;
 
-  // Fetch real config from Edge Function (async, non-blocking)
+  // Fetch real config from Edge Function (async, non-blocking).
+  // Di host dev (localhost/127.0.0.1/IP lokal) endpoint /api/* tidak ada
+  // (serverless hanya di Vercel) — skip fetch supaya console bersih;
+  // fallback dipakai langsung (nilainya identik).
+  const h = location.hostname;
+  const isDevHost = h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.') || h.startsWith('10.') || h.endsWith('.local') || !h.includes('.');
+  if (isDevHost) {
+    console.info('[CONFIG] Dev host — pakai fallback Supabase config (tanpa Edge Function)');
+    return;
+  }
   fetch('/api/supabase-config')
     .then(res => res.ok ? res.json() : null)
     .then(data => {

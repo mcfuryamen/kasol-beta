@@ -1,6 +1,6 @@
 {
-  "version": "1.0.43",
-  "cacheBust": "v112",
+  "version": "1.0.44",
+  "cacheBust": "v113",
   "notes": [
     "☁️ Cadangan Cloud: simpan produk & transaksi ke server & pulihkan kapan saja — bisa dipakai pindah HP",
     "💾 Cadangan file tetap ada, kini khusus produk & transaksi (profil selalu dari server)"
