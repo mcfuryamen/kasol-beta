@@ -179,6 +179,30 @@ export async function syncLicenseStatus() {
     await markLicenseRevoked('admin');
     return { ok: false, reason: 'revoked', revoked: true };
   }
+  // 'belum' (atau kosong) = cloud TIDAK mencatat lisensi terjual untuk unit
+  // ini. Cloud adalah sumber kebenaran: lokal yang masih 'active' adalah cache
+  // basi (mis. baris cloud di-reset admin — insiden chip zombie v101,
+  // 2026-08-29) dan WAJIB diturunkan ke trial berjangkar first_seen (T12)
+  // agar chip/gate kembali jujur. Bukan revoke — 'belum' artinya kembali ke
+  // masa coba, bukan hukuman.
+  if (status === 'belum' || status === '') {
+    const local = await getLicense();
+    if (local.status === 'active') {
+      const { saveLicense } = await import('./license.logic.js');
+      await saveLicense({
+        status: 'trial',
+        startedAt: cloud.first_seen || local.startedAt || new Date().toISOString(),
+        deviceCode: local.deviceCode || (await getDeviceCode()),
+        extensionsUsed: 0,
+        downgradedFrom: 'active',
+        downgradedAt: new Date().toISOString(),
+        downgradedReason: 'cloud-belum'
+      });
+      await refreshSettingsUI();
+    }
+    // trial/none/revoked lokal + cloud 'belum' → tidak ada yang diubah;
+    // trial tetap dihitung dari startedAt lokal (sudah berjangkar first_seen).
+  }
   // Pemulihan revoke palsu (H3): revoke bertanda 'not-found' yang ternyata
   // barisnya ADA dan tidak dicabut admin → hapus state revoked lokal supaya
   // perangkat bisa trial/aktivasi normal. Revoke admin asli tidak tersentuh

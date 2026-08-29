@@ -264,8 +264,15 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
       .select('unit_id')
       .eq('unit_id', unitId)
       .maybeSingle();
+    // Aturan sumber kebenaran (2026-08-29): cloud = satu-satunya sumber lisensi
+    // & profil. Push OTOMATIS (boot 1c / latar, tanpa `force`) hanya BACKFILL:
+    // baris belum ada → insert; baris sudah ada → JANGAN sentuh field profil,
+    // supaya data lokal basi tidak pernah menimpa cloud. Penimpaan cloud hanya
+    // lewat jalur user-intent (`force`: form profil & tombol sinkron).
     const { error: upErr } = existing
-      ? await sb.from('clients').update({ ...payload, user_id: userId }).eq('unit_id', unitId)
+      ? (force
+          ? await sb.from('clients').update({ ...payload, user_id: userId }).eq('unit_id', unitId)
+          : null)
       : await sb.from('clients').insert({ ...payload, user_id: userId });
     if (upErr) throw upErr;
     // Pipeline marketing kini ada DI clients (leads/pembelian lama sudah
@@ -331,7 +338,11 @@ export function startSyncRetryLoop() {
       if (!navigator.onLine) return;
       const st = await getSyncState();
       if (st.status === 'pending') {
-        await ensureSynced({ silent: true });
+        // force:true = pending hampir selalu berasal dari form profil yang
+        // gagal sinkron saat offline (user-intent) — harus tetap boleh
+        // meng-update baris cloud yang sudah ada saat online kembali,
+        // sesuai toast "akan otomatis dicoba saat online".
+        await ensureSynced({ silent: true, force: true });
       }
     } catch (_) { /* retry loop tidak boleh crash */ }
   }, RETRY_INTERVAL_MS);

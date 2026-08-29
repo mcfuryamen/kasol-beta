@@ -1037,12 +1037,6 @@ async function boot() {
   // langsung DIKUNCI — pencegahan pemakaian silang serial.
   try { await verifyBootLicenseAssignment(); } catch (e) { console.warn('[BOOT] verify assignment gagal:', e?.message || e); }
 
-  // 1a-bis) Opsi 3 lock-boot: kalau lisensi AKTIF dan online, verifikasi sekali lagi
-  // bahwa profil perangkat masih cocok dengan baris serial di cloud. Bila profil
-  // tidak cocok (serial dipindah ke perangkat lain yg profil beda), aplikasi
-  // langsung DIKUNCI — pencegahan pemakaian silang serial.
-  try { await verifyBootLicenseAssignment(); } catch (e) { console.warn('[BOOT] verify assignment gagal:', e?.message || e); }
-
   // 1b) Pull profil dari cloud → IndexedDB (broad pull, tidak hanya saat license aktif).
   //     DI-AWAIT supaya data profil sudah ada di IndexedDB SEBELUM render UI.
   //     Device baru / install ulang / wipeIndexedDB akan otomatis dapat profil.
