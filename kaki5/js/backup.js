@@ -19,6 +19,9 @@ import { hmacSignature, b32Encode } from './license.logic.js';
 
 // Pure & testable: buang baris settings terlindungi (dipakai ekspor DAN impor,
 // supaya file cadangan lama yang masih memuat license pun aman saat dipulihkan).
+// (Sejak v2 cadangan 2026-08-29, settings TIDAK lagi diekspor/dipulihkan sama
+// sekali — profil usaha sumber kebenarannya Supabase. Fungsi ini dipertahankan
+// untuk kompatibilitas test_validate.js.)
 export function sanitizeSettingsRows(rows) {
   const PROTECTED = ['installId', 'unitId', 'deviceIdentity', 'license', 'onboarded', 'sync'];
   if (!Array.isArray(rows)) return [];
@@ -46,19 +49,15 @@ export async function verifyBackupSignature(data, expectedSig) {
 }
 
 export async function exportData() {
-  // Cadangan = DATA USAHA saja. Identitas perangkat & lisensi tidak ikut
-  // (lihat PROTECTED_SETTINGS_KEYS) — file dibagikan ke HP lain tidak
-  // membawa lisensi/klaim perangkat.
-  const settings = sanitizeSettingsRows(await DB.settings.toArray());
+  // Cadangan = DATA PRODUK & TRANSAKSI saja (permintaan pemilik 2026-08-29).
+  // Profil usaha TIDAK ikut — sumber kebenarannya Supabase (di-pull otomatis
+  // saat boot/online). Lisensi & identitas perangkat juga tidak ikut (T7/H5).
   const data = {
-    version: 1,
+    version: 2,
     exportDate: new Date().toISOString(),
     menu: await DB.menu.toArray(),
     penjualan: await DB.penjualan.toArray(),
-    pengeluaran: await DB.pengeluaran.toArray(),
-    pengaturan: await DB.pengaturan.toArray(),
-    settings,
-    platformMessages: await DB.platformMessages.toArray()
+    pengeluaran: await DB.pengeluaran.toArray()
   };
   
   // Generate HMAC signature for integrity verification
@@ -175,38 +174,34 @@ export async function importData(event) {
     // ensure missing arrays default to []
     data.penjualan = data.penjualan || [];
     data.pengeluaran = data.pengeluaran || [];
-    data.pengaturan = data.pengaturan || [];
-    data.settings = sanitizeSettingsRows(data.settings || []);
-    data.platformMessages = data.platformMessages || [];
 
-    showConfirm('📂', 'Data lama akan diganti dengan data dari file cadangan. Lanjut?', 'Ya, Pulihkan', async () => {
+    showConfirm('📂', 'Produk & transaksi akan diganti dengan data dari file cadangan. Profil usaha tidak berubah (mengikuti data server). Lanjut?', 'Ya, Pulihkan', async () => {
       try {
         // TRANSAKSI (T6): clear + insert satu paket atomik. Gagal di tabel mana
         // pun = rollback total — data lama tetap utuh (dulu: clear duluan tanpa
         // transaksi, file rusak di tengah = data lenyap).
+        // v2 (2026-08-29): HANYA produk & transaksi. settings/pengaturan/
+        // platformMessages di file lama DIABAIKAN — profil usaha sumber
+        // kebenarannya Supabase dan di-pull ulang otomatis setelah restore.
         await DB.transaction(
           'rw',
-          [DB.menu, DB.penjualan, DB.pengeluaran, DB.pengaturan, DB.settings, DB.platformMessages],
+          [DB.menu, DB.penjualan, DB.pengeluaran],
           async () => {
             await DB.menu.clear();
             await DB.penjualan.clear();
             await DB.pengeluaran.clear();
-            await DB.pengaturan.clear();
-            await DB.settings.clear();
-            await DB.platformMessages.clear();
 
             if (data.menu.length) await DB.menu.bulkAdd(data.menu);
             if (data.penjualan.length) await DB.penjualan.bulkAdd(data.penjualan);
             if (data.pengeluaran.length) await DB.pengeluaran.bulkAdd(data.pengeluaran);
-            if (data.pengaturan.length) await DB.pengaturan.bulkAdd(data.pengaturan);
-            if (data.settings.length) await DB.settings.bulkAdd(data.settings);
-            if (data.platformMessages.length) await DB.platformMessages.bulkAdd(data.platformMessages);
           }
         );
 
         clearCartStorage();
-        showToast('✅ Data berhasil dipulihkan!');
+        showToast('✅ Produk & transaksi berhasil dipulihkan!');
         navigateTo('beranda');
+        // Profil tetap mengikuti Supabase — segarkan dari server (non-blocking).
+        import('./sync.js').then(m => m.pullCloudProfileIfOnline()).catch(() => {});
       } catch (err) {
         console.error('[Restore] failed:', err);
         showToast('Pemulihan dibatalkan — data lama tetap utuh. (' + String(err?.message || err).slice(0, 120) + ')', 'error', { duration: 6000 });

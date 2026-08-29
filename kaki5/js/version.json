@@ -1,7 +1,7 @@
 {
-  "version": "1.0.40",
-  "cacheBust": "v109",
+  "version": "1.0.41",
+  "cacheBust": "v110",
   "notes": [
-    "📌 Tombol Batal/Simpan kini menempel di dasar layar di semua form — tidak lagi menggantung di tengah"
+    "💾 Cadangan kini khusus produk & transaksi — profil usaha selalu mengikuti data server (Supabase)"
   ]
 }
