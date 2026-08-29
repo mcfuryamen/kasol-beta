@@ -1,8 +1,8 @@
 {
-  "version": "1.0.34",
-  "cacheBust": "v103",
+  "version": "1.0.35",
+  "cacheBust": "v104",
   "notes": [
-    "🔧 Perbaikan tampilan Menu: pilihan Kategori & Suplayer kini terbuka di tempatnya — tidak lagi melayang menutupi daftar menu",
-    "🛡️ Status lisensi & profil tetap mengikuti server (perbaikan kemarin berlanjut)"
+    "📱 Form menu rapi di HP: kolom Kategori & Suplayer tersusun 1 kolom (2 kolom mulai tablet)",
+    "✨ Fokus input lebih bersih — outline oranye tebal diganti outline bawaan browser"
   ]
 }

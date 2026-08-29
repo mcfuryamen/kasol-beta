@@ -97,7 +97,10 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .form-label{display:block;font-size:14px;font-weight:700;color:var(--text2);margin-bottom:6px}
 .form-helper{font-size:12px;color:var(--text3);font-style:italic;margin-bottom:6px}
 .form-input{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:17px;font-weight:600;background:#fff;color:var(--text);transition:border .2s;-webkit-appearance:none}
-.form-input:focus{outline:3px solid var(--primary);outline-offset:2px;border-color:var(--primary)}
+/* Fokus bersih: tanpa outline oranye tebal — indikator keyboard via
+   :focus-visible memakai outline bawaan browser (permintaan pemilik 2026-08-29) */
+.form-input:focus{outline:none}
+.form-input:focus-visible{outline:auto}
 .form-input::placeholder,.search-box input::placeholder{color:#bbb;font-size:.85em;font-weight:400}
 select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 16px center}
 
@@ -342,6 +345,8 @@ input[type=number]{-moz-appearance:textfield}
 .main-content{width:100%;max-width:none;margin-top:var(--header-h);margin-bottom:var(--nav-h);padding:20px 24px 28px}
 .bottom-nav{max-width:100%;left:0;right:0;transform:none}
 .stat-grid{grid-template-columns:1fr 1fr;gap:14px}
+/* Kategori & Suplayer: 2 kolom mulai tablet (HP = 1 kolom, base) */
+.kgrid-konsinyasi{grid-template-columns:1fr 1fr}
 .stat-card.full{grid-column:1/-1}
 .menu-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px}
 .menu-item{padding:16px 12px}
@@ -753,7 +758,7 @@ body.modal-open .main-content{overflow:hidden}
 .kgrid-stokojol{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0}
 .kgrid-stokojol .form-group{min-width:0}
 /* Grid Kategori+Suplayer: selalu 2 kolom sejajar, kolom melebar penuh mengisi area */
-.kgrid-konsinyasi{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.kgrid-konsinyasi{display:grid;grid-template-columns:1fr;gap:12px;width:100%}
 /* Select di form Kategori+Suplayer: isi penuh kolom */
 .kgrid-konsinyasi select.form-input{width:100%;padding:10px 32px 10px 12px;min-height:44px;font-size:15px}
 /* Trigger accordion & kotak: melebar penuh mengisi kolomnya */
