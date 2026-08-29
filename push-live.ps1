@@ -37,11 +37,14 @@ function Invoke-Git([string]$dir, [string[]]$gitArgs) {
 
 function Test-TreeSecret([string]$dir, [switch]$Cached) {
   $found = @()
+  # Kecualikan skrip push itu sendiri — pola prefix token terliteral di
+  # $secretPatterns-nya, tanpa ini guard selalu self-match dan gagal sendiri.
+  $selfExclude = @("--", ".", ":(exclude)push-beta.ps1", ":(exclude)push-live.ps1")
   foreach ($p in $secretPatterns) {
     if ($Cached) {
-      $m = & git -C $dir grep --cached -n $p 2>$null
+      $m = & git -C $dir grep --cached -n $p @selfExclude 2>$null
     } else {
-      $m = & git -C $dir grep -n $p 2>$null
+      $m = & git -C $dir grep -n $p @selfExclude 2>$null
     }
     if ($LASTEXITCODE -eq 0) {
       # Abaikan placeholder contoh (mis. sbp_xxx...) — hanya nilai asli yang memblokir
