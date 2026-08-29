@@ -94,10 +94,14 @@ export async function fetchProductSalt() {
   }
 
   try {
+    // 2026-08-30: kolom asli tabel products = `kode_produk` & `salt` — filter
+    // lama (`prefix`/`salt_hmac`/`salt_version`) selalu 400 sehingga fetch ini
+    // diam-diam memakai salt fallback lokal selama ini (nilainya identik dengan
+    // cloud, makanya validasi serial tak pernah bermasalah).
     const { data, error } = await sb
       .from('products')
-      .select('salt_hmac, salt_version')
-      .eq('prefix', PRODUCT_PREFIX)
+      .select('salt')
+      .eq('kode_produk', PRODUCT_PREFIX)
       .eq('app_type', APP_TYPE)
       .maybeSingle();
 
@@ -106,8 +110,8 @@ export async function fetchProductSalt() {
       return getLocalFallbackSalt();
     }
 
-    if (data && data.salt_hmac) {
-      const result = { salt: data.salt_hmac, version: data.salt_version || 2 };
+    if (data && data.salt) {
+      const result = { salt: data.salt, version: 2 };
       _productSaltCache = result;
       console.log('[LICENSE] Product salt fetched from Supabase:', result);
       return result;
@@ -142,7 +146,7 @@ export async function fetchTxQuotaConfig() {
     const { data, error } = await sb
       .from('products')
       .select('tx_quota')
-      .eq('prefix', PRODUCT_PREFIX)
+      .eq('kode_produk', PRODUCT_PREFIX)
       .eq('app_type', APP_TYPE)
       .maybeSingle();
     if (error || !data) return null;
