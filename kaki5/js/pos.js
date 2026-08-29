@@ -58,10 +58,18 @@ function debounce(fn, delay = 300) {
 
 const _debouncedRenderPOSMenu = debounce(renderPOSMenu, 300);
 
+// ── Filter tipe Ojol ──
+// Saat tipe Ojol aktif, tampilkan HANYA menu yang punya Harga Ojol terpasang
+// (permintaan pemilik 2026-08-29) — menu tanpa konfigurasi ojol tidak bisa
+// dijual via ojol, jadi disembunyikan dari grid & tab/accordion kategori.
+function filterOjol(menus) {
+  return orderType === 'ojol' ? menus.filter(m => (m.hargaOjol || 0) > 0) : menus;
+}
+
 export async function loadPOS() {
   await loadCart();
   // Ambil menu SEKALI, lalu pakai untuk tab kategori & grid — hindari 2x query DB.
-  const menus = await DB.menu.where('aktif').equals(1).toArray();
+  const menus = filterOjol(await DB.menu.where('aktif').equals(1).toArray());
   renderPOSCatTabsUI(menus);
   const filtered = posCat !== 'Semua' ? menus.filter(m => m.kategori === posCat) : menus;
   renderPOSMenuUI(filtered);
@@ -78,7 +86,7 @@ export async function loadPOS() {
 
 // ---- Category tabs (async: DB query + DOM) ----
 export async function renderPOSCatTabs() {
-  const menus = await DB.menu.where('aktif').equals(1).toArray();
+  const menus = filterOjol(await DB.menu.where('aktif').equals(1).toArray());
   return renderPOSCatTabsUI(menus);
 }
 
@@ -92,7 +100,7 @@ export function selectPosCat(cat) {
 // ---- Menu grid (async: DB query + DOM) ----
 export async function renderPOSMenu() {
   const search = (document.getElementById('searchMenu').value || '').toLowerCase();
-  let menus = await DB.menu.where('aktif').equals(1).toArray();
+  let menus = filterOjol(await DB.menu.where('aktif').equals(1).toArray());
   if (posCat !== 'Semua') menus = menus.filter(m => m.kategori === posCat);
   if (search) menus = menus.filter(m => m.nama.toLowerCase().includes(search));
   renderPOSMenuUI(menus);

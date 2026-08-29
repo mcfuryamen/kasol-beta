@@ -358,7 +358,11 @@ function ensurePosCatDelegation(box) {
 export function renderPOSMenuUI(menus) {
   const grid = document.getElementById('posMenuGrid');
   if (!menus || menus.length === 0) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🍽️</div><div class="empty-text">Belum ada menu.<br>Tambah di tab Menu dulu ya!</div></div>';
+    // Pesan kosong kontekstual: mode Ojol tanpa menu ber-harga Ojol → pandu
+    // user ke konfigurasi Harga Ojol, bukan "Belum ada menu" yang menyesatkan.
+    grid.innerHTML = orderType === 'ojol'
+      ? '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🛵</div><div class="empty-text">Belum ada menu dengan Harga Ojol.<br>Atur Harga Ojol menu di tab Menu dulu ya!</div></div>'
+      : '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🍽️</div><div class="empty-text">Belum ada menu.<br>Tambah di tab Menu dulu ya!</div></div>';
     return;
   }
 

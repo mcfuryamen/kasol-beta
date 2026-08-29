@@ -1,8 +1,8 @@
 {
-  "version": "1.0.35",
-  "cacheBust": "v104",
+  "version": "1.0.36",
+  "cacheBust": "v105",
   "notes": [
-    "📱 Form menu rapi di HP: kolom Kategori & Suplayer tersusun 1 kolom (2 kolom mulai tablet)",
-    "✨ Fokus input lebih bersih — outline oranye tebal diganti outline bawaan browser"
+    "🛵 Tipe Ojol kini cuma menampilkan menu yang punya Harga Ojol — daftar & tab kategori ikut menyesuaikan",
+    "📱 Form menu rapi di HP & fokus input lebih bersih (rilis kemarin berlanjut)"
   ]
 }
