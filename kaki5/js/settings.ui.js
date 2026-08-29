@@ -18,11 +18,15 @@ import { region } from './settings.logic.js';
 import { getLicenseStatus } from './license.js';
 import { setupRegionPicker } from './region.js';
 import { showToast, formatPhoneDisplay } from './helpers.js';
-import { ensureSynced, isSyncConfigured } from './sync.js';
+import { ensureSynced, isSyncConfigured, pullCloudProfileIfOnline } from './sync.js';
 import { currentPage } from './app-state.js';
 import { openModal, closeModal } from './modal.js';
 
 export async function loadSettings() {
+  // Cloud-first (permintaan pemilik 2026-08-29): profil = Supabase. Tiap kali
+  // halaman Pengaturan dibuka, tarik profil dari server dulu — supaya tampilan
+  // selalu cermin data cloud, bukan cache lokal yang bisa basi.
+  try { await pullCloudProfileIfOnline(); } catch (e) { console.warn('[SETTINGS] pull profil gagal:', e?.message || e); }
   const data = await loadSettingsData();
 
   const nameEl = document.getElementById('settingName');
