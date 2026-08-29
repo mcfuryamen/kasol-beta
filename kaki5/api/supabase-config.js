@@ -15,7 +15,10 @@
  */
 
 const FALLBACK_URL = 'https://hhywrvedlwljawgxzpkq.supabase.co';
-const FALLBACK_ANON_KEY = '******';
+// HARUS sama persis dengan FALLBACK_ANON_KEY di kaki5/js/supabase-config.js
+// agar klien tidak tertimpa string placeholder. JWT ini PUBLIK (anon key
+// Supabase memang di-design untuk di-expose ke browser), jadi aman di-serve.
+const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhoeXdydmVkbHdsamF3Z3h6cGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MzM4OTgsImV4cCI6MjEwMTEwOTg5OH0.GXHRDayBNRbWh1QywGkYCJ6D79qnm_mtyRSJUxw4x50';
 
 export default function handler(req, res) {
   const baseUrl = (process.env.SUPABASE_URL || FALLBACK_URL).replace(/\/$/, '');
