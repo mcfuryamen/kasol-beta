@@ -257,7 +257,15 @@ window._ksr_acceptTC = async () => {
   closeModal('tcModal');
   const msg = document.getElementById('onboardMsg');
   if (msg) msg.style.display = 'none';
-  await startTrial();
+  // T12b (2026-08-29): jangan mulai trial tanpa jangkar — tarik first_seen
+  // cloud dulu (baris biasanya sudah di-claim runLicenseSync saat boot),
+  // supaya hapus-data/ganti-browser tidak me-reset jatah trial perangkat.
+  let anchor = null;
+  try {
+    const { fetchLicenseStatusFromCloud } = await import('./license.sync.js');
+    anchor = (await fetchLicenseStatusFromCloud())?.first_seen || null;
+  } catch (_) { /* offline → trial lokal tanpa jangkar; dikoreksi T12b di sync */ }
+  await startTrial(anchor);
   await markOnboarded(); // onboarding selesai sekali -> jangan tampil lagi di perangkat ini
   await resolveLicenseGate();
   await boot();

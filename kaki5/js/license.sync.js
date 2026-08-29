@@ -199,9 +199,25 @@ export async function syncLicenseStatus() {
         downgradedReason: 'cloud-belum'
       });
       await refreshSettingsUI();
+    } else if (local.status === 'trial' && cloud.first_seen) {
+      // T12b (2026-08-29): jangkar T12 dulu hanya dipasang SAAT trial dimulai.
+      // Trial yang lahir tanpa jangkar (baris cloud belum ada / fetch gagal di
+      // detik itu) tidak pernah dikoreksi — perangkat fisik yang sama bisa
+      // tampil "TRIAL 6 hari" di satu browser dan "Masa Coba Habis" di browser
+      // lain (kasus nyata 2026-08-29, bukti RLS: session anon segar tidak bisa
+      // membaca baris clients milik session lain sampai device_known claim).
+      // Koreksi drift: startedAt mundur ke first_seen cloud (sumber kebenaran),
+      // extensionsUsed & identitas lain dipertahankan.
+      const anchorMs = new Date(cloud.first_seen).getTime();
+      const localMs = new Date(local.startedAt || 0).getTime();
+      if (Number.isFinite(anchorMs) && anchorMs > 0 && (!localMs || anchorMs < localMs - 60000)) {
+        const { saveLicense } = await import('./license.logic.js');
+        await saveLicense({ ...local, startedAt: new Date(anchorMs).toISOString() });
+        await refreshSettingsUI();
+      }
     }
-    // trial/none/revoked lokal + cloud 'belum' → tidak ada yang diubah;
-    // trial tetap dihitung dari startedAt lokal (sudah berjangkar first_seen).
+    // trial/none/revoked lokal + cloud 'belum' → tanpa drift first_seen,
+    // startedAt lokal dibiarkan (sudah berjangkar / sama dengan cloud).
   }
   // Pemulihan revoke palsu (H3): revoke bertanda 'not-found' yang ternyata
   // barisnya ADA dan tidak dicabut admin → hapus state revoked lokal supaya
