@@ -1,7 +1,7 @@
 {
-  "version": "1.0.50",
-  "cacheBust": "v119",
+  "version": "1.0.63",
+  "cacheBust": "v132",
   "notes": [
-    "🎨 Kartu kuota: bar progres hijau & tombol rapikan satu baris"
+    "🍽️ Form menu: satu field stok seperti semula (tanpa label)"
   ]
 }

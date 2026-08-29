@@ -409,7 +409,8 @@ export async function openCartModal() {
   if (orderHeader) {
     const tipeLabel = orderType === 'ojol' ? '🛵 Ojol'
       : orderType === 'takeaway' ? '🥡 Take-away' : '🍽️ Dine-in';
-    orderHeader.innerHTML = `<span>${tipeLabel}</span><span class="kfs12 kgray">berlaku untuk semua item</span>`;
+    const note = (document.getElementById('orderNoteInput')?.value || '').trim();
+    orderHeader.innerHTML = `<span>${tipeLabel}</span><span class="kfs12 kgray">${note ? escapeHtml(note) : 'berlaku untuk semua item'}</span>`;
   }
 
   const box = document.getElementById('cartItems');

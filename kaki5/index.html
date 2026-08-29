@@ -357,7 +357,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="kgrid-4col kmb12" id="presetBayarContainer"></div>
 </div>
 <div class="btn-row kmt12">
-<button class="btn btn-secondary btn-sm" data-action="close-cart">Batal</button>
+<button class="btn btn-secondary btn-sm btn-icon" data-action="close-cart" title="Batal">✕</button>
 <button class="btn btn-primary" data-action="save-sale">Simpan</button>
 <button class="btn btn-green" data-action="save-sale-print">🖨️ Simpan &amp; Cetak</button>
 </div>
@@ -456,7 +456,6 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
       </label>
     </div>
     <div id="menuOjolWrap" style="display:none;margin-top:10px">
-      <div class="form-helper" style="margin:0 0 8px">Kosongkan jika sama dengan harga jual</div>
       <input type="number" class="form-input" id="menuHargaOjol" placeholder="Contoh: 18000" inputmode="numeric">
     </div>
   </div>
@@ -470,8 +469,8 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
     </label>
   </div>
   <div id="menuToppingWrap" style="display:none;margin-top:10px">
-    <div class="form-helper" style="margin:0 0 8px">Satu per baris, format: <code>Nama Topping|Harga</code></div>
-    <textarea class="form-input" id="menuToppingList" rows="3" placeholder="Contoh:&#10;Extra Gula|1000&#10;Lemon|2000&#10;Boba|3000"></textarea>
+    <div id="menuToppingGrid"></div>
+    <button class="btn btn-outline" type="button" data-action="add-topping-row" style="margin-top:8px;font-size:13px;width:100%">＋ Tambah Topping</button>
   </div>
 </div>
 <div class="btn-row">
@@ -487,12 +486,17 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="modal-handle"></div>
 <div class="modal-title" id="returModalTitle">↩️ Retur Barang</div>
 <input type="hidden" id="returMenuId">
-<div class="form-group">
-  <div id="returMenuInfo" style="background:var(--card);border-radius:8px;padding:12px;font-size:14px"></div>
+<div id="returSingleBody">
+  <div class="form-group">
+    <div id="returMenuInfo" style="background:var(--card);border-radius:8px;padding:12px;font-size:14px"></div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Jumlah yang Dikembalikan</label>
+    <input type="number" class="form-input" id="returQty" inputmode="numeric" min="1" placeholder="Contoh: 3">
+  </div>
 </div>
-<div class="form-group">
-  <label class="form-label">Jumlah yang Dikembalikan</label>
-  <input type="number" class="form-input" id="returQty" inputmode="numeric" min="1" placeholder="Contoh: 3">
+<div id="returKonsinyasiBody" style="display:none">
+  <div id="returKonsinyasiRows" style="border:1px solid var(--border);border-radius:10px;padding:2px 12px;margin-bottom:4px"></div>
 </div>
 <div class="btn-row">
   <button class="btn btn-secondary" data-action="close-retur-modal">Batal</button>
@@ -519,6 +523,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <option value="Sewa Tempat">🏪 Sewa Tempat / Lapak</option>
 <option value="Peralatan">🍳 Peralatan</option>
 <option value="Setoran Konsinyasi">🤝 Setoran Konsinyasi</option>
+<option value="Retur Konsinyasi">↩️ Retur Konsinyasi</option>
 <option value="Lainnya">📦 Lainnya</option>
 </select>
 </div>
@@ -650,6 +655,19 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 </div>
 
+<!-- INPUT DIALOG (pengganti window.prompt — tidak didukung embedded browser, 2026-08-30) -->
+<div class="confirm-overlay" id="inputDialog" role="dialog" aria-modal="true" aria-labelledby="inputDialogTitle">
+<div class="confirm-box">
+<div class="confirm-icon" id="inputDialogIcon">✏️</div>
+<div class="confirm-text" id="inputDialogTitle">Masukkan nama</div>
+<input class="form-input" id="inputDialogField" type="text" autocomplete="off" style="text-align:left;margin-bottom:16px">
+<div class="btn-row">
+<button class="btn btn-secondary btn-sm" id="inputDialogCancel">Batal</button>
+<button class="btn btn-green btn-sm" id="inputDialogOk">Simpan</button>
+</div>
+</div>
+</div>
+
 <!-- FORCE UPDATE OVERLAY (versi baru wajib dimuat) -->
 <div id="updateOverlay" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
 <div class="update-card">
@@ -748,7 +766,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=119"></script>
+  <script type="module" src="js/app.js?v=132"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

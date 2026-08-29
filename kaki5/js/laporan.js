@@ -249,42 +249,55 @@ export async function loadReport() {
       bySuplayer[sp].push(m);
     });
 
-    let konsoHtml = '<div class="card"><div class="card-title">🤝 Konsinyasi</div>';
-    for (const [sp, items] of Object.entries(bySuplayer)) {
-      let spTerjual = 0, spUtang = 0, spStok = 0;
+    // Agregat dulu supaya tahu suplayer pertama yang masih berutang —
+    // yang itu yang terbuka otomatis (paritas dengan riwayat transaksi
+    // yang membuka hari aktif). Semua lunas → semua tertutup.
+    const suplayerStats = Object.entries(bySuplayer).map(([sp, items]) => {
+      let terjual = 0, utang = 0, stok = 0;
       items.forEach(m => {
         const tj = terjualPerMenu[m.id] || 0;
-        spTerjual += tj;
-        spUtang += tj * (m.hargaModal || 0);
-        spStok += m.pakaiStok ? (m.stok || 0) : 0;
+        terjual += tj;
+        utang += tj * (m.hargaModal || 0);
+        stok += m.pakaiStok ? (m.stok || 0) : 0;
       });
-      const spSetor = setorPerSuplayer[sp] || 0;
-      const spUtangSisa = spUtang - spSetor;
-      konsoHtml += `<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-weight:700;font-size:15px">${escapeHtml(sp)}</div>
-          <div style="font-size:11px;color:var(--text3)">${items.length} item titipan</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
-          <div style="text-align:center;background:#e8f5e9;border-radius:8px;padding:8px">
-            <div style="font-size:20px;font-weight:800;color:var(--green)">${spTerjual}</div>
-            <div style="font-size:11px;color:var(--text2)">Terjual</div>
-          </div>
-          <div style="text-align:center;background:#fff3e0;border-radius:8px;padding:8px">
-            <div style="font-size:20px;font-weight:800;color:var(--orange)">${formatRp(spUtangSisa)}</div>
-            <div style="font-size:11px;color:var(--text2)">Sisa Utang</div>
-          </div>
-          <div style="text-align:center;background:#e3f2fd;border-radius:8px;padding:8px">
-            <div style="font-size:20px;font-weight:800;color:var(--primary)">${spStok}</div>
-            <div style="font-size:11px;color:var(--text2)">Stok Tersisa</div>
+      const setor = setorPerSuplayer[sp] || 0;
+      return { sp, items, terjual, utang, stok, setor, sisa: utang - setor };
+    });
+    const firstUtangIdx = suplayerStats.findIndex(s => s.sisa > 0);
+
+    let konsoHtml = '<div class="card"><div class="card-title">🤝 Konsinyasi</div>';
+    suplayerStats.forEach((s, idx) => {
+      const konspId = `konsp-${idx}`;
+      const isOpen = idx === firstUtangIdx;
+      const lunas = s.sisa <= 0;
+      konsoHtml += `<div class="kmt12">
+        <div data-catid="${konspId}" class="trx-day-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:var(--orange-bg);border-radius:12px;margin-bottom:6px;cursor:pointer;user-select:none">
+          <div class="kfw800 kfs14">🤝 ${escapeHtml(s.sp)}</div>
+          <div class="kright" style="display:flex;align-items:center;gap:10px">
+            <div class="kfw800 kfs13 ${lunas ? 'kgreen' : 'kprimary'}">${lunas ? 'Lunas' : formatRp(s.sisa)}</div>
+            <span id="${konspId}-arrow" style="font-size:18px;color:var(--text3);transition:transform .2s;display:inline-block;${isOpen ? 'transform:rotate(90deg)' : ''}">›</span>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
-          Total Modal Terjual: ${formatRp(spUtang)} · Sudah Disetor: ${formatRp(spSetor)}
+        <div id="${konspId}" class="trx-day-panel" style="display:${isOpen ? 'block' : 'none'};padding-left:8px;border-left:2px solid var(--orange-bg);margin-bottom:8px">
+          ${s.items.map(m => {
+            const tj = terjualPerMenu[m.id] || 0;
+            const stokSub = m.pakaiStok ? ` · stok ${m.stok || 0}` : '';
+            return `<div class="trx-item" style="cursor:default">
+              <div class="trx-icon" style="background:var(--orange-bg);color:var(--primary)">🧾</div>
+              <div class="trx-info">
+                <div class="trx-title">${escapeHtml(m.nama)}</div>
+                <div class="trx-sub">${tj} terjual${stokSub}</div>
+              </div>
+              <div class="trx-amount" style="color:var(--orange)">${formatRp(tj * (m.hargaModal || 0))}</div>
+            </div>`;
+          }).join('')}
+          <div style="display:flex;gap:8px;padding-top:8px">
+            <button class="btn btn-secondary" style="flex:1;height:38px;min-height:38px;font-size:12px" data-action="retur-konsinyasi" data-suplayer="${escapeHtml(s.sp)}">↩️ Retur</button>
+            <button class="btn btn-primary" style="flex:1;height:38px;min-height:38px;font-size:12px" data-action="setor-konsinyasi" data-suplayer="${escapeHtml(s.sp)}" data-utang="${s.sisa}">💰 Setor</button>
+          </div>
         </div>
-        <button class="btn btn-primary kwh40" style="width:100%;font-size:13px" data-action="setor-konsinyasi" data-suplayer="${escapeHtml(sp)}" data-utang="${spUtangSisa}">💰 Setor</button>
       </div>`;
-    }
+    });
     konsoHtml += '</div>';
     html += konsoHtml;
   }

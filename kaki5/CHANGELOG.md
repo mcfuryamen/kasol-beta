@@ -2,6 +2,13 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-30 (v120–v132 / 1.0.51–1.0.63: topping grid, polish keranjang, konsinyasi & retur barang)
+- **Topping grid (v120)**: textarea "Nama|Harga" diganti grid 2 kolom (Nama | Harga) + tombol "＋ Tambah Topping" (`#menuToppingGrid`, `renderToppingRows`/`collectToppingGrid`); toggle topping mati otomatis saat menu tanpa topping (v121); tombol hapus kotak rounded oranye seukuran field; placeholder harga rata kiri.
+- **Polish keranjang (v121–v122)**: helper "Kosongkan jika…" dihapus; tombol Batal keranjang jadi ✕ kotak 48×48 rounded (`.btn-icon` radius 10px, `#cartModal .btn-row [data-action="close-cart"]` width 48 fix); header keranjang menampilkan catatan order (`orderNoteInput`) pengganti "berlaku untuk semua item".
+- **Modal input in-app (v122–v123)**: `showInputDialog()` menggantikan `window.prompt` (tidak didukung embedded browser) untuk Tambah Suplayer/Kategori; fix callback di-null-kan sebelum dipanggil (pola bug lama `confirm.js`) yang membuat data tak tersimpan.
+- **Konsinyasi akordeon (v124–v126)**: kartu per suplayer jadi akordeon ala Riwayat Transaksi (`.trx-day-header` + chevron); angka header berkode status — "Lunas" hijau / sisa utang oranye; suplayer berutang pertama terbuka otomatis; tombol ↩️ Retur (secondary) + 💰 Setor sejajar diperkecil proporsional (38px).
+- **Retur barang per suplayer (v127–v132)**: tombol Retur kini buka modal retur sungguhan (bukan form pengeluaran) — konsep per suplayer: satu kontainer daftar semua barang titipan (dipisah garis), info Diterima (rekonstruksi `stok+terjual`) · Terjual (lifetime) · Est. sisa, dan satu-satunya input "Sisa riil" di kanan; selisih riil vs estimasi wajib catatan alasan (`catatanSelisih`); simpan → stok disesuaikan, barang balik masuk counter `retur`, laporan refresh. Form menu kembali satu field stok seperti semula.
+
 ## 2026-08-29 (v119 / 1.0.50: UI polish kuota — progress bar hijau, tombol singkat, horizontal)
 - **Progress bar hijau**: progress `linear-gradient(90deg,var(--green),#388e3c)` menggantikan oranye untuk quota bar (`license.ui.js` + inline `animation:none` di kartu kuota agar tidak bertabrakan dengan keyframe lama).
 - **Label tombol pendek**: "💳 Beli Lisensi" (singkat, tanpa keterangan) + "💬 Tanya Admin" disederhanakan — keduanya kini sejajar horisontal di bawah kartu lisensi (`license-actions-row`, flex row `justify-content:center`).

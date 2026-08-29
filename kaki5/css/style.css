@@ -70,7 +70,7 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
 .btn-ghost:active{background:#f5f5f5}
 .btn-sm{padding:10px 16px;font-size:14px;min-height:42px;border-radius:10px}
-.btn-icon{width:48px;height:48px;min-height:48px;padding:0;border-radius:50%;font-size:20px}
+.btn-icon{width:48px;height:48px;min-height:48px;padding:0;border-radius:10px;font-size:20px}
 .btn-row{display:flex;gap:8px}
 .btn-row .btn{flex:1}
 
@@ -88,6 +88,7 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 
 /* cartModal footer: Batal & Simpan sama besar (bagi sisa area), Simpan & Cetak auto size */
 #cartModal .btn-row .btn{flex:1 1 0;width:auto}
+#cartModal .btn-row [data-action="close-cart"]{flex:0 0 auto;width:48px}
 #cartModal .btn-row [data-action="save-sale-print"]{flex:0 0 auto;width:auto}
 
 /* FAB */
@@ -827,6 +828,11 @@ body.modal-open .main-content{overflow:hidden}
 .topping-editing{outline:2px solid var(--primary-light);outline-offset:-2px;border-radius:12px}
 #toppingList{max-height:220px;overflow-y:auto;margin-bottom:8px}
 #toppingSelector{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px}
+/* Topping grid (menu form: 2 kolom nama|harga + tombol hapus) */
+.topping-grid-row{display:grid;grid-template-columns:1fr 110px 46px;gap:6px;align-items:center;margin-bottom:6px}
+.topping-grid-row .topping-harga{text-align:left}
+.topping-rm-btn{background:none;border:1.5px solid var(--primary);color:var(--primary);font-size:15px;cursor:pointer;width:46px;height:46px;display:flex;align-items:center;justify-content:center;border-radius:8px}
+.topping-rm-btn:hover{background:#fff7ed}
 
 /* Cart info-only: tipe order sebagai badge + topping tags horizontal */
 .cart-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:4px 0}

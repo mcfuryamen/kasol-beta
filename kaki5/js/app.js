@@ -49,7 +49,7 @@ let _berandaModule = null;
 
 // Wire page modules on first use
 const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput' };
-const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu', addCustomSuplayer: 'addCustomSuplayer', addCustomKategori: 'addCustomKategori', pickKategori: 'pickKategori', pickSuplayer: 'pickSuplayer', syncPakaiStokToggle: 'syncPakaiStokToggle', openReturModal: 'openReturModal', closeReturModal: 'closeReturModal', confirmRetur: 'confirmRetur' };
+const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu', addCustomSuplayer: 'addCustomSuplayer', addCustomKategori: 'addCustomKategori', pickKategori: 'pickKategori', pickSuplayer: 'pickSuplayer', syncPakaiStokToggle: 'syncPakaiStokToggle', openReturModal: 'openReturModal', closeReturModal: 'closeReturModal', confirmRetur: 'confirmRetur', openKonsinyasiRetur: 'openKonsinyasiRetur' };
 const _laporanWireMap = { __wired: false, loadReport: 'loadReport', setReportPeriod: 'setReportPeriodUI', setReportPeriodUI: 'setReportPeriodUI', navReportDate: 'navReportDate', toggleExpenseCat: 'toggleExpenseCat', setCustomDate: 'setCustomDate', toggleCustomPicker: 'toggleCustomPicker', pickDate: 'pickDate', pickWeek: 'pickWeek', pickMonth: 'pickMonth', pickCustomDate: 'pickCustomDate' };
 const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaUsaha: 'saveNamaUsaha', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification' };
 const _bantuanWireMap = { __wired: false, initBantuan: 'initBantuan', toggleTutorial: 'toggleTutorial' };
@@ -382,6 +382,14 @@ function handleDataAction(action, el, event) {
           jumlah: utang > 0 ? utang : ''
         });
       }
+      break;
+    }
+    case 'retur-konsinyasi': {
+      const sp = el?.dataset?.suplayer || '';
+      // Retur barang titipan = pengembalian barang ke suplayer (stok turun,
+      // counter m.retur naik) — bukan pengeluaran uang. Modal retur kini
+      // menampilkan select barang bila suplayer punya >1 menu titipan.
+      if (window.openKonsinyasiRetur) window.openKonsinyasiRetur(sp);
       break;
     }
 

@@ -4,7 +4,7 @@ import { escapeHtml, formatRp, showToast } from './helpers.js';
 import { currentPage } from './app-state.js';
 import { showConfirm } from './confirm.js';
 import { loadPOS } from './pos.js';
-import { openModal, closeModal } from './modal.js';
+import { openModal, closeModal, isModalOpen } from './modal.js';
 
 // Debounced search for menu list
 function debounce(fn, delay = 300) {
@@ -164,9 +164,9 @@ export async function openMenuForm(id) {
       setElemValue('menuKategori', m.kategori);
       setElemValue('menuHargaJual', m.hargaJual);
       setElemValue('menuHargaModal', m.hargaModal);
-      // Topping list: render sebagai baris terpisah "nama|harga" di textarea
+      // Topping list: render sebagai baris grid
       const toppings = parseToppingList(m.toppingList);
-      setElemValue('menuToppingList', toppings.map(t => t.nama + '|' + t.harga).join('\n'));
+      renderToppingRows(toppings);
       // Harga ojol: 0 = tidak di-set
       setElemValue('menuHargaOjol', m.hargaOjol || '');
       // Konsinyasi
@@ -184,7 +184,7 @@ export async function openMenuForm(id) {
       syncStokVisibility();
             // Toggle Harga Ojol & Topping (aktif jika punya nilai)
             setElemChecked('menuOjolToggle', !!m.hargaOjol);
-            setElemChecked('menuToppingToggle', !!(m.toppingList || ''));
+            setElemChecked('menuToppingToggle', toppings.length > 0);
             setElemOnChange('menuOjolToggle', syncOjolVisibility);
             setElemOnChange('menuToppingToggle', syncToppingVisibility);
             bindOjolToppingToggles();
@@ -198,7 +198,7 @@ export async function openMenuForm(id) {
       setElemValue('menuKategori', 'Makanan');
       setElemValue('menuHargaJual', '');
       setElemValue('menuHargaModal', '');
-      setElemValue('menuToppingList', '');
+      renderToppingRows([]);
       setElemValue('menuHargaOjol', '');
       setElemValue('menuSuplayerVal', 'Umum');
       setElemChecked('menuPakaiStok', false);
@@ -246,6 +246,48 @@ export function parseToppingList(raw) {
 export function buildToppingListString(toppings) {
   return JSON.stringify(toppings.filter(t => t.nama && t.nama.trim()));
 }
+
+// ── Topping Grid (2 kolom: Nama | Harga) ─────────────────────────────────────
+
+function renderToppingRows(toppings) {
+  const grid = document.getElementById('menuToppingGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  (toppings && toppings.length ? toppings : [{ nama: '', harga: 0 }]).forEach((t, i) => {
+    addToppingRowTo(grid, t.nama, t.harga, i);
+  });
+}
+
+function addToppingRowTo(grid, nama, harga, idx) {
+  const row = document.createElement('div');
+  row.className = 'topping-grid-row';
+  row.innerHTML =
+    `<input class="form-input topping-nama" type="text" placeholder="Nama topping" value="${escapeAttr(nama || '')}">` +
+    `<input class="form-input topping-harga" type="number" inputmode="numeric" placeholder="Harga" value="${harga || ''}">` +
+    `<button class="topping-rm-btn" type="button" data-action="remove-topping-row" title="Hapus">✕</button>`;
+  grid.appendChild(row);
+}
+
+function collectToppingGrid() {
+  const rows = document.querySelectorAll('#menuToppingGrid .topping-grid-row');
+  const result = [];
+  rows.forEach(r => {
+    const nama = (r.querySelector('.topping-nama') || {}).value || '';
+    const harga = parseInt((r.querySelector('.topping-harga') || {}).value) || 0;
+    if (nama.trim()) result.push({ nama: nama.trim(), harga });
+  });
+  return result;
+}
+
+window.addEventListener('click', e => {
+  const rm = e.target.closest('[data-action="remove-topping-row"]');
+  if (rm) { rm.closest('.topping-grid-row')?.remove(); return; }
+  const add = e.target.closest('[data-action="add-topping-row"]');
+  if (add) {
+    const grid = document.getElementById('menuToppingGrid');
+    if (grid) addToppingRowTo(grid, '', 0, grid.children.length);
+  }
+});
 
 // ── Konsinyasi helpers ───────────────────────────────────────────────────────
 
@@ -333,30 +375,111 @@ export async function pickSuplayer(value) {
   if (window.syncPakaiStokToggle) syncPakaiStokToggle();
 }
 
-export async function addCustomSuplayer() {
-  const name = prompt('Nama suplayer baru:').trim();
-  if (!name || name === 'Umum') {
-    if (name === 'Umum') showToast('Nama "Umum" sudah ada!', 'error');
-    return;
-  }
-  const custom = (await getSetting('suplayerCustom', [])) || [];
-  if (custom.includes(name)) { showToast('Suplayer sudah ada!', 'error'); return; }
-  custom.push(name);
-  await setSetting('suplayerCustom', custom);
-  await populateSuplayerSelect(name);
-  showToast(`✅ Suplayer "${name}" ditambahkan`);
+// ── Input dialog (pengganti window.prompt — tidak didukung embedded browser) ──
+let _inputDialogOkHandler = null;
+let _inputDialogCancelHandler = null;
+let _inputDialogKeyHandler = null;
+let _inputDialogCb = null;
+
+export function showInputDialog({ icon = '✏️', title = 'Masukkan nama', placeholder = '', value = '', okText = 'Simpan', callback } = {}) {
+  const field = document.getElementById('inputDialogField');
+  const okBtn = document.getElementById('inputDialogOk');
+  const cancelBtn = document.getElementById('inputDialogCancel');
+  const titleEl = document.getElementById('inputDialogTitle');
+  const iconEl = document.getElementById('inputDialogIcon');
+  if (!field || !okBtn) return;
+
+  if (iconEl) iconEl.textContent = icon;
+  if (titleEl) titleEl.textContent = title;
+  field.placeholder = placeholder || '';
+  field.value = value || '';
+  okBtn.textContent = okText || 'Simpan';
+  _inputDialogCb = callback;
+
+  // Bersihkan handler lama (modal bisa dibuka berulang)
+  if (_inputDialogOkHandler) okBtn.removeEventListener('click', _inputDialogOkHandler);
+  if (_inputDialogCancelHandler) cancelBtn.removeEventListener('click', _inputDialogCancelHandler);
+  if (_inputDialogKeyHandler) document.removeEventListener('keydown', _inputDialogKeyHandler);
+
+  const submit = () => {
+    const val = field.value.trim();
+    // Simpan callback dulu: closeInputDialog() me-null-kan _inputDialogCb
+    // (sama seperti pola confirm.js), jadi baca sebelum ditutup — kalau tidak,
+    // tombol Tambah tidak pernah menyimpan data (bug v122: kategori/suplayer
+    // custom tidak tersimpan).
+    const cb = _inputDialogCb;
+    closeInputDialog();
+    if (cb) cb(val);
+  };
+  const cancel = () => closeInputDialog();
+  const keyHandler = (e) => {
+    // Jangan aktif kalau modal sudah ditutup jalur lain (navbar/Escape modal.js)
+    if (!isModalOpen('inputDialog')) return;
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+    else if (e.key === 'Escape') cancel();
+  };
+  _inputDialogOkHandler = submit;
+  _inputDialogCancelHandler = cancel;
+  _inputDialogKeyHandler = keyHandler;
+  okBtn.addEventListener('click', submit);
+  cancelBtn.addEventListener('click', cancel);
+  document.addEventListener('keydown', keyHandler);
+
+  openModal('inputDialog', { modalSelector: '.confirm-box' });
+  field.focus();
 }
 
-export async function addCustomKategori() {
-  const name = prompt('Nama kategori baru:').trim();
-  if (!name) return;
-  const all = [..._CAT_OPTIONS, ...((await getSetting('kategoriCustom', [])) || [])];
-  if (all.includes(name)) { showToast('Kategori sudah ada!', 'error'); return; }
-  const custom = (await getSetting('kategoriCustom', [])) || [];
-  custom.push(name);
-  await setSetting('kategoriCustom', custom);
-  await populateKategoriSelect(name);
-  showToast(`✅ Kategori "${name}" ditambahkan`);
+export function closeInputDialog() {
+  closeModal('inputDialog');
+  const okBtn = document.getElementById('inputDialogOk');
+  const cancelBtn = document.getElementById('inputDialogCancel');
+  if (_inputDialogOkHandler && okBtn) okBtn.removeEventListener('click', _inputDialogOkHandler);
+  if (_inputDialogCancelHandler && cancelBtn) cancelBtn.removeEventListener('click', _inputDialogCancelHandler);
+  if (_inputDialogKeyHandler) document.removeEventListener('keydown', _inputDialogKeyHandler);
+  _inputDialogOkHandler = _inputDialogCancelHandler = _inputDialogKeyHandler = null;
+  const field = document.getElementById('inputDialogField');
+  if (field) field.value = '';
+  _inputDialogCb = null;
+}
+
+export function addCustomSuplayer() {
+  showInputDialog({
+    icon: '🏠',
+    title: 'Nama suplayer baru',
+    placeholder: 'mis. Toko Sumber Rejeki',
+    okText: 'Tambah',
+    callback: async (name) => {
+      if (!name || name === 'Umum') {
+        if (name === 'Umum') showToast('Nama "Umum" sudah ada!', 'error');
+        return;
+      }
+      const custom = (await getSetting('suplayerCustom', [])) || [];
+      if (custom.includes(name)) { showToast('Suplayer sudah ada!', 'error'); return; }
+      custom.push(name);
+      await setSetting('suplayerCustom', custom);
+      await populateSuplayerSelect(name);
+      showToast(`✅ Suplayer "${name}" ditambahkan`);
+    }
+  });
+}
+
+export function addCustomKategori() {
+  showInputDialog({
+    icon: '🏷️',
+    title: 'Nama kategori baru',
+    placeholder: 'mis. Cemilan',
+    okText: 'Tambah',
+    callback: async (name) => {
+      if (!name) return;
+      const all = [..._CAT_OPTIONS, ...((await getSetting('kategoriCustom', [])) || [])];
+      if (all.includes(name)) { showToast('Kategori sudah ada!', 'error'); return; }
+      const custom = (await getSetting('kategoriCustom', [])) || [];
+      custom.push(name);
+      await setSetting('kategoriCustom', custom);
+      await populateKategoriSelect(name);
+      showToast(`✅ Kategori "${name}" ditambahkan`);
+    }
+  });
 }
 
 // ── Stok toggle: auto-on saat suplayer ≠ Umum, hormati override user ──────
@@ -421,14 +544,6 @@ export function bindOjolToppingToggles() {
   if (top && !top.dataset.bound) { top.dataset.bound = '1'; top.addEventListener('change', syncToppingVisibility); }
 }
 
-// Parse textarea "Susu|1000\nExtra Gula|500" → [{nama, harga}]
-export function parseToppingTextarea(raw) {
-  if (!raw || !raw.trim()) return [];
-  return raw.trim().split('\n').map(line => {
-    const [nama, hargaRaw] = line.split('|');
-    return { nama: (nama || '').trim(), harga: Math.max(0, parseInt(hargaRaw) || 0) };
-  }).filter(t => t.nama !== '');
-}
 
 // Validasi hargaJual untuk menu biasa sama, tapi topping boleh harga 0 (gratis)
 export async function saveMenu() {
@@ -438,8 +553,7 @@ export async function saveMenu() {
   const hargaJual = parseInt(document.getElementById('menuHargaJual').value) || 0;
   const hargaModal = parseInt(document.getElementById('menuHargaModal').value) || 0;
   const hargaOjol = parseInt(document.getElementById('menuHargaOjol').value) || 0;
-  const toppingRaw = document.getElementById('menuToppingList').value || '';
-  const toppingList = buildToppingListString(parseToppingTextarea(toppingRaw));
+  const toppingList = buildToppingListString(collectToppingGrid());
   const suplayer = document.getElementById('menuSuplayerSelect').value || 'Umum';
   const pakaiStok = document.getElementById('menuPakaiStok').checked ? 1 : 0;
   const stok = pakaiStok ? Math.max(0, parseInt(document.getElementById('menuStok').value) || 0) : 0;
@@ -487,19 +601,144 @@ export function confirmDeleteMenu(id) {
 export async function openReturModal(id) {
   const m = await DB.menu.get(id);
   if (!m) return;
+  setReturMode('single');
   document.getElementById('returMenuId').value = id;
-  document.getElementById('returMenuInfo').innerHTML =
-    `<b>${escapeHtml(m.nama)}</b> — Suplayer: ${escapeHtml(m.suplayer || 'Umum')}<br>Stok saat ini: <b>${m.stok ?? 0}</b>`;
+  renderReturInfo(m);
   document.getElementById('returQty').value = '';
   await openModal('returModal');
   document.getElementById('returQty').focus();
 }
 
+function renderReturInfo(m) {
+  document.getElementById('returMenuInfo').innerHTML =
+    `<b>${escapeHtml(m.nama)}</b> — Suplayer: ${escapeHtml(m.suplayer || 'Umum')}<br>Stok saat ini: <b>${m.stok ?? 0}</b>`;
+}
+
+function setReturMode(mode) {
+  const single = document.getElementById('returSingleBody');
+  const konso = document.getElementById('returKonsinyasiBody');
+  if (single) single.style.display = mode === 'single' ? 'block' : 'none';
+  if (konso) konso.style.display = mode === 'konsinyasi' ? 'block' : 'none';
+}
+
+// ── Retur konsinyasi (per suplayer) ─────────────────────────────────────────
+// Satu suplayer = satu sesi retur: daftar SEMUA barang titipannya dengan
+// urutan info nama | stok diterima (editable) | terjual | estimasi sisa,
+// dan kotak isian "sisa riil" di paling kanan. Selisih riil vs estimasi
+// memunculkan wajib catatan alasan.
+
+function returRowHtml(m, terjual, isLast) {
+  const stokAwal = m.stokAwal ?? Math.max(0, (m.stok || 0) + terjual); // rekonstruksi bila belum pernah diisi
+  const est = Math.max(0, stokAwal - terjual);
+  // Diterima/Terjual/Est. sisa = info saja (edit stok lewat form menu);
+  // satu-satunya input = Sisa Riil di paling kanan (label di kirinya).
+  return `<div class="retur-row" data-menu-id="${m.id}" data-terjual="${terjual}" data-awal="${stokAwal}" style="padding:9px 0;${isLast ? '' : 'border-bottom:1px solid var(--border)'}">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:12.5px">${escapeHtml(m.nama)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Diterima <b style="color:var(--text2)">${stokAwal}</b> · Terjual <b style="color:var(--text2)">${terjual}</b> · Est. sisa <b class="retur-est" style="color:var(--primary)">${est}</b></div>
+      </div>
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--text3)">Sisa riil</span>
+        <input class="form-input retur-in-riil" type="number" inputmode="numeric" min="0" value="${m.stok ?? 0}" style="width:58px;height:32px;padding:2px 6px;font-size:13px;font-weight:700;text-align:center">
+      </div>
+    </div>
+    <div class="retur-note-wrap" style="display:none;margin-top:6px">
+      <input class="form-input retur-in-catatan" type="text" maxlength="120" placeholder="Alasan selisih (wajib)" style="font-size:12px">
+    </div>
+  </div>`;
+}
+
+function recalcReturRow(row) {
+  const awal = parseInt(row.dataset.awal) || 0;
+  const terjual = parseInt(row.dataset.terjual) || 0;
+  const est = Math.max(0, awal - terjual);
+  const estEl = row.querySelector('.retur-est');
+  if (estEl) estEl.textContent = est;
+  const riilRaw = row.querySelector('.retur-in-riil')?.value ?? '';
+  const riil = riilRaw === '' ? null : Math.max(0, parseInt(riilRaw) || 0);
+  const noteWrap = row.querySelector('.retur-note-wrap');
+  if (noteWrap) noteWrap.style.display = (riil !== null && riil !== est) ? 'block' : 'none';
+}
+
+export async function openKonsinyasiRetur(sp) {
+  const menus = (await DB.menu.toArray()).filter(m => (m.suplayer || '') === sp);
+  if (!menus.length) { showToast(`Tidak ada barang titipan dari "${sp}"`, 'error'); return; }
+  // Terjual = lifetime (semua penjualan tersimpan), bukan periode laporan.
+  const terjualMap = {};
+  (await DB.penjualan.toArray()).forEach(s => {
+    (s.items || []).forEach(i => { terjualMap[i.menuId] = (terjualMap[i.menuId] || 0) + (i.qty || 0); });
+  });
+  const titleEl = document.getElementById('returModalTitle');
+  if (titleEl) titleEl.textContent = `↩️ Retur — ${sp}`;
+  setReturMode('konsinyasi');
+  document.getElementById('returKonsinyasiRows').innerHTML =
+    menus.map((m, i) => returRowHtml(m, terjualMap[m.id] || 0, i === menus.length - 1)).join('');
+  // Recalc live saat input diterima / sisa riil berubah (delegasi di kontainer)
+  const rowsWrap = document.getElementById('returKonsinyasiRows');
+  if (rowsWrap && !rowsWrap.dataset.bound) {
+    rowsWrap.dataset.bound = '1';
+    rowsWrap.addEventListener('input', e => {
+      const row = e.target.closest('.retur-row');
+      if (row) recalcReturRow(row);
+    });
+  }
+  await openModal('returModal');
+}
+
+async function confirmKonsinyasiRetur() {
+  const rows = [...document.querySelectorAll('#returKonsinyasiRows .retur-row')];
+  const hasil = [];
+  for (const row of rows) {
+    const id = parseInt(row.dataset.menuId);
+    const m = await DB.menu.get(id);
+    if (!m) continue;
+    const awal = parseInt(row.dataset.awal) || 0;
+    const terjual = parseInt(row.dataset.terjual) || 0;
+    const est = Math.max(0, awal - terjual);
+    const riilRaw = row.querySelector('.retur-in-riil')?.value ?? '';
+    const riil = riilRaw === '' ? null : Math.max(0, parseInt(riilRaw) || 0);
+    const catatanEl = row.querySelector('.retur-in-catatan');
+    const selisih = riil !== null && riil !== est;
+    if (selisih && !(catatanEl?.value || '').trim()) {
+      showToast(`Isi alasan selisih untuk "${m.nama}"`, 'error');
+      catatanEl?.focus();
+      return;
+    }
+    hasil.push({ m, riil, selisih, catatan: selisih ? catatanEl.value.trim() : '' });
+  }
+  for (const { m, riil, selisih, catatan } of hasil) {
+    const patch = { catatanSelisih: catatan };
+    if (riil !== null && riil !== (m.stok || 0)) {
+      patch.stok = riil;
+      const balik = Math.max(0, (m.stok || 0) - riil); // barang fisik balik ke suplayer
+      if (balik > 0) patch.retur = (m.retur || 0) + balik;
+    }
+    await DB.menu.update(m.id, patch);
+  }
+  closeReturModal();
+  showToast('✅ Retur barang titipan dicatat');
+  await renderMenuList();
+  if (currentPage === 'jualan') loadPOS();
+  if (currentPage === 'laporan') {
+    const rep = await import('./laporan.js');
+    await rep.loadReport();
+  }
+}
+
 export function closeReturModal() {
   closeModal('returModal');
+  setReturMode('single'); // reset ke mode default utk pemakaian berikutnya
+  const titleEl = document.getElementById('returModalTitle');
+  if (titleEl) titleEl.textContent = '↩️ Retur Barang';
 }
 
 export async function confirmRetur() {
+  // Dua mode modal: konsinyasi (per suplayer, daftar semua barang) dan
+  // single (per menu, dari kartu menu). Route sesuai mode aktif.
+  if (document.getElementById('returKonsinyasiBody')?.style.display === 'block') {
+    return confirmKonsinyasiRetur();
+  }
   const id = parseInt(document.getElementById('returMenuId').value);
   const qty = parseInt(document.getElementById('returQty').value) || 0;
   if (qty <= 0) { showToast('Jumlah retur harus > 0', 'error'); return; }
@@ -513,6 +752,10 @@ export async function confirmRetur() {
   showToast(`✅ Retur ${qty}x "${m.nama}" dicatat`);
   await renderMenuList();
   if (currentPage === 'jualan') loadPOS();
+  if (currentPage === 'laporan') {
+    const rep = await import('./laporan.js');
+    await rep.loadReport();
+  }
 }
 
 // Export debounced version for oninput handler
