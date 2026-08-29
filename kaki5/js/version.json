@@ -1,7 +1,7 @@
 {
-  "version": "1.0.39",
-  "cacheBust": "v108",
+  "version": "1.0.40",
+  "cacheBust": "v109",
   "notes": [
-    "🛡️ Daftar menu & jualan kini tahan gangguan saat update aplikasi — kalau data gagal dimuat, tampil pesan + tombol coba lagi (tidak lagi kosong diam-diam)"
+    "📌 Tombol Batal/Simpan kini menempel di dasar layar di semua form — tidak lagi menggantung di tengah"
   ]
 }

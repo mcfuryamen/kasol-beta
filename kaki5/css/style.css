@@ -74,12 +74,14 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .btn-row{display:flex;gap:8px}
 .btn-row .btn{flex:1}
 
-/* Aksi (Batal/Simpan dst) tetap terlihat saat konten modal discroll -> sticky di bawah modal.
-   Background bar diperpanjang sampai TEPI BAWAH modal (padding-bottom bar
-   menutup zona padding modal yang transparan, via margin-bottom negatif) —
-   konten yang discroll di belakangnya tidak bocor terlihat
-   (permintaan pemilik 2026-08-29). 24px > padding modal terbesar (20px). */
-.modal .btn-row{position:sticky;bottom:0;z-index:40;background:var(--card);margin-top:40px;margin-bottom:calc(-1*(var(--nav-h) + 24px + env(safe-area-inset-bottom)));padding:14px 0 calc(var(--nav-h) + 24px + env(safe-area-inset-bottom));border-top:1px solid var(--border)}
+/* Aksi (Batal/Simpan dst) menempel di DASAR sheet — permintaan pemilik 2026-08-29:
+   - Modal yang punya .btn-row selalu setinggi 90vh (bottom sheet penuh);
+     margin-top:auto mendorong bar ke dasar meski konten pendek.
+   - Konten panjang: bar tetap sticky di bawah saat discroll, background
+     menutup konten di belakangnya.
+   - Padding-bottom modal (putih) menutup sisa area sampai tepi bawah. */
+.modal:has(> .btn-row){display:flex;flex-direction:column;min-height:90vh;padding-bottom:calc(4px + env(safe-area-inset-bottom))}
+.modal .btn-row{position:sticky;bottom:0;z-index:40;background:var(--card);margin-top:auto;padding:14px 0 calc(4px + env(safe-area-inset-bottom));border-top:1px solid var(--border)}
 
 /* menuSelectorModal: Batal kecil (auto), Tambah ke Keranjang full-width */
 #menuSelectorModal .btn-row .btn:first-child{flex:0;width:auto;min-width:80px}
