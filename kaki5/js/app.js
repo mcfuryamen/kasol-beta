@@ -19,7 +19,6 @@ import { openSyncDiag, copySyncDiag, closeSyncDiag } from './sync.health.js';
 import { syncLicenseStatus } from './license.sync.js';
 import { showConfirm, closeConfirm } from './confirm.js';
 import { exportData, importData, confirmClearAll } from './backup.js';
-import { checkOnboarding } from './onboarding.js';
 import { setupPWA, installPWA, checkPWAInstalled, updateInstallRow } from './pwa.js';
 import { connectBTPrinter, disconnectBTPrinter, printNota, printLastNota, testPrint, getSavedPrinterName } from './printer.js';
 import { showTrxDetail, closeTrxDetail, hapusPenjualan } from './trxdetail.js';
@@ -136,7 +135,6 @@ window.closeConfirm       = closeConfirm;
 window.exportData         = exportData;
 window.importData         = importData;
 window.confirmClearAll    = confirmClearAll;
-window.checkOnboarding    = checkOnboarding;
 window.openSyncDiag       = openSyncDiag;
 window.copySyncDiag       = copySyncDiag;
 window.closeSyncDiag      = closeSyncDiag;
@@ -189,8 +187,8 @@ window._ksr_toggleModal  = toggleModal;
 
 // ==================== LICENSE GATE ====================
 // Expose license actions to the gate UI (index.html)
-import { setLicenseRefs, updateTrialChip, renderLicenseInfoCard, checkLicenseGate, openExtendFlow, grantExtension, openLicenseSheet, getLicenseStatus, startTrial, activateSerial, activateLicense, contactViaWA, checkCloudStatusAndUnlock, toggleManualKey, fetchLicenseStatusFromCloud, isDeviceKnownOnCloud, saveLicense, getDeviceIdentity, decodeExpiryLabel, enforceRevoked } from './license.js';
-import { ensureUnitId, isOnboarded, markOnboarded } from './license.logic.js';
+import { setLicenseRefs, updateTrialChip, renderLicenseInfoCard, checkLicenseGate, openLicenseSheet, isLicensed, getLicenseStatus, startTrial, activateSerial, activateLicense, contactViaWA, checkCloudStatusAndUnlock, toggleManualKey, fetchLicenseStatusFromCloud, isDeviceKnownOnCloud, saveLicense, getDeviceIdentity, decodeExpiryLabel, enforceRevoked } from './license.js';
+import { ensureUnitId } from './license.logic.js';
 
 // Dev detection helper
 function isDev() {
@@ -201,13 +199,10 @@ setLicenseRefs({
   updateTrialChip,
   renderLicenseInfoCard,
   checkLicenseGate,
-  openExtendFlow,
-  grantExtension,
   openLicenseSheet,
   openPurchaseSheet
 });
 window._ksr_openLicenseSheet = openLicenseSheet;
-window._ksr_openExtendFlow   = openExtendFlow;
 window._ksr_activateLicense  = activateLicense; // UI: trima inputId, baca input, validasi serial
 window._ksr_openPurchaseSheet = openPurchaseSheet;
 window._ksr_purchaseShowUpload = purchaseShowUpload;
@@ -226,111 +221,38 @@ window._ksr_checkLicenseGate = checkLicenseGate;
 window._ksr_renderLicenseInfoCard = renderLicenseInfoCard;
 window._ksr_closeSheet       = (id) => closeModal(id);
 window._ksr_contactViaWA     = contactViaWA;
-// --- Syarat & Ketentuan 2-STEP onboarding (user gaptek friendly) ---
-// STEP 1 -> STEP 2: validasi nama usaha, simpan, tampilkan modal S&K (trial BELUM mulai)
-window._ksr_proceedToTC = async () => {
-  const msg = document.getElementById('onboardMsg');
-  if (msg) msg.style.display = 'none';
-  const wa = document.getElementById('onboardWa')?.value.trim() || '';
-  const existing = await getSetting('noWhatsapp', '');
-  if (!wa && !existing) {
-    if (msg) { msg.textContent = 'Mohon isi Nomor WhatsApp terlebih dahulu.'; msg.style.display = 'block'; }
-    return;
-  }
-  // Validate with strict Indonesian WhatsApp format
-  const res = validatePhone(wa);
-  if (!res.valid) {
-    if (msg) { msg.textContent = res.message; msg.style.display = 'block'; }
-    return;
-  }
-  if (wa) {
-    await setSetting('noWhatsapp', res.normalized);
-    const nw = document.getElementById('settingWa');
-    if (nw) nw.textContent = formatPhoneDisplay(res.normalized);
-  }
-  await openModal('tcModal'); // STEP 2
-};
-// STEP 2 BATAL: tutup modal -> balik ke STEP 1 (gate tetap, nama sudah keisi)
-window._ksr_cancelTC = () => closeModal('tcModal');
-// STEP 2 SETUJU: mulai masa coba + masuk aplikasi
+// --- Syarat & Ketentuan (2026-08-29: gate onboarding dihapus) ---
+// TC kini modal sekali-jalan NON-BLOCKING: tampil sekali di boot awal (bisa
+// ditutup), dibuka ulang dari menu Bantuan. Setuju = catat tanggal.
 window._ksr_acceptTC = async () => {
+  await setSetting('tcAcceptedAt', new Date().toISOString());
   closeModal('tcModal');
-  const msg = document.getElementById('onboardMsg');
-  if (msg) msg.style.display = 'none';
-  // T12b (2026-08-29): jangan mulai trial tanpa jangkar — tarik first_seen
-  // cloud dulu (baris biasanya sudah di-claim runLicenseSync saat boot),
-  // supaya hapus-data/ganti-browser tidak me-reset jatah trial perangkat.
-  let anchor = null;
-  try {
-    const { fetchLicenseStatusFromCloud } = await import('./license.sync.js');
-    anchor = (await fetchLicenseStatusFromCloud())?.first_seen || null;
-  } catch (_) { /* offline → trial lokal tanpa jangkar; dikoreksi T12b di sync */ }
-  await startTrial(anchor);
-  await markOnboarded(); // onboarding selesai sekali -> jangan tampil lagi di perangkat ini
-  await resolveLicenseGate();
-  await boot();
 };
-window._ksr_onboardInput = () => {
-  const msg = document.getElementById('onboardMsg');
-  if (msg) msg.style.display = 'none';
-};
+// Ditutup tanpa setuju → modal muncul lagi di boot berikutnya (tidak memaksa).
+window._ksr_cancelTC = () => closeModal('tcModal');
 
-// ---------- SMART GATE (onboarding <-> lisensi) ----------
-async function resolveLicenseGate() {
-  const status = await getLicenseStatus();
-  const gate = document.getElementById('licenseGate');
-  if (status.status === 'active' || status.status === 'trial') {
-    if (gate) gate.style.display = 'none';
-  } else {
-      await renderGate(status);
-    if (gate) gate.style.display = 'flex';
+// ---------- STATUS → UI (2026-08-29: TANPA full-screen gate) ----------
+// Keputusan pemilik: kuota transaksi habis TIDAK mengunci aplikasi — app
+// tetap bisa dibuka & dieksplor; yang diblok hanya transaksi (pos.js) dan
+// fitur berbayar (cadangan cloud). Pesan = banner bisa-ditutup. Revoke oleh
+// admin TETAP full-lock lewat lockOverlay (enforceRevoked).
+function showQuotaBanner(st) {
+  const b = document.getElementById('quotaBanner');
+  if (!b) return;
+  const txt = document.getElementById('quotaBannerText');
+  if (txt) {
+    const paid = st.protocol === 'licensed-expired';
+    txt.innerHTML = (paid
+      ? '🔑 Lisensi berbayar Anda sudah kedaluwarsa — eksplorasi tetap bebas, transaksi terkunci.'
+      : '🚫 Kuota transaksi bulan ini habis — eksplorasi tetap bebas, transaksi terkunci.')
+      + ' <b>ID Perangkat: ' + (st.deviceCode || '—') + '</b>';
   }
-  await checkLicenseGate();
+  b.classList.remove('khide');
 }
-
-async function renderGate(status) {
-  const ob = document.getElementById('gateOnboarding');
-  const lc = document.getElementById('gateLicenseBlock');
-  if (!ob || !lc) return;
-  // Onboarding hanya sekali per perangkat. Device yang sudah dikenal (pernah
-  // trial/aktif atau sudah pernah selesai onboarding) langsung ke gate lisensi.
-  const onboarded = status.status !== 'none' || await isOnboarded();
-  if (status.status === 'none' && !onboarded) {
-    ob.style.display = '';
-    lc.style.display = 'none';
-  } else {
-    ob.style.display = 'none';
-    // 'block' eksplisit: #gateLicenseBlock punya class .khide (display:none),
-    // inline kosong ('') tidak menimpa class -> gate tampil blank putih.
-    lc.style.display = 'block';
-    // Info versi + ID perangkat di gate (permintaan pemilik 2026-08-29):
-    // memudahkan support — user cukup sebut ID-nya, dan dev tahu versinya.
-    let deviceCode = '';
-    try { deviceCode = (await getDeviceIdentity()).deviceCode; } catch (_) { /* gate tetap tampil tanpa ID */ }
-    lc.innerHTML = gateLicenseHtml(status, deviceCode);
-  }
+function hideQuotaBanner() {
+  const b = document.getElementById('quotaBanner');
+  if (b) b.classList.add('khide');
 }
-
-function gateLicenseHtml(status, deviceCode) {
-  const isPaidExpired = status.protocol === 'licensed-expired';
-  const intro = isPaidExpired
-      ? '<p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Lisensi berbayar Anda sudah kedaluwarsa.<br>Beli lisensi baru dan admin akan mengaktifkannya otomatis setelah pembayaran diverifikasi.</p>'
-      : '<p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Masa coba 7 hari Anda sudah berakhir.<br>Beli lisensi resmi — aktivasi otomatis oleh admin setelah pembayaran diverifikasi.</p>';
-  return `
-    <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px" alt="Logo">
-    <div class="kfs22 kfw800 kmb8">Kasir Solo</div><div style="font-size:14px;color:var(--text2);margin-bottom:16px">Kaki Lima Edition</div>
-    <div style="font-size:17px;font-weight:800;color:var(--red)">Masa Coba Gratis Habis</div>
-    ${intro}
-      <div class="license-actions license-actions-row">
-        <button class="btn btn-primary" data-action="buy-gate">💳 Beli Lisensi</button>
-        <button class="btn btn-secondary" data-action="contact-via-wa">💬 Tanya Admin</button>
-      </div>
-      <div id="gateLicMsg" style="display:none;color:var(--red);font-size:13px;margin-top:8px"></div>
-      <div class="kfs12 ktext3 kmt14" style="line-height:1.7">Versi ${APP_VERSION} · ID Perangkat: <b style="color:var(--text2);user-select:all">${deviceCode || '—'}</b><br>Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a> — sertakan ID perangkat</div>
-    `;
-  }
-
-window._ksr_buyGate = () => openPurchaseSheet();
 
 // Periodic license re-check (60s) -- cloud-first: sync dari Supabase dulu
 // (SSoT server), baru checkLicenseGate baca lokal yang sudah match cloud.
@@ -349,18 +271,6 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') runLicenseSync().then(() => checkLicenseGate());
 });
 
-// Sync body.gate-active dengan visibility #licenseGate
-// supaya navbar/header disembunyikan saat onboarding/gate full-screen aktif
-function syncGateBodyClass() {
-  const gate = document.getElementById('licenseGate');
-  const visible = !!(gate && gate.style.display && gate.style.display !== 'none');
-  document.body.classList.toggle('gate-active', visible);
-}
-const _gateEl = document.getElementById('licenseGate');
-if (_gateEl) {
-  new MutationObserver(syncGateBodyClass).observe(_gateEl, { attributes: true, attributeFilter: ['style'] });
-  syncGateBodyClass();
-}
 
 
 // ==================== INIT ====================
@@ -383,6 +293,19 @@ function toggleAccordion(id) {
   acc.classList.toggle('open', willOpen);
 }
 
+// Gerbang fitur berbayar (2026-08-29): hanya lisensi AKTIF yang boleh; tier
+// gratis dapat toast + sheet pembelian. Dipakai cadangan cloud dulu — bisa
+// dipakai ulang untuk fitur berbayar berikutnya.
+async function guardLicensedThen(fn) {
+  if (await isLicensed()) {
+    try { await fn(); } catch (e) { console.warn('[guard] aksi gagal:', e); }
+    return;
+  }
+  const { showToast } = await import('./helpers.js');
+  showToast('🔒 Fitur ini khusus lisensi aktif — beli lisensi untuk membuka 💳', 'error', 4000);
+  openPurchaseSheet();
+}
+
 function handleDataAction(action, el, event) {
   switch (action) {
     // Navigation
@@ -403,8 +326,8 @@ function handleDataAction(action, el, event) {
     case 'close-sheet-purchase':
       if (window._ksr_closeSheet) window._ksr_closeSheet('sheetPurchase');
       break;
-    case 'proceed-to-tc':
-      if (window._ksr_proceedToTC) window._ksr_proceedToTC();
+    case 'open-tc':
+      openModal('tcModal');
       break;
     case 'cancel-tc':
       if (window._ksr_cancelTC) window._ksr_cancelTC();
@@ -412,8 +335,8 @@ function handleDataAction(action, el, event) {
     case 'accept-tc':
       if (window._ksr_acceptTC) window._ksr_acceptTC();
       break;
-    case 'onboard-input':
-      if (window._ksr_onboardInput) window._ksr_onboardInput();
+    case 'close-quota-banner':
+      hideQuotaBanner();
       break;
     case 'dismiss-profile-banner':
       closeModal('profileBanner');
@@ -560,10 +483,11 @@ function handleDataAction(action, el, event) {
       if (window.exportData) window.exportData();
       break;
     case 'cloud-backup':
-      import('./backup.js').then(m => m.cloudSaveBackup()).catch(() => {});
-      break;
     case 'cloud-restore-latest':
-      import('./backup.js').then(m => m.cloudRestoreLatest()).catch(() => {});
+      // Cadangan Cloud khusus lisensi AKTIF (keputusan pemilik 2026-08-29);
+      // cadangan file (ekspor JSON) tetap gratis untuk semua.
+      guardLicensedThen(() => import('./backup.js').then(m =>
+        action === 'cloud-backup' ? m.cloudSaveBackup() : m.cloudRestoreLatest()));
       break;
     case 'trigger-import':
       document.getElementById('importFile')?.click();
@@ -814,9 +738,6 @@ function handleDataAction(action, el, event) {
     case 'contact-via-wa':
       contactViaWA();
       break;
-    case 'open-extend-flow':
-      openExtendFlow();
-      break;
     case 'toggle-manual-key':
       toggleManualKey(el?.dataset.inputId);
       break;
@@ -915,40 +836,26 @@ async function init() {
 
   // License sync first, but never block startup on a transient network failure.
   await runLicenseSync();
-  // License gate first (blocks app until trial starts or a valid serial is entered)
+  // 2026-08-29: TANPA full-screen gate. Perangkat baru → pastikan tier gratis
+  // kuota ada (continueKnownDevice), lalu app SELALU boot; kuota habis hanya
+  // menampilkan banner + memblok transaksi (pos.js); revoked → lockOverlay.
   const status = await getLicenseStatus();
-  const gate = document.getElementById('licenseGate');
-  if (status.status === 'active' || status.status === 'trial') {
-    if (gate) gate.style.display = 'none';
-    await boot();
-  } else {
-      // SMART GATE (ONBOARDING DISABLED): skip onboarding, langsung ke dashboard.
-      // If there's an active license in cloud -> sync it in; else start trial.
-      // Onboarding UI (gateOnboarding) tetap ada di HTML tapi tidak pernah ditampilkan.
-      // Device baru / reinstall tetap dapat trial 7 hari via continueKnownDevice().
-      if (status.status === 'none') {
-        await continueKnownDevice();
-        await checkLicenseGate();
-        return;
-      }
-      // Licensed expired / revoked -> tampilkan gate beli lisensi.
-      await renderGate(status);
-      if (gate) gate.style.display = 'flex';
-    }
-    await checkLicenseGate();
+  if (status.status === 'none') {
+    await continueKnownDevice();
+  }
+  await checkLicenseGate();
+  await boot();
   }
 
   // Perangkat FISIK yang sama sudah pernah dipakai (data lokal bersih karena ganti
   // browser/re-install). Lewati onboarding: kalau lisensi aktif di cloud -> sinkron
   // local license + unlock & masuk; selain itu lanjutkan masa coba perangkat tsb.
   async function continueKnownDevice() {
-      const gate = document.getElementById('licenseGate');
       let cloud = null;
       try {
         cloud = await fetchLicenseStatusFromCloud();
         if (cloud && cloud.license_status === 'aktif') {
           await saveLicenseFromCloud(cloud);
-          if (gate) gate.style.display = 'none';
           closeModal('lockOverlay');
           await boot();
           return;
@@ -956,18 +863,16 @@ async function init() {
       } catch (e) {
         console.warn('continueKnownDevice cloud check failed:', e?.message || e);
       }
-      // Tidak ada lisensi aktif di cloud -> lanjutkan masa coba perangkat.
-      // T12 (audit 2026-08-17/M1): trial berjangkar clients.first_seen dari
-      // server — hapus data lokal / install ulang TIDAK me-reset jatah trial.
-      // first_seen > 7 hari lalu → startTrial menulis startedAt lama →
-      // getLicenseStatus langsung menganggap expired → gate beli lisensi.
-      await startTrial(cloud?.first_seen);
-      await resolveLicenseGate();
+      // Tidak ada lisensi aktif di cloud → tier gratis kuota transaksi
+      // (2026-08-29). Penghitung dijaga monotonic oleh reconcile cloud di
+      // syncLicenseStatus — hapus data / ganti browser tidak menurunkannya.
+      await startTrial();
+      await checkLicenseGate();
       await boot();
     }
 
     // Sinkronkan local license (Dexie) dari status cloud supaya getLicenseStatus()
-    // tidak lagi 'none' & renderGate tidak menampilkan "Masa coba habis" keliru saat
+    // tidak lagi 'none' & banner tidak menampilkan "kuota habis" keliru saat
     // reload berikutnya. expCode diturunkan dari license_expires_at (cloud) untuk
     // tetap menghormati batas waktu (fallback '99' = seumur hidup bila tak ada).
     async function saveLicenseFromCloud(cloud) {
@@ -1100,6 +1005,10 @@ async function boot() {
 
   // H1: pulihkan status printer tersimpan
   restorePrinterStatus();
+
+  // Syarat & Ketentuan sekali-jalan (2026-08-29): modal non-blocking bila
+  // belum pernah disetujui — bisa ditutup, dibuka ulang dari Bantuan.
+  try { if (!(await getSetting('tcAcceptedAt', null))) openModal('tcModal'); } catch (_) { }
   // Topping/Ojol: pulih tipe order terakhir dari localStorage
   try {
     const saved = localStorage.getItem('kasirsolo:order-type');

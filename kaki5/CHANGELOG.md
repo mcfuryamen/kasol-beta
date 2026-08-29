@@ -2,6 +2,16 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-29 (v116 / 1.0.47: kuota transaksi per bulan menggantikan trial waktu)
+- **Konsep baru tier gratis (keputusan pemilik)**: tanpa batas waktu 7 hari — gratis = **kuota transaksi selesai per bulan kalender** (default 100, diatur admin via `products.tx_quota` di kartu produk admin; di-cache lokal agar offline). Kuota segar otomatis tiap awal bulan.
+- **Penghitung anti-reset**: tiap penjualan selesai (`pos.sync.simpanPenjualanSync`) menaikkan `txUsed` (IndexedDB + localStorage). Reconcile cloud di `syncLicenseStatus`: adopsi `clients.tx_used` bila lebih besar (hapus data/ganti browser tidak menurunkan), push lokal bila lebih besar (pemakaian offline), `tx_adjust` (bonus/kurang dari admin) selalu ikut cloud, reset admin (`tx_month=null` + `tx_updated_at` baru) dihormati via `txLastPushAt` LWW.
+- **Tanpa full-screen gate**: kuota habis → **banner bisa-ditutup** di bawah header (`#quotaBanner`, menampilkan ID Perangkat) + blok transaksi di `pos.js` (toast + sheet pembelian). Aplikasi tetap bisa dibuka & dieksplor. Revoke admin tetap full-lock (`lockOverlay`).
+- **Gate onboarding dihapus**: tidak ada lagi input WhatsApp + layar persetujuan saat boot. Syarat & Ketentuan kini modal sekali-jalan **non-blocking** (bisa ditutup, dibuka ulang dari Bantuan → 📜 Dokumen) + tanggal setuju dicatat (`tcAcceptedAt`).
+- **Cadangan Cloud khusus lisensi aktif**: tombol cloud backup/restore di Pengaturan dicek `isLicensed()` (`guardLicensedThen`); cadangan file (ekspor JSON) tetap gratis. Hint 🔒 di Pengaturan.
+- **UI lisensi baru**: chip header `GRATIS · N trx` (warna oranye saat ≤10), kartu status kuota dengan progress bar & bonus admin, langkah pipeline "Trial"→"Gratis". Fitur "Tambah 1 Hari (share)" dihapus (tidak relevan tanpa batas waktu).
+- **Admin**: kartu produk katalog punya field "Kuota Transaksi Gratis /bulan"; kartu klien menampilkan `pakai/kuota` + tombol kuota −10/+10/+50 dan ↺ Reset Pakai (`clients.tx_adjust`).
+- **DB**: `products.tx_quota int` (seed 100 utk kaki5), `clients.tx_month/tx_used/tx_adjust/tx_updated_at`.
+
 ## 2026-08-29 (v102 / 1.0.33: cloud = sumber kebenaran lisensi & profil)
 - **Cabang `belum` di `syncLicenseStatus()` (`license.sync.js`)**: cloud yang tidak mencatat lisensi terjual untuk unit (`license_status = 'belum'` / kosong) kini menurunkan lokal `active` → **trial berjangkar `clients.first_seen`** (T12). Menutup gap yang membuat chip `#trialChip` membeku di "✓ Aktif" padahal cloud `belum` (insiden chip zombie v101). Status `batal`/`nonaktif`/`revoked` tetap revoke; `belum` kembali ke masa coba, bukan hukuman.
 - **Arah push profil dibatasi (`sync.js: ensureSynced`)** — aturan pemilik: *Supabase = satu-satunya sumber kebenaran lisensi & profil; lokal tidak boleh menimpa, kecuali tulisan eksplisit dari form profil*:

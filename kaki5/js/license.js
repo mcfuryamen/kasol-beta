@@ -1,6 +1,6 @@
 // ==================== LISENSI (ESM) ====================
-// Kaki Lima license — adopts the full Kasir Solo trial & license feature set
-// from the Rosok app: 7-day trial, share-to-extend (20x, +1 hari), paid serial
+// Kaki Lima license — tier gratis berbasis KUOTA TRANSAKSI per bulan kalender
+// (ganti trial 7 hari, keputusan pemilik 2026-08-29) + lisensi berbayar serial
 // (KK5 prefix, HMAC-SHA256 v2).
 // Follows the universal Kasir Solo v2-HMAC scheme (see admin/docs/04-license-system.md).
 // NOTE: Validation here is OFFLINE (HMAC local) as the current fallback; the
@@ -18,15 +18,14 @@
 
 // Re-export pure logic functions
 export {
-  TRIAL_DAYS, EXTEND_DAYS, MAX_EXTENSIONS,
+  DEFAULT_TX_QUOTA, currentTxMonth, getTxQuota, incrementTxCount,
   simpleHash, b32Encode, checkExpired, decodeExpiryLabel,
   getDeviceIdentity, getDeviceCode, getInstallId, getDeviceFingerprint,
   hmacSignature, validateSerial,
   startTrial, activateSerial, getLicenseStatus,
   getUnitId, ensureUnitId,
-  isLicensed, trialEndDate, daysLeft,
-  getLicense, saveLicense, grantExtensionLogic,
-  isOnboarded, markOnboarded, markLicenseRevoked, clearLocalLicense,
+  isLicensed, getLicense, saveLicense,
+  markLicenseRevoked, clearLocalLicense,
   // Salt management (NEW 2026-08-20)
   clearHmacSaltCache, clearProductSaltCache
 } from './license.logic.js';
@@ -38,7 +37,7 @@ export {
   licenseStatusHtml,
   renderLicenseStatusArea, checkCloudStatusAndUnlock, toggleManualKey,
   checkLicenseGate, updateTrialChip, openLicenseSheet, renderLicenseInfoCard,
-  contactViaWA, openExtendFlow, tryShare, grantExtension, activateLicense,
+  contactViaWA, activateLicense,
   enforceRevoked, renderProfileMismatchOverlay
 } from './license.ui.js';
 
@@ -49,6 +48,7 @@ export {
   isDeviceKnownOnCloud,
   verifyAndAssignSerial,    // NEW: Opsi 3 — verifikasi serial + reassign unit_id
   fetchProductSalt,          // NEW: fetch salt from Supabase products table
+  fetchTxQuotaConfig,        // NEW: kuota transaksi global dari products.tx_quota
   getSupabaseClient
 } from './license.sync.js';
 

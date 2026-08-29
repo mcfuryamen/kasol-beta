@@ -5,7 +5,7 @@
 // User TIDAK perlu request serial manual — cukup beli (QRIS) & tunggu
 // verifikasi admin. Input serial manual hanya fallback offline.
 import { ensureSynced, pullCloudProfileTo } from './sync.js';
-import { getUnitId, getDeviceCode, getInstallId, getLicense, markLicenseRevoked, bumpClockAnchor } from './license.logic.js';
+import { getUnitId, getDeviceCode, getInstallId, getLicense, saveLicense, markLicenseRevoked, bumpClockAnchor, currentTxMonth } from './license.logic.js';
 import { setSetting } from './db.js';
 import { rateLimiters } from './helpers.pure.js';
 
@@ -26,12 +26,12 @@ function classifyCloudError(error) {
 // Baca baris lisensi via unit_id — kunci natural yang stabil. (Dulu via
 // device_code; fingerprint V3/T14 bisa mengubah device_code pada perangkat
 // yang sama, sedangkan unit_id kekal — lihat getUnitId yang mempertahankan
-// nilai tersimpan. first_seen ikut dibaca untuk jangkar trial T12.)
+// nilai tersimpan. tx_month/tx_used/tx_adjust ikut dibaca utk reconcile kuota.)
 async function readLicenseRow(sb, unitId) {
   try {
     const { data, error } = await sb
       .from('clients')
-      .select('license_status, license_serial, license_expires_at, first_seen, nama_usaha, nama_pemilik, no_whatsapp, provinsi_id, provinsi, kabkota_id, kabkota, kecamatan_id, kecamatan, desa_id, desa, alamat_detail')
+      .select('license_status, license_serial, license_expires_at, first_seen, tx_month, tx_used, tx_adjust, tx_updated_at, nama_usaha, nama_pemilik, no_whatsapp, provinsi_id, provinsi, kabkota_id, kabkota, kecamatan_id, kecamatan, desa_id, desa, alamat_detail')
       .eq('unit_id', unitId)
       .eq('app_type', APP_TYPE)
       .maybeSingle();
@@ -129,6 +129,36 @@ function getLocalFallbackSalt() {
   return fallback;
 }
 
+// ===== Kuota transaksi global (products.tx_quota) =====
+// Angka default tier gratis, diatur admin lewat kartu produk. Di-cache di
+// memori + settings.trialConfig supaya app tetap tahu kuotanya saat offline.
+// Kolom kosong/tidak ada → null (app memakai DEFAULT_TX_QUOTA).
+let _txQuotaCache = null;
+export async function fetchTxQuotaConfig() {
+  if (_txQuotaCache != null) return _txQuotaCache;
+  const sb = getSupabaseClient();
+  if (!sb || !navigator.onLine) return null;
+  try {
+    const { data, error } = await sb
+      .from('products')
+      .select('tx_quota')
+      .eq('prefix', PRODUCT_PREFIX)
+      .eq('app_type', APP_TYPE)
+      .maybeSingle();
+    if (error || !data) return null;
+    const q = Number(data.tx_quota);
+    if (Number.isFinite(q) && q > 0) {
+      _txQuotaCache = Math.floor(q);
+      await setSetting('trialConfig', { txQuota: _txQuotaCache });
+      return _txQuotaCache;
+    }
+    return null;
+  } catch (e) {
+    console.warn('fetchTxQuotaConfig:', e?.message || e);
+    return null;
+  }
+}
+
 /**
  * Clear salt cache (e.g., after manual rotation or for testing)
  */
@@ -174,6 +204,55 @@ export async function syncLicenseStatus() {
   if (result.kind !== 'ok') return { ok: false, reason: 'network' };
 
   const cloud = result.data;
+
+  // ===== Reconcile kuota transaksi (cloud = sumber kebenaran) =====
+  // (1) angka kuota global dari products.tx_quota → cache lokal (offline);
+  // (2) penghitung: adopsi cloud bila lebih besar (hapus data / ganti browser
+  //     tidak menurunkan counter), push lokal bila lebih besar (pemakaian
+  //     offline yang belum terkirim); tx_adjust milik admin → selalu ikut cloud.
+  await fetchTxQuotaConfig();
+  try {
+    const local = await getLicense();
+    if (local.status === 'trial') {
+      const month = currentTxMonth();
+      const cloudMonth = cloud.tx_month || null;
+      const cloudUsed = Number(cloud.tx_used) || 0;
+      const cloudAdjust = Number(cloud.tx_adjust) || 0;
+      const cloudT = cloud.tx_updated_at ? new Date(cloud.tx_updated_at).getTime() : 0;
+      let myPushT = 0;
+      try { myPushT = Number(await getSetting('txLastPushAt', 0)) || 0; } catch (_) { /* storage gagal */ }
+      // Tulisan cloud yang lebih baru dari push terakhir KITA = berasal dari
+      // admin/instance lain (jam perangkat beda → toleransi 5 detik).
+      const cloudNewer = cloudT > myPushT + 5000;
+      const adminReset = !cloudMonth && cloudNewer; // admin reset pakai (tx_month null)
+      let lic = local;
+      if ((Number(lic.txAdjust) || 0) !== cloudAdjust) lic = { ...lic, txAdjust: cloudAdjust };
+      if (adminReset) {
+        // Reset oleh admin → kuota segar bulan berjalan; hitungan lokal diabaikan.
+        lic = { ...lic, txMonth: month, txUsed: 0 };
+      } else if (cloudMonth && cloudMonth > (lic.txMonth || '')) {
+        // Rollover tercatat di cloud / jam lokal mundur → ikut cloud.
+        lic = { ...lic, txMonth: cloudMonth, txUsed: cloudUsed };
+      } else if (cloudMonth === lic.txMonth && cloudUsed > (Number(lic.txUsed) || 0)) {
+        // Hapus data / ganti browser tidak boleh menurunkan penghitung.
+        lic = { ...lic, txUsed: cloudUsed };
+      }
+      if (lic !== local) await saveLicense(lic);
+      const effUsed = lic.txMonth === month ? (Number(lic.txUsed) || 0) : 0;
+      // Push lokal → cloud: rollover bulan, atau pemakaian offline bulan
+      // berjalan yang belum terkirim (tidak pernah menimpa tulisan admin).
+      if ((cloudMonth === month && cloudUsed < effUsed) || (cloudMonth !== month && (effUsed > 0 || !adminReset))) {
+        const { error: txErr } = await sb.from('clients')
+          .update({ tx_month: month, tx_used: effUsed, tx_updated_at: new Date().toISOString() })
+          .eq('unit_id', unitId);
+        if (!txErr) await setSetting('txLastPushAt', Date.now());
+        else console.warn('sync tx_used:', txErr.message || txErr);
+      }
+    }
+  } catch (e) {
+    console.warn('reconcile kuota gagal:', e?.message || e);
+  }
+
   const status = String(cloud.license_status || '').toLowerCase();
   if (status === 'batal' || status === 'nonaktif' || status === 'revoked') {
     await markLicenseRevoked('admin');
@@ -182,42 +261,27 @@ export async function syncLicenseStatus() {
   // 'belum' (atau kosong) = cloud TIDAK mencatat lisensi terjual untuk unit
   // ini. Cloud adalah sumber kebenaran: lokal yang masih 'active' adalah cache
   // basi (mis. baris cloud di-reset admin — insiden chip zombie v101,
-  // 2026-08-29) dan WAJIB diturunkan ke trial berjangkar first_seen (T12)
-  // agar chip/gate kembali jujur. Bukan revoke — 'belum' artinya kembali ke
-  // masa coba, bukan hukuman.
+  // 2026-08-29) dan WAJIB diturunkan ke tier gratis kuota transaksi agar
+  // chip/gate kembali jujur. Bukan revoke — 'belum' artinya kembali ke tier
+  // gratis, bukan hukuman.
   if (status === 'belum' || status === '') {
     const local = await getLicense();
     if (local.status === 'active') {
-      const { saveLicense } = await import('./license.logic.js');
+      const month = currentTxMonth();
       await saveLicense({
         status: 'trial',
-        startedAt: cloud.first_seen || local.startedAt || new Date().toISOString(),
+        txMonth: month,
+        txUsed: local.txMonth === month ? (Number(local.txUsed) || 0) : 0,
+        txAdjust: Number(cloud.tx_adjust) || 0,
         deviceCode: local.deviceCode || (await getDeviceCode()),
-        extensionsUsed: 0,
         downgradedFrom: 'active',
         downgradedAt: new Date().toISOString(),
         downgradedReason: 'cloud-belum'
       });
       await refreshSettingsUI();
-    } else if (local.status === 'trial' && cloud.first_seen) {
-      // T12b (2026-08-29): jangkar T12 dulu hanya dipasang SAAT trial dimulai.
-      // Trial yang lahir tanpa jangkar (baris cloud belum ada / fetch gagal di
-      // detik itu) tidak pernah dikoreksi — perangkat fisik yang sama bisa
-      // tampil "TRIAL 6 hari" di satu browser dan "Masa Coba Habis" di browser
-      // lain (kasus nyata 2026-08-29, bukti RLS: session anon segar tidak bisa
-      // membaca baris clients milik session lain sampai device_known claim).
-      // Koreksi drift: startedAt mundur ke first_seen cloud (sumber kebenaran),
-      // extensionsUsed & identitas lain dipertahankan.
-      const anchorMs = new Date(cloud.first_seen).getTime();
-      const localMs = new Date(local.startedAt || 0).getTime();
-      if (Number.isFinite(anchorMs) && anchorMs > 0 && (!localMs || anchorMs < localMs - 60000)) {
-        const { saveLicense } = await import('./license.logic.js');
-        await saveLicense({ ...local, startedAt: new Date(anchorMs).toISOString() });
-        await refreshSettingsUI();
-      }
     }
-    // trial/none/revoked lokal + cloud 'belum' → tanpa drift first_seen,
-    // startedAt lokal dibiarkan (sudah berjangkar / sama dengan cloud).
+    // trial/none/revoked lokal + cloud 'belum' → tier gratis; penghitung &
+    // adjust sudah ditangani blok "Reconcile kuota" di atas.
   }
   // Pemulihan revoke palsu (H3): revoke bertanda 'not-found' yang ternyata
   // barisnya ADA dan tidak dicabut admin → hapus state revoked lokal supaya
@@ -425,8 +489,8 @@ export async function fetchSetting(key) {
 /**
  * Cek status lisensi langsung ke Supabase (tabel `clients`), keyed by unit_id.
  * Mengembalikan { license_status, license_serial, license_expires_at,
- * first_seen } bila baris ditemukan, atau null bila gagal / tidak ada.
- * first_seen dipakai sebagai jangkar trial (T12) oleh continueKnownDevice.
+ * tx_used/tx_month/tx_adjust } bila baris ditemukan, atau null bila gagal /
+ * tidak ada. Field tx_* dipakai reconcile kuota transaksi oleh syncLicenseStatus.
  */
 export async function fetchLicenseStatusFromCloud() {
   const sb = getSupabaseClient();

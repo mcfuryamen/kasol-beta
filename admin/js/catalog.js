@@ -18,7 +18,7 @@ let catalogEmpty = null;
  */
 async function fetchProductsFromSupabase() {
   try {
-    const res = await supabaseFetch('/rest/v1/products?select=id,kode_produk,app_type,icon,name,description,price_label,price_before_label,order_index,visible,status,store_url,vercel_url&order=order_index.asc');
+    const res = await supabaseFetch('/rest/v1/products?select=id,kode_produk,app_type,icon,name,description,price_label,price_before_label,order_index,visible,status,store_url,vercel_url,tx_quota&order=order_index.asc');
     if (!res.ok) {
       console.error('Supabase fetch failed:', res.status, res.text);
       return [];
@@ -42,7 +42,8 @@ async function fetchProductsFromSupabase() {
           visible: p.visible,
           status: p.status || '',
           storeUrl: p.store_url || '',
-          vercelUrl: p.vercel_url || ''
+          vercelUrl: p.vercel_url || '',
+          txQuota: p.tx_quota || null
         }));
   } catch (error) {
     console.error('Error fetching products from Supabase:', error);
@@ -116,6 +117,7 @@ export function renderCatalog() {
       <div class="catalog-card-title">${escapeHtml(app.name || 'Aplikasi Baru')}</div>
       <div class="catalog-card-desc">${escapeHtml(app.desc || '')}</div>
       <div class="catalog-card-meta">${escapeHtml(app.kodeProduk || app.appType || '—')} · ${formatRupiah(app.price || 0)}</div>
+      ${app.txQuota ? `<div class="catalog-card-meta" style="color:#15803d;font-weight:600">🎁 Kuota gratis: ${escapeHtml(String(app.txQuota))} transaksi/bulan</div>` : ''}
       <div class="catalog-card-category">${getCategoryLabel(app.category)}</div>
             <div class="catalog-card-domain">
               ${app.storeUrl ? `<a href="${escapeHtml(app.storeUrl)}" target="_blank" rel="noopener" class="domain-chip ${statusChipClass(app)}">${statusChipLabel(app)}</a>` : statusChip(app)}
@@ -212,6 +214,7 @@ window.openCatalogSheet = function(idx = null) {
     status: 'development',
     storeUrl: '',
     vercelUrl: '',
+    txQuota: '',
     orderIndex: (STATE.catalog || []).length
   };
 
@@ -295,6 +298,11 @@ window.openCatalogSheet = function(idx = null) {
               <input type="url" id="catVercelUrl" value="${escapeHtml(app.vercelUrl || '')}" placeholder="https://kasirsolo-retail.vercel.app">
               <small class="field-hint">Domain preview/vercel aplikasi (opsional, untuk akses staging).</small>
             </div>
+            <div class="field field-span-2">
+              <label class="field-label">🎁 Kuota Transaksi Gratis /bulan (tier gratis POS)</label>
+              <input type="number" id="catTxQuota" value="${escapeHtml(app.txQuota ?? '')}" min="0" step="10" placeholder="mis. 100">
+              <small class="field-hint">Tier gratis = N transaksi selesai per bulan kalender, tanpa batas waktu. Kosong → default app (100). Diadjust per pelanggan lewat kartu Klien (bonus/reset).</small>
+            </div>
           </div>
     <div class="btn-block-row mt12">
       <button class="btn btn-outline" onclick="closeCatalogSheet()">Batal</button>
@@ -337,6 +345,8 @@ window.saveCatalogApp = async function(idx = null) {
   const status = document.getElementById('catStatus')?.value || 'development';
   const storeUrl = document.getElementById('catStoreUrl')?.value.trim() || '';
   const vercelUrl = document.getElementById('catVercelUrl')?.value.trim() || '';
+  const txQuotaRaw = document.getElementById('catTxQuota')?.value.trim() || '';
+  const txQuota = txQuotaRaw ? Math.max(0, parseInt(txQuotaRaw, 10) || 0) : null;
 
   const isEdit = idx !== null;
 
@@ -360,7 +370,8 @@ window.saveCatalogApp = async function(idx = null) {
     visible: true,
     status: status,
     store_url: storeUrl || null,
-    vercel_url: vercelUrl || null
+    vercel_url: vercelUrl || null,
+    tx_quota: txQuota
   };
 
   try {

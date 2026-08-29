@@ -38,11 +38,10 @@ function isPlaceholderKey(k) {
   return s.includes('***') || s.includes('...') || /^PASTE/i.test(s) || !s.includes('.');
 }
 
-/** Tutup gate fullscreen + lockOverlay saat lisensi aktif (flow otomatis). */
+/** Tutup overlay terkunci saat lisensi aktif (flow otomatis). */
 function unlockGate() {
-  const gate = document.getElementById('licenseGate');
-  if (gate) gate.style.display = 'none';
   closeModal('lockOverlay');
+  import('./license.js').then(m => m.hideQuotaBanner()).catch(() => {});
 }
 
 /** Get current license status from Supabase */

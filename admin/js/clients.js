@@ -490,6 +490,58 @@ function toggleKbMenu(btn) {
 }
 window.toggleKbMenu = toggleKbMenu;
 
+// ===== Kuota transaksi gratis (2026-08-29) =====
+// Kuota efektif = products.tx_quota (kartu Produk) + clients.tx_adjust (bonus
+// admin per pelanggan, bisa negatif). Admin bisa reset penghitung bulanan.
+function txInfoHtml(c) {
+  const q = Number(catalogProductFor(c.app_type)?.txQuota) || 100;
+  const adj = Number(c.tx_adjust) || 0;
+  const used = Number(c.tx_used) || 0;
+  const eff = q + adj;
+  const badge = adj ? ` <span class="badge ${adj > 0 ? 'green' : 'red'}">${adj > 0 ? '+' : ''}${adj} admin</span>` : '';
+  return `${used}/${eff} trx${badge}`;
+}
+
+window.adjustTxQuota = async function (id, delta) {
+  const c = clients.find((x) => x.id === id);
+  if (!c) return;
+  const next = (Number(c.tx_adjust) || 0) + delta;
+  try {
+    const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      data: { tx_adjust: next },
+      headers: { Prefer: 'return=representation' }
+    });
+    if (!res.ok) throw new Error(res.text || res.status);
+    c.tx_adjust = next;
+    renderAll();
+    showToast(next > 0 ? `Bonus kuota kini +${next}` : next < 0 ? `Kuota kini ${next} dari global` : 'Bonus kuota dihapus', 2000, 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal mengubah kuota', 2200, 'error');
+  }
+};
+
+window.resetTxUsage = async function (id) {
+  const c = clients.find((x) => x.id === id);
+  if (!c) return;
+  if (!confirm('Reset penghitung transaksi bulan ini ke 0 untuk klien ini?')) return;
+  try {
+    const res = await supabaseFetch(`/rest/v1/clients?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      data: { tx_used: 0, tx_month: null, tx_updated_at: new Date().toISOString() },
+      headers: { Prefer: 'return=representation' }
+    });
+    if (!res.ok) throw new Error(res.text || res.status);
+    c.tx_used = 0;
+    renderAll();
+    showToast('Penghitung transaksi direset — kuota segar', 2200, 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal reset penghitung', 2200, 'error');
+  }
+};
+
 function kanbanCardHtml(c) {
   const m = metaFor(c.app_type);
   const esc = escapeHtml;
@@ -544,9 +596,17 @@ function kanbanCardHtml(c) {
                 <div class="kb-info-r"><span class="kb-info-l">Nama Usaha</span><span class="kb-info-v">${esc(c.nama_usaha || c.nama_warung || '—')}</span></div>
                 ${harga ? `<div class="kb-info-r"><span class="kb-info-l">Harga Deal</span><span class="kb-info-v">Rp ${harga.toLocaleString('id-ID')}</span></div>` : ''}
                 <div class="kb-info-r"><span class="kb-info-l">Dilihat</span><span class="kb-info-v">${formatRelativeTime(c.last_seen)}</span></div>
+                <div class="kb-info-r"><span class="kb-info-l">Kuota Gratis</span><span class="kb-info-v">${txInfoHtml(c)}</span></div>
               </div>
 
               ${licHtml}
+              <div class="kb-card-lic" style="margin-top:8px;flex-wrap:wrap;gap:6px">
+                <span style="font-size:12px;color:var(--text2)">🎁 Kuota:</span>
+                <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation();adjustTxQuota('${esc(c.id)}', -10)">−10</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation();adjustTxQuota('${esc(c.id)}', 10)">+10</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation();adjustTxQuota('${esc(c.id)}', 50)">+50</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation();resetTxUsage('${esc(c.id)}')">↺ Reset Pakai</button>
+              </div>
 
             </div>
           </div>

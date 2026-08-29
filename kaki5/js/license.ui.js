@@ -1,6 +1,6 @@
 // ==================== LICENSE UI (ESM) ====================
 // DOM operations only. NO crypto, NO direct DB access.
-import { getLicense, daysLeft, isLicensed, getLicenseStatus, MAX_EXTENSIONS, activateSerial, markLicenseRevoked, persistCloudLicense, getDeviceIdentity } from './license.logic.js';
+import { getLicense, isLicensed, getLicenseStatus, activateSerial, markLicenseRevoked, persistCloudLicense, getDeviceIdentity } from './license.logic.js';
 import { APP_VERSION } from './version.js';
 import { escapeHtml } from './helpers.js';
 import { rateLimiters } from './helpers.pure.js';
@@ -10,8 +10,6 @@ import { showToast } from './helpers.js';
 let _updateTrialChip = null;
 let _renderLicenseInfoCard = null;
 let _checkLicenseGate = null;
-let _openExtendFlow = null;
-let _grantExtension = null;
 let _openLicenseSheet = null;
 let _openPurchaseSheet = null;
 
@@ -19,8 +17,6 @@ export function setLicenseRefs(refs) {
   _updateTrialChip = refs.updateTrialChip;
   _renderLicenseInfoCard = refs.renderLicenseInfoCard;
   _checkLicenseGate = refs.checkLicenseGate;
-  _openExtendFlow = refs.openExtendFlow;
-  _grantExtension = refs.grantExtension;
   _openLicenseSheet = refs.openLicenseSheet;
   _openPurchaseSheet = refs.openPurchaseSheet;
 }
@@ -43,30 +39,35 @@ export function closeSheet(id) { closeOverlay(id); }
 // ── License status HTML template (cloud-first) ────────────────────────
 // Flow utama: trial → beli → verifikasi → aktif. Tiap state punya satu CTA utama.
 function licenseSteps(activeStep) {
-  const steps = [['1', 'Trial'], ['2', 'Beli'], ['3', 'Proses'], ['4', 'Aktif']];
+  const steps = [['1', 'Gratis'], ['2', 'Beli'], ['3', 'Proses'], ['4', 'Aktif']];
   return `<div class="license-steps" aria-label="Tahapan lisensi">${steps.map(([number, label], index) => `
     <div class="license-step ${index + 1 < activeStep ? 'is-done' : ''} ${index + 1 === activeStep ? 'is-current' : ''}">
       <span class="license-step-dot">${index + 1 < activeStep ? '✓' : number}</span><span>${label}</span>
     </div>${index < steps.length - 1 ? '<span class="license-step-line"></span>' : ''}`).join('')}</div>`;
 }
 
-export function licenseStatusHtml(left, extUsed, inputId) {
+// Kartu status tier gratis = KUOTA TRANSAKSI per bulan kalender (2026-08-29).
+// st = hasil getLicenseStatus() (txRemaining/txQuota/txUsed/txAdjust).
+export function licenseStatusHtml(st, inputId) {
+  const habis = st.status === 'expired';
+  const quota = Number(st.txQuota) || 0;
+  const remaining = habis ? 0 : Math.max(0, Number(st.txRemaining) || 0);
+  const used = Math.max(0, quota - remaining);
+  const pct = quota > 0 ? Math.min(100, Math.max(4, Math.round((remaining / quota) * 100))) : 0;
+  const adj = Number(st.txAdjust) || 0;
   return `
     <div class="card license-card-trial license-state-card">
       ${licenseSteps(1)}
       <div class="license-header">
-        <div class="license-icon">⏰</div>
-        <div class="license-title">Masa Coba Gratis</div>
-        <span class="badge ${left > 2 ? 'orange' : 'red'}">${left > 0 ? left + ' hari tersisa' : 'Sudah habis'}</span>
+        <div class="license-icon">🎁</div>
+        <div class="license-title">Kuota Transaksi Gratis</div>
+        <span class="badge ${habis ? 'red' : (remaining <= 10 ? 'orange' : 'green')}">${habis ? 'Habis bulan ini' : 'Sisa ' + remaining + ' transaksi'}</span>
       </div>
-      <div class="license-description">Nikmati trial sekarang. Saat siap, beli lisensi dan admin akan mengaktifkannya otomatis setelah pembayaran diverifikasi.</div>
-      <div class="license-extend-section">
-        ${extUsed < MAX_EXTENSIONS ? `<button class="btn-extend" data-action="open-extend-flow">🎁 Tambah 1 Hari Gratis</button>` : `<div class="hint">Jatah perpanjangan gratis sudah habis (maks ${MAX_EXTENSIONS}x).</div>`}
-        <div class="license-usage">Perpanjangan dipakai <b>${extUsed}/${MAX_EXTENSIONS}</b>x</div>
-      </div>
+      <div class="license-description">Setiap bulan kamu dapat <b>${quota} transaksi</b> gratis tanpa batas waktu — kuota segar lagi di awal bulan. Terpakai <b>${used}</b> bulan ini${adj ? ' · termasuk bonus admin ' + (adj > 0 ? '+' : '') + adj : ''}.</div>
+      <div class="license-progress"><span style="width:${pct}%"></span></div>
+      <div class="license-actions license-actions-primary"><button class="btn btn-primary" data-action="open-purchase-sheet">💳 Beli Lisensi — Transaksi Tanpa Batas</button></div>
     </div>
     <div class="license-actions license-actions-row">
-      <button class="btn btn-primary" data-action="open-purchase-sheet">💳 Beli Lisensi</button>
       <button class="btn btn-secondary" data-action="contact-via-wa">💬 Tanya Admin</button>
     </div>
   `;
@@ -221,8 +222,7 @@ export async function renderLicenseStatusArea(targetId, inputId) {
     const expTxt = lic?.expiryLabel ? 'Masa berlaku: ' + escapeHtml(lic.expiryLabel) : 'Berlaku seumur hidup';
     el.innerHTML = activeLicenseCardHtml(cloud.license_serial || lic?.serial, expTxt);
     closeModal('lockOverlay');
-    const gate = document.getElementById('licenseGate');
-    if (gate) gate.style.display = 'none';
+    hideQuotaBanner();
     if (_updateTrialChip) _updateTrialChip();
     return true;
   }
@@ -241,10 +241,8 @@ export async function renderLicenseStatusArea(targetId, inputId) {
     return false;
   }
 
-  const lic = await getLicense();
-  const left = await daysLeft(lic);
-  const extUsed = lic.extensionsUsed || 0;
-  el.innerHTML = licenseStatusHtml(left, extUsed, inputId);
+  const st = await getLicenseStatus();
+  el.innerHTML = licenseStatusHtml(st, inputId);
   return false;
 }
 
@@ -258,8 +256,7 @@ export async function checkCloudStatusAndUnlock() {
   if (cloud && cloud.license_status === 'aktif') {
     await renderLicenseStatusArea('licenseSheetBody', 'licenseKeyInputSheet');
     closeModal('lockOverlay');
-    const gate = document.getElementById('licenseGate');
-    if (gate) gate.style.display = 'none';
+    hideQuotaBanner();
     if (_checkLicenseGate) _checkLicenseGate();
     showToast('🎉 Lisensi berhasil diaktifkan!', 3000, 'success');
     return true;
@@ -282,12 +279,29 @@ export function toggleManualKey(inputId) {
 }
 
 // ── Trial / License UI ─────────────────────────────────────────────────
-export async function checkLicenseGate() {
-  // Jika gate full-screen (onboarding / trial-habis) sedang tampil, jangan pop lock —
-  // gate sendiri yang menangani state. (Smart gate → hindari double overlay.)
-  const gateEl = document.getElementById('licenseGate');
-  if (gateEl && gateEl.style.display !== 'none') return;
+// ── Banner kuota (2026-08-29) — pengganti full-screen gate ──────────────
+// Kuota habis TIDAK mengunci aplikasi: banner bisa-ditutup + blok transaksi
+// di pos.js. Revoke admin tetap full-lock (lockOverlay). Banner menampilkan
+// ID Perangkat agar mudah disebut saat hubungi admin.
+function showQuotaBanner(st) {
+  const b = document.getElementById('quotaBanner');
+  if (!b) return;
+  const txt = document.getElementById('quotaBannerText');
+  if (txt) {
+    const paid = st.protocol === 'licensed-expired';
+    txt.innerHTML = (paid
+      ? '🔑 Lisensi berbayar Anda sudah kedaluwarsa — eksplorasi tetap bebas, transaksi terkunci.'
+      : '🚫 Kuota transaksi bulan ini habis — eksplorasi tetap bebas, transaksi terkunci.')
+      + ' <b>ID Perangkat: ' + (st.deviceCode || '—') + '</b>';
+  }
+  b.classList.remove('khide');
+}
+export function hideQuotaBanner() {
+  const b = document.getElementById('quotaBanner');
+  if (b) b.classList.add('khide');
+}
 
+export async function checkLicenseGate() {
   // Cloud-first: kalau cloud=aktif tapi lokal=revoked (admin aktivasi ulang
   // setelah pencabutan), sync cloud → lokal dulu SEBELUM cek status lokal.
   // Tanpa ini, check berikutnya akan render overlay revoked terus walau
@@ -299,12 +313,12 @@ export async function checkLicenseGate() {
       if (_renderLicenseInfoCard) _renderLicenseInfoCard();
       const lock = document.getElementById('lockOverlay');
       if (lock) closeModal('lockOverlay');
+      hideQuotaBanner();
       return;
     }
   }
 
   const lic = await getLicense();
-  const left = await daysLeft(lic);
   // Sinkronkan mode lockOverlay: revoked = halaman penuh putih, lainnya kartu
   // default (supaya bekas mode revoked kembali normal setelah aktivasi/pemulihan).
   setLockMode(lic.status === 'revoked' ? 'revoked' : 'default');
@@ -318,14 +332,17 @@ export async function checkLicenseGate() {
     if (_updateTrialChip) _updateTrialChip();
     if (_renderLicenseInfoCard) _renderLicenseInfoCard();
     closeModal('lockOverlay');
+    hideQuotaBanner();
     return;
   }
   if (_updateTrialChip) _updateTrialChip();
   if (_renderLicenseInfoCard) _renderLicenseInfoCard();
-  if (left <= 0) {
-      await openModal('lockOverlay');
-    }
-  }
+  // Kuota habis / lisensi kedaluwarsa → banner (bukan lock); transaksi
+  // diblokir di pos.js, sisanya aplikasi tetap bisa dieksplor.
+  const st = await getLicenseStatus();
+  if (st.status === 'expired') showQuotaBanner(st);
+  else hideQuotaBanner();
+}
 
 export async function updateTrialChip() {
   const chip = document.getElementById('trialChip');
@@ -341,12 +358,12 @@ export async function updateTrialChip() {
     return;
   }
   if (st.status === 'trial') {
-    chip.innerHTML = '<div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">' + st.daysLeft + ' hari</div>';
-    chip.classList.toggle('warn', st.daysLeft <= 2);
+    chip.innerHTML = '<div class="trial-label-xs">GRATIS</div><div class="trial-value-sm">' + st.txRemaining + ' trx</div>';
+    chip.classList.toggle('warn', st.txRemaining <= 10);
     return;
   }
   if (st.status === 'expired') {
-    chip.innerHTML = '<div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">Habis</div>';
+    chip.innerHTML = '<div class="trial-label-xs">GRATIS</div><div class="trial-value-sm">Habis</div>';
     chip.classList.add('warn');
     return;
   }
@@ -355,7 +372,7 @@ export async function updateTrialChip() {
     chip.classList.add('warn');
     return;
   }
-  chip.innerHTML = '<div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">—</div>';
+  chip.innerHTML = '<div class="trial-label-xs">GRATIS</div><div class="trial-value-sm">—</div>';
   chip.classList.remove('warn');
 }
 
@@ -389,67 +406,6 @@ export async function contactViaWA() {
   const { deviceCode } = await getDeviceIdentity();
   const text = `Halo, saya ingin aktivasi lisensi Kasir Solo - Kaki Lima.\nKode Perangkat: ${deviceCode}\nAplikasi: Kasir Solo Kaki Lima`;
   window.open('https://wa.me/628816566935?text=' + encodeURIComponent(text), '_blank');
-}
-
-export async function openExtendFlow() {
-  const { getLicense } = await import('./license.logic.js');
-  const { grantExtensionLogic } = await import('./license.logic.js');
-  const { showToast } = await import('./helpers.js');
-  const { rateLimiters } = await import('./helpers.pure.js');
-
-  const lic = await getLicense();
-  const extUsed = lic.extensionsUsed || 0;
-  if (extUsed >= MAX_EXTENSIONS) { showToast('Jatah perpanjangan sudah habis', 'error'); return; }
-
-  // Rate limit: 10 calls per minute
-  if (!rateLimiters.grantExtension('open-extend-flow')) {
-    showToast('Terlalu banyak percobaan. Tunggu sebentar.', 'error');
-    return;
-  }
-
-  const { getAppLink } = await import('./app-link.js');
-  const appLink = await getAppLink();
-  const shareText = `Halo! Saya pakai *Kasir Solo - Kaki Lima* buat catat jualan saya, gampang & ringan banget. Bayar cuman *SEKALI*, pakai *SELAMANYA* — Coba langsung di: ${appLink}`;
-  // Langsung buka WHATSAPP (permintaan pemilik 2026-08-17). Dulu: contact
-  // picker / share sheet OS — membingungkan user ("kok ke kontak?").
-  await tryShare(shareText);
-  const ok = confirm('Apakah kamu berhasil membagikan info aplikasi ini ke rekan atau grup WhatsApp? \n\nJika ya, kamu akan dapatkan 1 hari masa coba gratis tambahan.');
-  if (ok) { if (_grantExtension) _grantExtension(); }
-  else { showToast('Bagikan dulu lewat WhatsApp untuk klaim tambahan 1 hari', 'error'); }
-}
-
-export async function tryShare(text) {
-  // Selalu WhatsApp: wa.me tanpa nomor membuka aplikasi WhatsApp (mobile) /
-  // WhatsApp Web (desktop) dengan teks sudah terisi — user tinggal pilih chat.
-  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
-}
-
-export async function grantExtension() {
-  const { grantExtensionLogic, daysLeft, isLicensed } = await import('./license.logic.js');
-  const { showToast } = await import('./helpers.js');
-  const { closeOverlay, openLicenseSheet } = await import('./license.ui.js');
-  const { rateLimiters } = await import('./helpers.pure.js');
-
-  // Rate limit: 10 calls per minute (same as openExtendFlow)
-  if (!rateLimiters.grantExtension('grant-extension')) {
-    showToast('Terlalu banyak percobaan. Tunggu sebentar.', 'error');
-    return;
-  }
-
-  const res = await grantExtensionLogic();
-  if (!res.granted) {
-    closeOverlay('sheetLicense');
-    if (_checkLicenseGate) _checkLicenseGate();
-    showToast('Jatah perpanjangan gratis sudah habis', 'error');
-    return;
-  }
-  const { lic, extUsed } = res;
-  if (_updateTrialChip) _updateTrialChip();
-  if (_renderLicenseInfoCard) _renderLicenseInfoCard();
-  closeOverlay('sheetLicense');
-  closeModal('lockOverlay');
-  if (_checkLicenseGate) _checkLicenseGate();
-  showToast('Masa coba ditambah 1 hari! 🎉 (' + extUsed + '/' + MAX_EXTENSIONS + ')');
 }
 
 export async function activateLicense(inputId) {
@@ -502,8 +458,7 @@ export async function activateLicense(inputId) {
     if (_renderLicenseInfoCard) _renderLicenseInfoCard();
     closeOverlay('sheetLicense');
     closeModal('lockOverlay');
-    const gate = document.getElementById('licenseGate');
-    if (gate) gate.style.display = 'none';
+    hideQuotaBanner();
     showToast(res.message);
   } else {
     showToast(res.message || 'Kode lisensi tidak valid', 'error');

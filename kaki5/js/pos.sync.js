@@ -45,5 +45,8 @@ export function clearCartStorage() {
 
 export async function simpanPenjualanSync(sale) {
   const saleId = await DB.penjualan.add(sale);
+  // Kuota transaksi (2026-08-29): tiap penjualan selesai naikkan penghitung.
+  // Titik tunggu penulisan penjualan — semua jalur checkout lewat sini.
+  try { const { incrementTxCount } = await import('./license.js'); await incrementTxCount(); } catch (_) { /* kuota gagal dicatat jangan gagalkan penjualan */ }
   return saleId;
 }

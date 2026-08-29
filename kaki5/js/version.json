@@ -1,8 +1,8 @@
 {
-  "version": "1.0.46",
-  "cacheBust": "v115",
+  "version": "1.0.47",
+  "cacheBust": "v116",
   "notes": [
-    "🆔 Layar lisensi/gate kini menampilkan versi aplikasi & ID perangkat — mudah disebut saat hubungi admin",
-    "🔧 Status masa coba kini konsisten di semua browser — selalu dihitung dari server (anti-reset)"
+    "🎁 Baru: kuota transaksi GRATIS tiap bulan — tanpa batas waktu, kuota segar di awal bulan",
+    "🔓 Kuota habis? Aplikasi tetap bisa dibuka & dilihat — cuma transaksi yang dijeda sampai beli lisensi"
   ]
 }

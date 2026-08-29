@@ -236,7 +236,7 @@ const TUTORIALS = [
       <div class="klh18 kfs14">
         <p><b>Masa Coba Gratis:</b></p>
         <p class="kpl20 kmy8">
-          Saat pertama pakai kamu otomatis dapat <b>masa coba 7 hari</b>. Status terlihat di chip
+          Saat pertama pakai kamu otomatis dapat <b>kuota transaksi gratis tiap bulan</b> tanpa batas waktu. Sisa kuota terlihat di chip
                   <b>TRIAL</b> pojok kanan atas.
         </p>
         <p class="kmt16"><b>Tambah 1 Hari Gratis (Berbagi):</b></p>

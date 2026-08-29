@@ -12,10 +12,27 @@ const PRODUCT_PREFIX = 'KK5';
 
 const B32_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 
-// Trial config (matches Rosok)
-export const TRIAL_DAYS = 7;
-export const EXTEND_DAYS = 1;
-export const MAX_EXTENSIONS = 20;
+// ===== KUOTA TRANSAKSI (ganti trial waktu — keputusan pemilik 2026-08-29) =====
+// Tier gratis = kuota transaksi selesai per bulan kalender, TANPA batas waktu.
+// Angka global diatur admin (products.tx_quota utk app ini; di-cache lokal ke
+// settings.trialConfig agar tetap jalan offline). Kuota efektif per perangkat =
+// kuota global + lic.txAdjust (adjust +/− dari admin; cloud = sumber kebenaran).
+export const DEFAULT_TX_QUOTA = 100;
+
+// Bulan kalender berjalan, format 'YYYY-MM' (kunci siklus kuota).
+export function currentTxMonth(nowMs = Date.now()) {
+  const d = new Date(nowMs);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+// Kuota global bulan ini: config cloud (di-cache oleh license.sync ke
+// settings.trialConfig); fallback DEFAULT_TX_QUOTA bila belum pernah online.
+export async function getTxQuota() {
+  let cfg = null;
+  try { cfg = await getSetting('trialConfig', null); } catch (_) { /* storage gagal */ }
+  const q = Number(cfg && cfg.txQuota);
+  return (Number.isFinite(q) && q > 0) ? Math.floor(q) : DEFAULT_TX_QUOTA;
+}
 
 // Universal device code (matches admin algorithm)
 export function simpleHash(str) {
@@ -228,11 +245,11 @@ export async function validateSerial(rawSerial, myDeviceCode, activationDate) {
 }
 
 // ----- License state (persisted in settings table) -----
-// license = { status: 'trial'|'active'|'expired', startedAt, serial?, deviceCode?,
-//             expCode? , extensionsUsed?, lastExtensionAt? }
+// trial:   { status:'trial', txMonth:'YYYY-MM', txUsed, txAdjust, deviceCode }
+// active:  { status:'active', startedAt, serial, deviceCode, expCode, expiryLabel }
+// revoked: { status:'revoked', deviceCode, serial?, revokedAt, revokedReason }
 
 const LICENSE_BACKUP_KEY = 'kasirsolo:kaki5:license';
-const ONBOARDED_BACKUP_KEY = 'kasirsolo:kaki5:onboarded';
 
 function readLocalBackup(key, fallback) {
   try {
@@ -279,27 +296,36 @@ export async function clearLocalLicense() {
   await setSetting('license', {});
 }
 
-// Start a fresh 7-day trial (only if not already activated).
-// T12 (audit 2026-08-17/M1): `anchorStartedAt` opsional = clients.first_seen
-// dari cloud. Bila diberikan, trial dihitung SEJAK perangkat pertama kali
-// dikenal server — hapus data lokal / install ulang lintas browser tidak
-// me-reset jatah trial (kalau sudah lewat 7 hari sejak first_seen, status
-// langsung expired oleh getLicenseStatus, bukan trial baru).
-export async function startTrial(anchorStartedAt) {
+// Mulai/lanjutkan tier gratis berbasis kuota transaksi (idempoten). Bulan
+// kalender baru = kuota segar. Tidak ada lagi jangkar waktu — penghitung
+// dijaga monotonic oleh reconcile cloud (license.sync): max(lokal, cloud)
+// per bulan, jadi hapus data / ganti browser tidak menurunkan penghitung.
+export async function startTrial() {
   const lic = await getLicense();
   if (lic.status === 'active') return { status: 'active' };
-  const now = new Date().toISOString();
-  const anchorMs = anchorStartedAt ? new Date(anchorStartedAt).getTime() : NaN;
-  const startedAt = (!isNaN(anchorMs) && anchorMs > 0)
-    ? new Date(anchorMs).toISOString()
-    : (lic.startedAt || now);
-  if (!lic.startedAt) {
-    const trial = { status: 'trial', startedAt, deviceCode: (await getDeviceIdentity()).deviceCode, extensionsUsed: 0 };
-    await saveLicense(trial);
-    return trial;
-  }
-  // trial already started (e.g. expired but clicked again) — return existing
-  return lic;
+  const month = currentTxMonth();
+  if (lic.status === 'trial' && lic.txMonth === month) return lic;
+  const carry = (lic.status === 'trial' && lic.txMonth === month) ? (Number(lic.txUsed) || 0) : 0;
+  const trial = {
+    status: 'trial',
+    txMonth: month,
+    txUsed: carry,
+    txAdjust: Number(lic.txAdjust) || 0,
+    deviceCode: (await getDeviceIdentity()).deviceCode
+  };
+  await saveLicense(trial);
+  return trial;
+}
+
+// Naikkan penghitung transaksi bulan berjalan. Dipanggil tepat setelah
+// penjualan selesai tersimpan (pos.sync.simpanPenjualanSync). Lisensi aktif
+// tidak dibatasi kuota — penghitung tidak perlu dicatat.
+export async function incrementTxCount() {
+  const lic = await getLicense();
+  if (lic.status !== 'trial') return;
+  const month = currentTxMonth();
+  const used = (lic.txMonth === month ? (Number(lic.txUsed) || 0) : 0) + 1;
+  await saveLicense({ ...lic, txMonth: month, txUsed: used });
 }
 
 // Activate with a paid serial. Returns result object for UI feedback.
@@ -366,55 +392,26 @@ export async function getLicenseStatus() {
       return { status: 'revoked', deviceCode: lic.deviceCode || deviceCode, revokedAt: lic.revokedAt };
     }
     if (lic.status === 'trial') {
-      const end = trialEndDate(lic);
-    const left = Math.ceil((end.getTime() - nowMs) / 86400000);
-    if (left <= 0) return { status: 'expired', deviceCode: lic.deviceCode, trialExpired: true, daysLeft: left };
-    return { status: 'trial', deviceCode: lic.deviceCode, daysLeft: left, extensionsUsed: lic.extensionsUsed || 0, endDate: end.toISOString() };
+      // Kuota transaksi per bulan kalender (2026-08-29): bulan lain = kuota
+      // segar, jadi penghitung dari bulan sebelumnya tidak dibawa.
+      const month = currentTxMonth(nowMs);
+      const used = lic.txMonth === month ? (Number(lic.txUsed) || 0) : 0;
+      const quota = (await getTxQuota()) + (Number(lic.txAdjust) || 0);
+      const remaining = quota - used;
+      if (remaining <= 0) return { status: 'expired', deviceCode: lic.deviceCode, trialExpired: true, txRemaining: 0, txQuota: quota, txUsed: used };
+      return { status: 'trial', deviceCode: lic.deviceCode, txRemaining: remaining, txQuota: quota, txUsed: used };
   }
   return { status: 'none', deviceCode };
 }
 
-export function trialEndDate(lic) {
-  const start = new Date(lic.startedAt || new Date().toISOString());
-  let extUsed = Number(lic.extensionsUsed) || 0;
-  if (!Number.isFinite(extUsed) || extUsed < 0) extUsed = 0;
-  const totalDays = TRIAL_DAYS + (extUsed * EXTEND_DAYS);
-  const end = new Date(start);
-  end.setDate(end.getDate() + totalDays);
-  return end;
-}
-
-// Async + getEffectiveNow(): sisa hari trial WAJIB memakai jam efektif
-// anti-rollback — sama seperti getLicenseStatus(). Dulu Date.now() mentah
-// membuat chip/kartu status bertentangan dengan gate saat jam perangkat
-// dimundurkan (chip "masih X hari", gate sudah mengunci).
-export async function daysLeft(lic) {
-  const end = trialEndDate(lic);
-  const nowMs = await getEffectiveNow();
-  const diff = end.getTime() - nowMs;
-  return Math.ceil(diff / 86400000);
-}
+// (trialEndDate/daysLeft dihapus 2026-08-29 — tier gratis kini berbasis kuota
+// transaksi per bulan, lihat getLicenseStatus. Jam efektif anti-rollback tetap
+// dipakai untuk kedaluwarsa lisensi BERBAYAR.)
 
 export async function isLicensed() {
   const lic = await getLicense();
   if (lic.status !== 'active') return false;
   return !checkExpired(lic.expCode || '99', lic.startedAt, await getEffectiveNow());
-}
-
-// ----- Onboarding once-per-device -----
-// Flag persisten: onboarding hanya ditampilkan sekali per perangkat.
-// Begitu user selesai onboarding (mulai trial), kita tandai 'onboarded';
-// jika pernah trial/aktif juga sudah dianggap onboarded (backfill).
-export async function isOnboarded() {
-  const lic = await getLicense();
-  if (lic.status) return true; // pernah trial/aktif/expired = sudah lewat onboarding
-  const stored = await getSetting('onboarded', null);
-  return stored === true || readLocalBackup(ONBOARDED_BACKUP_KEY, false) === true;
-}
-
-export async function markOnboarded() {
-  await setSetting('onboarded', true);
-  writeLocalBackup(ONBOARDED_BACKUP_KEY, true);
 }
 
 // ----- unitId (global DNA) -----
@@ -456,26 +453,4 @@ export async function getInstallId() {
   return (await getDeviceIdentity()).installId;
 }
 
-// ----- grantExtension (pure logic, no DOM) -----
-// Defense-in-depth: the cap is enforced HERE in core logic, not just in the UI,
-// so calling grantExtensionLogic() directly (console/devtools) cannot exceed
-// MAX_EXTENSIONS. Returns { granted, reason, ... }.
-export async function grantExtensionLogic() {
-  const lic = await getLicense();
-  // Sanitize: never trust a tampered/negative stored counter.
-  let extUsed = Number(lic.extensionsUsed) || 0;
-  if (!Number.isFinite(extUsed) || extUsed < 0) extUsed = 0;
-  if (extUsed >= MAX_EXTENSIONS) {
-    return { granted: false, reason: 'max', extUsed, left: 0, lic };
-  }
-  extUsed += 1;
-  lic.extensionsUsed = extUsed;
-  lic.lastExtensionAt = new Date().toISOString();
-  await saveLicense(lic);
-  return { granted: true, lic, extUsed, left: Math.max(0, await daysLeft(lic)) };
-}
-
-// Re-export the sync-module salt clearer for external use (e.g., admin panel).
-// clearHmacSaltCache is already exported inline at its declaration above —
-// re-exporting it here caused "Duplicate export" and broke 15 module imports.
 export { clearProductSaltCache };

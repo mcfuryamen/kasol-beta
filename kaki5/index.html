@@ -39,7 +39,7 @@
 <header class="app-header">
 <img src="assets/icon.png" class="header-logo" alt="Logo"><h1>Kasir Solo<br><span class="kfs12 kfw400 kop85">Kaki Lima Edition</span></h1>
 <div class="header-right">
-<div class="trial-badge" id="trialChip" data-action="open-license-sheet" role="button" tabindex="0" title="Status Lisensi"><div class="trial-label-xs">TRIAL</div><div class="trial-value-sm">7 hari</div></div>
+<div class="trial-badge" id="trialChip" data-action="open-license-sheet" role="button" tabindex="0" title="Status Lisensi"><div class="trial-label-xs">GRATIS</div><div class="trial-value-sm">—</div></div>
 <button class="header-btn" title="Bantuan" data-action="navigate-bantuan">❓</button>
 </div>
 </header>
@@ -220,12 +220,12 @@
 </div>
 <div class="setting-item" data-action="cloud-backup">
 <div class="setting-icon kbg-green">☁️</div>
-<div class="setting-info"><div class="s-title">Cadangan Cloud</div><div class="s-desc">Simpan produk & transaksi ke server</div></div>
+<div class="setting-info"><div class="s-title">Cadangan Cloud</div><div class="s-desc">Simpan produk & transaksi ke server · 🔒 khusus lisensi aktif</div></div>
 <div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" data-action="cloud-restore-latest">
 <div class="setting-icon kbg-blue">☁️</div>
-<div class="setting-info"><div class="s-title">Pulihkan Cloud</div><div class="s-desc">Ambil cadangan terakhir dari server</div></div>
+<div class="setting-info"><div class="s-title">Pulihkan Cloud</div><div class="s-desc">Ambil cadangan terakhir dari server · 🔒 khusus lisensi aktif</div></div>
 <div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" data-action="open-sync-diag">
@@ -268,6 +268,14 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 </div>
 <div id="bantuanContent"></div>
+</div>
+<div class="card">
+<div class="card-title">📜 Dokumen</div>
+<div class="setting-item" data-action="open-tc">
+<div class="setting-icon kbg-blue">📜</div>
+<div class="setting-info"><div class="s-title">Syarat &amp; Ketentuan</div><div class="s-desc">Baca ketentuan pemakaian aplikasi</div></div>
+<div class="setting-arrow">›</div>
+</div>
 </div>
 
 </main>
@@ -659,6 +667,16 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <!-- TOAST -->
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
+<!-- BANNER KUOTA (2026-08-29): pengganti full-screen gate — bisa ditutup,
+     aplikasi tetap bisa dieksplor; transaksi diblokir di pos.js. -->
+<div id="quotaBanner" class="khide" role="status">
+<div class="quota-banner-card">
+<div id="quotaBannerText" style="flex:1;font-size:13px;color:#7c2d12;line-height:1.5"></div>
+<button class="btn btn-primary" data-action="buy-gate" style="flex-shrink:0;padding:8px 14px;font-size:13px">💳 Lisensi</button>
+<button class="btn btn-icon btn-ghost kclose-btn" data-action="close-quota-banner" aria-label="Tutup banner kuota" style="flex-shrink:0;color:#7c2d12">✕</button>
+</div>
+</div>
+
 <!-- SYNC DIAGNOSTICS MODAL -->
 <div class="modal-overlay" id="syncDiagModal" role="dialog" aria-modal="true" aria-labelledby="syncDiagTitle">
 <div class="modal">
@@ -675,28 +693,6 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 </div>
 
-<!-- ONBOARDING / LICENSE GATE OVERLAY (single step: nama usaha + S&K → mulai percobaan)
-     Positioning di components-modal.css (#licenseGate); JS toggle display flex/none. -->
-<div id="licenseGate" role="dialog" aria-modal="true" aria-labelledby="licenseGateTitle">
-<div id="gateOnboarding" class="kgate-box">
-<img src="assets/icon.png" class="kwh80" alt="Logo">
-<div class="kfs22 kfw800 kmb8">Kasir Solo</div><div class="kfs14 ktext2 kmb16">Kaki Lima Edition</div>
-<div class="kfs15 ktext2 kmb16 klh15">Aplikasi kasir buat <strong>pedagang kaki lima</strong>. Catat jualan, pengeluaran, dan lihat untung tiap hari! Masukkan nomor WhatsApp untuk memulai.</div>
-<div class="form-group kleft">
-<label class="form-label">Nomor WhatsApp <span class="kreq">*</span></label>
-<input type="tel" class="form-input" id="onboardWa" placeholder="Contoh: 08816566935" inputmode="numeric" pattern="[0-9]*" data-action="onboard-input">
-</div>
-<div id="onboardMsg" class="khide kred kfs13 kmb8 kleft"></div>
-<div class="kgreen-box">
-<div class="kfs15 kfw700 kgreen">🎁 Coba Gratis 7 Hari</div>
-<div class="kfs13 ktext2 kmt8">Aktifkan masa percobaan gratis 7 hari, tanpa kartu.</div>
-<button class="btn btn-green kmt12" id="trialBtn" data-action="proceed-to-tc">🚀 Mulai Masa Percobaan</button>
-</div>
-<div class="kfs12 ktext3 kmt8">Nomor WhatsApp akan dipakai untuk aktivasi lisensi dan komunikasi.<br>Isi lengkapnya bisa ditambah nanti di menu Pengaturan.</div>
-</div>
-<div id="gateLicenseBlock" class="khide kgate-box"></div>
-</div>
-
 <!-- SYARAT & KETENTUAN MODAL -->
 <div class="modal-overlay" id="tcModal" role="dialog" aria-modal="true" aria-labelledby="tcModalTitle">
 <div style="background:#fff;border-radius:20px;padding:24px;max-width:520px;width:100%;max-height:85vh;display:flex;flex-direction:column;animation:popIn .3s ease">
@@ -704,15 +700,15 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div style="font-size:11.5px;color:var(--text3);display:flex;align-items:center;gap:6px;margin-bottom:12px">🕒 Terakhir diperbarui: <b>7 Agustus 2026</b> · v1.1</div>
 <div style="flex:1;overflow-y:auto;font-size:13.5px;color:var(--text);line-height:1.7;padding-right:4px">
 <p><b>1. Layanan</b> — <b>Kasir Solo Kaki Lima</b> adalah aplikasi kasir (POS) untuk pedagang kaki lima &amp; warung: mencatat transaksi jualan, mengelola menu/produk &amp; stok, rekap laporan &amp; pengeluaran, kas harian, dan cetak nota lewat printer thermal Bluetooth. Dengan menyetujui Syarat &amp; Ketentuan ini, Anda mendapat akses penuh selama masa uji coba maupun lisensi resmi.</p>
-<p><b>2. Masa Coba &amp; Lisensi</b> — Versi gratis memberi <b>masa coba 7 hari</b>. Setelah habis, Anda dapat <b>membeli lisensi</b> melalui QRIS di aplikasi; setelah pembayaran diverifikasi, admin akan mengaktifkan lisensi Anda <b>secara otomatis</b>. Anda boleh <b>memperpanjang masa coba +1 hari</b> dengan membagikan aplikasi ke teman (maksimal 20&times;). Lisensi berlaku <b>per perangkat</b>; menyebarkan atau menggandakan kode lisensi tanpa izin dapat menyebabkan penonaktifan.</p>
-<p><b>3. Data Anda</b> — Seluruh data transaksi &amp; usaha tersimpan <b>lokal di HP Anda</b> (IndexedDB, mode offline penuh) dan tidak dikirim ke server. Gunakan <b>Cadangkan Data</b> (ekspor JSON) untuk memindahkan/backup. Menekan <b>Hapus Data Pabrik</b> menghapus semua data secara permanen dan tidak dapat dikembalikan.</p>
+<p><b>2. Kuota Gratis &amp; Lisensi</b> — Versi gratis memberi <b>kuota transaksi setiap bulan</b> (jumlah tertera di aplikasi) tanpa batas waktu; kuota menyegarkan diri di awal bulan. Saat kuota habis, aplikasi tetap bisa dibuka &amp; dieksplor, namun pencatatan transaksi baru terkunci sampai bulan berikutnya — atau buka lebih awal dengan <b>membeli lisensi</b> melalui QRIS; setelah pembayaran diverifikasi, admin mengaktifkan lisensi Anda <b>secara otomatis</b>. Lisensi berlaku <b>per perangkat</b>; menyebarkan atau menggandakan kode lisensi tanpa izin dapat menyebabkan penonaktifan.</p>
+<p><b>3. Data Anda</b> — Seluruh data transaksi &amp; usaha tersimpan <b>lokal di HP Anda</b> (IndexedDB, mode offline penuh) dan tidak dikirim ke server. Gunakan <b>Cadangkan Data</b> (ekspor JSON — gratis) untuk memindahkan/backup; fitur <b>Cadangan Cloud</b> tersedia untuk pengguna lisensi aktif. Menekan <b>Hapus Data Pabrik</b> menghapus semua data secara permanen dan tidak dapat dikembalikan.</p>
 <p><b>4. Profil &amp; Sinkronisasi</b> — Nama usaha, pemilik, WhatsApp, dan wilayah akan disinkronkan ke server kami untuk keperluan dukungan, pengelolaan lisensi, dan statistik agregat. Data penjualan/transaksi <b>tidak</b> ikut disinkronkan pada tahap ini.</p>
 <p><b>5. Tanggung Jawab</b> — Anda bertanggung jawab atas penggunaan aplikasi pada perangkat Anda. Kami tidak bertanggung jawab atas kehilangan data akibat tindakan manual (hapus data, reset/pergantian HP) atau kerusakan perangkat.</p>
 <p><b>6. Bantuan &amp; Perubahan</b> — Butuh bantuan? Hubungi kami melalui WhatsApp. Kami dapat memperbarui Syarat &amp; Ketentuan ini sewaktu-waktu; penggunaan berkelanjutan berarti Anda menyetujui versi terbaru.</p>
 </div>
 <div style="display:flex;gap:10px;margin-top:14px">
-<button class="btn btn-secondary" style="flex:1" data-action="cancel-tc">🔙 Batal</button>
-<button class="btn btn-green" style="flex:1" data-action="accept-tc">✓ Setuju &amp; Lanjut</button>
+<button class="btn btn-secondary" style="flex:1" data-action="cancel-tc">✕ Nanti Saja</button>
+<button class="btn btn-green" style="flex:1" data-action="accept-tc">✓ Saya Setuju</button>
 </div>
 </div>
 </div>
@@ -752,7 +748,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=115"></script>
+  <script type="module" src="js/app.js?v=116"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

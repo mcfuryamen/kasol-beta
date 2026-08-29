@@ -904,3 +904,9 @@ body.modal-open .main-content{overflow:hidden}
    .form-input:focus dkk di atas — specificity-nya menang atas global ini. */
 :focus{outline:none}
 :focus-visible{outline:auto}
+
+/* ==================== BANNER KUOTA TRANSAKSI (2026-08-29) ====================
+   Pengganti full-screen gate: fixed tepat di bawah header, bisa ditutup,
+   tidak memblok interaksi konten di bawahnya (pointer-events none di wrapper). */
+#quotaBanner{position:fixed;left:12px;right:12px;top:calc(var(--header-h) + 10px);z-index:850;pointer-events:none}
+#quotaBanner .quota-banner-card{pointer-events:auto;background:#fff7ed;border:1px solid #fdba74;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.14)}

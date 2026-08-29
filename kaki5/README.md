@@ -85,7 +85,7 @@ kaki5/
 
 **Arsitektur baru (v5):**
 1. `<script src="dexie.min.js">` (global)
-2. `<script type="module" src="js/app.js?v=115">` (ESM entry - lazy loading)
+2. `<script type="module" src="js/app.js?v=116">` (ESM entry - lazy loading)
 
 `app.js` melakukan:
 - Pre-wire critical modules (pos, beranda)
@@ -280,7 +280,7 @@ Setiap modul besar dipecah menjadi 3 layer terpisah:
     ↓
 [<script src="dexie.min.js">] ← Dexie global tersedia
     ↓
-[<script type="module" src="js/app.js?v=115">] ← ESM entry point
+[<script type="module" src="js/app.js?v=116">] ← ESM entry point
     ↓
 [app.js: Lazy load critical modules first]
     ├─ pos.js (PRE-WIRE)
@@ -330,7 +330,7 @@ cleanup() → saat pindah ke page lain
 | **Persist sementara** | Web Storage API (`localStorage`) | Cart persisted ke kaki5-cart |
 | **Offline/PWA** | Service Worker (`sw.js`) + manifest | Cache-first asset, network-first HTML |
 | **Printer** | Web Bluetooth API | ESC/POS 58/80mm thermal |
-| **License** | HMAC-SHA256 (offline) + Supabase cloud | Trial 7 hari + share-extend (20x) + serial (KK5 prefix); anti-rollback jam (`clockAnchor`/`getEffectiveNow`); chip header = cermin `getLicenseStatus()`. **Opsi 3**: pemindahan serial ke perangkat baru diverifikasi server-side via RPC `device_assign` (1 serial = 1 unit = 1 profil); tak cocok → lock overlay |
+| **License** | HMAC-SHA256 (offline) + Supabase cloud | Tier gratis = **kuota transaksi per bulan kalender** (angka global `products.tx_quota`, adjust per perangkat `clients.tx_adjust`, di-reconcile cloud — hapus data tidak menurunkan penghitung); lisensi berbayar serial (KK5 prefix) + anti-rollback jam (`clockAnchor`/`getEffectiveNow`); chip header = cermin `getLicenseStatus()`. Kuota habis → banner bisa-ditutup + blok transaksi (app tetap bisa dieksplor); revoke admin → full lock. **Opsi 3**: pemindahan serial via RPC `device_assign` |
 | **Cloud (Verifikasi Lisensi)** | Supabase RPC `device_assign` / `device_known` (SECURITY DEFINER) | Penegakan kepemilikan serial server-side (Opsi 3); fallback offline (HMAC lokal) — lihat `supabase/migration-device-assign.sql` |
 
 ---

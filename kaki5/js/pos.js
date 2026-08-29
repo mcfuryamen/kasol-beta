@@ -17,6 +17,7 @@ import {
   renderOrderNoteBox
 } from './pos.ui.js';
 import { saveCart, loadCart, clearCartStorage, simpanPenjualanSync } from './pos.sync.js';
+import { getLicenseStatus } from './license.js';
 
 export {
   addToCartLogic, changeQtyLogic, hitungKembalianLogic, calculateTotal,
@@ -225,6 +226,15 @@ export function setNominalBayar(nominal) {
 export async function simpanPenjualan(cetakJuga = false) {
   const items = Object.values(cart).filter(c => c.qty > 0);
   if (items.length === 0) { showToast('Keranjang kosong!', 'error'); return; }
+
+  // Kuota transaksi (2026-08-29): saat kuota bulan ini habis, transaksi diblok
+  // tapi aplikasi tetap bisa dieksplor — arahkan ke sheet pembelian.
+  const licSt = await getLicenseStatus();
+  if (licSt.status === 'expired') {
+    showToast('Kuota transaksi bulan ini habis — aktifkan lisensi untuk lanjut jualan 💳', 'error', 4000);
+    import('./purchase.js').then(m => m.openPurchaseSheet()).catch(() => {});
+    return;
+  }
 
   const totalHarga = calculateTotal(cart);
   const totalModal = items.reduce((a,c) => a + c.qty * c.menu.hargaModal, 0);
