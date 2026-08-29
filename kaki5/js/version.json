@@ -1,8 +1,7 @@
 {
-  "version": "1.0.47",
-  "cacheBust": "v116",
+  "version": "1.0.48",
+  "cacheBust": "v117",
   "notes": [
-    "🎁 Baru: kuota transaksi GRATIS tiap bulan — tanpa batas waktu, kuota segar di awal bulan",
-    "🔓 Kuota habis? Aplikasi tetap bisa dibuka & dilihat — cuma transaksi yang dijeda sampai beli lisensi"
+    "🛠 Perbaikan kecil: kartu Syarat & Ketentuan kini tampil di halaman Bantuan saja"
   ]
 }
