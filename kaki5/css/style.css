@@ -98,7 +98,7 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .form-helper{font-size:12px;color:var(--text3);font-style:italic;margin-bottom:6px}
 .form-input{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:17px;font-weight:600;background:#fff;color:var(--text);transition:border .2s;-webkit-appearance:none}
 .form-input:focus{outline:3px solid var(--primary);outline-offset:2px;border-color:var(--primary)}
-.form-input::placeholder{color:#bbb}
+.form-input::placeholder,.search-box input::placeholder{color:#bbb;font-size:.85em;font-weight:400}
 select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 16px center}
 
 /* MENU GRID */
