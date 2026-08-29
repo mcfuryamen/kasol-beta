@@ -303,11 +303,15 @@ async function renderGate(status) {
     // 'block' eksplisit: #gateLicenseBlock punya class .khide (display:none),
     // inline kosong ('') tidak menimpa class -> gate tampil blank putih.
     lc.style.display = 'block';
-    lc.innerHTML = gateLicenseHtml(status);
+    // Info versi + ID perangkat di gate (permintaan pemilik 2026-08-29):
+    // memudahkan support — user cukup sebut ID-nya, dan dev tahu versinya.
+    let deviceCode = '';
+    try { deviceCode = (await getDeviceIdentity()).deviceCode; } catch (_) { /* gate tetap tampil tanpa ID */ }
+    lc.innerHTML = gateLicenseHtml(status, deviceCode);
   }
 }
 
-function gateLicenseHtml(status) {
+function gateLicenseHtml(status, deviceCode) {
   const isPaidExpired = status.protocol === 'licensed-expired';
   const intro = isPaidExpired
       ? '<p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Lisensi berbayar Anda sudah kedaluwarsa.<br>Beli lisensi baru dan admin akan mengaktifkannya otomatis setelah pembayaran diverifikasi.</p>'
@@ -322,7 +326,7 @@ function gateLicenseHtml(status) {
         <button class="btn btn-secondary" data-action="contact-via-wa">💬 Tanya Admin</button>
       </div>
       <div id="gateLicMsg" style="display:none;color:var(--red);font-size:13px;margin-top:8px"></div>
-      <div class="kfs12 ktext3 kmt14">Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a></div>
+      <div class="kfs12 ktext3 kmt14" style="line-height:1.7">Versi ${APP_VERSION} · ID Perangkat: <b style="color:var(--text2);user-select:all">${deviceCode || '—'}</b><br>Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a> — sertakan ID perangkat</div>
     `;
   }
 

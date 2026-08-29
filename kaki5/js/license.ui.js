@@ -1,6 +1,7 @@
 // ==================== LICENSE UI (ESM) ====================
 // DOM operations only. NO crypto, NO direct DB access.
-import { getLicense, daysLeft, isLicensed, getLicenseStatus, MAX_EXTENSIONS, activateSerial, markLicenseRevoked, persistCloudLicense } from './license.logic.js';
+import { getLicense, daysLeft, isLicensed, getLicenseStatus, MAX_EXTENSIONS, activateSerial, markLicenseRevoked, persistCloudLicense, getDeviceIdentity } from './license.logic.js';
+import { APP_VERSION } from './version.js';
 import { escapeHtml } from './helpers.js';
 import { rateLimiters } from './helpers.pure.js';
 import { showToast } from './helpers.js';
@@ -140,7 +141,7 @@ function setLockMode(mode) {
 
 // Halaman "Lisensi Dicabut" — struktur meniru gate lisensi (logo, judul,
 // tombol beli/tanya, footer WA) supaya pengalaman konsisten.
-function revokedPageHtml() {
+function revokedPageHtml(deviceCode) {
   return `
     <img src="assets/icon.png" style="width:80px;height:80px;margin-bottom:8px" alt="Logo">
     <div class="kfs22 kfw800 kmb8">Kasir Solo</div>
@@ -151,16 +152,19 @@ function revokedPageHtml() {
       <button class="btn btn-primary" data-action="buy-gate">💳 Beli Lisensi</button>
       <button class="btn btn-secondary" data-action="contact-via-wa">💬 Tanya Admin</button>
     </div>
-    <div class="kfs12 ktext3 kmt14">Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a></div>
+    <div class="kfs12 ktext3 kmt14" style="line-height:1.7">Versi ${APP_VERSION} · ID Perangkat: <b style="color:var(--text2);user-select:all">${deviceCode || '—'}</b><br>Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a> — sertakan ID perangkat</div>
   `;
 }
 
-function renderRevokedLockOverlay() {
+async function renderRevokedLockOverlay() {
   const lock = document.getElementById('lockOverlay');
   setLockMode('revoked');
   if (lock) openModal('lockOverlay');
   const page = document.getElementById('lockRevokedPage');
-  if (page) page.innerHTML = revokedPageHtml();
+  // Info versi + ID perangkat (permintaan pemilik 2026-08-29) — sama dengan gate.
+  let deviceCode = '';
+  try { deviceCode = (await getDeviceIdentity()).deviceCode; } catch (_) { /* halaman tetap tampil tanpa ID */ }
+  if (page) page.innerHTML = revokedPageHtml(deviceCode);
   // lockLicenseStatusArea tidak dipakai di mode ini (halaman punya aksinya sendiri)
   const area = document.getElementById('lockLicenseStatusArea');
   if (area) area.innerHTML = '';
@@ -169,7 +173,7 @@ function renderRevokedLockOverlay() {
 /** Enforce revoke: tandai local license revoked + tampilkan lock/kartu revoked. */
 export async function enforceRevoked() {
   await markLicenseRevoked('admin');
-  renderRevokedLockOverlay();
+  await renderRevokedLockOverlay();
   if (_updateTrialChip) _updateTrialChip();
   if (_renderLicenseInfoCard) _renderLicenseInfoCard();
 }
