@@ -2,6 +2,23 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-08-29 (v102 / 1.0.33: cloud = sumber kebenaran lisensi & profil)
+- **Cabang `belum` di `syncLicenseStatus()` (`license.sync.js`)**: cloud yang tidak mencatat lisensi terjual untuk unit (`license_status = 'belum'` / kosong) kini menurunkan lokal `active` → **trial berjangkar `clients.first_seen`** (T12). Menutup gap yang membuat chip `#trialChip` membeku di "✓ Aktif" padahal cloud `belum` (insiden chip zombie v101). Status `batal`/`nonaktif`/`revoked` tetap revoke; `belum` kembali ke masa coba, bukan hukuman.
+- **Arah push profil dibatasi (`sync.js: ensureSynced`)** — aturan pemilik: *Supabase = satu-satunya sumber kebenaran lisensi & profil; lokal tidak boleh menimpa, kecuali tulisan eksplisit dari form profil*:
+  * Push **otomatis** (boot fase 1c / latar, tanpa `force`) kini **backfill-only**: baris `clients` sudah ada → tidak disentuh sama sekali (dulu `update({...payload})` menimpa semua field profil dengan nilai lokal).
+  * Penimpaan baris cloud hanya lewat jalur **user-intent** (`force`: 4 handler form profil di `settings.ui.js` + `syncNow()`).
+  * Retry loop (T29) kini `force: true` — janji "akan otomatis dicoba saat online" untuk edit form saat offline tetap terpenuhi.
+- **`boot()`: hapus duplikasi blok `verifyBootLicenseAssignment`** (artefak merge; verifikasi lisensi jalan 2x per boot).
+
+## 2026-08-29 (v101 / 1.0.32: re-align versi & pulihkan overlay update)
+- **Konvensi rilis pecah di v87-era commit 473231a**: `sw.js` dinaikkan ke v100 + `index.html ?v=100` tanpa menyentuh `version.js`/`version.json` (tetap v99). Akibat kumulatif: overlay update tidak pernah muncul (`remote.cacheBust === CACHE_BUST`), cache SW tidak pernah invalid (user PWA berisiko stuck HTML lama), catatan rilis tidak pernah sampai user.
+- **Re-align SEMUA ke v101**: `version.js` CACHE_BUST + `version.json` cacheBust + `sw.js` CACHE_NAME + `index.html ?v=`. Komentar `KONVENSI RILIS` ditambahkan di `version.js`: satu bump = 4 tempat sekaligus.
+- **Infra deploy hari yang sama** (di luar app):
+  * `api/supabase-config.js`: `FALLBACK_ANON_KEY` di-hardcode `'******'` (placeholder) menimpa fallback valid klien → `createClient(url, '******')` gagal → sinkronisasi mati diam-diam. Fix: fallback server = JWT anon yang sama dengan klien.
+  * 13 aset `kaki5/` (dexie, supabase.min, ikon, modul sync/onboarding/app-link) yang tidak sampai ke snapshot `kasol-beta` dipulihkan; snapshot main kini 599 file (dari 404).
+  * `push-beta.ps1` + `push-live.ps1`: tambah **`Test-TreeDrift`** (guard blocking: snapshot squash harus identik dengan work HEAD) dan **version-bump reminder** (WARN jika `kaki5/` berubah tanpa bump `version.json`).
+  * `.gitignore` (work + beta): whitelist `!kaki5/assets/icon-old-backup-*.png` & `!kaki5/assets/icon-old.png` agar tidak kena pola `*.backup*`.
+
 ## 2026-08-26 (v87 / 1.0.19: kartu KPI + form menu 2 kolom + restruk nota)
 - **KPI Beranda & Laporan**: utility baru `.kbg-orange-b` (pola sama dgn `kbg-green-b/-red-b/-blue-b`) diterapkan ke 5 kartu jumlah transaksi / porsi / rata-rata (beranda) + 2 kartu Transaksi / Porsi (laporan) — konsisten "warna kartu = warna nilai" (oranye pastel + border `#FFCC80`).
 - **Form menu (Edit/Tambah)**: field "Harga Modal / Bahan (Rp)" dan "Harga Jual (Rp)" dibungkus `<div class="kgrid-2col-gap8">` (utilitas CSS eksisting) menjadi 2 kolom sejajar; "Harga Ojol" tetap full width. Urutan field dibalik: Modal di kiri, Jual di kanan.

@@ -88,13 +88,17 @@ function Test-TreeDrift([string]$SourceDir, [string]$TargetDir) {
 }
 
 # ------------------------------------------------------------
-Write-Host "==> [1/6] Push folder kerja (preview) -> kasol-beta" -ForegroundColor Cyan
-Invoke-Git $WorkDir @("push", "beta", "preview")
+Write-Host "==> [1/6] Push folder kerja (main) -> kasol-beta preview" -ForegroundColor Cyan
+# Work tree tidak punya branch `preview` — push main:preview langsung
+# (gotcha terdokumentasi di DEPLOYMENT.md "Aturan Penting").
+Invoke-Git $WorkDir @("push", "beta", "main:preview")
 
 Write-Host "==> [2/6] Sync kasol-beta preview ke HEAD folder kerja" -ForegroundColor Cyan
 Invoke-Git $BetaDir @("fetch", "work")
 Invoke-Git $BetaDir @("switch", "preview")
-Invoke-Git $BetaDir @("reset", "--hard", "work/preview")
+# work/preview tak selalu ada di remote-tracking — work/main selalu ada
+# dan isinya identik dengan yang baru saja di-push (main:preview).
+Invoke-Git $BetaDir @("reset", "--hard", "work/main")
 
 # Capture SHA main lama (rilis terakhir) SEBELUM dihapus di langkah [3/6] —
 # dipakai version-bump check di bawah.

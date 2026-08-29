@@ -84,6 +84,22 @@ DI-SKIP untuk sekarang** — jangan disentuh sampai landing/admin/kaki5 solid.
 - HTTPS: `generate-license` / `activate-license` edge function dipindah jadi
   **backend otoritatif admin**, bukan helper publik.
 
+### Arah Sinkronisasi — Cloud = Sumber Kebenaran (ATURAN PEMILIK, 2026-08-29)
+- **Supabase = satu-satunya sumber kebenaran untuk lisensi & profil klien.**
+  Data lokal (IndexedDB) TIDAK BOLEH menimpa cloud — **kecuali** tulisan
+  eksplisit user dari **form profil** (jalur user-intent).
+- **Saat app dibuka / refresh / setelah update overlay**: cek Supabase dulu
+  (boot fase 1: sync lisensi → pull profil → push backfill), baru render UI.
+- **Internet mati / cloud gagal dihubungi**: lisensi & profil tetap memakai
+  data lokal (offline-first) — error network TIDAK boleh mengubah/menghapus
+  state lokal (revoke dari ketidakpastian = dilarang).
+- Implementasi di kaki5 (app klien lain meniru): `syncLicenseStatus()`
+  menangani SEMUA `license_status` cloud (`aktif` → persist; `batal`/
+  `nonaktif`/`revoked` → revoke; `belum`/kosong → downgrade aktif→trial
+  berjangkar `first_seen`); `ensureSynced()` push otomatis = **backfill-only**
+  (baris ada → jangan sentuh), penimpaan hanya via `force` (form profil,
+  tombol sinkron, retry pending).
+
 ### Skip sementara: Password Admin
 - Password admin **`admin123`** (hardcoded di `admin/js/auth.js`) **sengaja DI-SKIP
   dulu** sampai pemilik beresin manual (karena menyangkut auth Supabase + RLS).
@@ -386,12 +402,20 @@ Kunci natural = `unit_id`. Kolom: `unit_id, app_type, device_code, install_id,`
   `external_anonymous_users_enabled=true`).
 
 ### Pola modul `sync.js` (contoh: kaki5)
-- `ensureSynced()`: `signInAnonymously()` → `upsert(...)` dengan `onConflict:'unit_id'`
-  (dedupe = update, bukan duplikat).
+- `ensureSynced()`: `signInAnonymously()` → claim `device_known` RPC →
+  **baris belum ada = insert; baris sudah ada = update HANYA lewat jalur
+  user-intent (`force`)**. Push otomatis (boot/retry latar) **backfill-only**
+  — cloud tidak pernah ditimpa data lokal (aturan pemilik 2026-08-29,
+  lihat bagian "Arah Sinkronisasi" di atas).
 - **Dua skenario**: user baru push saat onboarding/aktivasi; user lama di-**backfill
   otomatis** sekali di boot lewat flag lokal `sync` (`none`/`pending`/`synced`),
   retry saat online. **Offline-first tetap dijaga.**
-- Konfig (URL + anon key) di `js/supabase-config.js` (anon = public, aman untuk browser).
+- Arah sebaliknya: `pullCloudProfileIfOnline()` / `pullCloudProfileTo()` pull
+  profil cloud → lokal di tiap boot (fase 1b), SEBELUM render UI. Nilai kosong
+  dari cloud sengaja ikut menimpa lokal (C2v2 — admin bisa membersihkan buffer).
+- Konfig (URL + anon key) di `js/supabase-config.js` (anon = public, aman untuk browser);
+  fallback anon key di `api/supabase-config.js` WAJIB identik dengan klien
+  (insiden `******` 2026-08-29: placeholder menimpa kunci valid → sync mati diam-diam).
 
 ### Catatan lisensi
 - Prefix produk kaki5 = **`KK5`** (bukan `K5`) — admin product registry wajib
@@ -401,6 +425,13 @@ Kunci natural = `unit_id`. Kolom: `unit_id, app_type, device_code, install_id,`
   `KK5`(kaki5), `GBK`(gerobak), `RTL`(retail), salt masing-masing
   `KASIRSOLO-{APP}-HMAC-V2`. Device-match memakai `normalizeDeviceCode(deviceId)`
   (uppercase, buang non-alfanumerik, 8 karakter pertama, pad `X`).
+- **Enum `license_status` di `clients`** (sumber kebenaran) & perlakuannya di
+  `syncLicenseStatus()` (kaki5, sejak 2026-08-29/v102):
+  * `aktif` (+ serial) → persist ke lokal + pull profil.
+  * `batal` / `nonaktif` / `revoked` → revoke lokal (app terkunci, offline tetap terkunci).
+  * `belum` / kosong → lokal `active` diturunkan ke **trial berjangkar `first_seen`** (T12);
+    trial/none lokal dibiarkan. Bukan revoke.
+  * Error network / baris tak terbaca → JANGAN ubah state lokal (anti revoke palsu, H3).
 
 **Kredensial Supabase** disimpan di env hermes (`C:\Users\Admin\AppData\Local\hermes\.env`):
 `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`,

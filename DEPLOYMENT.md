@@ -99,7 +99,16 @@ Tidak ada secrets GitHub Actions lagi (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_
 ## ⚠️ Aturan Penting
 
 - **`dexie.min.js` harus di-track git** untuk tiap app PWA yang meng-load-nya (kaki5, rosok, admin, retail). Root `.gitignore` meng-ignore `*.min.js`, jadi tiap app wajib punya pengecualian `!<app>/dexie.min.js`. Kalau tidak, file tidak masuk repo → deploy = `Dexie is not defined` (app mati).
-- Bump versi cache di `sw.js` setiap ada perubahan aset agar PWA pengguna tidak menyimpan versi lama.
+- **KONVENSI RILIS — satu bump versi = 4 file sekaligus** (jangan pecah — insiden v100, 2026-08-29: `sw.js`+`index.html` dinaikkan tanpa `version.js`/`version.json` → overlay update mati total & cache SW tak pernah invalid):
+  1. `<app>/js/version.js` — `APP_VERSION` + `CACHE_BUST`
+  2. `<app>/js/version.json` — `version` + `cacheBust` + `notes` (isi overlay update)
+  3. `<app>/sw.js` — `CACHE_NAME`
+  4. `<app>/index.html` — `?v=` pada script entry
+  `push-beta.ps1` kini mencetak `[WARN]` jika `kaki5/` berubah tanpa bump `version.json`.
+- **Drift guard otomatis** — `push-beta.ps1` & `push-live.ps1` kini menjalankan `Test-TreeDrift` setelah `git add -A`: snapshot squash `main` HARUS identik dengan work HEAD (path-level via `git ls-tree -r`), kalau tidak skrip **exit 1** sebelum push. Mencegah kejadian 13 aset `kaki5/` hilang dari snapshot (404 di kq5beta, 2026-08-29). Non-blocking warning juga untuk version-bump.
+- **Gotcha branch `preview`**: work tree tidak punya branch `preview`; langkah [1/6] `push-beta.ps1` memakai `git push beta main:preview` (push `main` lokal → branch `preview` remote beta) dan langkah [2/6] reset ke `work/main` — jadi alur jalan tanpa perlu membuat/men-track branch `preview` lokal.
+- Fallback anon key di `<app>/api/supabase-config.js` **harus identik** dengan `<app>/js/supabase-config.js` — placeholder `'******'` di server menimpa kunci valid klien dan mematikan sinkronisasi diam-diam (insiden 2026-08-29).
+- Bump versi cache di `sw.js` setiap ada perubahan aset agar PWA pengguna tidak menyimpan versi lama (tercakup dalam konvensi 4-file di atas).
 
 ## 📝 Development Flow (Alur 2-Mirror)
 
