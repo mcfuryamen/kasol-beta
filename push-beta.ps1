@@ -54,6 +54,39 @@ function Test-TreeSecret([string]$dir, [switch]$Cached) {
   return ($script:secretHits.Count -gt 0)
 }
 
+# Drift detector: pastikan snapshot beta main identik dengan work HEAD.
+# Mode orphan-squash bisa men-drop file kalau push dilakukan dari revisi
+# yang tidak sinkron dengan work tree (lihat insiden 2026-08-29: 13 file
+# kaki5/ hilang di kq5beta.vercel.app karena snapshot 761b7cc dibuat
+# sebelum file di-add di work tree). Mengembalikan $true jika ada drift.
+function Test-TreeDrift([string]$SourceDir, [string]$TargetDir) {
+  $src = & git -C $SourceDir ls-tree -r --name-only HEAD 2>$null | Sort-Object
+  $tgt = & git -C $TargetDir ls-tree -r --name-only main 2>$null | Sort-Object
+  if (-not $tgt) {
+    Write-Host ('     [DRIFT] Target {0} belum punya branch main — lewati cek.' -f $TargetDir) -ForegroundColor Yellow
+    return $false
+  }
+  $onlySrc = @($src | Where-Object { $_ -notin $tgt })
+  $onlyTgt = @($tgt | Where-Object { $_ -notin $src })
+  if ($onlySrc.Count -eq 0 -and $onlyTgt.Count -eq 0) {
+    $srcLen = $src.Count
+    Write-Host ('     Drift check OK: {0} file identik.' -f $srcLen) -ForegroundColor Green
+    return $false
+  }
+  Write-Host ('[DRIFT] Snapshot tidak identik antara {0} dan {1}' -f $SourceDir, $TargetDir) -ForegroundColor Yellow
+  if ($onlySrc.Count -gt 0) {
+    $onlySrcLen = $onlySrc.Count
+    Write-Host ('  Ada di source tapi TIDAK di target ({0} file, max 50):' -f $onlySrcLen) -ForegroundColor Yellow
+    $onlySrc | Select-Object -First 50 | ForEach-Object { Write-Host ('    + {0}' -f $_) }
+  }
+  if ($onlyTgt.Count -gt 0) {
+    $onlyTgtLen = $onlyTgt.Count
+    Write-Host ('  Ada di target tapi TIDAK di source ({0} file, max 50):' -f $onlyTgtLen) -ForegroundColor Yellow
+    $onlyTgt | Select-Object -First 50 | ForEach-Object { Write-Host ('    - {0}' -f $_) }
+  }
+  return $true
+}
+
 # ------------------------------------------------------------
 Write-Host "==> [1/6] Push folder kerja (preview) -> kasol-beta" -ForegroundColor Cyan
 Invoke-Git $WorkDir @("push", "beta", "preview")
@@ -77,6 +110,14 @@ Invoke-Git $BetaDir @("switch", "--orphan", "main")
 Invoke-Git $BetaDir @("checkout", "preview", "--", ".")
 # Index orphan sekarang terisi file dari preview — staging semua
 Invoke-Git $BetaDir @("add", "-A")
+
+# Drift guard: snapshot beta main harus identik dengan work HEAD
+if (Test-TreeDrift -SourceDir $WorkDir -TargetDir $BetaDir) {
+  Write-Host "[FAIL] Snapshot beta main kehilangan/menambah file dibanding work HEAD." -ForegroundColor Red
+  Write-Host "       Biasanya ini karena push-beta.ps1 tidak dijalankan setelah file baru di-add." -ForegroundColor Red
+  Write-Host "       Lihat DEPLOYMENT.md alur 'work -> beta'." -ForegroundColor Red
+  exit 1
+}
 
 # Verifikasi ulang index (cached)
 if (Test-TreeSecret $BetaDir -Cached) {

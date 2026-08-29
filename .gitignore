@@ -70,6 +70,9 @@ temp/
 !rosok/dexie.min.js
 !admin/dexie.min.js
 !retail/dexie.min.js
+# Pengecualian eksplisit: ikon backup lama yang sengaja di-track
+!kaki5/assets/icon-old-backup-*.png
+!kaki5/assets/icon-old.png
 .vercel
 .env*
 

@@ -54,6 +54,37 @@ function Test-TreeSecret([string]$dir, [switch]$Cached) {
   return ($script:secretHits.Count -gt 0)
 }
 
+# Drift detector: pastikan snapshot live main identik dengan beta main.
+# Sumber snapshot push-live = beta main, target = live main index. Mengembalikan
+# $true jika ada drift. Lihat Test-TreeDrift di push-beta.ps1 untuk konteks.
+function Test-TreeDrift([string]$SourceDir, [string]$TargetDir) {
+  $src = & git -C $SourceDir ls-tree -r --name-only main 2>$null | Sort-Object
+  $tgt = & git -C $TargetDir ls-tree -r --name-only HEAD 2>$null | Sort-Object
+  if (-not $tgt) {
+    Write-Host ('     [DRIFT] Target {0} belum punya branch main — lewati cek.' -f $TargetDir) -ForegroundColor Yellow
+    return $false
+  }
+  $onlySrc = @($src | Where-Object { $_ -notin $tgt })
+  $onlyTgt = @($tgt | Where-Object { $_ -notin $src })
+  if ($onlySrc.Count -eq 0 -and $onlyTgt.Count -eq 0) {
+    $srcLen = $src.Count
+    Write-Host ('     Drift check OK: {0} file identik.' -f $srcLen) -ForegroundColor Green
+    return $false
+  }
+  Write-Host ('[DRIFT] Snapshot tidak identik antara {0} dan {1}' -f $SourceDir, $TargetDir) -ForegroundColor Yellow
+  if ($onlySrc.Count -gt 0) {
+    $onlySrcLen = $onlySrc.Count
+    Write-Host ('  Ada di source tapi TIDAK di target ({0} file, max 50):' -f $onlySrcLen) -ForegroundColor Yellow
+    $onlySrc | Select-Object -First 50 | ForEach-Object { Write-Host ('    + {0}' -f $_) }
+  }
+  if ($onlyTgt.Count -gt 0) {
+    $onlyTgtLen = $onlyTgt.Count
+    Write-Host ('  Ada di target tapi TIDAK di source ({0} file, max 50):' -f $onlyTgtLen) -ForegroundColor Yellow
+    $onlyTgt | Select-Object -First 50 | ForEach-Object { Write-Host ('    - {0}' -f $_) }
+  }
+  return $true
+}
+
 # ------------------------------------------------------------
 Write-Host "==> [1/6] Ambil snapshot stabil dari kasol-beta (main)" -ForegroundColor Cyan
 Invoke-Git $LiveDir @("fetch", $BetaDir, "main:refs/beta/main")
@@ -78,6 +109,13 @@ Invoke-Git $LiveDir @("switch", "--orphan", "main")
 Invoke-Git $LiveDir @("checkout", "refs/beta/main", "--", ".")
 # Index orphan sekarang terisi file dari snapshot beta — staging semua
 Invoke-Git $LiveDir @("add", "-A")
+
+# Drift guard: snapshot live main harus identik dengan beta main (sumber snapshot)
+if (Test-TreeDrift -SourceDir $BetaDir -TargetDir $LiveDir) {
+  Write-Host "[FAIL] Snapshot live main tidak identik dengan beta main." -ForegroundColor Red
+  Write-Host "       Pastikan beta main stabil sebelum menjalankan push-live.ps1." -ForegroundColor Red
+  exit 1
+}
 
 # Verifikasi ulang index (cached)
 if (Test-TreeSecret $LiveDir -Cached) {
