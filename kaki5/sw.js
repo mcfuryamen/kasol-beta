@@ -1,7 +1,7 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v105 — ubah angka ini setiap swap service worker file.
+// Cache version v106 — ubah angka ini setiap swap service worker file.
 // v103: panel accordion menu in-flow (bukan melayang).
 // v102: fix arah sinkron lisensi/profil (cloud = sumber kebenaran; cabang
 // 'belum' + push otomatis backfill-only).
@@ -10,7 +10,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v105';
+const CACHE_NAME = 'kasir-solo-kaki5-v106';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

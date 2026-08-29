@@ -1,8 +1,7 @@
 {
-  "version": "1.0.36",
-  "cacheBust": "v105",
+  "version": "1.0.37",
+  "cacheBust": "v106",
   "notes": [
-    "🛵 Tipe Ojol kini cuma menampilkan menu yang punya Harga Ojol — daftar & tab kategori ikut menyesuaikan",
-    "📱 Form menu rapi di HP & fokus input lebih bersih (rilis kemarin berlanjut)"
+    "✨ Tombol & field lebih bersih: tanpa dobel border tebal saat disentuh — fokus field tampil garis oranye tipis"
   ]
 }

@@ -30,7 +30,6 @@ body.gate-active .app-header{display:none !important}
 body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:color .2s,background-color .2s;border:none;background:none;color:var(--text3);font-size:11px;font-weight:600;gap:2px;padding:4px 0;position:relative}
 .nav-item.active{color:var(--primary)}
-.nav-item:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .nav-item .nav-icon{font-size:26px;line-height:1}
 .nav-item.active::before{content:'';position:absolute;top:-2px;left:20%;right:20%;height:3px;background:var(--primary);border-radius:0 0 4px 4px}
 .nav-badge{position:absolute;top:4px;right:50%;transform:translateX(18px);background:var(--red);color:#fff;font-size:10px;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;padding:0 4px}
@@ -41,7 +40,6 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 
 /* CARDS */
 .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border)}
-.card:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .card-title{font-size:15px;font-weight:700;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
 
 /* STAT CARDS */
@@ -61,7 +59,6 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 /* Tombol disabled: abu-abu, tidak bisa di-hover (pointer-events:none) */
 .btn:disabled,.btn[disabled]{background:#d9d9d9;color:#9c9c9c;cursor:not-allowed;box-shadow:none;transform:none;pointer-events:none;opacity:1}
 .btn-primary{background:var(--primary);color:#fff}
-.btn:focus-visible,.btn:focus{outline:3px solid var(--primary);outline-offset:2px}
 .btn-primary:active{background:var(--primary-dark);transform:scale(.97)}
 .btn-green{background:var(--green);color:#fff}
 .btn-secondary{border:2px solid var(--primary);color:var(--primary);background:transparent}
@@ -90,17 +87,16 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 /* FAB */
 .fab{position:fixed;bottom:calc(var(--nav-h) + 16px);right:16px;width:64px;height:64px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:32px;cursor:pointer;box-shadow:0 4px 16px rgba(230,81,0,.4);z-index:50;display:flex;align-items:center;justify-content:center;transition:transform .2s,background-color .2s,box-shadow .2s}
 .fab:active{transform:scale(.9)}
-.fab:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 
 /* FORMS */
 .form-group{margin-bottom:16px}
 .form-label{display:block;font-size:14px;font-weight:700;color:var(--text2);margin-bottom:6px}
 .form-helper{font-size:12px;color:var(--text3);font-style:italic;margin-bottom:6px}
 .form-input{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:17px;font-weight:600;background:#fff;color:var(--text);transition:border .2s;-webkit-appearance:none}
-/* Fokus bersih: tanpa outline oranye tebal — indikator keyboard via
-   :focus-visible memakai outline bawaan browser (permintaan pemilik 2026-08-29) */
-.form-input:focus{outline:none}
-.form-input:focus-visible{outline:auto}
+/* Fokus field isian: border oranye tipis (sama dengan search-box) —
+   tanpa outline tebal. Indikator keyboard = perubahan border ini juga
+   (rule :focus ini menang atas :focus-visible global di akhir file). */
+.form-input:focus{outline:none;border-color:var(--primary)}
 .form-input::placeholder,.search-box input::placeholder{color:#bbb;font-size:.85em;font-weight:400}
 select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 16px center}
 
@@ -108,7 +104,6 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 .menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
 .menu-item{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:12px 8px;text-align:center;cursor:pointer;transition:transform .15s,background-color .15s,border-color .15s;position:relative}
 .menu-item:active{transform:scale(.95)}
-.menu-item:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .menu-item.selected{border-color:var(--primary);background:var(--orange-bg)}
 .menu-item .item-emoji{font-size:32px;display:block;margin-bottom:4px}
 .menu-item .item-name{font-size:13px;font-weight:700;line-height:1.2;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -122,10 +117,8 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 .cat-tabs::-webkit-scrollbar{display:none}
 .cat-tab{flex:0 0 auto;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:700;border:2px solid var(--border);background:#fff;color:var(--text2);cursor:pointer;white-space:nowrap;transition:background-color .15s,color .15s,border-color .15s}
 .cat-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-.cat-tab:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 
 /* Focus-visible catch-all (paritas base.css, konsolidasi P2 2026-08-22) */
-.modal-title:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 
 /* Phone: reduce cat-tab size to prevent overflow */
 @media (max-width:414px){
@@ -144,7 +137,6 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 .qty-control{display:flex;align-items:center;gap:0;background:#f5f5f5;border-radius:10px;overflow:hidden}
 .qty-btn{width:36px;height:36px;border:none;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;background:transparent;color:var(--text)}
 .qty-btn:active{background:#e0e0e0}
-.qty-btn:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .qty-val{width:40px;text-align:center;font-size:16px;font-weight:800;border:none;background:transparent;padding:4px 0;-moz-appearance:textfield;appearance:textfield}
 .qty-val::-webkit-outer-spin-button,.qty-val::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .qty-val:focus{outline:none;background:#e8e8e8;border-radius:6px}
@@ -152,7 +144,6 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 /* TRANSACTION LIST */
 .trx-item{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);gap:12px;cursor:pointer}
 .trx-item:last-child{border-bottom:none}
-.trx-item:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .trx-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
 .trx-icon.sale{background:var(--green-bg);color:var(--green)}
 .trx-icon.expense{background:var(--red-bg);color:var(--red)}
@@ -188,7 +179,6 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 .prof-banner-points span:first-child{font-size:17px}
 .prof-banner-cta{width:100%;background:#fff;color:var(--primary);border:none;border-radius:16px;padding:15px;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.22);transition:transform .12s}
 .prof-banner-cta:active{transform:scale(.97)}
-.prof-banner-cta:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 /* Phone: banner profil kompak (dulu @380 di sini vs @414 di base.css —
    disatukan ke 414 = perilaku render yang selama ini efektif, konsolidasi P2) */
 @media (max-width:414px){.prof-banner-card{padding:28px 16px 18px}.prof-emoji{font-size:48px}.prof-banner-title{font-size:18px}.prof-banner-sub{font-size:12.5px}}
@@ -209,14 +199,12 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 @keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
 .confirm-box .confirm-icon{font-size:48px;margin-bottom:12px}
 .confirm-box .confirm-text{font-size:16px;font-weight:600;margin-bottom:20px;line-height:1.4}
-.confirm-box button:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 
 /* TOAST */
 .toast{position:fixed;top:calc(var(--header-h) + 12px);left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:30px;font-size:14px;font-weight:600;z-index:620;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:1}
 .toast.show{pointer-events:auto}
 .toast .toast-action{pointer-events:auto;margin-left:10px;background:#fff;color:#333;border:none;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0}
-.toast .toast-action:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
 
@@ -242,7 +230,6 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 .report-tabs{display:flex;background:#f0f0f0;border-radius:12px;padding:4px;margin-bottom:16px}
 .report-tab{flex:1;padding:10px;border-radius:10px;text-align:center;font-size:14px;font-weight:700;cursor:pointer;color:var(--text3);transition:background-color .15s,color .15s,box-shadow .15s}
 .report-tab.active{background:#fff;color:var(--primary);box-shadow:0 1px 4px rgba(0,0,0,.1)}
-.report-tab:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 
 /* CHART BAR */
 .chart-bars{display:flex;align-items:flex-end;gap:6px;height:140px;padding:8px 0}
@@ -265,7 +252,6 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 /* SETTINGS LIST */
 .setting-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
 .setting-item:last-child{border-bottom:none}
-.setting-item:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .setting-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
 .setting-info{flex:1}
 .setting-info .s-title{font-weight:700;font-size:15px}
@@ -291,7 +277,6 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 .date-nav .date-label{flex:1;text-align:center;font-size:16px;font-weight:800;padding:10px;background:#fff;border-radius:10px;border:1px solid var(--border)}
 .date-nav .date-btn{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--text)}
 .date-nav .date-btn:active{background:#f5f5f5}
-.date-nav .date-btn:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .date-nav .custom-date-input{border:1px solid var(--border);border-radius:10px;padding:9px 10px;font-size:15px;font-weight:700;color:var(--text);background:#fff;outline:none;-webkit-appearance:none;appearance:none;max-width:100%}
 .date-nav .custom-date-input:focus{border-color:var(--primary)}
 
@@ -318,7 +303,6 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 .date-nav .week-opt.sel{border-color:var(--primary);background:var(--primary);color:#fff}
 .date-nav .week-opt.sel span{color:rgba(255,255,255,.85)}
 .date-nav .week-opt:active{opacity:.7}
-.date-nav .week-opt:focus-visible,.date-nav .month-opt:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .date-nav .month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .date-nav .month-opt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:10px 4px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:13px;cursor:pointer;color:var(--text)}
 .date-nav .month-opt b{font-weight:800}
@@ -622,10 +606,8 @@ button,[role="button"]{touch-action:manipulation}
 .license-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
 .btn-extend{background:linear-gradient(135deg,var(--green),var(--green-light));color:#fff;border:none;padding:14px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;width:100%}
 .btn-extend:active{transform:scale(.98)}
-.btn-extend:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .btn-buy-wa{background:#fff;border:1.5px solid var(--primary-dark);color:var(--primary-dark);padding:14px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .btn-buy-wa:active{transform:scale(.98)}
-.btn-buy-wa:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .field-label{display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:6px}
 .mt12{margin-top:12px}
 .hint{margin-top:12px;font-size:12px;color:var(--text3);line-height:1.4}
@@ -637,7 +619,6 @@ button,[role="button"]{touch-action:manipulation}
 @keyframes sheetUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
 .license-sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .sheet-close{background:#f2f2f2;border:none;width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--text2)}
-.sheet-close:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .license-sheet-body{max-width:480px;margin:0 auto}
 .license-lock-card{text-align:center;padding:24px;max-width:480px;width:90%;border-radius:20px}
 
@@ -669,7 +650,6 @@ button,[role="button"]{touch-action:manipulation}
 .license-card-pending .license-description{font-size:13px;color:var(--text2);line-height:1.5}
 .manual-key-toggle{font-size:12px;color:var(--text3);text-align:center;margin-top:14px}
 .manual-key-toggle a{color:var(--text3);text-decoration:underline}
-.manual-key-toggle a:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .manual-key-wrap{display:none;margin-top:10px;text-align:left}
 .manual-key-wrap .btn{width:100%;margin-top:8px}
 
@@ -903,3 +883,11 @@ body.modal-open .main-content{overflow:hidden}
 .toggle-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
 .toggle-switch input:checked+.toggle-slider{background:var(--primary)}
 .toggle-switch input:checked+.toggle-slider::before{transform:translateX(20px)}
+
+/* ===== Fokus global (permintaan pemilik 2026-08-29) =====
+   Klik mouse: tanpa outline (bersih, tanpa dobel border).
+   Keyboard (:focus-visible): outline bawaan browser (tipis).
+   Field isian: indikator fokus = border oranye tipis via rule
+   .form-input:focus dkk di atas — specificity-nya menang atas global ini. */
+:focus{outline:none}
+:focus-visible{outline:auto}
