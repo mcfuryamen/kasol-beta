@@ -1,7 +1,7 @@
 {
-  "version": "1.0.49",
-  "cacheBust": "v118",
+  "version": "1.0.50",
+  "cacheBust": "v119",
   "notes": [
-    "🛠 Perbaikan: kuota & salt kini benar-benar diambil dari server (query kolom diperbaiki)"
+    "🎨 Kartu kuota: bar progres hijau & tombol rapikan satu baris"
   ]
 }

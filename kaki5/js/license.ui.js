@@ -64,10 +64,10 @@ export function licenseStatusHtml(st, inputId) {
         <span class="badge ${habis ? 'red' : (remaining <= 10 ? 'orange' : 'green')}">${habis ? 'Habis bulan ini' : 'Sisa ' + remaining + ' transaksi'}</span>
       </div>
       <div class="license-description">Setiap bulan kamu dapat <b>${quota} transaksi</b> gratis tanpa batas waktu — kuota segar lagi di awal bulan. Terpakai <b>${used}</b> bulan ini${adj ? ' · termasuk bonus admin ' + (adj > 0 ? '+' : '') + adj : ''}.</div>
-      <div class="license-progress"><span style="width:${pct}%"></span></div>
-      <div class="license-actions license-actions-primary"><button class="btn btn-primary" data-action="open-purchase-sheet">💳 Beli Lisensi — Transaksi Tanpa Batas</button></div>
+      <div class="license-progress"><span style="width:${pct}%;background:var(--green);animation:none"></span></div>
     </div>
     <div class="license-actions license-actions-row">
+      <button class="btn btn-primary" data-action="open-purchase-sheet">💳 Beli Lisensi</button>
       <button class="btn btn-secondary" data-action="contact-via-wa">💬 Tanya Admin</button>
     </div>
   `;
