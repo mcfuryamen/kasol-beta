@@ -1,7 +1,9 @@
 {
-  "version": "1.0.31",
-  "cacheBust": "v99",
+  "version": "1.0.32",
+  "cacheBust": "v101",
   "notes": [
-    "🤝 Fitur Konsinyasi (v1): item titipan dari suplayer, field `suplayer` + `pakaiStok` + `stok` + `retur` di tabel menu (DB v5). Suplayer 'Umum' = menu sendiri; ≠ Umum = titipan (auto kategori 'Titipan'). Form menu: combobox Kategori + Suplayer (grid 2 kolom) + toggle Pakai Stok. Halaman Menu: badge 'Titipan', info stok, visual dim saat stok 0, tombol Retur ↩️. Kasir: blokir item stok 0, kurangi stok saat checkout. Laporan: blok Konsinyasi per suplayer (terjual, sisa utang, stok tersisa, setoran). Pengeluaran: kategori 'Setoran Konsinyasi' + prefill dari tombol 💰 Setor."
+    "🔗 Sinkronisasi cloud diperbaiki: konfigurasi Supabase kini termuat otomatis & valid — sinkron data jalan kembali",
+    "🖼️ Ikon & modul aplikasi yang sempat gagal dimuat (404) sudah pulih semua",
+    "🛡️ Perbaikan internal & penyegaran cache agar update selanjutnya lebih andal"
   ]
 }

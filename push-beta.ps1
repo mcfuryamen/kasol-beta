@@ -96,6 +96,10 @@ Invoke-Git $BetaDir @("fetch", "work")
 Invoke-Git $BetaDir @("switch", "preview")
 Invoke-Git $BetaDir @("reset", "--hard", "work/preview")
 
+# Capture SHA main lama (rilis terakhir) SEBELUM dihapus di langkah [3/6] —
+# dipakai version-bump check di bawah.
+$prevMainSha = & git -C $BetaDir rev-parse main 2>$null
+
 # Verifikasi secret di working tree preview
 if (Test-TreeSecret $BetaDir) {
   Write-Host "[FAIL] Working tree kasol-beta mengandung pola secret:" -ForegroundColor Red
@@ -117,6 +121,21 @@ if (Test-TreeDrift -SourceDir $WorkDir -TargetDir $BetaDir) {
   Write-Host "       Biasanya ini karena push-beta.ps1 tidak dijalankan setelah file baru di-add." -ForegroundColor Red
   Write-Host "       Lihat DEPLOYMENT.md alur 'work -> beta'." -ForegroundColor Red
   exit 1
+}
+
+# Version-bump reminder: rilis kaki5 yang mengubah kode tapi lupa bump
+# kaki5/js/version.json membuat overlay update mati & cache SW tak invalid
+# (insiden v100, 2026-08-29). Non-blocking — hanya peringatan.
+if ($prevMainSha) {
+  $kaki5Changes = @(git -C $BetaDir diff --name-only $prevMainSha --cached -- kaki5/ 2>$null)
+  $verChanges = @(git -C $BetaDir diff --name-only $prevMainSha --cached -- kaki5/js/version.json 2>$null)
+  if ($kaki5Changes.Count -gt 0 -and $verChanges.Count -eq 0) {
+    $changedCount = $kaki5Changes.Count
+    Write-Host ("[WARN] kaki5/ berubah ({0} file) tapi kaki5/js/version.json TIDAK di-bump." -f $changedCount) -ForegroundColor Yellow
+    Write-Host "       Overlay update tidak akan muncul untuk user & cache SW lama tetap valid." -ForegroundColor Yellow
+    Write-Host "       Bump 4 tempat sekaligus: version.js CACHE_BUST, version.json cacheBust," -ForegroundColor Yellow
+    Write-Host "       sw.js CACHE_NAME, index.html ?v= (lihat komentar KONVENSI RILIS di version.js)." -ForegroundColor Yellow
+  }
 }
 
 # Verifikasi ulang index (cached)
