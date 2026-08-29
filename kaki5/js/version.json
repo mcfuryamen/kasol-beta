@@ -1,7 +1,8 @@
 {
-  "version": "1.0.37",
-  "cacheBust": "v106",
+  "version": "1.0.38",
+  "cacheBust": "v107",
   "notes": [
-    "✨ Tombol & field lebih bersih: tanpa dobel border tebal saat disentuh — fokus field tampil garis oranye tipis"
+    "🗂️ Kartu menu kini berupa akordeon: ketuk baris untuk membuka aksi (edit/jeda/hapus), ketuk menu lain otomatis tertutup — di kanan tampil harga jual",
+    "🧼 Tombol Batal/Simpan di form kini menutup rapi sampai tepi bawah, tidak ada lagi konten yang bocor di belakangnya"
   ]
 }

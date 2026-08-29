@@ -481,6 +481,16 @@ function handleDataAction(action, el, event) {
     case 'confirm-retur-menu':
       if (window.confirmRetur) window.confirmRetur();
       break;
+    case 'toggle-menu-acc': {
+      // Kartu menu = akordeon auto close: buka satu -> tutup yang lain
+      // (pola sama dengan accordion kategori/suplayer di form menu).
+      const acc = el?.closest('.acc-menu');
+      if (!acc) break;
+      const willOpen = !acc.classList.contains('open');
+      document.querySelectorAll('.acc-menu.open').forEach(a => a.classList.remove('open'));
+      acc.classList.toggle('open', willOpen);
+      break;
+    }
     case 'open-menu-form': {
       // Tombol ✏️ edit di kartu menu membawa data-menu-id (mode edit);
       // FAB ➕ tidak membawa id (mode tambah). Tanpa ini form edit terbuka kosong.

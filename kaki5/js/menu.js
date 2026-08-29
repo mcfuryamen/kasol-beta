@@ -77,22 +77,32 @@ export async function renderMenuList() {
       const isTitipan = m.suplayer && m.suplayer !== 'Umum';
       const isStokHabis = m.pakaiStok && m.stok <= 0;
       const isDim = isStokHabis || !m.aktif;
-      html += `<div class="trx-item" style="${isDim ? 'opacity:0.45' : ''}">
-        <div class="trx-icon" style="background:${m.aktif?'var(--green-bg)':'#f5f5f5'};color:${m.aktif?'var(--green)':'#bbb'};font-size:18px">${m.aktif?'✅':'⏸️'}</div>
-        <div class="trx-info">
-          <div class="trx-title">${escapeHtml(m.nama)}` +
-            (isTitipan ? '<span class="badge-titipan">Titipan</span>' : '') +
-            (m.pakaiStok ? `<span class="badge-stok${isStokHabis?' badge-stok-habis':''}">📦 ${m.stok}</span>` : '') +
-          `</div>
-          <div class="trx-sub">Modal ${formatRp(m.hargaModal)} · Untung ${formatRp(untung)}` +
-            (isTitipan ? ` · 🧾 ${escapeHtml(m.suplayer)}` : '') +
-          `</div>
+      // Kartu menu = akordeon (auto close): ketuk baris -> aksi terbuka di panel;
+      // kanan trigger = harga jual tanpa label (permintaan pemilik 2026-08-29).
+      html += `<div class="acc acc-menu" style="${isDim ? 'opacity:0.45' : ''}">
+        <div class="trx-item acc-trigger" role="button" tabindex="0" data-action="toggle-menu-acc" data-menu-id="${m.id}">
+          <div class="trx-icon" style="background:${m.aktif?'var(--green-bg)':'#f5f5f5'};color:${m.aktif?'var(--green)':'#bbb'};font-size:18px">${m.aktif?'✅':'⏸️'}</div>
+          <div class="trx-info">
+            <div class="trx-title">${escapeHtml(m.nama)}` +
+              (isTitipan ? '<span class="badge-titipan">Titipan</span>' : '') +
+              (m.pakaiStok ? `<span class="badge-stok${isStokHabis?' badge-stok-habis':''}">📦 ${m.stok}</span>` : '') +
+            `</div>
+            <div class="trx-sub">Modal ${formatRp(m.hargaModal)} · Untung ${formatRp(untung)}` +
+              (isTitipan ? ` · 🧾 ${escapeHtml(m.suplayer)}` : '') +
+            `</div>
+          </div>
+          <div class="menu-acc-price">${formatRp(m.hargaJual)}</div>
+          <span class="acc-caret">▾</span>
         </div>
-        <div style="display:flex;gap:4px">
-          ${isTitipan && m.pakaiStok ? `<button class="btn-icon btn-ghost kwh44 kgreen" data-action="retur-menu" data-menu-id="${m.id}" title="Retur">↩️</button>` : ''}
-          <button class="btn-icon btn-ghost kwh44" data-action="open-menu-form" data-menu-id="${m.id}">✏️</button>
-          <button class="btn-icon btn-ghost kwh44" data-action="toggle-menu" data-menu-id="${m.id}">${m.aktif?'⏸️':'▶️'}</button>
-          <button class="btn-icon btn-ghost kwh44 kred" data-action="confirm-delete-menu" data-menu-id="${m.id}">🗑️</button>
+        <div class="acc-panel" id="menuAcc-${m.id}">
+          <div class="acc-inner">
+            <div class="menu-acc-actions">
+              ${isTitipan && m.pakaiStok ? `<button class="btn-icon btn-ghost kwh44 kgreen" data-action="retur-menu" data-menu-id="${m.id}" title="Retur">↩️</button>` : ''}
+              <button class="btn-icon btn-ghost kwh44" data-action="open-menu-form" data-menu-id="${m.id}" title="Edit">✏️</button>
+              <button class="btn-icon btn-ghost kwh44" data-action="toggle-menu" data-menu-id="${m.id}" title="${m.aktif?'Jeda':'Aktifkan'}">${m.aktif?'⏸️':'▶️'}</button>
+              <button class="btn-icon btn-ghost kwh44 kred" data-action="confirm-delete-menu" data-menu-id="${m.id}" title="Hapus">🗑️</button>
+            </div>
+          </div>
         </div>
       </div>`;
     });

@@ -74,8 +74,12 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .btn-row{display:flex;gap:8px}
 .btn-row .btn{flex:1}
 
-/* Aksi (Batal/Simpan dst) tetap terlihat saat konten modal discroll -> sticky di bawah modal */
-.modal .btn-row{position:sticky;bottom:0;z-index:40;background:var(--card);margin-top:40px;padding:14px 0 4px;border-top:1px solid var(--border)}
+/* Aksi (Batal/Simpan dst) tetap terlihat saat konten modal discroll -> sticky di bawah modal.
+   Background bar diperpanjang sampai TEPI BAWAH modal (padding-bottom bar
+   menutup zona padding modal yang transparan, via margin-bottom negatif) —
+   konten yang discroll di belakangnya tidak bocor terlihat
+   (permintaan pemilik 2026-08-29). 24px > padding modal terbesar (20px). */
+.modal .btn-row{position:sticky;bottom:0;z-index:40;background:var(--card);margin-top:40px;margin-bottom:calc(-1*(var(--nav-h) + 24px + env(safe-area-inset-bottom)));padding:14px 0 calc(var(--nav-h) + 24px + env(safe-area-inset-bottom));border-top:1px solid var(--border)}
 
 /* menuSelectorModal: Batal kecil (auto), Tambah ke Keranjang full-width */
 #menuSelectorModal .btn-row .btn:first-child{flex:0;width:auto;min-width:80px}
@@ -766,6 +770,13 @@ body.modal-open .main-content{overflow:hidden}
 .acc-empty{font-size:13px;color:var(--text2);padding:6px 0}
 .acc-add{width:auto;margin-top:0;padding:10px 14px;border-radius:8px;border:1px dashed var(--primary);background:var(--green-bg);color:var(--primary);font-size:14px;font-weight:600;cursor:pointer;text-align:center;align-self:center}
 .acc-add:hover{background:#e6f7ee}
+/* Kartu menu = akordeon (auto close): trigger = nama+info kiri & harga jual
+   kanan (tanpa label); aksi (retur/edit/jeda/hapus) di dalam panel. Panel
+   akordeon kartu TANPA border box (beda dari form kategori/suplayer). */
+.acc-menu .acc-trigger{min-height:52px;padding:10px 0}
+.acc-menu.open .acc-panel{background:transparent;border:none;border-radius:0;padding:0;margin:0}
+.menu-acc-price{font-weight:800;font-size:15px;color:var(--text);white-space:nowrap}
+.menu-acc-actions{display:flex;gap:8px;padding:8px 0 12px;border-top:1px dashed var(--border)}
 /* Panel accordion menutup penuh lebar form-group */
 .kgrid-konsinyasi .form-group{min-width:0}
 .kkembalian-box{background:var(--green-bg);border-radius:12px;padding:14px 16px;text-align:center;display:flex;align-items:center;justify-content:center}
