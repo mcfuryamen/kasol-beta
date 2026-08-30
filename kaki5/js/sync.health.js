@@ -14,8 +14,10 @@ import { openModal, closeModal } from './modal.js';
 const OK = 'ok', WARN = 'warn', FAIL = 'fail';
 const ICON = { ok: '✅', warn: '⚠️', fail: '❌' };
 
-function step(name, status, detail) {
-  return { name, status, detail: String(detail ?? '') };
+function step(name, status, detail, label) {
+  // label = diksi klien (non-teknikal) yang tampil di layar; name+detail
+  // tetap teknikal — dipakai saat hasil disalin ke admin via WhatsApp.
+  return { name, status, detail: String(detail ?? ''), label: label || name };
 }
 
 /**
@@ -27,17 +29,21 @@ export async function runSyncDiagnostics() {
   const dbg = getSyncClientDebug();
 
   steps.push(step('1. Skrip supabase.min.js termuat', dbg.globalLoaded ? OK : FAIL,
-    dbg.globalLoaded ? 'window.supabase tersedia' : 'window.supabase TIDAK ada — skrip gagal dimuat. Muat ulang halaman; kalau tetap, versi app lama masih ter-cache.'));
+    dbg.globalLoaded ? 'window.supabase tersedia' : 'window.supabase TIDAK ada — skrip gagal dimuat. Muat ulang halaman; kalau tetap, versi app lama masih ter-cache.',
+    'Aplikasi siap terhubung'));
 
   steps.push(step('2. Konfigurasi URL & kunci anon', (dbg.url && dbg.keyPresent && dbg.keyLooksReal) ? OK : FAIL,
-    `URL: ${dbg.url || '—'} · kunci: ${!dbg.keyPresent ? 'tidak ada' : (dbg.keyLooksReal ? 'format benar' : 'masih placeholder')}`));
+    `URL: ${dbg.url || '—'} · kunci: ${!dbg.keyPresent ? 'tidak ada' : (dbg.keyLooksReal ? 'format benar' : 'masih placeholder')}`,
+    'Pengaturan server benar'));
 
   steps.push(step('3. Koneksi internet', dbg.online ? OK : FAIL,
-    dbg.online ? 'navigator.onLine = true' : 'Perangkat sedang offline.'));
+    dbg.online ? 'navigator.onLine = true' : 'Perangkat sedang offline.',
+    'Koneksi internet aktif'));
 
   const sb = dbg.globalLoaded && dbg.url && dbg.keyLooksReal ? getSupabaseClient() : null;
   steps.push(step('4. Client Supabase siap', sb ? OK : FAIL,
-    sb ? 'createClient berhasil' : 'Client tidak bisa dibuat (lihat langkah 1–2).'));
+    sb ? 'createClient berhasil' : 'Client tidak bisa dibuat (lihat langkah 1–2).',
+    'Jalur data ke server siap'));
 
   let unitId = null;
   let deviceCode = null;
@@ -45,9 +51,11 @@ export async function runSyncDiagnostics() {
     try {
       unitId = await getUnitId();
       deviceCode = await getDeviceCode();
-      steps.push(step('5. Identitas perangkat (lokal)', OK, `unit_id: ${unitId} · device_code: ${deviceCode}`));
+      steps.push(step('5. Identitas perangkat (lokal)', OK, `unit_id: ${unitId} · device_code: ${deviceCode}`,
+        `ID Perangkat: ${unitId || deviceCode || '—'}`));
     } catch (e) {
-      steps.push(step('5. Identitas perangkat (lokal)', FAIL, 'Gagal membaca identitas dari IndexedDB: ' + (e?.message || e)));
+      steps.push(step('5. Identitas perangkat (lokal)', FAIL, 'Gagal membaca identitas dari IndexedDB: ' + (e?.message || e),
+        'ID Perangkat belum terpasang'));
     }
 
     // Sesi anonim
@@ -57,12 +65,15 @@ export async function runSyncDiagnostics() {
       const metaUnit = sessData?.session?.user?.user_metadata?.unit_id;
       if (uid) {
         steps.push(step('6. Sesi anonim aktif', metaUnit === unitId ? OK : WARN,
-          `uid: ${uid.slice(0, 8)}… · claim unit_id: ${metaUnit || 'belum ada'}${metaUnit !== unitId ? ' (akan diperbarui otomatis saat sync)' : ''}`));
+          `uid: ${uid.slice(0, 8)}… · claim unit_id: ${metaUnit || 'belum ada'}${metaUnit !== unitId ? ' (akan diperbarui otomatis saat sync)' : ''}`,
+          'Koneksi aman untuk perangkat ini'));
       } else {
-        steps.push(step('6. Sesi anonim aktif', WARN, 'Belum ada session — akan sign-in otomatis saat sync.'));
+        steps.push(step('6. Sesi anonim aktif', WARN, 'Belum ada session — akan sign-in otomatis saat sync.',
+          'Sesi akan dibuat otomatis saat data tersinkron'));
       }
     } catch (e) {
-      steps.push(step('6. Sesi anonim aktif', FAIL, 'Gagal membaca session: ' + (e?.message || e)));
+      steps.push(step('6. Sesi anonim aktif', FAIL, 'Gagal membaca session: ' + (e?.message || e),
+        'Koneksi aman belum siap'));
     }
 
     // RPC device_known
@@ -71,22 +82,28 @@ export async function runSyncDiagnostics() {
         const { data, error } = await sb.rpc('device_known', {
           p_unit_id: unitId, p_device_code: deviceCode, p_app_type: 'kaki5'
         });
-        if (error) steps.push(step('7. Klaim perangkat (RPC device_known)', FAIL, 'RPC error: ' + error.message));
+        if (error) steps.push(step('7. Klaim perangkat (RPC device_known)', FAIL, 'RPC error: ' + error.message,
+          'Perangkat belum dikenali server'));
         else steps.push(step('7. Klaim perangkat (RPC device_known)', data === true ? OK : WARN,
-          data === true ? 'Perangkat dikenal server' : 'Server belum mengenal perangkat ini (baru) — normal untuk install pertama.'));
+          data === true ? 'Perangkat dikenal server' : 'Server belum mengenal perangkat ini (baru) — normal untuk install pertama.',
+          data === true ? 'Server mengenali perangkat ini' : 'Perangkat baru — server akan mengenalinya otomatis'));
       }
     } catch (e) {
-      steps.push(step('7. Klaim perangkat (RPC device_known)', FAIL, 'RPC gagal dijalankan: ' + (e?.message || e)));
+      steps.push(step('7. Klaim perangkat (RPC device_known)', FAIL, 'RPC gagal dijalankan: ' + (e?.message || e),
+        'Pemeriksaan perangkat gagal dijalankan'));
     }
 
     // Baris clients sekarang
     try {
       const { data, error } = await sb.from('clients').select('unit_id, nama_usaha, last_seen').eq('unit_id', unitId).maybeSingle();
-      if (error) steps.push(step('8. Baris profil di server (sebelum sync)', FAIL, 'Select error: ' + error.message));
+      if (error) steps.push(step('8. Baris profil di server (sebelum sync)', FAIL, 'Select error: ' + error.message,
+        'Profil usaha belum bisa diperiksa'));
       else steps.push(step('8. Baris profil di server (sebelum sync)', data ? OK : WARN,
-        data ? `Ada: ${data.nama_usaha || '(tanpa nama)'} · last_seen ${data.last_seen || '—'}` : 'Belum ada baris untuk unit ini.'));
+        data ? `Ada: ${data.nama_usaha || '(tanpa nama)'} · last_seen ${data.last_seen || '—'}` : 'Belum ada baris untuk unit ini.',
+        data ? `Profil usaha tersimpan: ${data.nama_usaha || '(tanpa nama)'}` : 'Profil usaha belum tersimpan di server'));
     } catch (e) {
-      steps.push(step('8. Baris profil di server (sebelum sync)', FAIL, 'Select gagal: ' + (e?.message || e)));
+      steps.push(step('8. Baris profil di server (sebelum sync)', FAIL, 'Select gagal: ' + (e?.message || e),
+        'Profil usaha belum bisa diperiksa'));
     }
   }
 
@@ -94,18 +111,24 @@ export async function runSyncDiagnostics() {
   try {
     const res = await ensureSynced({ force: true, silent: true });
     if (res.ok) {
-      steps.push(step('9. UJI SYNC PENUH (force)', OK, 'Profil berhasil dikirim & terbaca kembali.'));
+      steps.push(step('9. UJI SYNC PENUH (force)', OK, 'Profil berhasil dikirim & terbaca kembali.',
+        'Tes kirim & terima data: berhasil'));
     } else if (res.reason === 'no-profile') {
-      steps.push(step('9. UJI SYNC PENUH (force)', WARN, 'Dilewati: Nama Usaha belum diisi di profil.'));
+      steps.push(step('9. UJI SYNC PENUH (force)', WARN, 'Dilewati: Nama Usaha belum diisi di profil.',
+        'Belum bisa dites — isi Nama Usaha dulu di profil'));
     } else if (res.reason === 'offline') {
-      steps.push(step('9. UJI SYNC PENUH (force)', FAIL, 'Dilewati: perangkat offline.'));
+      steps.push(step('9. UJI SYNC PENUH (force)', FAIL, 'Dilewati: perangkat offline.',
+        'Belum bisa dites — perangkat sedang offline'));
     } else if (res.reason === 'no-config') {
-      steps.push(step('9. UJI SYNC PENUH (force)', FAIL, 'Dilewati: konfigurasi tidak lengkap (langkah 1–2).'));
+      steps.push(step('9. UJI SYNC PENUH (force)', FAIL, 'Dilewati: konfigurasi tidak lengkap (langkah 1–2).',
+        'Belum bisa dites — pengaturan server belum lengkap'));
     } else {
-      steps.push(step('9. UJI SYNC PENUH (force)', FAIL, `Gagal di tahap "${res.stage}": ${res.error || 'tanpa pesan'}`));
+      steps.push(step('9. UJI SYNC PENUH (force)', FAIL, `Gagal di tahap "${res.stage}": ${res.error || 'tanpa pesan'}`,
+        'Tes kirim & terima data: gagal'));
     }
   } catch (e) {
-    steps.push(step('9. UJI SYNC PENUH (force)', FAIL, 'Exception: ' + (e?.message || e)));
+    steps.push(step('9. UJI SYNC PENUH (force)', FAIL, 'Exception: ' + (e?.message || e),
+      'Tes kirim & terima data: gagal'));
   }
 
   // Riwayat error lokal
@@ -116,9 +139,13 @@ export async function runSyncDiagnostics() {
       errs.length ? WARN : OK,
       errs.length
         ? errs.map(x => `[${x.stage}] ${x.message} (${x.at})`).join(' · ')
-        : `Tidak ada. Status lokal: ${st.status}${st.syncedAt ? ' sejak ' + st.syncedAt : ''}`));
+        : `Tidak ada. Status lokal: ${st.status}${st.syncedAt ? ' sejak ' + st.syncedAt : ''}`,
+      errs.length
+        ? 'Ada catatan masalah sebelumnya — salin & kirim ke admin bila perlu bantuan'
+        : 'Tidak ada masalah tersimpan — semua data sudah tersinkron'));
   } catch (e) {
-    steps.push(step('10. Riwayat kegagalan (lokal)', WARN, 'Tidak terbaca: ' + (e?.message || e)));
+    steps.push(step('10. Riwayat kegagalan (lokal)', WARN, 'Tidak terbaca: ' + (e?.message || e),
+      'Riwayat masalah tidak bisa dibaca'));
   }
 
   const failed = steps.some(s => s.status === FAIL);
@@ -161,16 +188,13 @@ function renderDiag(result) {
   const rows = result.steps.map(s => `
     <div class="kflex-gap10 kpy4" style="border-bottom:1px solid var(--border)">
       <div class="kfs18 kflex-shrink0">${ICON[s.status]}</div>
-      <div class="kmin-w0">
-        <div class="kfw700 kfs13">${escapeHtml(s.name)}</div>
-        <div class="kfs12 ktext2" style="word-break:break-word;margin-top:2px">${escapeHtml(s.detail)}</div>
-      </div>
+      <div class="kmin-w0 kfw700 kfs13">${escapeHtml(s.label || s.name)}</div>
     </div>`).join('');
 
   box.innerHTML = `
     ${summary}
     <details class="kmt12">
-      <summary class="kfs13 ktext2 kcursor-pointer" style="padding:8px 0">📋 Detail Teknis (untuk admin)</summary>
+      <summary class="kfs13 ktext2 kcursor-pointer" style="padding:8px 0">🔍 Hasil Pemeriksaan</summary>
       <div class="kmt8">${rows}</div>
     </details>`;
 }

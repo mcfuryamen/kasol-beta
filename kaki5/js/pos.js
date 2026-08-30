@@ -14,7 +14,7 @@ import {
   openCartModal, closeCartModal, hitungKembalianUI, refreshCartModalTotals,
   formatBayarInputUI, selectAllBayarInput, setNominalBayarUI,
   showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType,
-  renderOrderNoteBox
+  renderOrderNoteBox, getOjolPlatform
 } from './pos.ui.js';
 import { saveCart, loadCart, clearCartStorage, simpanPenjualanSync } from './pos.sync.js';
 import { getLicenseStatus } from './license.js';
@@ -252,11 +252,14 @@ export async function simpanPenjualan(cetakJuga = false) {
 
   // Catatan pesanan (meja/pemesan/ojol) — ikut tersimpan ke record penjualan
   const orderNote = (document.getElementById('orderNoteInput')?.value || '').trim();
+  // Platform ojol (preset GoFood/GrabFood/ShopeeFood/Maxim/Lainnya) untuk laporan
+  const ojolPlatform = orderType === 'ojol' ? (getOjolPlatform() || 'Lainnya') : '';
 
   const saleId = await simpanPenjualanSync({
     tanggal: _tgl,
     orderType,
     orderNote,
+    ojolPlatform,
     items: items.map(c => ({
       menuId: c.menu.id,
       nama: c.menu.nama,

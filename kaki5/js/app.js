@@ -48,12 +48,12 @@ let _pengeluaranModule = null;
 let _berandaModule = null;
 
 // Wire page modules on first use
-const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput' };
+const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput', toggleOjolPicker: 'toggleOjolPicker', pickOjolPlatform: 'pickOjolPlatform' };
 const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu', addCustomSuplayer: 'addCustomSuplayer', addCustomKategori: 'addCustomKategori', pickKategori: 'pickKategori', pickSuplayer: 'pickSuplayer', syncPakaiStokToggle: 'syncPakaiStokToggle', openReturModal: 'openReturModal', closeReturModal: 'closeReturModal', confirmRetur: 'confirmRetur', openKonsinyasiRetur: 'openKonsinyasiRetur' };
 const _laporanWireMap = { __wired: false, loadReport: 'loadReport', setReportPeriod: 'setReportPeriodUI', setReportPeriodUI: 'setReportPeriodUI', navReportDate: 'navReportDate', toggleExpenseCat: 'toggleExpenseCat', setCustomDate: 'setCustomDate', toggleCustomPicker: 'toggleCustomPicker', pickDate: 'pickDate', pickWeek: 'pickWeek', pickMonth: 'pickMonth', pickCustomDate: 'pickCustomDate' };
 const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaUsaha: 'saveNamaUsaha', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification' };
 const _bantuanWireMap = { __wired: false, initBantuan: 'initBantuan', toggleTutorial: 'toggleTutorial' };
-const _pengeluaranWireMap = { __wired: false, openExpenseForm: 'openExpenseForm', closeExpenseModal: 'closeExpenseModal', saveExpense: 'saveExpense' };
+const _pengeluaranWireMap = { __wired: false, openExpenseForm: 'openExpenseForm', closeExpenseModal: 'closeExpenseModal', saveExpense: 'saveExpense', openIncomeForm: 'openIncomeForm', switchTxnTab: 'switchTxnTab', saveTxn: 'saveTxn' };
 const _berandaWireMap = { __wired: false, loadBeranda: 'loadBeranda' };
 
 // Pre-wire critical modules immediately (beranda, pos) for snappy first load
@@ -607,6 +607,27 @@ function handleDataAction(action, el, event) {
       break;
     case 'save-expense':
       if (window.saveExpense) window.saveExpense();
+      break;
+
+    // Income Form (pemasukan lain di Laporan — buka modal tab Pemasukan)
+    case 'open-income-form':
+      if (window.openIncomeForm) window.openIncomeForm();
+      break;
+
+    // Modal catat transaksi: tab Pengeluaran | Pemasukan
+    case 'txn-tab':
+      if (window.switchTxnTab) window.switchTxnTab(el?.dataset?.txntab || 'expense');
+      break;
+    case 'save-txn':
+      if (window.saveTxn) window.saveTxn();
+      break;
+
+    // Ojol platform picker (POS)
+    case 'toggle-ojol-picker':
+      if (window.toggleOjolPicker) window.toggleOjolPicker();
+      break;
+    case 'pick-ojol-platform':
+      if (window.pickOjolPlatform) window.pickOjolPlatform(el?.dataset?.platform || 'Lainnya');
       break;
 
     // Name Modal

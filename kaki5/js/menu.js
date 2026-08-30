@@ -664,16 +664,19 @@ function recalcReturRow(row) {
 export async function openKonsinyasiRetur(sp) {
   const menus = (await DB.menu.toArray()).filter(m => (m.suplayer || '') === sp);
   if (!menus.length) { showToast(`Tidak ada barang titipan dari "${sp}"`, 'error'); return; }
-  // Terjual = lifetime (semua penjualan tersimpan), bukan periode laporan.
+  // Keluar efektif = penjualan tercatat (lifetime) + akumulasi selisih dari
+  // retur-retur sebelumnya. Est. sisa = stokAwal − keluar.
   const terjualMap = {};
   (await DB.penjualan.toArray()).forEach(s => {
     (s.items || []).forEach(i => { terjualMap[i.menuId] = (terjualMap[i.menuId] || 0) + (i.qty || 0); });
   });
+  const keluarMap = {};
+  menus.forEach(m => { keluarMap[m.id] = (terjualMap[m.id] || 0) + (m.selisihQty || 0); });
   const titleEl = document.getElementById('returModalTitle');
   if (titleEl) titleEl.textContent = `↩️ Retur — ${sp}`;
   setReturMode('konsinyasi');
   document.getElementById('returKonsinyasiRows').innerHTML =
-    menus.map((m, i) => returRowHtml(m, terjualMap[m.id] || 0, i === menus.length - 1)).join('');
+    menus.map((m, i) => returRowHtml(m, keluarMap[m.id] || 0, i === menus.length - 1)).join('');
   // Recalc live saat input diterima / sisa riil berubah (delegasi di kontainer)
   const rowsWrap = document.getElementById('returKonsinyasiRows');
   if (rowsWrap && !rowsWrap.dataset.bound) {
@@ -694,7 +697,7 @@ async function confirmKonsinyasiRetur() {
     const m = await DB.menu.get(id);
     if (!m) continue;
     const awal = parseInt(row.dataset.awal) || 0;
-    const terjual = parseInt(row.dataset.terjual) || 0;
+    const terjual = parseInt(row.dataset.terjual) || 0; // keluar efektif (termasuk selisih lama)
     const est = Math.max(0, awal - terjual);
     const riilRaw = row.querySelector('.retur-in-riil')?.value ?? '';
     const riil = riilRaw === '' ? null : Math.max(0, parseInt(riilRaw) || 0);
@@ -705,19 +708,26 @@ async function confirmKonsinyasiRetur() {
       catatanEl?.focus();
       return;
     }
-    hasil.push({ m, riil, selisih, catatan: selisih ? catatanEl.value.trim() : '' });
+    hasil.push({ m, est, riil, selisih, catatan: selisih ? catatanEl.value.trim() : '' });
   }
-  for (const { m, riil, selisih, catatan } of hasil) {
-    const patch = { catatanSelisih: catatan };
-    if (riil !== null && riil !== (m.stok || 0)) {
-      patch.stok = riil;
-      const balik = Math.max(0, (m.stok || 0) - riil); // barang fisik balik ke suplayer
-      if (balik > 0) patch.retur = (m.retur || 0) + balik;
-    }
+  for (const { m, est, riil, selisih, catatan } of hasil) {
+    const stokLama = m.stok || 0;
+    // Retur = menutup sesi titipan: SEMUA sisa fisik dibalikkan ke suplayer
+    // (stok jadi 0). Selisih riil vs estimasi = koreksi barang keluar:
+    //   riil < est → ada barang keluar tak tercatat (utang bertambah)
+    //   riil > est → ada kelebihan (utang berkurang)
+    // Keluar efektif final = stokAwal − riil, tersimpan di selisihQty agar
+    // perhitungan setoran di Laporan otomatis akurat.
+    const patch = {
+      stok: 0,
+      retur: (m.retur || 0) + stokLama,
+      selisihQty: (m.selisihQty || 0) + (est - (riil ?? 0)),
+      catatanSelisih: catatan
+    };
     await DB.menu.update(m.id, patch);
   }
   closeReturModal();
-  showToast('✅ Retur barang titipan dicatat');
+  showToast('✅ Retur dicatat — sisa dikembalikan, selisih masuk hitungan setoran');
   await renderMenuList();
   if (currentPage === 'jualan') loadPOS();
   if (currentPage === 'laporan') {

@@ -104,8 +104,20 @@
   <button class="btn btn-sm btn-ghost"   data-action="switch-order-type" data-tipe="ojol">Ojol</button>
 </div>
 <!-- Catatan pesanan (akordeon): keterangan tambahan sesuai tipe order -->
-<div id="orderNoteBox" class="order-note-box" style="display:none">
-  <input type="text" class="form-input" id="orderNoteInput" placeholder="Catatan..." maxlength="120" data-action="order-note-input">
+<div id="orderControlsRow" class="order-controls-row">
+  <div id="ojolPickerWrap" style="display:none">
+    <button class="btn btn-secondary ojol-picker-btn" type="button" data-action="toggle-ojol-picker"><span id="ojolPickerLabel">🛵 Pilih app</span><span id="ojolPickerArrow" style="margin-left:auto;font-size:14px;color:var(--text3);transition:transform .2s">›</span></button>
+    <div id="ojolPickerPanel" style="display:none">
+      <button class="ojol-opt" type="button" data-action="pick-ojol-platform" data-platform="GoFood">GoFood</button>
+      <button class="ojol-opt" type="button" data-action="pick-ojol-platform" data-platform="GrabFood">GrabFood</button>
+      <button class="ojol-opt" type="button" data-action="pick-ojol-platform" data-platform="ShopeeFood">ShopeeFood</button>
+      <button class="ojol-opt" type="button" data-action="pick-ojol-platform" data-platform="Maxim">Maxim</button>
+      <button class="ojol-opt" type="button" data-action="pick-ojol-platform" data-platform="Lainnya">Lainnya</button>
+    </div>
+  </div>
+  <div id="orderNoteBox" class="order-note-box" style="display:none">
+    <input type="text" class="form-input" id="orderNoteInput" placeholder="Catatan..." maxlength="120" data-action="order-note-input">
+  </div>
 </div>
 <div class="search-box">
 <span class="search-icon">🔍</span>
@@ -506,11 +518,15 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 
 <!-- EXPENSE FORM MODAL -->
-<div class="modal-overlay" id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
-<div class="modal">
+<div class="modal-overlay" id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle"><div class="modal">
 <div class="modal-handle"></div>
 <div class="modal-title" id="expenseModalTitle">🧾 Catat Pengeluaran</div>
 <input type="hidden" id="editExpenseId">
+<div class="txn-tabs">
+<button class="txn-tab active" type="button" data-action="txn-tab" data-txntab="expense">🧾 Pengeluaran</button>
+<button class="txn-tab" type="button" data-action="txn-tab" data-txntab="income">💰 Pemasukan</button>
+</div>
+<div id="txnExpenseBody">
 <div class="form-group">
 <label class="form-label">Buat Apa?</label>
 <input type="text" class="form-input" id="expKeterangan" placeholder="Contoh: Beli daging ayam">
@@ -531,9 +547,30 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <label class="form-label">Jumlah Uang (Rp)</label>
 <input type="number" class="form-input" id="expJumlah" placeholder="Contoh: 50000" inputmode="numeric">
 </div>
+</div>
+<div id="txnIncomeBody" style="display:none">
+<div class="form-group">
+<label class="form-label">Dari Apa?</label>
+<input type="text" class="form-input" id="incKeterangan" placeholder="Contoh: Jual galon, bantuan titipan teman">
+</div>
+<div class="form-group">
+<label class="form-label">Jenis Pemasukan</label>
+<select class="form-input" id="incKategori">
+<option value="Pemasukan Lain">💰 Pemasukan Lain</option>
+<option value="Penjualan Non-Menu">🛍️ Penjualan Non-Menu</option>
+<option value="Bonus / Cashback">🎁 Bonus / Cashback</option>
+<option value="Modal Tambahan">🏦 Modal Tambahan</option>
+<option value="Lainnya">📦 Lainnya</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label">Jumlah Uang (Rp)</label>
+<input type="number" class="form-input" id="incJumlah" placeholder="Contoh: 15000" inputmode="numeric">
+</div>
+</div>
 <div class="btn-row">
 <button class="btn btn-secondary" data-action="close-expense-modal">Batal</button>
-<button class="btn btn-primary" data-action="save-expense">💾 Simpan</button>
+<button class="btn btn-primary" data-action="save-txn">💾 Simpan</button>
 </div>
 </div>
 </div>
@@ -621,8 +658,6 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <!-- EXPENSE DETAIL MODAL -->
 <div class="modal-overlay" id="expenseDetailModal" role="dialog" aria-modal="true" aria-labelledby="expenseDetailTitle">
 <div class="modal">
-<div class="modal-handle"></div>
-<div class="modal-title" id="expenseDetailTitle">🧾 Detail Pengeluaran</div>
 <div id="expenseDetailContent"></div>
 </div>
 </div>
@@ -766,7 +801,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=132"></script>
+  <script type="module" src="js/app.js?v=141"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

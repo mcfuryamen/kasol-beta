@@ -8,6 +8,7 @@ import { loadReport } from './laporan.js';
 import { openModal, closeModal } from './modal.js';
 
 export async function openExpenseForm(prefill = {}) {
+  switchTxnTab('expense');
   document.getElementById('editExpenseId').value = '';
   document.getElementById('expKeterangan').value = prefill.keterangan || '';
   document.getElementById('expKategori').value = prefill.kategori || 'Bahan Baku';
@@ -17,6 +18,55 @@ export async function openExpenseForm(prefill = {}) {
 
 export function closeExpenseModal() {
   closeModal('expenseModal');
+}
+
+// ── Tab transaksi: Pengeluaran | Pemasukan dalam satu modal ─────────────────
+// Pemasukan disimpan ke tabel yang sama dengan jenis:'pemasukan' agar tidak
+// perlu store baru; laporan memfilter berdasarkan field ini.
+
+export function switchTxnTab(mode) {
+  const expBody = document.getElementById('txnExpenseBody');
+  const incBody = document.getElementById('txnIncomeBody');
+  const title = document.getElementById('expenseModalTitle');
+  document.querySelectorAll('#expenseModal .txn-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.txntab === mode);
+  });
+  if (expBody) expBody.style.display = mode === 'expense' ? 'block' : 'none';
+  if (incBody) incBody.style.display = mode === 'income' ? 'block' : 'none';
+  if (title) title.textContent = mode === 'income' ? '💰 Catat Pemasukan' : '🧾 Catat Pengeluaran';
+}
+
+export async function openIncomeForm() {
+  switchTxnTab('income');
+  document.getElementById('incKeterangan').value = '';
+  document.getElementById('incJumlah').value = '';
+  await openModal('expenseModal');
+}
+
+export async function saveTxn() {
+  // Route sesuai tab aktif di modal catat transaksi
+  const incomeActive = document.getElementById('txnIncomeBody')?.style.display === 'block';
+  return incomeActive ? saveIncome() : saveExpense();
+}
+
+export async function saveIncome() {
+  const kategori = document.getElementById('incKategori')?.value || 'Pemasukan Lain';
+  const keterangan = document.getElementById('incKeterangan').value.trim();
+  const jumlah = parseInt(document.getElementById('incJumlah').value) || 0;
+  if (!keterangan) { showToast('Keterangan harus diisi!', 'error'); return; }
+  if (jumlah <= 0) { showToast('Jumlah harus diisi!', 'error'); return; }
+  await DB.pengeluaran.add({
+    tanggal: expDate,
+    keterangan,
+    kategori,
+    jumlah,
+    suplayer: '',
+    jenis: 'pemasukan',
+    waktu: Date.now()
+  });
+  closeExpenseModal();
+  await loadReport();
+  showToast('✅ Pemasukan dicatat!');
 }
 
 export async function saveExpense() {

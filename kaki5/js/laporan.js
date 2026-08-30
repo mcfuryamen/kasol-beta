@@ -27,6 +27,7 @@ function ensureReportDelegation() {
         t.closest('[data-start-date]') ||
         t.closest('[data-month-date]') ||
         t.closest('[data-catid]') ||
+        t.closest('[data-konspid]') ||
         t.closest('[data-tglid]') ||
         t.closest('.expense-detail-item[data-id]') ||
         t.closest('.trx-detail-item[data-id]');
@@ -37,6 +38,7 @@ function ensureReportDelegation() {
       if (el.dataset.date) return pickDate(el.dataset.date);
       if (el.dataset.startDate) return pickWeek(el.dataset.startDate);
       if (el.dataset.monthDate) return pickMonth(el.dataset.monthDate);
+      if (el.dataset.konspid) return toggleKonsp(el.dataset.konspid);
       if (el.dataset.catid) return toggleExpenseCat(el.dataset.catid);
       if (el.dataset.tglid) return toggleTrxDay(el.dataset.tglid);
       const id = Number(el.dataset.id);
@@ -85,6 +87,11 @@ export async function loadReport() {
     const sales = await DB.penjualan.where('tanggal').between(dateRange.start, dateRange.end, true, true).toArray();
     const expenses = await DB.pengeluaran.where('tanggal').between(dateRange.start, dateRange.end, true, true).toArray();
 
+  // Pemasukan lain disimpan di tabel yang sama dengan jenis:'pemasukan' —
+  // pisahkan agar tidak terhitung sebagai pengeluaran.
+  const expOnly = expenses.filter(e => e.jenis !== 'pemasukan');
+  const totalInc = expenses.filter(e => e.jenis === 'pemasukan').reduce((a,e) => a + e.jumlah, 0);
+
   let omzet = 0, modal = 0, totalQty = 0;
   const menuStats = {};
   sales.forEach(s => {
@@ -99,9 +106,13 @@ export async function loadReport() {
     });
   });
 
-  const totalExp = expenses.reduce((a,e) => a + e.jumlah, 0);
-  const profit = omzet - modal - totalExp;
+  const totalExp = expOnly.reduce((a,e) => a + e.jumlah, 0);
+  const profit = omzet - modal - totalExp + totalInc;
   const marginPct = omzet > 0 ? Math.round(((omzet - modal) / omzet) * 100) : 0;
+
+  // Ojol: transaksi dengan tipe order 'ojol', digroup per platform preset
+  const ojolSales = sales.filter(s => s.orderType === 'ojol');
+  const ojolTotal = ojolSales.reduce((a,s) => a + (s.totalHarga || 0), 0);
 
   let html = '';
 
@@ -131,6 +142,14 @@ export async function loadReport() {
       <div class="stat-label">🍽️ Porsi Terjual</div>
       <div class="stat-value orange">${totalQty}</div>
     </div>
+    <div class="stat-card" style="background:var(--green-bg);border-color:#A5D6A7">
+      <div class="stat-label">💵 Pemasukan</div>
+      <div class="stat-value green">${formatRp(totalInc)}</div>
+    </div>
+    <div class="stat-card" style="background:var(--orange-bg);border-color:#FFCC80">
+      <div class="stat-label">🛵 Ojol</div>
+      <div class="stat-value orange">${formatRp(ojolTotal)}</div>
+    </div>
   </div>`;
 
   // Margin
@@ -144,7 +163,7 @@ export async function loadReport() {
 
   // Chart for weekly/monthly (uses already-fetched sales/expenses — no N+1)
   if (reportPeriod !== 'harian') {
-    html += await renderChart(dateRange, reportPeriod, sales, expenses);
+    html += await renderChart(dateRange, reportPeriod, sales, expOnly);
   }
 
   // Top menu
@@ -164,11 +183,53 @@ export async function loadReport() {
     html += '</div>';
   }
 
+  // 🛵 Laporan Ojol — group per platform preset (GoFood/GrabFood/ShopeeFood/
+  // Maxim/Lainnya), akordeon ala rincian pengeluaran: header platform expand
+  // daftar transaksinya. Record lama tanpa platform masuk 'Lainnya'.
+  if (ojolSales.length > 0) {
+    const byPlatform = {};
+    ojolSales.forEach(s => {
+      const p = s.ojolPlatform || 'Lainnya';
+      if (!byPlatform[p]) byPlatform[p] = { n: 0, total: 0, items: [] };
+      byPlatform[p].n++;
+      byPlatform[p].total += s.totalHarga || 0;
+      byPlatform[p].items.push(s);
+    });
+    let ojolHtml = '<div class="card"><div class="card-title">🛵 Transaksi Ojol</div>';
+    Object.entries(byPlatform).sort((a,b) => b[1].total - a[1].total).forEach(([p, v], idx) => {
+      const pid = `ojolp-${idx}`;
+      ojolHtml += `<div class="kmt12">
+        <div data-catid="${pid}" class="trx-day-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:var(--orange-bg);border-radius:12px;margin-bottom:6px;cursor:pointer;user-select:none">
+          <div class="kfw800 kfs14">🛵 ${escapeHtml(p)}</div>
+          <div class="kright" style="display:flex;align-items:center;gap:10px">
+            <div class="kfw800 kfs13 kprimary">${formatRp(v.total)}</div>
+            <span id="${pid}-arrow" style="font-size:18px;color:var(--text3);transition:transform .2s;display:inline-block">›</span>
+          </div>
+        </div>
+        <div id="${pid}" class="trx-day-panel" style="display:none;padding-left:8px;border-left:2px solid var(--orange-bg);margin-bottom:8px">
+          ${v.items.map(s => `<div class="trx-item" style="cursor:default">
+            <div class="trx-icon" style="background:var(--orange-bg);color:var(--primary)">🛒</div>
+            <div class="trx-info">
+              <div class="trx-title">${escapeHtml(formatTime(s.waktu))}${s.orderNote ? ' · ' + escapeHtml(s.orderNote) : ''}</div>
+              <div class="trx-sub">${(s.items || []).reduce((a,i) => a + (i.qty || 0), 0)} porsi · ${escapeHtml(s.orderType || 'ojol')}</div>
+            </div>
+            <div class="trx-amount" style="color:var(--orange)">${formatRp(s.totalHarga || 0)}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    });
+    ojolHtml += `<div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;font-weight:800;font-size:14px">
+      <span>Total Ojol · ${ojolSales.length} trx</span>
+      <span style="color:var(--primary)">${formatRp(ojolTotal)}</span>
+    </div></div>`;
+    html += ojolHtml;
+  }
+
   // Expense breakdown by category with accordion (expandable transaction list)
-  if (expenses.length > 0) {
+  if (expOnly.length > 0) {
     const expCats = {};
     const expCatItems = {}; // kategori -> array of expense objects
-    expenses.forEach(e => {
+    expOnly.forEach(e => {
       if (!expCats[e.kategori]) {
         expCats[e.kategori] = 0;
         expCatItems[e.kategori] = [];
@@ -249,46 +310,49 @@ export async function loadReport() {
       bySuplayer[sp].push(m);
     });
 
-    // Agregat dulu supaya tahu suplayer pertama yang masih berutang —
-    // yang itu yang terbuka otomatis (paritas dengan riwayat transaksi
-    // yang membuka hari aktif). Semua lunas → semua tertutup.
+    // Agregat per suplayer. Keluar efektif per menu = penjualan tercatat +
+    // selisihQty (koreksi dari retur: barang hilang/lebih dianggap keluar),
+    // sehingga utang & nominal setoran akurat berdasarkan barang yang
+    // benar-benar keluar dari rak.
     const suplayerStats = Object.entries(bySuplayer).map(([sp, items]) => {
       let terjual = 0, utang = 0, stok = 0;
       items.forEach(m => {
-        const tj = terjualPerMenu[m.id] || 0;
-        terjual += tj;
-        utang += tj * (m.hargaModal || 0);
+        const keluar = (terjualPerMenu[m.id] || 0) + (m.selisihQty || 0);
+        terjual += keluar;
+        utang += keluar * (m.hargaModal || 0);
         stok += m.pakaiStok ? (m.stok || 0) : 0;
       });
       const setor = setorPerSuplayer[sp] || 0;
       return { sp, items, terjual, utang, stok, setor, sisa: utang - setor };
     });
-    const firstUtangIdx = suplayerStats.findIndex(s => s.sisa > 0);
 
     let konsoHtml = '<div class="card"><div class="card-title">🤝 Konsinyasi</div>';
     suplayerStats.forEach((s, idx) => {
       const konspId = `konsp-${idx}`;
-      const isOpen = idx === firstUtangIdx;
       const lunas = s.sisa <= 0;
       konsoHtml += `<div class="kmt12">
-        <div data-catid="${konspId}" class="trx-day-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:var(--orange-bg);border-radius:12px;margin-bottom:6px;cursor:pointer;user-select:none">
+        <div data-konspid="${konspId}" class="trx-day-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:var(--orange-bg);border-radius:12px;margin-bottom:6px;cursor:pointer;user-select:none">
           <div class="kfw800 kfs14">🤝 ${escapeHtml(s.sp)}</div>
           <div class="kright" style="display:flex;align-items:center;gap:10px">
             <div class="kfw800 kfs13 ${lunas ? 'kgreen' : 'kprimary'}">${lunas ? 'Lunas' : formatRp(s.sisa)}</div>
-            <span id="${konspId}-arrow" style="font-size:18px;color:var(--text3);transition:transform .2s;display:inline-block;${isOpen ? 'transform:rotate(90deg)' : ''}">›</span>
+            <span id="${konspId}-arrow" style="font-size:18px;color:var(--text3);transition:transform .2s;display:inline-block">›</span>
           </div>
         </div>
-        <div id="${konspId}" class="trx-day-panel" style="display:${isOpen ? 'block' : 'none'};padding-left:8px;border-left:2px solid var(--orange-bg);margin-bottom:8px">
+        <div id="${konspId}" class="trx-day-panel" style="display:none;padding-left:8px;border-left:2px solid var(--orange-bg);margin-bottom:8px">
           ${s.items.map(m => {
-            const tj = terjualPerMenu[m.id] || 0;
+            const keluar = (terjualPerMenu[m.id] || 0) + (m.selisihQty || 0);
             const stokSub = m.pakaiStok ? ` · stok ${m.stok || 0}` : '';
+            const catatan = m.catatanSelisih
+              ? `<div class="trx-sub" style="color:var(--orange)">📝 ${escapeHtml(m.catatanSelisih)}</div>`
+              : '';
             return `<div class="trx-item" style="cursor:default">
               <div class="trx-icon" style="background:var(--orange-bg);color:var(--primary)">🧾</div>
               <div class="trx-info">
                 <div class="trx-title">${escapeHtml(m.nama)}</div>
-                <div class="trx-sub">${tj} terjual${stokSub}</div>
+                <div class="trx-sub">${keluar} terjual${stokSub}</div>
+                ${catatan}
               </div>
-              <div class="trx-amount" style="color:var(--orange)">${formatRp(tj * (m.hargaModal || 0))}</div>
+              <div class="trx-amount" style="color:var(--orange)">${formatRp(keluar * (m.hargaModal || 0))}</div>
             </div>`;
           }).join('')}
           <div style="display:flex;gap:8px;padding-top:8px">
@@ -654,6 +718,23 @@ export function toggleTrxDay(tglId) {
   if (!panel || !arrow) return;
 
   const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+}
+
+// Toggle akordeon Konsinyasi per suplayer — auto-close: membuka satu
+// menutup suplayer lain (pola kartu menu akordeon).
+export function toggleKonsp(id) {
+  const panel = document.getElementById(id);
+  const arrow = document.getElementById(`${id}-arrow`);
+  if (!panel || !arrow) return;
+  const isOpen = panel.style.display !== 'none';
+  document.querySelectorAll('[id^="konsp-"]').forEach(p => {
+    if (p.id === id) return;
+    p.style.display = 'none';
+    const a = document.getElementById(`${p.id}-arrow`);
+    if (a) a.style.transform = 'rotate(0deg)';
+  });
   panel.style.display = isOpen ? 'none' : 'block';
   arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
 }

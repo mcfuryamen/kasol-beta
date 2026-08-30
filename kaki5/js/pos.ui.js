@@ -221,11 +221,49 @@ const ORDER_NOTE_PLACEHOLDER = {
 };
 
 export function renderOrderNoteBox() {
+  const row = document.getElementById('orderControlsRow');
+  const wrap = document.getElementById('ojolPickerWrap');
   const box = document.getElementById('orderNoteBox');
   if (!box) return;
   box.style.display = 'block';
+  const isOjol = orderType === 'ojol';
+  if (wrap) wrap.style.display = isOjol ? 'block' : 'none';
+  if (row) row.classList.toggle('with-ojol', isOjol);
+  if (isOjol) restoreOjolPlatformUI();
   const input = document.getElementById('orderNoteInput');
-  if (input) input.placeholder = ORDER_NOTE_PLACEHOLDER[orderType] || ORDER_NOTE_PLACEHOLDER['dine-in'];
+  if (input) input.placeholder = isOjol
+    ? '🛵 No. transaksi merchant / nama driver / plat nomor…'
+    : ORDER_NOTE_PLACEHOLDER[orderType] || ORDER_NOTE_PLACEHOLDER['dine-in'];
+}
+
+// ── Ojol platform picker (akordeon 1/3 di samping catatan) ──────────────────
+// Preset: GoFood / GrabFood / ShopeeFood / Maxim / Lainnya — tersimpan di
+// record penjualan (ojolPlatform) untuk laporan per platform.
+const OJOL_PLATFORM_KEY = 'kasirsolo:ojol-platform';
+let ojolPlatform = '';
+try { ojolPlatform = localStorage.getItem(OJOL_PLATFORM_KEY) || ''; } catch (_) {}
+
+export function getOjolPlatform() { return ojolPlatform; }
+
+export function toggleOjolPicker() {
+  const panel = document.getElementById('ojolPickerPanel');
+  const arrow = document.getElementById('ojolPickerArrow');
+  if (!panel) return;
+  const open = panel.style.display === 'block';
+  panel.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+}
+
+export function pickOjolPlatform(p) {
+  ojolPlatform = p;
+  try { localStorage.setItem(OJOL_PLATFORM_KEY, p); } catch (_) {}
+  toggleOjolPicker(); // tutup panel setelah memilih
+  renderOrderNoteBox();
+}
+
+function restoreOjolPlatformUI() {
+  const label = document.getElementById('ojolPickerLabel');
+  if (label) label.textContent = ojolPlatform ? `🛵 ${ojolPlatform}` : '🛵 Pilih app';
 }
 
 export function toggleOrderType(tipe) {
@@ -370,14 +408,18 @@ export function renderPOSMenuUI(menus) {
   grid.innerHTML = menus.map(m => {
     const qty = cart[m.id] ? cart[m.id].qty : 0;
     const displayHarga = (orderType === 'ojol' && m.hargaOjol > 0) ? m.hargaOjol : m.hargaJual;
-    return `<div class="menu-item ${qty>0?'selected':''}" data-action="add-to-cart" data-menu-id="${m.id}">
+    const habis = !!m.pakaiStok && (m.stok || 0) <= 0;
+    const titipan = (m.suplayer || 'Umum') !== 'Umum'; // 🧾 barang titipan konsinyasi
+    return `<div class="menu-item ${qty>0?'selected':''} ${habis?'sold-out':''}" data-action="add-to-cart" data-menu-id="${m.id}">
       ${qty > 0 ? `<div class="item-qty">${qty}</div>` : ''}
       <span class="item-emoji">${escapeHtml(catEmoji[m.kategori]||'🍽️')}</span>
       <div class="item-name">${escapeHtml(m.nama)}</div>
       <div class="item-price">${formatRp(displayHarga)}</div>
       <div class="item-badges">
+        ${titipan ? '<span class="item-titipan" title="Barang titipan">🧾</span>' : ''}
         ${parseToppings(m.toppingList).length > 0 ? '<span class="item-topping">🧂</span>' : ''}
         ${m.hargaOjol > 0 ? '<span class="item-ojol">🛵</span>' : ''}
+        ${habis ? '<span class="item-habis">Habis</span>' : ''}
       </div>
     </div>`;
   }).join('');

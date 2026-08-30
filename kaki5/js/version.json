@@ -1,7 +1,7 @@
 {
-  "version": "1.0.63",
-  "cacheBust": "v132",
+  "version": "1.0.73",
+  "cacheBust": "v141",
   "notes": [
-    "🍽️ Form menu: satu field stok seperti semula (tanpa label)"
+    "🛵 Laporan ojol ber-akordeon; search nempel header; picker jadi akordeon inline"
   ]
 }
