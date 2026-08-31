@@ -34,7 +34,7 @@ export {
   openNameModal,
   closeNameModal,
   saveNamaUsaha,
-  savePaySettings
+  savePayOptions
 } from './settings.ui.js';
 
 // Sync module

@@ -1,9 +1,9 @@
 {
-  "version": "1.0.75",
-  "cacheBust": "v143",
+  "version": "1.0.76",
+  "cacheBust": "v144",
   "notes": [
+    "💳 Pembayaran makin simpel: QRIS & Transfer kini pakai 📸 foto bukti pembayaran (kamera perangkat) + catatan bayar — tanpa setting QR/rekening lagi. Saklar opsi metode (Tunai/QRIS/Transfer) ada di Pengaturan → Metode Pembayaran; kalau hanya satu opsi aktif, tombol pilihan metode tidak muncul di keranjang",
     "🧾 Keranjang: catatan dipecah dua — catatan GLOBAL per transaksi (nama driver, no. orderan ojol, no. meja) di header keranjang, dan catatan per MENU TERPILIH di modal pilihan; harga satuan pindah ke kiri tombol minus; label tipe pesanan dibesarkan + menampilkan app ojol terpilih",
-    "💳 Pembayaran: metode QRIS & Transfer ditambahkan — bayar pas sesuai total, no. referensi opsional, tercatat di nota & laporan. Detail QRIS/rekening diisi di Pengaturan → Pembayaran",
     "🎛️ UI: semua tombol + / − jadi lingkaran rasio 1:1; blok Pakai Stok & Harga Ojol satu kolom di semua perangkat"
   ]
 }

@@ -59,54 +59,48 @@ export async function loadSettings() {
     console.warn('appSiteLink:', e?.message || e);
   }
 
-  // 💳 Pembayaran (QRIS / Transfer) — detail lokal perangkat, disimpan di tabel
-  // `settings` IndexedDB (bukan profil cloud). Dipakai panel non-tunai di keranjang.
+  // 💳 Opsi metode pembayaran (saklar Tunai/QRIS/Transfer) — lokal perangkat,
+  // disimpan di tabel `settings` IndexedDB. Bila hanya satu aktif, row pilihan
+  // metode disembunyikan di keranjang (permintaan pemilik 2026-08-31).
   try {
     const { getSetting } = await import('./db.js');
-    const [qris, bank, acc, name] = await Promise.all([
-      getSetting('payQrisUrl', ''), getSetting('payBank', ''),
-      getSetting('payAccountNumber', ''), getSetting('payAccountName', '')
+    const [t, q, tr] = await Promise.all([
+      getSetting('payOptTunai', '1'), getSetting('payOptQris', '1'), getSetting('payOptTransfer', '1')
     ]);
-    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
-    setVal('setPayQrisUrl', qris);
-    setVal('setPayBank', bank);
-    setVal('setPayAccountNumber', acc);
-    setVal('setPayAccountName', name);
-  } catch (e) { console.warn('[SETTINGS] muat detail pembayaran:', e?.message || e); }
+    const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v !== '0'; };
+    setChk('payOptTunai', t);
+    setChk('payOptQris', q);
+    setChk('payOptTransfer', tr);
+  } catch (e) { console.warn('[SETTINGS] muat opsi pembayaran:', e?.message || e); }
 
   checkProfileNotification();
 }
 
-// 💳 Simpan detail pembayaran (QRIS + rekening transfer) — lokal perangkat.
-export async function savePaySettings() {
-  const val = id => (document.getElementById(id)?.value || '').trim();
-  const qris = val('setPayQrisUrl');
-  if (qris && !/^https?:\/\//i.test(qris)) {
-    showToast('URL QRIS harus diawali http:// atau https://', 'error');
+// 💳 Simpan opsi metode pembayaran (saklar) — lokal perangkat + langsung
+// di-inject ke modul POS tanpa reload. Minimal satu metode harus aktif.
+export async function savePayOptions(changedEl) {
+  const chk = id => !!document.getElementById(id)?.checked;
+  const opts = { tunai: chk('payOptTunai'), qris: chk('payOptQris'), transfer: chk('payOptTransfer') };
+  if (!Object.values(opts).some(Boolean)) {
+    if (changedEl) changedEl.checked = true; // kembalikan saklar yang baru dimatikan
+    showToast('Minimal satu metode pembayaran aktif', 'error');
     return;
   }
-  const payload = {
-    payQrisUrl: qris,
-    payBank: val('setPayBank'),
-    payAccountNumber: val('setPayAccountNumber').replace(/\s+/g, ''),
-    payAccountName: val('setPayAccountName')
-  };
   try {
     const { setSetting } = await import('./db.js');
-    await Promise.all(Object.entries(payload).map(([k, v]) => setSetting(k, v)));
-    // Segarkan cache konfigurasi modul POS → panel non-tunai langsung pakai
-    // nilai baru tanpa perlu reload halaman.
+    await Promise.all([
+      setSetting('payOptTunai', opts.tunai ? '1' : '0'),
+      setSetting('payOptQris', opts.qris ? '1' : '0'),
+      setSetting('payOptTransfer', opts.transfer ? '1' : '0')
+    ]);
     try {
-      const { setPayConfig } = await import('./pos.ui.js');
-      setPayConfig({
-        qrisUrl: payload.payQrisUrl, bank: payload.payBank,
-        accountNumber: payload.payAccountNumber, accountName: payload.payAccountName
-      });
+      const { setPayOptions } = await import('./pos.ui.js');
+      setPayOptions(opts);
     } catch (_) {}
-    showToast('✅ Detail pembayaran disimpan!');
+    showToast('✅ Opsi pembayaran diperbarui!');
   } catch (e) {
-    console.error('[SETTINGS] simpan detail pembayaran:', e);
-    showToast('Gagal menyimpan detail pembayaran.', 'error');
+    console.error('[SETTINGS] simpan opsi pembayaran:', e);
+    showToast('Gagal menyimpan opsi pembayaran.', 'error');
   }
 }
 

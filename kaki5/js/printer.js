@@ -316,6 +316,9 @@ export function buildReceiptText(sale, warungName, alamat = '') {
   txt += padLine('Bayar via', PAY_SHORT[sale.metodeBayar] || 'Tunai', PRINT_WIDTH) + LF;
   const refBayar = safeStr(sale.refBayar, '').trim();
   if (refBayar) txt += padLine('Ref', refBayar.substring(0, 14), PRINT_WIDTH) + LF;
+  // Catatan pembayaran non-tunai (thermal tidak bisa cetak foto — teks saja)
+  const catBayar = safeStr(sale.catatanBayar, '').trim();
+  if (catBayar) txt += 'Catatan: ' + catBayar.substring(0, 30) + LF;
   txt += padLine('Bayar', formatRpPlain(bayar), PRINT_WIDTH) + LF;
   txt += padLine('Kembali', formatRpPlain(kembalian), PRINT_WIDTH) + LF;
   txt += '================================' + LF;
@@ -447,11 +450,15 @@ function printNotaBrowser(sale, warungName, alamat = '') {
   printWindow.document.write('<hr>');
   const PAY_SHORT2 = { tunai: 'Tunai', qris: 'QRIS', transfer: 'Transfer' };
   const refPrint = String(sale.refBayar || '').trim();
+  const catPrint = String(sale.catatanBayar || '').trim();
   printWindow.document.write('<table><tr class="total"><td>TOTAL</td><td class="kright">' + formatRp(safeNum(sale.totalHarga, 0)) + '</td></tr>');
   printWindow.document.write('<tr><td>Bayar via</td><td class="kright">' + escapeHtml(PAY_SHORT2[sale.metodeBayar] || 'Tunai') + '</td></tr>');
   if (refPrint) printWindow.document.write('<tr><td>Ref</td><td class="kright">' + escapeHtml(refPrint) + '</td></tr>');
+  if (catPrint) printWindow.document.write('<tr><td>Catatan bayar</td><td class="kright">' + escapeHtml(catPrint) + '</td></tr>');
   printWindow.document.write('<tr><td>Bayar</td><td class="kright">' + formatRp(safeNum(sale.bayar, 0)) + '</td></tr>');
   printWindow.document.write('<tr><td>Kembali</td><td class="kright">' + formatRp(safeNum(sale.kembalian, 0)) + '</td></tr></table>');
+  // Foto bukti pembayaran non-tunai (QRIS/Transfer) — hanya di nota browser print
+  if (sale.buktiBayar) printWindow.document.write('<div style="margin-top:8px"><b>Bukti pembayaran:</b><br><img src="' + sale.buktiBayar + '" style="max-width:280px;border-radius:8px"></div>');
   printWindow.document.write('<hr>');
   printWindow.document.write('<p class="footer">Terima kasih! Semoga berkah<br><span style="font-size:10px;color:#666">Kasir Solo - Kaki Lima</span></p>');
   printWindow.document.write('</body></html>');

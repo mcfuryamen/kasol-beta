@@ -1,7 +1,7 @@
 // ==================== POS UI (ESM) ====================
 // DOM operations only. No DB access. No state mutations.
 
-import { escapeHtml, formatRp } from './helpers.js';
+import { escapeHtml, formatRp, showToast } from './helpers.js';
 import { cart, posCat, orderType, setOrderType, setCart } from './app-state.js';
 import { generatePresetNominal, parseToppings, toppingHarga, hargaEfektif, normalizeToppingQtys, getOjolPrice, getOjolRows, menuHasOjol, lineTotal as lineTotalLogic } from './pos.logic.js';
 import { openModal, closeModal } from './modal.js';
@@ -288,40 +288,57 @@ export function pickOjolPlatform(p) {
 }
 
 // ── Metode pembayaran: Tunai | QRIS | Transfer ──────────────────────────────
-// Permintaan pemilik 2026-08-31 (komentar browser #5). Non-tunai = bayar pas
-// sesuai total → blok uang diterima/kembalian disembunyikan, tapi nominal tetap
-// dicatat ke record penjualan (metodeBayar) + no. referensi opsional (refBayar).
-// Modul ini DOM-only: konfigurasi QRIS/rekening di-inject dari pos.js lewat
-// setPayConfig() (sumbernya tabel `settings`), tidak baca DB di sini.
+// Permintaan pemilik 2026-08-31 (disederhanakan): non-tunai = bayar pas sesuai
+// total + FOTO BUKTI PEMBAYARAN dari kamera perangkat + catatan opsional.
+// Tanpa setting QR/rekening — merchant biasanya sudah punya QRIS versi cetak.
+// Opsi mana yang aktif diatur lewat saklar di Pengaturan; di-inject dari pos.js
+// lewat setPayOptions() (sumbernya tabel `settings`). Modul ini DOM-only.
 const PAY_METHOD_KEY = 'kasirsolo:pay-method';
 const PAY_METHOD_LABELS = { tunai: '💵 Tunai', qris: '📱 QRIS', transfer: '🏦 Transfer' };
+let payOptions = { tunai: true, qris: true, transfer: true };
 let paymentMethod = 'tunai';
 try {
   const saved = localStorage.getItem(PAY_METHOD_KEY);
   if (saved && PAY_METHOD_LABELS[saved]) paymentMethod = saved;
 } catch (_) {}
-let payConfig = { qrisUrl: '', bank: '', accountNumber: '', accountName: '' };
+let payProofData = ''; // bukti bayar (dataURL terkompresi) — hidup selama modal keranjang
 
 export function getPaymentMethod() { return paymentMethod; }
 export function paymentMethodLabel(m = paymentMethod) { return PAY_METHOD_LABELS[m] || PAY_METHOD_LABELS.tunai; }
-export function setPayConfig(cfg) { payConfig = { ...payConfig, ...(cfg || {}) }; }
+export function getPayProof() { return payProofData; }
+export function getPayNote() { return (document.getElementById('payNoteInput')?.value || '').trim().slice(0, 120); }
+
+// Opsi pembayaran aktif di-inject pos.js (settings payOptTunai/payOptQris/payOptTransfer).
+export function setPayOptions(opts) {
+  payOptions = { tunai: true, qris: true, transfer: true, ...(opts || {}) };
+  if (!Object.values(payOptions).some(Boolean)) payOptions.tunai = true; // jaring pengaman
+  applyPayMethodUI();
+}
 
 export function setPaymentMethod(method) {
-  if (!PAY_METHOD_LABELS[method]) return;
+  if (!PAY_METHOD_LABELS[method] || !payOptions[method]) return;
   paymentMethod = method;
   try { localStorage.setItem(PAY_METHOD_KEY, method); } catch (_) {}
   applyPayMethodUI();
   // Segarkan panel bayar SEKETIKA dengan total saat ini — non-tunai mengisi
-  // nominal QRIS/Transfer, tunai mengisi ulang uang diterima + preset + kembalian.
+  // nominal, tunai mengisi ulang uang diterima + preset + kembalian.
   refreshCartModalTotals();
 }
 
-// Sinkronkan tombol + blok tunai/non-tunai. Return true bila non-tunai aktif.
+// Sinkronkan tombol + blok tunai/non-tunai. Bila hanya SATU opsi aktif, row
+// tombol disembunyikan (visual seperti sebelum fitur QRIS/Transfer).
+// Return true bila non-tunai aktif.
 export function applyPayMethodUI() {
+  const enabled = Object.keys(PAY_METHOD_LABELS).filter(m => payOptions[m]);
+  if (!enabled.includes(paymentMethod)) paymentMethod = enabled[0] || 'tunai';
   const row = document.getElementById('payMethodRow');
   if (row) {
-    row.querySelectorAll('.pay-method-btn').forEach(b =>
-      b.classList.toggle('active', b.dataset.method === paymentMethod));
+    row.style.display = enabled.length <= 1 ? 'none' : '';
+    row.querySelectorAll('.pay-method-btn').forEach(b => {
+      const m = b.dataset.method;
+      b.style.display = payOptions[m] ? '' : 'none';
+      b.classList.toggle('active', m === paymentMethod);
+    });
   }
   const cash = document.getElementById('cashPayBlock');
   const nonCash = document.getElementById('nonCashBlock');
@@ -331,27 +348,55 @@ export function applyPayMethodUI() {
   return !isCash;
 }
 
-// Isi panel non-tunai (QRIS: gambar; Transfer: rekening) + nominal yang harus dibayar.
+// Panel non-tunai: hanya nominal yang harus dibayar (bukti & catatan diisi kasir).
 export function renderNonCashPay(total) {
   if (paymentMethod === 'tunai') return;
   const nominal = document.getElementById('payNoncashNominal');
   if (nominal) nominal.textContent = formatRp(total);
-  const info = document.getElementById('payNoncashInfo');
-  const hint = document.getElementById('payNoncashHint');
-  if (paymentMethod === 'qris') {
-    if (info) info.innerHTML = payConfig.qrisUrl
-      ? `<img src="${escapeHtml(payConfig.qrisUrl)}" alt="QRIS kasir">`
-      : '<div class="pay-hint" style="margin:0 0 8px">⚠️ Gambar QRIS belum diatur — isi di <b>Pengaturan → Pembayaran</b>.</div>';
-    if (hint) hint.textContent = 'Pelanggan scan QR QRIS di atas lalu tekan Simpan. Nominal tercatat pas sesuai total.';
-  } else {
-    const rows = [['Bank', payConfig.bank], ['No. Rekening', payConfig.accountNumber], ['Atas Nama', payConfig.accountName]]
-      .map(([k, v]) => `<div class="pay-noncash-row"><span class="klabel">${k}</span><span class="kval">${escapeHtml(v || '—')}</span></div>`)
-      .join('');
-    if (info) info.innerHTML = rows;
-    if (hint) hint.textContent = payConfig.accountNumber
-      ? 'Pelanggan transfer ke rekening di atas. Nominal tercatat pas sesuai total.'
-      : '⚠️ Rekening belum diatur — isi di Pengaturan → Pembayaran.';
-  }
+}
+
+// ── Foto bukti pembayaran (kamera via file input capture, pola purchase.js) ──
+export function capturePayProof() {
+  document.getElementById('payProofFile')?.click();
+}
+
+export function removePayProof() {
+  payProofData = '';
+  const file = document.getElementById('payProofFile');
+  if (file) file.value = '';
+  const wrap = document.getElementById('payProofPreviewWrap');
+  const btn = document.getElementById('payProofBtn');
+  if (wrap) wrap.style.display = 'none';
+  if (btn) btn.style.display = '';
+}
+
+// Foto kamera HP bisa 3–8 MB → resize kanvas + JPEG 0.72 biar IndexedDB aman.
+export function handlePayProofFile(input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 900;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * scale);
+      cv.height = Math.round(img.height * scale);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      payProofData = cv.toDataURL('image/jpeg', 0.72);
+      const prev = document.getElementById('payProofPreview');
+      const wrap = document.getElementById('payProofPreviewWrap');
+      const btn = document.getElementById('payProofBtn');
+      if (prev) prev.src = payProofData;
+      if (wrap) wrap.style.display = '';
+      if (btn) btn.style.display = 'none';
+    };
+    img.onerror = () => showToast('Foto tidak bisa dibaca — coba ulang 📸', 'error', 2500);
+    img.src = e.target.result;
+  };
+  reader.onerror = () => showToast('Gagal membaca file foto', 'error', 2500);
+  reader.readAsDataURL(file);
 }
 
 export function toggleOrderType(tipe) {

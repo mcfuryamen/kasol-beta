@@ -15,7 +15,8 @@ import {
   formatBayarInputUI, selectAllBayarInput, setNominalBayarUI,
   showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType,
   renderOrderNoteBox, getOjolPlatform, pickOjolPlatform,
-  getPaymentMethod, setPaymentMethod, applyPayMethodUI, setPayConfig, paymentMethodLabel, GLOBAL_NOTE_KEY
+  getPaymentMethod, setPaymentMethod, applyPayMethodUI, setPayOptions, paymentMethodLabel, GLOBAL_NOTE_KEY,
+  getPayProof, getPayNote, removePayProof
 } from './pos.ui.js';
 import { saveCart, loadCart, clearCartStorage, simpanPenjualanSync } from './pos.sync.js';
 import { getLicenseStatus } from './license.js';
@@ -29,7 +30,8 @@ export {
   openCartModal, closeCartModal, hitungKembalianUI, refreshCartModalTotals,
   formatBayarInputUI, selectAllBayarInput, setNominalBayarUI,
   showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType, pickOjolPlatform,
-  setPaymentMethod, getPaymentMethod, paymentMethodLabel
+  setPaymentMethod, getPaymentMethod, paymentMethodLabel,
+  capturePayProof, handlePayProofFile, removePayProof
 } from './pos.ui.js';
 export {
   saveCart, loadCart, clearCartStorage, simpanPenjualanSync
@@ -126,16 +128,15 @@ export async function loadPOS() {
     const input = document.getElementById('globalNoteInput');
     if (draft && input && !input.value) input.value = draft;
   } catch (_) {}
-  // Konfigurasi pembayaran (QRIS/rekening) untuk panel non-tunai. Dibaca di sini
-  // lalu di-inject ke pos.ui.js — modul UI sengaja tidak boleh menyentuh DB.
+  // Opsi pembayaran aktif (saklar Tunai/QRIS/Transfer di Pengaturan). Dibaca di
+  // sini lalu di-inject ke pos.ui.js — modul UI sengaja tidak boleh menyentuh DB.
   try {
-    setPayConfig({
-      qrisUrl: await getSetting('payQrisUrl', ''),
-      bank: await getSetting('payBank', ''),
-      accountNumber: await getSetting('payAccountNumber', ''),
-      accountName: await getSetting('payAccountName', '')
+    setPayOptions({
+      tunai: (await getSetting('payOptTunai', '1')) !== '0',
+      qris: (await getSetting('payOptQris', '1')) !== '0',
+      transfer: (await getSetting('payOptTransfer', '1')) !== '0'
     });
-  } catch (_) { /* DB sibuk → panel non-tunai pakai default kosong */ }
+  } catch (_) { /* DB sibuk → semua opsi default aktif */ }
 }
 
 // ---- Category tabs (async: DB query + DOM) ----
@@ -312,8 +313,14 @@ export async function simpanPenjualan(cetakJuga = false) {
   const orderNote = (document.getElementById('globalNoteInput')?.value || '').trim();
   // Platform ojol (preset GoFood/GrabFood/ShopeeFood/Maxim/Lainnya) untuk laporan
   const ojolPlatform = orderType === 'ojol' ? (getOjolPlatform() || 'Lainnya') : '';
-  // No. referensi pembayaran non-tunai (QRIS/Transfer) — opsional
-  const refBayar = isCash ? '' : (document.getElementById('payRefInput')?.value || '').trim().slice(0, 60);
+  // Non-tunai (QRIS/Transfer): foto bukti pembayaran + catatan opsional
+  // (permintaan pemilik 2026-08-31 — simpel, tanpa setting QR/rekening).
+  const buktiBayar = isCash ? '' : getPayProof();
+  const catatanBayar = isCash ? '' : getPayNote();
+  if (!isCash && !buktiBayar) {
+    showToast('Foto bukti pembayaran dulu ya 📸', 'error', 2500);
+    return;
+  }
 
   const saleId = await simpanPenjualanSync({
     tanggal: _tgl,
@@ -338,7 +345,8 @@ export async function simpanPenjualan(cetakJuga = false) {
     bayar,
     kembalian: isCash ? (bayar - totalHarga) : 0,
     metodeBayar: payMethod,
-    refBayar,
+    buktiBayar,
+    catatanBayar,
     waktu: Date.now()
   });
 
@@ -365,8 +373,9 @@ export async function simpanPenjualan(cetakJuga = false) {
   // hilang karena keranjang dikosongkan) + kosongkan no. referensi bayar
   const noteInput = document.getElementById('globalNoteInput');
   if (noteInput) noteInput.value = '';
-  const refInput = document.getElementById('payRefInput');
-  if (refInput) refInput.value = '';
+  removePayProof();
+  const payNoteEl = document.getElementById('payNoteInput');
+  if (payNoteEl) payNoteEl.value = '';
   try { localStorage.removeItem(GLOBAL_NOTE_KEY); } catch (_) {}
   closeCartModal();
   renderCartBar();

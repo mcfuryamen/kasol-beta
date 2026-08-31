@@ -179,28 +179,26 @@
 <div class="setting-arrow">›</div>
 </div>
 </div>
-<!-- 💳 Detail pembayaran usaha — dipakai panel QRIS/Transfer di keranjang
-     (fitur permintaan pemilik 2026-08-31, komentar browser #5). -->
+<!-- 💳 Opsi metode pembayaran — saklar aktif/nonaktif (permintaan pemilik
+     2026-08-31: QRIS/Transfer cukup foto bukti bayar, tanpa setting QR/rekening).
+     Jika hanya satu opsi aktif, row pilihan metode disembunyikan di keranjang. -->
 <div class="card">
-<div class="card-title">💳 Pembayaran</div>
-<div class="form-group">
-<label class="form-label">🔗 URL gambar QRIS</label>
-<input type="text" class="form-input" id="setPayQrisUrl" placeholder="https://…/qris-usaha.png" inputmode="url" autocomplete="off">
-<div class="pay-hint">Tempel tautan gambar QRIS dari bank/aplikasi kasir Anda — tampil saat pelanggan bayar QRIS.</div>
+<div class="card-title">💳 Metode Pembayaran</div>
+<div class="setting-item">
+<div class="setting-icon kbg-green">💵</div>
+<div class="setting-info"><div class="s-title">Tunai</div><div class="s-desc">Uang diterima + kembalian</div></div>
+<label class="toggle-switch" style="margin:0"><input type="checkbox" id="payOptTunai" data-action="save-pay-options" checked><span class="toggle-slider"></span></label>
 </div>
-<div class="form-group">
-<label class="form-label">🏦 Bank</label>
-<input type="text" class="form-input" id="setPayBank" placeholder="BCA / Mandiri / BRI / e-wallet…" autocomplete="off">
+<div class="setting-item">
+<div class="setting-icon kbg-blue">📱</div>
+<div class="setting-info"><div class="s-title">QRIS</div><div class="s-desc">Pembeli transfer/scan → foto bukti bayar</div></div>
+<label class="toggle-switch" style="margin:0"><input type="checkbox" id="payOptQris" data-action="save-pay-options" checked><span class="toggle-slider"></span></label>
 </div>
-<div class="form-group">
-<label class="form-label">No. Rekening</label>
-<input type="text" class="form-input" id="setPayAccountNumber" placeholder="1234567890" inputmode="numeric" autocomplete="off">
+<div class="setting-item">
+<div class="setting-icon kbg-orange">🏦</div>
+<div class="setting-info"><div class="s-title">Transfer</div><div class="s-desc">Pembeli transfer → foto bukti bayar</div></div>
+<label class="toggle-switch" style="margin:0"><input type="checkbox" id="payOptTransfer" data-action="save-pay-options" checked><span class="toggle-slider"></span></label>
 </div>
-<div class="form-group">
-<label class="form-label">Atas Nama</label>
-<input type="text" class="form-input" id="setPayAccountName" placeholder="Nama pemilik rekening" autocomplete="off">
-</div>
-<button class="btn btn-primary" data-action="save-pay-settings">💾 Simpan Pembayaran</button>
 </div>
 <div class="card">
 <div class="card-title">📱 Perangkat</div>
@@ -393,12 +391,18 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="kgrid-4col kmb12" id="presetBayarContainer"></div>
 </div>
 
-<!-- Blok NON-TUNAI (QRIS / Transfer): info pembayaran + nominal + no. referensi -->
+<!-- Blok NON-TUNAI (QRIS / Transfer): nominal + foto bukti pembayaran + catatan
+     (permintaan pemilik 2026-08-31: simpel — merchant sudah punya QRIS cetak,
+     aplikasi cukup merekam bukti bayar dari kamera perangkat). -->
 <div id="nonCashBlock" class="pay-noncash" style="display:none">
-  <div id="payNoncashInfo"></div>
   <div class="pay-noncash-row"><span class="klabel">Nominal bayar</span><span class="kval" id="payNoncashNominal">Rp 0</span></div>
-  <input type="text" class="form-input" id="payRefInput" placeholder="No. referensi / ID transaksi (opsional)" maxlength="60" style="margin-top:8px">
-  <div class="pay-hint" id="payNoncashHint"></div>
+  <input type="file" id="payProofFile" accept="image/png,image/jpeg,image/webp" capture="environment" hidden data-action="handle-pay-proof">
+  <button type="button" class="btn btn-secondary pay-proof-btn" data-action="capture-pay-proof" id="payProofBtn">📸 Foto Bukti Pembayaran</button>
+  <div id="payProofPreviewWrap" class="pay-proof-preview" style="display:none">
+    <img id="payProofPreview" alt="Bukti pembayaran">
+    <button type="button" class="pay-proof-remove" data-action="remove-pay-proof" title="Hapus foto" aria-label="Hapus foto bukti">✕</button>
+  </div>
+  <input type="text" class="form-input" id="payNoteInput" placeholder="Catatan pembayaran (opsional) — mis. sudah dikonfirmasi" maxlength="120" style="margin-top:8px">
 </div>
 </div>
 <div class="btn-row kmt12">
@@ -849,7 +853,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=143"></script>
+  <script type="module" src="js/app.js?v=144"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

@@ -957,7 +957,11 @@ body.modal-open .main-content{overflow:hidden}
 .pay-noncash-row:last-child{margin-bottom:0}
 .pay-noncash-row .klabel{color:var(--text2)}
 .pay-noncash-row .kval{font-weight:800}
-.pay-noncash img{width:100%;max-width:260px;border-radius:12px;display:block;margin:0 auto 10px}
+/* 📸 Bukti pembayaran non-tunai (foto dari kamera) — v144 */
+.pay-proof-btn{width:100%;margin-top:8px}
+.pay-proof-preview{position:relative;margin-top:8px;text-align:center}
+.pay-proof-preview img{max-width:100%;max-height:220px;border-radius:12px;border:1px solid var(--border);display:block;margin:0 auto}
+.pay-proof-remove{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:14px;line-height:1;cursor:pointer}
 .pay-hint{font-size:12px;color:var(--text2);margin-top:8px;line-height:1.4}
 
 /* ── Modal Pilihan Menu: catatan jadi milik MENU TERPILIH (per item).
