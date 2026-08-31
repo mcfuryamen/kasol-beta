@@ -147,9 +147,20 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 .cart-meta{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cart-qty-price{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .cart-price{font-weight:700;color:var(--primary);font-size:15px;min-width:75px;text-align:right;white-space:nowrap}
-.qty-control{display:flex;align-items:center;gap:0;background:#f5f5f5;border-radius:10px;overflow:hidden}
-.qty-btn{width:36px;height:36px;border:none;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;background:transparent;color:var(--text)}
+/* Stepper qty keranjang: tombol − / ＋ jadi LINGKARAN rasio 1:1 (permintaan
+   pemilik 2026-08-31, komentar browser "ubah semua tombol plus dan minus menjadi
+   bentuk lingkaran dengan rasio 1:1"). Kontainer tidak lagi jadi pil abu-abu
+   supaya tiap tombol terbaca sebagai lingkaran terpisah. */
+.qty-control{display:flex;align-items:center;gap:6px;background:none;border-radius:0;overflow:visible}
+.qty-btn{width:36px;height:36px;aspect-ratio:1/1;border:none;border-radius:50%;font-size:20px;font-weight:700;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;background:#f5f5f5;color:var(--text);padding:0}
 .qty-btn:active{background:#e0e0e0}
+/* Tombol − / ＋ di modal Pilihan Menu (qty menu) & stepper topping.
+   Selector `button[data-action=…]` = spesifisitas 0,1,1 → MENANG atas
+   `.btn{min-height:46/56/58px}` di media query (0,1,0) yang ditaruh lebih
+   bawah di file. Inline style width lama DIHAPUS dari template JS karena
+   inline mengalahkan CSS dan bikin tombol persegi panjang (lebar saja). */
+button[data-action="menu-selector-qty"]{width:38px;height:38px;min-width:38px;min-height:38px;aspect-ratio:1/1;border-radius:50%;padding:0;font-size:18px;font-weight:700;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+button[data-action="topping-qty"]{width:30px;height:30px;min-width:30px;min-height:30px;aspect-ratio:1/1;border-radius:50%;padding:0;font-size:15px;font-weight:700;line-height:1;display:inline-flex;align-items:center;justify-content:center}
 .qty-val{width:40px;text-align:center;font-size:16px;font-weight:800;border:none;background:transparent;padding:4px 0;-moz-appearance:textfield;appearance:textfield}
 .qty-val::-webkit-outer-spin-button,.qty-val::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .qty-val:focus{outline:none;background:#e8e8e8;border-radius:6px}
@@ -786,11 +797,11 @@ body.modal-open .main-content{overflow:hidden}
 .kdivider{border-top:2px solid var(--border);margin-top:12px;padding-top:12px}
 .kgrid-2col-gap12{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;margin-bottom:12px}
 .kgrid-2col-gap8{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-/* Grid blok Stok + Harga Ojol: 1 kolom di semua HP, 2 kolom mulai tablet (600px+) */
+/* Grid blok Stok + Harga Ojol: SATU kolom di semua perangkat (permintaan
+   pemilik 2026-08-31, komentar browser "jadikan 1 grid kolom di semua
+   perangkat"). Override 2-kolom tablet (600px+) sengaja DIHAPUS. */
 .kgrid-stokojol{display:grid;grid-template-columns:1fr;gap:12px;margin:6px 0}
 .kgrid-stokojol .form-group{min-width:0}
-/* Tablet+: 2 kolom (diletakkan SETELAH base rule agar menang cascade) */
-@media(min-width:600px){.kgrid-stokojol{grid-template-columns:1fr 1fr}}
 /* Grid Kategori+Suplayer: selalu 2 kolom sejajar, kolom melebar penuh mengisi area */
 .kgrid-konsinyasi{display:grid;grid-template-columns:1fr;gap:12px;width:100%}
 /* Select di form Kategori+Suplayer: isi penuh kolom */
@@ -916,6 +927,43 @@ body.modal-open .main-content{overflow:hidden}
 .cart-meta{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cart-qty-price{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .cart-price{font-weight:700;color:var(--primary);font-size:15px;min-width:75px;text-align:right;white-space:nowrap}
+
+/* ── Cart: harga SATUAN dipindah ke KIRI tombol minus, sebaris dengan nama menu
+   (permintaan pemilik 2026-08-31, komentar browser #6). Elemen .cart-name-price
+   kini anak pertama .cart-qty-price — bukan lagi bagian .cart-name-row.
+   Aturan ini diulang di sini supaya MENANG cascade atas .cart-name-price lama
+   di atas (selector lebih spesifik + sumber lebih bawah). ── */
+.cart-qty-price .cart-name-price{margin-left:0;min-width:56px;text-align:right;font-size:12px;font-weight:700;color:var(--text2);white-space:nowrap}
+.cart-qty-price .cart-price{min-width:66px}
+/* Catatan per menu terpilih — teks kecil di bawah nama item */
+.cart-item-note{font-size:12px;color:var(--text2);white-space:normal;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+/* ── Header keranjang: label tipe pesanan + NAMA APP OJOL + catatan global
+   per transaksi (komentar browser #3 & #4, 2026-08-31). Nama app ditarik dari
+   pilihan "Pilih app" di modal Pilihan Menu (getOjolPlatform). ── */
+.cart-order-head{display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:var(--orange-bg);border-radius:12px;margin-bottom:8px}
+.cart-order-type{display:flex;align-items:center;gap:6px;font-size:17px;font-weight:800;color:var(--primary);line-height:1.2}
+.cart-global-note{width:100%;font-size:13px;font-weight:600;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--text)}
+.cart-global-note::placeholder{color:var(--text3);font-weight:500}
+.cart-global-note:focus{outline:none;border-color:var(--primary)}
+
+/* ── Metode pembayaran: Tunai | QRIS | Transfer (komentar browser #5).
+   Kelas sendiri, BUKAN .btn, agar tidak terseret min-height media query. ── */
+.pay-method-row{display:flex;gap:8px;margin:12px 0}
+.pay-method-btn{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;height:42px;min-height:42px;border:1px solid var(--border);border-radius:11px;background:#fff;color:var(--text2);font-size:14px;font-weight:700;cursor:pointer}
+.pay-method-btn.active{border-color:var(--primary);background:var(--orange-bg);color:var(--primary)}
+.pay-noncash{background:#fafafa;border:1px solid var(--border);border-radius:12px;padding:12px;margin:12px 0}
+.pay-noncash-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;margin-bottom:6px}
+.pay-noncash-row:last-child{margin-bottom:0}
+.pay-noncash-row .klabel{color:var(--text2)}
+.pay-noncash-row .kval{font-weight:800}
+.pay-noncash img{width:100%;max-width:260px;border-radius:12px;display:block;margin:0 auto 10px}
+.pay-hint{font-size:12px;color:var(--text2);margin-top:8px;line-height:1.4}
+
+/* ── Modal Pilihan Menu: catatan jadi milik MENU TERPILIH (per item).
+   Kontainer dashed DIHAPUS, diganti garis pemisah saja (komentar browser #8). ── */
+.ms-item-note-sep{border:none;border-top:1px solid var(--border);margin:12px 0 8px}
+.ms-item-note-label{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:6px}
 
 /* Menu selector modal: konsistensi font */
 #menuSelectorModal .modal-title{font-size:18px;margin-bottom:12px}

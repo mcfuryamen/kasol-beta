@@ -1,7 +1,9 @@
 {
-  "version": "1.0.74",
-  "cacheBust": "v142",
+  "version": "1.0.75",
+  "cacheBust": "v143",
   "notes": [
-    "🧭 Jualan: harga ojol per-app di form menu; catatan & pilih app ojol pindah ke dalam modal Pilihan Menu sebagai tab (harga ikut app terpilih); baris cari dirapikan; produk habis diblokir + peringatan"
+    "🧾 Keranjang: catatan dipecah dua — catatan GLOBAL per transaksi (nama driver, no. orderan ojol, no. meja) di header keranjang, dan catatan per MENU TERPILIH di modal pilihan; harga satuan pindah ke kiri tombol minus; label tipe pesanan dibesarkan + menampilkan app ojol terpilih",
+    "💳 Pembayaran: metode QRIS & Transfer ditambahkan — bayar pas sesuai total, no. referensi opsional, tercatat di nota & laporan. Detail QRIS/rekening diisi di Pengaturan → Pembayaran",
+    "🎛️ UI: semua tombol + / − jadi lingkaran rasio 1:1; blok Pakai Stok & Harga Ojol satu kolom di semua perangkat"
   ]
 }

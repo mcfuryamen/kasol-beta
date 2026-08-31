@@ -59,7 +59,55 @@ export async function loadSettings() {
     console.warn('appSiteLink:', e?.message || e);
   }
 
+  // 💳 Pembayaran (QRIS / Transfer) — detail lokal perangkat, disimpan di tabel
+  // `settings` IndexedDB (bukan profil cloud). Dipakai panel non-tunai di keranjang.
+  try {
+    const { getSetting } = await import('./db.js');
+    const [qris, bank, acc, name] = await Promise.all([
+      getSetting('payQrisUrl', ''), getSetting('payBank', ''),
+      getSetting('payAccountNumber', ''), getSetting('payAccountName', '')
+    ]);
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+    setVal('setPayQrisUrl', qris);
+    setVal('setPayBank', bank);
+    setVal('setPayAccountNumber', acc);
+    setVal('setPayAccountName', name);
+  } catch (e) { console.warn('[SETTINGS] muat detail pembayaran:', e?.message || e); }
+
   checkProfileNotification();
+}
+
+// 💳 Simpan detail pembayaran (QRIS + rekening transfer) — lokal perangkat.
+export async function savePaySettings() {
+  const val = id => (document.getElementById(id)?.value || '').trim();
+  const qris = val('setPayQrisUrl');
+  if (qris && !/^https?:\/\//i.test(qris)) {
+    showToast('URL QRIS harus diawali http:// atau https://', 'error');
+    return;
+  }
+  const payload = {
+    payQrisUrl: qris,
+    payBank: val('setPayBank'),
+    payAccountNumber: val('setPayAccountNumber').replace(/\s+/g, ''),
+    payAccountName: val('setPayAccountName')
+  };
+  try {
+    const { setSetting } = await import('./db.js');
+    await Promise.all(Object.entries(payload).map(([k, v]) => setSetting(k, v)));
+    // Segarkan cache konfigurasi modul POS → panel non-tunai langsung pakai
+    // nilai baru tanpa perlu reload halaman.
+    try {
+      const { setPayConfig } = await import('./pos.ui.js');
+      setPayConfig({
+        qrisUrl: payload.payQrisUrl, bank: payload.payBank,
+        accountNumber: payload.payAccountNumber, accountName: payload.payAccountName
+      });
+    } catch (_) {}
+    showToast('✅ Detail pembayaran disimpan!');
+  } catch (e) {
+    console.error('[SETTINGS] simpan detail pembayaran:', e);
+    showToast('Gagal menyimpan detail pembayaran.', 'error');
+  }
 }
 
 /** Tampilkan/sembunyikan banner "lengkapi profil".

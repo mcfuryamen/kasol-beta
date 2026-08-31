@@ -36,9 +36,9 @@ export function openMenuSelector(menu, onConfirm) {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div class="kfw600 ktext2">${escapeHtml(menu.nama)}</div>
         <div style="display:flex;align-items:center;gap:8px">
-          <button type="button" class="btn btn-sm btn-ghost" data-action="menu-selector-qty" data-delta="-1" style="width:36px;min-width:36px">−</button>
+          <button type="button" class="btn btn-sm btn-ghost" data-action="menu-selector-qty" data-delta="-1" aria-label="Kurangi jumlah">−</button>
           <input type="number" id="menuSelectorQty" class="ms-qty-input" min="1" max="99" value="1" inputmode="numeric" aria-label="Jumlah">
-          <button type="button" class="btn btn-sm btn-ghost" data-action="menu-selector-qty" data-delta="1" style="width:36px;min-width:36px">＋</button>
+          <button type="button" class="btn btn-sm btn-ghost" data-action="menu-selector-qty" data-delta="1" aria-label="Tambah jumlah">＋</button>
         </div>
       </div>
       ${toppings.length > 0 ? `
@@ -52,6 +52,10 @@ export function openMenuSelector(menu, onConfirm) {
   `;
 
   openModal('menuSelectorModal');
+  // Catatan modal kini milik MENU TERPILIH (per item) → selalu mulai kosong,
+  // jangan bawa catatan menu sebelumnya (komentar browser #8, 2026-08-31).
+  const itemNoteEl = document.getElementById('orderNoteInput');
+  if (itemNoteEl) itemNoteEl.value = '';
   // Kondisi awal blok catatan/tab app (placeholder & tab sesuai tipe aktif di halaman)
   renderOrderNoteBox();
 }
@@ -65,9 +69,9 @@ function renderToppingOptionRow(t, scope) {
       <span class="topping-name">${escapeHtml(t.nama)}</span>
       <span class="topping-harga">${formatRp(t.harga)}</span>
       <span class="topping-stepper" data-scope="${scope}" data-nama="${escapeHtml(t.nama)}" style="display:none">
-        <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="${scope}" data-nama="${escapeHtml(t.nama)}" data-delta="-1" style="width:28px;min-width:28px;padding:0">−</button>
+        <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="${scope}" data-nama="${escapeHtml(t.nama)}" data-delta="-1" aria-label="Kurangi ${escapeHtml(t.nama)}">−</button>
         <input type="number" class="ms-qty-input topping-qty-input" data-scope="${scope}" data-nama="${escapeHtml(t.nama)}" min="1" max="99" value="1" inputmode="numeric" aria-label="Jumlah ${escapeHtml(t.nama)}" style="width:42px">
-        <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="${scope}" data-nama="${escapeHtml(t.nama)}" data-delta="1" style="width:28px;min-width:28px;padding:0">＋</button>
+        <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="${scope}" data-nama="${escapeHtml(t.nama)}" data-delta="1" aria-label="Tambah ${escapeHtml(t.nama)}">＋</button>
       </span>
     </label>
   `;
@@ -142,8 +146,11 @@ export function confirmMenuSelector() {
   });
   // Tipe pesanan tidak ada di modal (tetap di halaman Jualan) — pakai tipe global.
   const tipe = _menuSelectorOrderType || orderType || 'dine-in';
+  // Catatan MENU TERPILIH (per item) — bukan catatan global transaksi, yang
+  // sekarang hidup di header keranjang #globalNoteInput (komentar browser #8).
+  const itemNote = (document.getElementById('orderNoteInput')?.value || '').trim().slice(0, 120);
   if (_menuSelectorOnConfirm) {
-    _menuSelectorOnConfirm({ selectedToppings: selected, orderType: tipe, qty: _menuSelectorQty, selectedToppingQtys: qtys });
+    _menuSelectorOnConfirm({ selectedToppings: selected, orderType: tipe, qty: _menuSelectorQty, selectedToppingQtys: qtys, itemNote });
   }
   _menuSelectorOnConfirm = null;
   closeModal('menuSelectorModal');
@@ -221,26 +228,25 @@ export function applySelectedTopping() {
   openCartModal(); // re-render cart dengan harga baru
 }
 
-// ── Catatan pesanan (akordeon di bawah tombol tipe order) ──────────────────
-const ORDER_NOTE_PLACEHOLDER = {
-  'dine-in': 'Catatan: nomor meja, nama pemesan…',
-  'takeaway': 'Catatan: nama pemesan, jam ambil…',
-  'ojol': 'Catatan: GoFood / GrabFood / ShopeeFood…'
+// ── Blok modal Pilihan Menu: tab app ojol + catatan PER MENU ───────────────
+// Catatan GLOBAL per transaksi pindah ke header keranjang (#globalNoteInput)
+// per permintaan pemilik 2026-08-31 (komentar browser #4), jadi input
+// #orderNoteInput di sini murni catatan menu terpilih (#8).
+const GLOBAL_NOTE_PLACEHOLDER = {
+  'dine-in': 'Catatan transaksi: no. meja, nama pemesan…',
+  'takeaway': 'Catatan transaksi: nama pemesan, jam ambil…',
+  'ojol': 'Catatan transaksi: nama driver, no. orderan ojol, plat nomor…'
 };
 
 export function renderOrderNoteBox() {
   const wrap = document.getElementById('ojolTabsWrap');
-  const box = document.getElementById('orderNoteBox');
-  if (!box) return;
-  // Catatan + tab pilih app ojol hanya ada di dalam menu selector modal
-  // (fitur dipindah dari halaman Jualan, 2026-08-31). Tipe pesanan tetap di halaman.
+  // Tab pilih app ojol hanya tampil saat tipe aktif = Ojol.
   const isOjol = orderType === 'ojol';
   if (wrap) wrap.style.display = isOjol ? 'block' : 'none';
   if (isOjol) renderOjolTabs();
-  const input = document.getElementById('orderNoteInput');
-  if (input) input.placeholder = isOjol
-    ? 'No. transaksi merchant / nama driver / plat nomor…'
-    : ORDER_NOTE_PLACEHOLDER[orderType] || ORDER_NOTE_PLACEHOLDER['dine-in'];
+  // Placeholder catatan global mengikuti tipe pesanan aktif di halaman Jualan.
+  const g = document.getElementById('globalNoteInput');
+  if (g) g.placeholder = GLOBAL_NOTE_PLACEHOLDER[orderType] || GLOBAL_NOTE_PLACEHOLDER['dine-in'];
 }
 
 // ── Ojol app tabs (di dalam menu selector modal) ────────────────────────────
@@ -279,6 +285,73 @@ export function pickOjolPlatform(p) {
   ojolPlatform = p;
   try { localStorage.setItem(OJOL_PLATFORM_KEY, p); } catch (_) {}
   renderOjolTabs(); // refresh tab aktif
+}
+
+// ── Metode pembayaran: Tunai | QRIS | Transfer ──────────────────────────────
+// Permintaan pemilik 2026-08-31 (komentar browser #5). Non-tunai = bayar pas
+// sesuai total → blok uang diterima/kembalian disembunyikan, tapi nominal tetap
+// dicatat ke record penjualan (metodeBayar) + no. referensi opsional (refBayar).
+// Modul ini DOM-only: konfigurasi QRIS/rekening di-inject dari pos.js lewat
+// setPayConfig() (sumbernya tabel `settings`), tidak baca DB di sini.
+const PAY_METHOD_KEY = 'kasirsolo:pay-method';
+const PAY_METHOD_LABELS = { tunai: '💵 Tunai', qris: '📱 QRIS', transfer: '🏦 Transfer' };
+let paymentMethod = 'tunai';
+try {
+  const saved = localStorage.getItem(PAY_METHOD_KEY);
+  if (saved && PAY_METHOD_LABELS[saved]) paymentMethod = saved;
+} catch (_) {}
+let payConfig = { qrisUrl: '', bank: '', accountNumber: '', accountName: '' };
+
+export function getPaymentMethod() { return paymentMethod; }
+export function paymentMethodLabel(m = paymentMethod) { return PAY_METHOD_LABELS[m] || PAY_METHOD_LABELS.tunai; }
+export function setPayConfig(cfg) { payConfig = { ...payConfig, ...(cfg || {}) }; }
+
+export function setPaymentMethod(method) {
+  if (!PAY_METHOD_LABELS[method]) return;
+  paymentMethod = method;
+  try { localStorage.setItem(PAY_METHOD_KEY, method); } catch (_) {}
+  applyPayMethodUI();
+  // Segarkan panel bayar SEKETIKA dengan total saat ini — non-tunai mengisi
+  // nominal QRIS/Transfer, tunai mengisi ulang uang diterima + preset + kembalian.
+  refreshCartModalTotals();
+}
+
+// Sinkronkan tombol + blok tunai/non-tunai. Return true bila non-tunai aktif.
+export function applyPayMethodUI() {
+  const row = document.getElementById('payMethodRow');
+  if (row) {
+    row.querySelectorAll('.pay-method-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.method === paymentMethod));
+  }
+  const cash = document.getElementById('cashPayBlock');
+  const nonCash = document.getElementById('nonCashBlock');
+  const isCash = paymentMethod === 'tunai';
+  if (cash) cash.style.display = isCash ? '' : 'none';
+  if (nonCash) nonCash.style.display = isCash ? 'none' : '';
+  return !isCash;
+}
+
+// Isi panel non-tunai (QRIS: gambar; Transfer: rekening) + nominal yang harus dibayar.
+export function renderNonCashPay(total) {
+  if (paymentMethod === 'tunai') return;
+  const nominal = document.getElementById('payNoncashNominal');
+  if (nominal) nominal.textContent = formatRp(total);
+  const info = document.getElementById('payNoncashInfo');
+  const hint = document.getElementById('payNoncashHint');
+  if (paymentMethod === 'qris') {
+    if (info) info.innerHTML = payConfig.qrisUrl
+      ? `<img src="${escapeHtml(payConfig.qrisUrl)}" alt="QRIS kasir">`
+      : '<div class="pay-hint" style="margin:0 0 8px">⚠️ Gambar QRIS belum diatur — isi di <b>Pengaturan → Pembayaran</b>.</div>';
+    if (hint) hint.textContent = 'Pelanggan scan QR QRIS di atas lalu tekan Simpan. Nominal tercatat pas sesuai total.';
+  } else {
+    const rows = [['Bank', payConfig.bank], ['No. Rekening', payConfig.accountNumber], ['Atas Nama', payConfig.accountName]]
+      .map(([k, v]) => `<div class="pay-noncash-row"><span class="klabel">${k}</span><span class="kval">${escapeHtml(v || '—')}</span></div>`)
+      .join('');
+    if (info) info.innerHTML = rows;
+    if (hint) hint.textContent = payConfig.accountNumber
+      ? 'Pelanggan transfer ke rekening di atas. Nominal tercatat pas sesuai total.'
+      : '⚠️ Rekening belum diatur — isi di Pengaturan → Pembayaran.';
+  }
 }
 
 export function toggleOrderType(tipe) {
@@ -336,9 +409,9 @@ function renderAvailableToppings(menuId) {
           <span class="topping-name">${escapeHtml(t.nama)}</span>
           <span class="topping-harga">${formatRp(t.harga)}</span>
           <span class="topping-stepper" data-scope="cart" data-nama="${escapeHtml(t.nama)}" style="display:${checked?'inline-flex':'none'}">
-            <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="cart" data-nama="${escapeHtml(t.nama)}" data-delta="-1" style="width:28px;min-width:28px;padding:0">−</button>
+            <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="cart" data-nama="${escapeHtml(t.nama)}" data-delta="-1" aria-label="Kurangi ${escapeHtml(t.nama)}">−</button>
             <input type="number" class="ms-qty-input topping-qty-input" data-scope="cart" data-nama="${escapeHtml(t.nama)}" min="1" max="99" value="${q}" inputmode="numeric" aria-label="Jumlah ${escapeHtml(t.nama)}" style="width:42px">
-            <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="cart" data-nama="${escapeHtml(t.nama)}" data-delta="1" style="width:28px;min-width:28px;padding:0">＋</button>
+            <button type="button" class="btn btn-sm btn-ghost" data-action="topping-qty" data-scope="cart" data-nama="${escapeHtml(t.nama)}" data-delta="1" aria-label="Tambah ${escapeHtml(t.nama)}">＋</button>
           </span>
         </label>
       `;
@@ -455,18 +528,29 @@ export function renderCartBar() {
 }
 
 // ── Cart modal ───────────────────────────────────────────────────────────────
+// Kunci draft catatan GLOBAL per transaksi — agar tidak hilang saat refresh/PWA.
+export const GLOBAL_NOTE_KEY = 'kasirsolo:order-note';
+
 export async function openCartModal() {
   const items = Object.values(cart).filter(c => c.qty > 0);
   if (items.length === 0) return;
 
-  // Header tipe pesanan global (berlaku untuk SELURUH baris dalam keranjang)
-  const orderHeader = document.getElementById('cartOrderTypeHeader');
-  if (orderHeader) {
-    const tipeLabel = orderType === 'ojol' ? '🛵 Ojol'
+  // Header keranjang: label tipe pesanan DIBESARKAN + nama app ojol yang ditarik
+  // dari pilihan "Pilih app" (komentar browser #3), plus kotak catatan GLOBAL per
+  // transaksi untuk nama driver / no. orderan ojol / dll (#4).
+  const typeLabelEl = document.getElementById('cartOrderTypeLabel');
+  if (typeLabelEl) {
+    const baseLabel = orderType === 'ojol' ? '🛵 Ojol'
       : orderType === 'takeaway' ? '🥡 Take-away' : '🍽️ Dine-in';
-    const note = (document.getElementById('orderNoteInput')?.value || '').trim();
-    orderHeader.innerHTML = `<span>${tipeLabel}</span><span class="kfs12 kgray">${note ? escapeHtml(note) : 'berlaku untuk semua item'}</span>`;
+    const app = orderType === 'ojol' ? (ojolPlatform || '').trim() : '';
+    typeLabelEl.innerHTML = escapeHtml(baseLabel)
+      + (app ? ` <span class="cart-order-app">· ${escapeHtml(app)}</span>` : '');
   }
+  const globalNoteEl = document.getElementById('globalNoteInput');
+  if (globalNoteEl && !globalNoteEl.value) {
+    try { globalNoteEl.value = localStorage.getItem(GLOBAL_NOTE_KEY) || ''; } catch (_) {}
+  }
+  renderOrderNoteBox(); // placeholder catatan global mengikuti tipe aktif
 
   const box = document.getElementById('cartItems');
 
@@ -495,15 +579,16 @@ export async function openCartModal() {
           (c.menu.suplayer && c.menu.suplayer !== 'Umum' ? '<span class="badge-titipan">Titipan</span>' : '') +
           (c.menu.pakaiStok ? `<span class="badge-stok${(c.menu.stok || 0) <= 0 ? ' badge-stok-habis' : ''}">📦 ${c.menu.stok}</span>` : '') +
           `</span>
-          <span class="cart-name-price">${displayHargaTipe}</span>
           ${toppingTags}
         </div>
+        ${(c.catatanItem || '').trim() ? `<div class="cart-item-note">📝 ${escapeHtml((c.catatanItem || '').trim())}</div>` : ''}
       </div>
       <div class="cart-qty-price">
+        <span class="cart-name-price" title="Harga satuan">${displayHargaTipe}</span>
         <div class="qty-control">
-          <button class="qty-btn" data-action="change-qty" data-menu-id="${c.menu.id}" data-delta="-1">−</button>
+          <button class="qty-btn" data-action="change-qty" data-menu-id="${c.menu.id}" data-delta="-1" aria-label="Kurangi jumlah">−</button>
           <input type="number" class="qty-val" data-action="cart-qty-input" data-menu-id="${c.menu.id}" min="1" max="999" value="${c.qty}" inputmode="numeric" aria-label="Jumlah">
-          <button class="qty-btn" data-action="change-qty" data-menu-id="${c.menu.id}" data-delta="1">+</button>
+          <button class="qty-btn" data-action="change-qty" data-menu-id="${c.menu.id}" data-delta="1" aria-label="Tambah jumlah">+</button>
         </div>
         <div class="cart-price">${formatRp(totalLine)}</div>
       </div>
@@ -513,19 +598,21 @@ export async function openCartModal() {
   const sel = document.getElementById('toppingSelector');
   if (sel) sel.style.display = 'none';
 
-  document.getElementById('cartModalTotal').textContent = formatRp(calculateTotalUI(items));
+  const total = calculateTotalUI(items);
+  document.getElementById('cartModalTotal').textContent = formatRp(total);
 
-  // Auto-fill nominal dengan total harga
-  document.getElementById('bayarInput').value = items.length > 0
-    ? calculateTotalUI(items).toLocaleString('id-ID') : '0';
-
-  const presets = generatePresetNominal(calculateTotalUI(items));
-  document.getElementById('presetBayarContainer').innerHTML = presets.map(p =>
-    `<button class="btn btn-sm btn-ghost kfs12" data-action="set-nominal-bayar" data-nominal="${p}">${p.toLocaleString('id-ID')}</button>`
-  ).join('');
-
-  const totalForKembalian = calculateTotalUI(items);
-  hitungKembalianUI(items.length > 0 ? totalForKembalian : 0, items.length > 0 ? totalForKembalian : 0);
+  // Metode pembayaran (komentar browser #5): non-tunai → sembunyikan blok tunai
+  // dan isi panel QRIS/rekening; tunai → auto-fill nominal + preset + kembalian.
+  if (applyPayMethodUI()) {
+    renderNonCashPay(total);
+  } else {
+    document.getElementById('bayarInput').value = total.toLocaleString('id-ID');
+    const presets = generatePresetNominal(total);
+    document.getElementById('presetBayarContainer').innerHTML = presets.map(p =>
+      `<button class="btn btn-sm btn-ghost kfs12" data-action="set-nominal-bayar" data-nominal="${p}">${p.toLocaleString('id-ID')}</button>`
+    ).join('');
+    hitungKembalianUI(total, total);
+  }
   await openModal('cartModal');
 }
 
@@ -550,6 +637,12 @@ export function refreshCartModalTotals() {
 
   const total = calculateTotalUI(items);
   document.getElementById('cartModalTotal').textContent = formatRp(total);
+
+  // Non-tunai: nominal bayar tidak dipakai — cukup perbarui panel QRIS/rekening.
+  if (applyPayMethodUI()) {
+    renderNonCashPay(total);
+    return;
+  }
 
   const bayarInput = document.getElementById('bayarInput');
   bayarInput.value = total.toLocaleString('id-ID');

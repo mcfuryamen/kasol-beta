@@ -2,7 +2,7 @@
 // Thin coordinator module. Delegates to pos.logic.js, pos.ui.js, pos.sync.js.
 // All original exports remain available for backward compatibility.
 
-import { DB } from './db.js';
+import { DB, getSetting } from './db.js';
 import { showToast } from './helpers.js';
 import { cart, setCart, setPosCat, posCat, setLastSaleId, orderType, setOrderType } from './app-state.js';
 import {
@@ -14,7 +14,8 @@ import {
   openCartModal, closeCartModal, hitungKembalianUI, refreshCartModalTotals,
   formatBayarInputUI, selectAllBayarInput, setNominalBayarUI,
   showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType,
-  renderOrderNoteBox, getOjolPlatform, pickOjolPlatform
+  renderOrderNoteBox, getOjolPlatform, pickOjolPlatform,
+  getPaymentMethod, setPaymentMethod, applyPayMethodUI, setPayConfig, paymentMethodLabel, GLOBAL_NOTE_KEY
 } from './pos.ui.js';
 import { saveCart, loadCart, clearCartStorage, simpanPenjualanSync } from './pos.sync.js';
 import { getLicenseStatus } from './license.js';
@@ -27,7 +28,8 @@ export {
   renderPOSCatTabsUI, renderPOSMenuUI, renderCartBar,
   openCartModal, closeCartModal, hitungKembalianUI, refreshCartModalTotals,
   formatBayarInputUI, selectAllBayarInput, setNominalBayarUI,
-  showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType, pickOjolPlatform
+  showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType, pickOjolPlatform,
+  setPaymentMethod, getPaymentMethod, paymentMethodLabel
 } from './pos.ui.js';
 export {
   saveCart, loadCart, clearCartStorage, simpanPenjualanSync
@@ -116,14 +118,24 @@ export async function loadPOS() {
   const filtered = posCat !== 'Semua' ? menus.filter(m => m.kategori === posCat) : menus;
   renderPOSMenuUI(filtered);
   renderCartBar();
-  // Kotak catatan pesanan: tampil + placeholder sesuai tipe order aktif,
-  // lalu pulihkan draft catatan dari sesi sebelumnya (kalau ada).
+  // Header keranjang: placeholder catatan global sesuai tipe order aktif,
+  // lalu pulihkan draft catatan GLOBAL dari sesi sebelumnya (kalau ada).
   renderOrderNoteBox();
   try {
-    const draft = localStorage.getItem('kasirsolo:order-note');
-    const input = document.getElementById('orderNoteInput');
+    const draft = localStorage.getItem(GLOBAL_NOTE_KEY);
+    const input = document.getElementById('globalNoteInput');
     if (draft && input && !input.value) input.value = draft;
   } catch (_) {}
+  // Konfigurasi pembayaran (QRIS/rekening) untuk panel non-tunai. Dibaca di sini
+  // lalu di-inject ke pos.ui.js — modul UI sengaja tidak boleh menyentuh DB.
+  try {
+    setPayConfig({
+      qrisUrl: await getSetting('payQrisUrl', ''),
+      bank: await getSetting('payBank', ''),
+      accountNumber: await getSetting('payAccountNumber', ''),
+      accountName: await getSetting('payAccountName', '')
+    });
+  } catch (_) { /* DB sibuk → panel non-tunai pakai default kosong */ }
 }
 
 // ---- Category tabs (async: DB query + DOM) ----
@@ -175,8 +187,9 @@ export async function addToCart(menuId) {
   const hasOjol = menuHasOjol(m);
   // Jika ada topping atau hargaOjol → buka selector dulu, baru masuk keranjang
   if (toppings.length > 0 || hasOjol) {
-    openMenuSelector(m, ({ selectedToppings = [], orderType: tipe = orderType, qty = 1, selectedToppingQtys = null }) => {
-      const next = addToCartLogic(cart, menuId, m, selectedToppings, tipe, qty, selectedToppingQtys);
+    openMenuSelector(m, ({ selectedToppings = [], orderType: tipe = orderType, qty = 1, selectedToppingQtys = null, itemNote = '' }) => {
+      // itemNote = catatan MENU TERPILIH (komentar browser #8) — bukan catatan global.
+      const next = addToCartLogic(cart, menuId, m, selectedToppings, tipe, qty, selectedToppingQtys, itemNote);
       setCart(next);
       setOrderType(tipe); // simpan tipe order yang dipilih
       saveCart();
@@ -277,21 +290,30 @@ export async function simpanPenjualan(cetakJuga = false) {
   const totalHarga = calculateTotal(cart, getOjolPlatform());
   const totalModal = items.reduce((a,c) => a + c.qty * c.menu.hargaModal, 0);
 
-  let bayarValue = document.getElementById('bayarInput').value.replace(/\D/g, '');
-  const bayar = bayarValue ? parseInt(bayarValue) : totalHarga;
-
-  if (bayar < totalHarga) {
-    showToast('Uang kurang!', 'error');
-    return;
+  // Metode pembayaran (komentar browser #5): QRIS/Transfer = bayar pas sesuai
+  // total → tidak ada uang diterima & kembalian, validasi "Uang kurang" dilewati.
+  const payMethod = getPaymentMethod();
+  const isCash = payMethod === 'tunai';
+  let bayar = totalHarga;
+  if (isCash) {
+    const bayarValue = document.getElementById('bayarInput').value.replace(/\D/g, '');
+    bayar = bayarValue ? parseInt(bayarValue) : totalHarga;
+    if (bayar < totalHarga) {
+      showToast('Uang kurang!', 'error');
+      return;
+    }
   }
 
   const _now = new Date();
   const _tgl = _now.getFullYear() + '-' + String(_now.getMonth()+1).padStart(2,'0') + '-' + String(_now.getDate()).padStart(2,'0');
 
-  // Catatan pesanan (meja/pemesan/ojol) — ikut tersimpan ke record penjualan
-  const orderNote = (document.getElementById('orderNoteInput')?.value || '').trim();
+  // Catatan GLOBAL per transaksi (header keranjang): nama driver, no. orderan
+  // ojol, no. meja, dll (komentar browser #4).
+  const orderNote = (document.getElementById('globalNoteInput')?.value || '').trim();
   // Platform ojol (preset GoFood/GrabFood/ShopeeFood/Maxim/Lainnya) untuk laporan
   const ojolPlatform = orderType === 'ojol' ? (getOjolPlatform() || 'Lainnya') : '';
+  // No. referensi pembayaran non-tunai (QRIS/Transfer) — opsional
+  const refBayar = isCash ? '' : (document.getElementById('payRefInput')?.value || '').trim().slice(0, 60);
 
   const saleId = await simpanPenjualanSync({
     tanggal: _tgl,
@@ -308,12 +330,15 @@ export async function simpanPenjualan(cetakJuga = false) {
       hargaModal: c.menu.hargaModal,
       qty: c.qty,
       selectedToppings: c.selectedToppings || [],
-      toppingQtys: c.toppingQtys || {}
+      toppingQtys: c.toppingQtys || {},
+      catatanItem: (c.catatanItem || '').trim()
     })),
     totalHarga,
     totalModal,
     bayar,
-    kembalian: bayar - totalHarga,
+    kembalian: isCash ? (bayar - totalHarga) : 0,
+    metodeBayar: payMethod,
+    refBayar,
     waktu: Date.now()
   });
 
@@ -336,10 +361,13 @@ export async function simpanPenjualan(cetakJuga = false) {
   setLastSaleId(saleId);
   setCart({});
   clearCartStorage();
-  // Reset catatan pesanan untuk transaksi berikutnya
-  const noteInput = document.getElementById('orderNoteInput');
+  // Reset catatan GLOBAL untuk transaksi berikutnya (catatan per-item ikut
+  // hilang karena keranjang dikosongkan) + kosongkan no. referensi bayar
+  const noteInput = document.getElementById('globalNoteInput');
   if (noteInput) noteInput.value = '';
-  try { localStorage.removeItem('kasirsolo:order-note'); } catch (_) {}
+  const refInput = document.getElementById('payRefInput');
+  if (refInput) refInput.value = '';
+  try { localStorage.removeItem(GLOBAL_NOTE_KEY); } catch (_) {}
   closeCartModal();
   renderCartBar();
   renderPOSMenu();

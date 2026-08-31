@@ -298,6 +298,9 @@ export function buildReceiptText(sale, warungName, alamat = '') {
       });
     }
     txt += baseLine + '  = ' + formatRpPlain(lineTotal) + LF;
+    // Catatan per menu terpilih (komentar browser #8) — dicetak di bawah item
+    const itemNote = safeStr(item.catatanItem, '').trim();
+    if (itemNote) txt += '  * ' + itemNote.substring(0, PRINT_WIDTH - 4) + LF;
   });
 
   // Totals
@@ -307,6 +310,12 @@ export function buildReceiptText(sale, warungName, alamat = '') {
   // L2: gunakan konstanta PRINT_WIDTH
   txt += '--------------------------------' + LF;
   txt += padLine('TOTAL', formatRpPlain(totalHarga), PRINT_WIDTH) + LF;
+  // Metode pembayaran (fitur 2026-08-31, komentar browser #5). Transaksi lama
+  // tanpa field ini tetap terbaca benar sebagai Tunai.
+  const PAY_SHORT = { tunai: 'Tunai', qris: 'QRIS', transfer: 'Transfer' };
+  txt += padLine('Bayar via', PAY_SHORT[sale.metodeBayar] || 'Tunai', PRINT_WIDTH) + LF;
+  const refBayar = safeStr(sale.refBayar, '').trim();
+  if (refBayar) txt += padLine('Ref', refBayar.substring(0, 14), PRINT_WIDTH) + LF;
   txt += padLine('Bayar', formatRpPlain(bayar), PRINT_WIDTH) + LF;
   txt += padLine('Kembali', formatRpPlain(kembalian), PRINT_WIDTH) + LF;
   txt += '================================' + LF;
@@ -402,7 +411,12 @@ function printNotaBrowser(sale, warungName, alamat = '') {
           escapeHtml(safeStr(t.nama, 'Topping')) + ' ×' + tq + (th > 0 ? ' ' + formatRp(th) + ' = ' + formatRp(th * tq) : '') + '</div>';
       }).join('');
     }
-    return '<tr><td>' + escapeHtml(safeStr(i.nama, 'Item')) + toppingsHtml + '</td>' +
+    // Catatan per menu terpilih (komentar browser #8) — di bawah topping
+    const itemNoteTxt = safeStr(i.catatanItem, '').trim();
+    const itemNoteHtml = itemNoteTxt
+      ? '<div style="font-size:10px;color:#444;padding-left:8px">* ' + escapeHtml(itemNoteTxt) + '</div>'
+      : '';
+    return '<tr><td>' + escapeHtml(safeStr(i.nama, 'Item')) + toppingsHtml + itemNoteHtml + '</td>' +
       '<td class="kcenter">' + qty + '</td>' +
       '<td class="kright">' + formatRp(lineTotal) + '</td></tr>';
   }).join('');
@@ -431,7 +445,11 @@ function printNotaBrowser(sale, warungName, alamat = '') {
   printWindow.document.write('<hr>');
   printWindow.document.write('<table>' + itemsHtml + '</table>');
   printWindow.document.write('<hr>');
+  const PAY_SHORT2 = { tunai: 'Tunai', qris: 'QRIS', transfer: 'Transfer' };
+  const refPrint = String(sale.refBayar || '').trim();
   printWindow.document.write('<table><tr class="total"><td>TOTAL</td><td class="kright">' + formatRp(safeNum(sale.totalHarga, 0)) + '</td></tr>');
+  printWindow.document.write('<tr><td>Bayar via</td><td class="kright">' + escapeHtml(PAY_SHORT2[sale.metodeBayar] || 'Tunai') + '</td></tr>');
+  if (refPrint) printWindow.document.write('<tr><td>Ref</td><td class="kright">' + escapeHtml(refPrint) + '</td></tr>');
   printWindow.document.write('<tr><td>Bayar</td><td class="kright">' + formatRp(safeNum(sale.bayar, 0)) + '</td></tr>');
   printWindow.document.write('<tr><td>Kembali</td><td class="kright">' + formatRp(safeNum(sale.kembalian, 0)) + '</td></tr></table>');
   printWindow.document.write('<hr>');

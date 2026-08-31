@@ -211,7 +211,7 @@ export async function loadReport() {
             <div class="trx-icon" style="background:var(--orange-bg);color:var(--primary)">🛒</div>
             <div class="trx-info">
               <div class="trx-title">${escapeHtml(formatTime(s.waktu))}${s.orderNote ? ' · ' + escapeHtml(s.orderNote) : ''}</div>
-              <div class="trx-sub">${(s.items || []).reduce((a,i) => a + (i.qty || 0), 0)} porsi · ${escapeHtml(s.orderType || 'ojol')}</div>
+              <div class="trx-sub">${(s.items || []).reduce((a,i) => a + (i.qty || 0), 0)} porsi · ${escapeHtml(s.orderType || 'ojol')} · ${({tunai:'💵',qris:'📱 QRIS',transfer:'🏦 Transfer'})[s.metodeBayar] || '💵'}</div>
             </div>
             <div class="trx-amount" style="color:var(--orange)">${formatRp(s.totalHarga || 0)}</div>
           </div>`).join('')}
@@ -402,9 +402,11 @@ export async function loadReport() {
       items.forEach(s => {
         const itemNames = s.items ? s.items.map(i => `${escapeHtml(i.nama)}×${i.qty}`).join(', ') : '';
         const noteSub = s.orderNote ? ' · 📝 ' + escapeHtml(s.orderNote) : '';
+        const PAY_SHORT = { tunai: '💵', qris: '📱 QRIS', transfer: '🏦 Transfer' };
+        const paySub = ' · ' + (PAY_SHORT[s.metodeBayar] || '💵');
         html += `<div class="trx-item trx-detail-item" data-id="${s.id}">
           <div class="trx-icon sale">🛒</div>
-          <div class="trx-info"><div class="trx-title">${itemNames}</div><div class="trx-sub">${escapeHtml(formatTime(s.waktu))}${noteSub}</div></div>
+          <div class="trx-info"><div class="trx-title">${itemNames}</div><div class="trx-sub">${escapeHtml(formatTime(s.waktu))}${noteSub}${paySub}</div></div>
           <div class="trx-amount green">${formatRp(s.totalHarga)}</div>
         </div>`;
       });

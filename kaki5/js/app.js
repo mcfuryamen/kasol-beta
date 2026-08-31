@@ -48,10 +48,10 @@ let _pengeluaranModule = null;
 let _berandaModule = null;
 
 // Wire page modules on first use
-const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput', pickOjolPlatform: 'pickOjolPlatform' };
+const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput', pickOjolPlatform: 'pickOjolPlatform', setPaymentMethod: 'setPaymentMethod' };
 const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu', addCustomSuplayer: 'addCustomSuplayer', addCustomKategori: 'addCustomKategori', pickKategori: 'pickKategori', pickSuplayer: 'pickSuplayer', syncPakaiStokToggle: 'syncPakaiStokToggle', openReturModal: 'openReturModal', closeReturModal: 'closeReturModal', confirmRetur: 'confirmRetur', openKonsinyasiRetur: 'openKonsinyasiRetur' };
 const _laporanWireMap = { __wired: false, loadReport: 'loadReport', setReportPeriod: 'setReportPeriodUI', setReportPeriodUI: 'setReportPeriodUI', navReportDate: 'navReportDate', toggleExpenseCat: 'toggleExpenseCat', setCustomDate: 'setCustomDate', toggleCustomPicker: 'toggleCustomPicker', pickDate: 'pickDate', pickWeek: 'pickWeek', pickMonth: 'pickMonth', pickCustomDate: 'pickCustomDate' };
-const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaUsaha: 'saveNamaUsaha', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification' };
+const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaUsaha: 'saveNamaUsaha', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification', savePaySettings: 'savePaySettings' };
 const _bantuanWireMap = { __wired: false, initBantuan: 'initBantuan', toggleTutorial: 'toggleTutorial' };
 const _pengeluaranWireMap = { __wired: false, openExpenseForm: 'openExpenseForm', closeExpenseModal: 'closeExpenseModal', saveExpense: 'saveExpense', openIncomeForm: 'openIncomeForm', switchTxnTab: 'switchTxnTab', saveTxn: 'saveTxn' };
 const _berandaWireMap = { __wired: false, loadBeranda: 'loadBeranda' };
@@ -348,7 +348,13 @@ function handleDataAction(action, el, event) {
       if (window.renderPOSMenuDebounced) window.renderPOSMenuDebounced();
       break;
     case 'order-note-input': {
-      // Draft catatan pesanan disimpan agar tidak hilang saat refresh/PWA reload
+      // Catatan MENU TERPILIH (per item, modal Pilihan Menu) — tidak butuh draft
+      // localStorage: nilainya diambil saat modal dikonfirmasi (#8, 2026-08-31).
+      break;
+    }
+    case 'global-note-input': {
+      // Catatan GLOBAL per transaksi (header keranjang) — draft disimpan agar
+      // tidak hilang saat refresh/PWA reload (komentar browser #4).
       try { localStorage.setItem('kasirsolo:order-note', (el.value || '').slice(0, 120)); } catch (_) {}
       break;
     }
@@ -611,6 +617,11 @@ function handleDataAction(action, el, event) {
       if (window.pickOjolPlatform) window.pickOjolPlatform(el?.dataset?.platform || 'Lainnya');
       break;
 
+    // Metode pembayaran: Tunai | QRIS | Transfer (komentar browser #5, 2026-08-31)
+    case 'set-pay-method':
+      if (window.setPaymentMethod) window.setPaymentMethod(el?.dataset?.method || 'tunai');
+      break;
+
     // Name Modal
     case 'close-name-modal':
       if (window.closeNameModal) window.closeNameModal();
@@ -636,6 +647,11 @@ function handleDataAction(action, el, event) {
       break;
     case 'save-wa':
       if (window.saveWa) window.saveWa();
+      break;
+
+    // 💳 Detail pembayaran (QRIS / Transfer) — halaman Pengaturan
+    case 'save-pay-settings':
+      if (window.savePaySettings) window.savePaySettings();
       break;
 
     // Alamat Modal

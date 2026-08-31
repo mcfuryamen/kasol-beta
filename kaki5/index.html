@@ -179,6 +179,29 @@
 <div class="setting-arrow">›</div>
 </div>
 </div>
+<!-- 💳 Detail pembayaran usaha — dipakai panel QRIS/Transfer di keranjang
+     (fitur permintaan pemilik 2026-08-31, komentar browser #5). -->
+<div class="card">
+<div class="card-title">💳 Pembayaran</div>
+<div class="form-group">
+<label class="form-label">🔗 URL gambar QRIS</label>
+<input type="text" class="form-input" id="setPayQrisUrl" placeholder="https://…/qris-usaha.png" inputmode="url" autocomplete="off">
+<div class="pay-hint">Tempel tautan gambar QRIS dari bank/aplikasi kasir Anda — tampil saat pelanggan bayar QRIS.</div>
+</div>
+<div class="form-group">
+<label class="form-label">🏦 Bank</label>
+<input type="text" class="form-input" id="setPayBank" placeholder="BCA / Mandiri / BRI / e-wallet…" autocomplete="off">
+</div>
+<div class="form-group">
+<label class="form-label">No. Rekening</label>
+<input type="text" class="form-input" id="setPayAccountNumber" placeholder="1234567890" inputmode="numeric" autocomplete="off">
+</div>
+<div class="form-group">
+<label class="form-label">Atas Nama</label>
+<input type="text" class="form-input" id="setPayAccountName" placeholder="Nama pemilik rekening" autocomplete="off">
+</div>
+<button class="btn btn-primary" data-action="save-pay-settings">💾 Simpan Pembayaran</button>
+</div>
 <div class="card">
 <div class="card-title">📱 Perangkat</div>
 <div class="setting-item" data-action="connect-printer" id="btPrinterConnectRow">
@@ -324,8 +347,14 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="modal">
 <div class="modal-handle"></div>
 <div class="modal-title" id="cartModalTitle">🛒 Keranjang</div>
-<!-- Header tipe pesanan global (berlaku untuk seluruh baris keranjang) -->
-<div id="cartOrderTypeHeader" class="kflex-between kfw600 kfs14" style="padding:8px 12px;background:var(--orange-bg);border-radius:10px;margin-bottom:8px"></div>
+<!-- Header keranjang: tipe pesanan + NAMA APP OJOL (dibesarkan, datanya ditarik
+     dari pilihan "Pilih app" di modal Pilihan Menu) + KOTAK CATATAN GLOBAL per
+     transaksi — bisa dipakai untuk nama driver, nomor orderan ojol, no. meja, dll
+     (komentar browser #3 & #4, 2026-08-31). -->
+<div id="cartOrderTypeHeader" class="cart-order-head">
+  <div class="cart-order-type" id="cartOrderTypeLabel"></div>
+  <input type="text" class="cart-global-note" id="globalNoteInput" placeholder="Catatan transaksi: nama driver, no. orderan ojol, no. meja…" maxlength="120" data-action="global-note-input" aria-label="Catatan global transaksi">
+</div>
 <div id="cartItems"></div>
 <!-- Topping selector panel (disembunyikan sampai '+' diklik) -->
 <div id="toppingSelector" style="display:none">
@@ -336,7 +365,17 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="kdivider">
 <div class="kflex-between kmb8"><span class="kfw600 ktext2">Total Harga</span><span class="kfw800 kfs20 kprimary" id="cartModalTotal">Rp 0</span></div>
 
-<!-- 2 kolom: input uang diterima (kiri) + kembalian (kanan) -->
+<!-- Metode pembayaran: Tunai | QRIS | Transfer (komentar browser #5, 2026-08-31).
+     QRIS/Transfer = bayar pas sesuai total → blok uang diterima & kembalian
+     disembunyikan; nominal + no. referensi tetap dicatat ke record penjualan. -->
+<div class="pay-method-row" id="payMethodRow">
+  <button type="button" class="pay-method-btn active" data-action="set-pay-method" data-method="tunai">💵 Tunai</button>
+  <button type="button" class="pay-method-btn" data-action="set-pay-method" data-method="qris">📱 QRIS</button>
+  <button type="button" class="pay-method-btn" data-action="set-pay-method" data-method="transfer">🏦 Transfer</button>
+</div>
+
+<!-- Blok TUNAI: 2 kolom input uang diterima (kiri) + kembalian (kanan), lalu preset nominal -->
+<div id="cashPayBlock">
 <div class="kgrid-2col-gap12">
 <div class="form-group">
 <label class="form-label">💵 Uang Diterima</label>
@@ -352,6 +391,15 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 
 <!-- 4 kolom preset buttons -->
 <div class="kgrid-4col kmb12" id="presetBayarContainer"></div>
+</div>
+
+<!-- Blok NON-TUNAI (QRIS / Transfer): info pembayaran + nominal + no. referensi -->
+<div id="nonCashBlock" class="pay-noncash" style="display:none">
+  <div id="payNoncashInfo"></div>
+  <div class="pay-noncash-row"><span class="klabel">Nominal bayar</span><span class="kval" id="payNoncashNominal">Rp 0</span></div>
+  <input type="text" class="form-input" id="payRefInput" placeholder="No. referensi / ID transaksi (opsional)" maxlength="60" style="margin-top:8px">
+  <div class="pay-hint" id="payNoncashHint"></div>
+</div>
 </div>
 <div class="btn-row kmt12">
 <button class="btn btn-secondary btn-sm btn-icon" data-action="close-cart" title="Batal">✕</button>
@@ -376,11 +424,13 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
   <div id="ojolTabs" class="ojol-tabs"></div>
 </div>
 <div id="menuSelectorBody"></div>
-<!-- Catatan pesanan — tetap di bawah body; tipe pesanan tetap di halaman Jualan. -->
-<div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:12px 0 0">
-  <div id="orderNoteBox" class="order-note-box">
-    <input type="text" class="form-input" id="orderNoteInput" placeholder="Catatan..." maxlength="120" data-action="order-note-input">
-  </div>
+<!-- Catatan milik MENU TERPILIH (per item) — kontainer dashed DIHAPUS, diganti
+     garis pemisah saja (komentar browser #8, 2026-08-31). Catatan GLOBAL per
+     transaksi pindah ke header keranjang (#globalNoteInput). -->
+<hr class="ms-item-note-sep">
+<div class="ms-item-note-label">📝 Catatan menu ini</div>
+<div id="orderNoteBox" class="order-note-box">
+  <input type="text" class="form-input" id="orderNoteInput" placeholder="Contoh: tanpa sambal, extra pedas, matang…" maxlength="120" data-action="order-note-input">
 </div>
 <div class="btn-row">
 <button class="btn btn-secondary" data-action="close-menu-selector">Batal</button>
@@ -799,7 +849,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=142"></script>
+  <script type="module" src="js/app.js?v=143"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

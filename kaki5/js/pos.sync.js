@@ -11,7 +11,16 @@ export function saveCart() {
   try {
     const slim = {};
     Object.entries(cart).forEach(([id, c]) => {
-      slim[id] = { menu: c.menu, qty: c.qty };
+      // Dahulu hanya {menu, qty} → topping & catatan per-item hilang diam-diam
+      // saat refresh / PWA reload. Ikut disimpan sekarang (catatan menu terpilih
+      // adalah fitur baru 2026-08-31, komentar browser #8).
+      slim[id] = {
+        menu: c.menu,
+        qty: c.qty,
+        selectedToppings: c.selectedToppings || [],
+        toppingQtys: c.toppingQtys || {},
+        catatanItem: c.catatanItem || ''
+      };
     });
     localStorage.setItem(CART_KEY, JSON.stringify(slim));
   } catch (e) {
@@ -29,7 +38,17 @@ export async function loadCart() {
     for (const [id, c] of Object.entries(parsed)) {
       if (c && c.menu && typeof c.qty === 'number' && c.qty > 0) {
         const fresh = await DB.menu.get(Number(id));
-        if (fresh) restored[Number(id)] = { menu: fresh, qty: c.qty };
+        if (fresh) {
+          // Snapshot menu diambil ulang dari DB (harga/stok terkini), tapi topping,
+          // qty topping, dan catatan per-item ikut dipulihkan.
+          restored[Number(id)] = {
+            menu: fresh,
+            qty: c.qty,
+            selectedToppings: Array.isArray(c.selectedToppings) ? c.selectedToppings : [],
+            toppingQtys: (c.toppingQtys && typeof c.toppingQtys === 'object') ? c.toppingQtys : {},
+            catatanItem: typeof c.catatanItem === 'string' ? c.catatanItem : ''
+          };
+        }
       }
     }
     setCart(restored);

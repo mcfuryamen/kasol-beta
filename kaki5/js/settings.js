@@ -33,7 +33,8 @@ export {
   saveAlamat,
   openNameModal,
   closeNameModal,
-  saveNamaUsaha
+  saveNamaUsaha,
+  savePaySettings
 } from './settings.ui.js';
 
 // Sync module

@@ -98,7 +98,11 @@ export function hargaEfektif(item, orderType, ojolPlatform = '') {
 //   - Item existing: qty menu digabung (+addQty); selectedToppings & toppingQtys
 //     di-REPLACE dengan nilai dari argumen (bukan union).
 //     Topping yang tidak ada di argumen dihapus dari toppingQtys.
-export function addToCartLogic(cart, menuId, menu, selectedToppings = [], orderType = 'dine-in', qty = 1, selectedToppingQtys = null) {
+// itemNote (2026-08-31, komentar browser #8): catatan milik SATU menu terpilih —
+// beda dengan catatan GLOBAL per transaksi yang hidup di header keranjang.
+// Item existing (menu sama ditambah lagi): catatan LAMA dipertahankan kalau
+// argumen kosong, supaya menambah qty tidak menghapus catatan yang sudah ada.
+export function addToCartLogic(cart, menuId, menu, selectedToppings = [], orderType = 'dine-in', qty = 1, selectedToppingQtys = null, itemNote = '') {
   // Blokir item titipan yang stoknya habis
   if (menu.pakaiStok && (menu.stok || 0) <= 0) return cart;
   const addQty = Math.max(1, parseInt(qty, 10) || 1);
@@ -120,6 +124,7 @@ export function addToCartLogic(cart, menuId, menu, selectedToppings = [], orderT
   });
 
   if (existing) {
+    const note = String(itemNote || '').trim();
     return {
       ...cart,
       [menuId]: {
@@ -127,7 +132,8 @@ export function addToCartLogic(cart, menuId, menu, selectedToppings = [], orderT
         qty: existing.qty + addQty,
         selectedToppings: [...selectedToppings],
         toppingQtys: finalQtys,
-        orderType
+        orderType,
+        catatanItem: note || (existing.catatanItem || '')
       }
     };
   }
@@ -138,7 +144,8 @@ export function addToCartLogic(cart, menuId, menu, selectedToppings = [], orderT
       qty: addQty,
       selectedToppings: [...selectedToppings],
       toppingQtys: finalQtys,
-      orderType
+      orderType,
+      catatanItem: String(itemNote || '').trim()
     }
   };
 }

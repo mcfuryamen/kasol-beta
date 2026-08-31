@@ -17,9 +17,9 @@ export async function showTrxDetail(id) {
     <div class="kfs13 ktext3">${formatDate(s.tanggal)} · ${formatTime(s.waktu)}</div>
   </div>`;
 
-  // Catatan pesanan (meja/pemesan/ojol)
+  // Catatan GLOBAL per transaksi (nama driver / no. orderan ojol / no. meja…)
   if (s.orderNote) {
-    html += `<div style="margin:-6px 0 12px;padding:10px 12px;background:var(--orange-bg);border-radius:12px;font-size:13px"><b>📝 Catatan:</b> ${escapeHtml(s.orderNote)}</div>`;
+    html += `<div style="margin:-6px 0 12px;padding:10px 12px;background:var(--orange-bg);border-radius:12px;font-size:13px"><b>📝 Catatan transaksi:</b> ${escapeHtml(s.orderNote)}</div>`;
   }
 
   if (s.items) {
@@ -38,13 +38,23 @@ export async function showTrxDetail(id) {
         }).join('');
         html += toppingLines;
       }
+      // Catatan per menu terpilih (komentar browser #8) — hanya bila ada
+      if (i.catatanItem) {
+        html += `<div style="font-size:11px;color:var(--text2);font-weight:500;padding-left:10px;margin-top:2px">📝 ${escapeHtml(i.catatanItem)}</div>`;
+      }
       html += `</td><td class="kp10 kcenter">${i.qty}</td><td style="padding:10px;text-align:right;font-weight:700">${formatRp(itemTotal)}</td></tr>`;
     });
     html += '</table></div>';
   }
 
+  // Metode pembayaran (fitur 2026-08-31). Transaksi lama tanpa field ini
+  // otomatis terbaca sebagai Tunai — tidak ada data yang berubah makna.
+  const PAY_LABELS = { tunai: '💵 Tunai', qris: '📱 QRIS', transfer: '🏦 Transfer' };
+  const payLabel = PAY_LABELS[s.metodeBayar] || '💵 Tunai';
   html += `<div style="margin-top:12px;padding:12px;background:#f9f9f9;border-radius:12px">
     <div class="kflex-between kmb8"><span>Total</span><strong>${formatRp(s.totalHarga)}</strong></div>
+    <div class="kflex-between kmb8"><span>Metode</span><strong>${escapeHtml(payLabel)}</strong></div>
+    ${s.refBayar ? `<div class="kflex-between kmb8"><span>No. Referensi</span><strong>${escapeHtml(s.refBayar)}</strong></div>` : ''}
     <div class="kflex-between kmb8"><span>Bayar</span><strong>${formatRp(s.bayar)}</strong></div>
     <div class="kflex-between"><span>Kembalian</span><strong>${formatRp(s.kembalian)}</strong></div>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
