@@ -3,10 +3,11 @@
 
 import { escapeHtml, formatRp } from './helpers.js';
 import { cart, posCat, orderType, setOrderType, setCart } from './app-state.js';
-import { generatePresetNominal, parseToppings, toppingHarga, hargaEfektif, normalizeToppingQtys } from './pos.logic.js';
+import { generatePresetNominal, parseToppings, toppingHarga, hargaEfektif, normalizeToppingQtys, getOjolPrice, getOjolRows, menuHasOjol, lineTotal as lineTotalLogic } from './pos.logic.js';
 import { openModal, closeModal } from './modal.js';
 
 let _toppingTargetMenuId = null; // menuId yang topping-nya sedang dipilih (di cart)
+let _menuSelectorMenu = null;   // menu yang sedang dibuka di menu selector (utk harga ojol picker)
 
 // ── Selector topping + jumlah SEBELUM masuk keranjang ───────────────────────
 // Topping qty independen per-topping: setiap opsi topping punya stepper qty sendiri
@@ -21,9 +22,14 @@ export function openMenuSelector(menu, onConfirm) {
   _menuSelectorQty = 1;
 
   const toppings = parseToppings(menu.toppingList);
-  const hasOjol = (menu.hargaOjol || 0) > 0;
+  const hasOjol = menuHasOjol(menu);
   const body = document.getElementById('menuSelectorBody');
   if (!body) return;
+
+  // Catatan + tab pilih app ojol BAGIAN DARI modal ini (dipindah dari halaman
+  // Jualan, 2026-08-31; tipe pesanan tetap di halaman). Simpan menu utk harga
+  // ojol spesifik-menu pada tab app.
+  _menuSelectorMenu = menu;
 
   body.innerHTML = `
     <div class="kmb12">
@@ -46,6 +52,8 @@ export function openMenuSelector(menu, onConfirm) {
   `;
 
   openModal('menuSelectorModal');
+  // Kondisi awal blok catatan/tab app (placeholder & tab sesuai tipe aktif di halaman)
+  renderOrderNoteBox();
 }
 
 // Render 1 baris opsi topping — checkbox + nama + harga + stepper qty (hidden sampai checked).
@@ -132,8 +140,8 @@ export function confirmMenuSelector() {
       qtys.push({ nama, qty: q });
     }
   });
-  const activeBtn = document.querySelector('#menuSelectorOrderBtns .btn-primary');
-  const tipe = activeBtn?.dataset?.tipe || _menuSelectorOrderType || 'dine-in';
+  // Tipe pesanan tidak ada di modal (tetap di halaman Jualan) — pakai tipe global.
+  const tipe = _menuSelectorOrderType || orderType || 'dine-in';
   if (_menuSelectorOnConfirm) {
     _menuSelectorOnConfirm({ selectedToppings: selected, orderType: tipe, qty: _menuSelectorQty, selectedToppingQtys: qtys });
   }
@@ -215,55 +223,62 @@ export function applySelectedTopping() {
 
 // ── Catatan pesanan (akordeon di bawah tombol tipe order) ──────────────────
 const ORDER_NOTE_PLACEHOLDER = {
-  'dine-in': '🍽️ Catatan: nomor meja, nama pemesan…',
-  'takeaway': '🥡 Catatan: nama pemesan, jam ambil…',
-  'ojol': '🛵 Catatan: GoFood / GrabFood / ShopeeFood…'
+  'dine-in': 'Catatan: nomor meja, nama pemesan…',
+  'takeaway': 'Catatan: nama pemesan, jam ambil…',
+  'ojol': 'Catatan: GoFood / GrabFood / ShopeeFood…'
 };
 
 export function renderOrderNoteBox() {
-  const row = document.getElementById('orderControlsRow');
-  const wrap = document.getElementById('ojolPickerWrap');
+  const wrap = document.getElementById('ojolTabsWrap');
   const box = document.getElementById('orderNoteBox');
   if (!box) return;
-  box.style.display = 'block';
+  // Catatan + tab pilih app ojol hanya ada di dalam menu selector modal
+  // (fitur dipindah dari halaman Jualan, 2026-08-31). Tipe pesanan tetap di halaman.
   const isOjol = orderType === 'ojol';
   if (wrap) wrap.style.display = isOjol ? 'block' : 'none';
-  if (row) row.classList.toggle('with-ojol', isOjol);
-  if (isOjol) restoreOjolPlatformUI();
+  if (isOjol) renderOjolTabs();
   const input = document.getElementById('orderNoteInput');
   if (input) input.placeholder = isOjol
-    ? '🛵 No. transaksi merchant / nama driver / plat nomor…'
+    ? 'No. transaksi merchant / nama driver / plat nomor…'
     : ORDER_NOTE_PLACEHOLDER[orderType] || ORDER_NOTE_PLACEHOLDER['dine-in'];
 }
 
-// ── Ojol platform picker (akordeon 1/3 di samping catatan) ──────────────────
-// Preset: GoFood / GrabFood / ShopeeFood / Maxim / Lainnya — tersimpan di
-// record penjualan (ojolPlatform) untuk laporan per platform.
+// ── Ojol app tabs (di dalam menu selector modal) ────────────────────────────
+// Konsep tab: baris tab app di ATAS catatan — semua app milik menu terbuka
+// langsung terlihat, tiap tab menampilkan HARGA OJOL-nya. App terpilih
+// tersimpan di record penjualan (ojolPlatform) untuk laporan per platform.
 const OJOL_PLATFORM_KEY = 'kasirsolo:ojol-platform';
 let ojolPlatform = '';
 try { ojolPlatform = localStorage.getItem(OJOL_PLATFORM_KEY) || ''; } catch (_) {}
 
 export function getOjolPlatform() { return ojolPlatform; }
 
-export function toggleOjolPicker() {
-  const panel = document.getElementById('ojolPickerPanel');
-  const arrow = document.getElementById('ojolPickerArrow');
-  if (!panel) return;
-  const open = panel.style.display === 'block';
-  panel.style.display = open ? 'none' : 'block';
-  if (arrow) arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+// Tab = harga ojol milik menu terbuka (getOjolRows, termasuk migrasi
+// hargaOjol lama → "Lainnya"). Menu tanpa konfigurasi ojol → preset generik
+// tanpa harga (harga efektif tetap hargaJual via getOjolPrice).
+const OJOL_PRESET_APPS = ['GoFood', 'GrabFood', 'ShopeeFood', 'Maxim', 'Lainnya'];
+function renderOjolTabs() {
+  const tabs = document.getElementById('ojolTabs');
+  if (!tabs) return;
+  const rows = getOjolRows(_menuSelectorMenu);
+  const list = rows.length > 0 ? rows : OJOL_PRESET_APPS.map(a => ({ nama: a, harga: null }));
+  const cur = (ojolPlatform || '').trim().toLowerCase();
+  const activeIdx = Math.max(0, list.findIndex(r => r.nama.trim().toLowerCase() === cur));
+  tabs.innerHTML = list.map((r, i) =>
+    `<button class="ojol-tab${i === activeIdx ? ' active' : ''}" type="button" data-action="pick-ojol-platform" data-platform="${escapeHtml(r.nama)}">${escapeHtml(r.nama)}${r.harga != null ? `<span class="ojol-tab-harga">${formatRp(r.harga)}</span>` : ''}</button>`
+  ).join('');
+  // Sinkronkan platform tersimpan bila tidak cocok dengan daftar menu ini
+  // (mis. pilihan dari menu lain) — tab aktif & harga selalu konsisten.
+  if (rows.length > 0 && ojolPlatform !== list[activeIdx].nama) {
+    ojolPlatform = list[activeIdx].nama;
+    try { localStorage.setItem(OJOL_PLATFORM_KEY, ojolPlatform); } catch (_) {}
+  }
 }
 
 export function pickOjolPlatform(p) {
   ojolPlatform = p;
   try { localStorage.setItem(OJOL_PLATFORM_KEY, p); } catch (_) {}
-  toggleOjolPicker(); // tutup panel setelah memilih
-  renderOrderNoteBox();
-}
-
-function restoreOjolPlatformUI() {
-  const label = document.getElementById('ojolPickerLabel');
-  if (label) label.textContent = ojolPlatform ? `🛵 ${ojolPlatform}` : '🛵 Pilih app';
+  renderOjolTabs(); // refresh tab aktif
 }
 
 export function toggleOrderType(tipe) {
@@ -285,17 +300,15 @@ export function toggleOrderType(tipe) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function hargaPerItem(item) {
-  return hargaEfektif(item, orderType);
+  return hargaEfektif(item, orderType, ojolPlatform);
 }
 
 // Total satu baris cart: harga dasar × qty + Σ (topping_i × qty_topping_i).
 // Qty topping independen per-topping (tiap opsi punya stepper sendiri).
 // Mis. nasi 2 + telur dadar 1, ayam goreng 2 → (5000*2) + (3000*1) + (5000*2) = 23.000.
 function lineTotal(item) {
-  const isOjol = orderType === 'ojol';
-  const baseHarga = (isOjol && item.menu.hargaOjol > 0) ? item.menu.hargaOjol : item.menu.hargaJual;
-  const topSum = toppingHarga(item);
-  return (baseHarga * item.qty) + topSum;
+  // Delegasi ke logic: harga ojol ikut app terpilih (order-follow).
+  return lineTotalLogic(item, orderType, ojolPlatform);
 }
 
 function hargaDineIn(item) {
@@ -303,7 +316,7 @@ function hargaDineIn(item) {
 }
 
 function hargaOjol(item) {
-  return hargaEfektif(item, 'ojol');
+  return getOjolPrice(item.menu, ojolPlatform);
 }
 
 function renderAvailableToppings(menuId) {
@@ -407,7 +420,7 @@ export function renderPOSMenuUI(menus) {
   const catEmoji = {Makanan:'🍚',Minuman:'🥤',Snack:'🍢',Lainnya:'📦'};
   grid.innerHTML = menus.map(m => {
     const qty = cart[m.id] ? cart[m.id].qty : 0;
-    const displayHarga = (orderType === 'ojol' && m.hargaOjol > 0) ? m.hargaOjol : m.hargaJual;
+    const displayHarga = orderType === 'ojol' ? getOjolPrice(m, ojolPlatform) : m.hargaJual;
     const habis = !!m.pakaiStok && (m.stok || 0) <= 0;
     const titipan = (m.suplayer || 'Umum') !== 'Umum'; // 🧾 barang titipan konsinyasi
     return `<div class="menu-item ${qty>0?'selected':''} ${habis?'sold-out':''}" data-action="add-to-cart" data-menu-id="${m.id}">
@@ -418,7 +431,7 @@ export function renderPOSMenuUI(menus) {
       <div class="item-badges">
         ${titipan ? '<span class="item-titipan" title="Barang titipan">🧾</span>' : ''}
         ${parseToppings(m.toppingList).length > 0 ? '<span class="item-topping">🧂</span>' : ''}
-        ${m.hargaOjol > 0 ? '<span class="item-ojol">🛵</span>' : ''}
+        ${menuHasOjol(m) ? '<span class="item-ojol">🛵</span>' : ''}
         ${habis ? '<span class="item-habis">Habis</span>' : ''}
       </div>
     </div>`;
@@ -463,9 +476,10 @@ export async function openCartModal() {
     const totalLine = lineTotal(c);
     const selected = c.selectedToppings || [];
     const qtys = normalizeToppingQtys(c);
-    // Tampilkan harga sesuai tipe order (bukan harga jual default)
-    const displayHargaTipe = orderType === 'ojol' && c.menu.hargaOjol > 0
-      ? formatRp(c.menu.hargaOjol)
+    // Tampilkan harga sesuai tipe order (bukan harga jual default).
+    // Mode ojol: harga ikut app terpilih (order-follow).
+    const displayHargaTipe = orderType === 'ojol'
+      ? formatRp(getOjolPrice(c.menu, ojolPlatform))
       : formatRp(c.menu.hargaJual);
     // Topping tags dengan qty per-topping (di dalam baris nama menu)
     const toppingTags = hasToppings && selected.length > 0

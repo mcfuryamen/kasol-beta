@@ -13,6 +13,46 @@ export function parseToppings(raw) {
   } catch { return []; }
 }
 
+// ── Harga Ojol per-app helpers ───────────────────────────────────────────────
+// Data baru: menu.ojolPrices = JSON array [{nama, harga}] (multi-app, ala topping).
+// Data lama: menu.hargaOjol (satu angka) → dibaca sebagai baris "Lainnya" (migrasi implisit).
+export function parseOjolPrices(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(t => typeof t.nama === 'string' && t.nama.trim() !== '')
+      .map(t => ({ nama: t.nama.trim(), harga: Math.max(0, parseInt(t.harga, 10) || 0) }));
+  } catch { return []; }
+}
+
+// Menu punya konfigurasi Harga Ojol? (data baru ojolPrices ATAU data lama hargaOjol)
+export function menuHasOjol(menu) {
+  if (!menu) return false;
+  return getOjolRows(menu).length > 0;
+}
+
+// Daftar baris harga ojol ter-normalisasi. Menu lama (hargaOjol > 0, tanpa
+// ojolPrices) otomatis terbaca sebagai [{ nama: 'Lainnya', harga: hargaOjol }].
+export function getOjolRows(menu) {
+  const rows = parseOjolPrices(menu?.ojolPrices);
+  if (rows.length > 0) return rows;
+  if ((menu?.hargaOjol || 0) > 0) return [{ nama: 'Lainnya', harga: menu.hargaOjol }];
+  return [];
+}
+
+// Harga ojol untuk satu app terpilih (order-follow).
+// Urutan: baris nama sama (case-insensitive) → baris pertama → hargaJual.
+// Menu tanpa konfigurasi ojol sama sekali → hargaJual (perilaku lama).
+export function getOjolPrice(menu, platform = '') {
+  const rows = getOjolRows(menu);
+  if (rows.length === 0) return (menu?.hargaJual || 0);
+  const p = (platform || '').trim().toLowerCase();
+  const match = p ? rows.find(r => r.nama.trim().toLowerCase() === p) : null;
+  return match ? match.harga : rows[0].harga;
+}
+
 // Normalisasi toppingQtys dari item (cart atau sale record) → Object {nama: qty}.
 // Backward-compat:
 //   - item.toppingQtys (Object) → return as-is.
@@ -42,9 +82,9 @@ export function toppingHarga(item) {
 
 // Harga efektif per-qty (TANPA toppingQty — sudah terhitung di toppingHarga).
 // Dipakai untuk label harga satuan per item.
-export function hargaEfektif(item, orderType) {
+export function hargaEfektif(item, orderType, ojolPlatform = '') {
   const isOjol = orderType === 'ojol';
-  const baseHarga = (isOjol && item.menu.hargaOjol > 0) ? item.menu.hargaOjol : item.menu.hargaJual;
+  const baseHarga = isOjol ? getOjolPrice(item.menu, ojolPlatform) : item.menu.hargaJual;
   // Per-qty topping harga: Σ harga topping (ignore qty) — untuk display per-unit.
   // NB: total baris dihitung oleh calculateTotal / lineTotal, bukan di sini.
   const toppings = item.selectedToppings || [];
@@ -120,10 +160,10 @@ export function hitungKembalianLogic(total, bayar) {
   return Math.max(0, bayar - total);
 }
 
-export function calculateTotal(cart) {
+export function calculateTotal(cart, ojolPlatform = '') {
   return Object.values(cart).reduce((sum, item) => {
     const isOjol = item.orderType === 'ojol';
-    const baseHarga = (isOjol && item.menu.hargaOjol > 0) ? item.menu.hargaOjol : item.menu.hargaJual;
+    const baseHarga = isOjol ? getOjolPrice(item.menu, ojolPlatform) : item.menu.hargaJual;
     // Σ (harga topping × qty topping) — qty per-topping independen
     const topSum = toppingHarga(item);
     return sum + (baseHarga * item.qty) + topSum;
@@ -140,11 +180,14 @@ export function countItems(cart) {
 
 // Total satu baris item. Bekerja untuk cart item (dengan item.menu.*) maupun
 // sale record (item.hargaJual/hargaOjol flat). Dipakai oleh trx detail & nota.
-export function lineTotal(item, orderType = null) {
+export function lineTotal(item, orderType = null, ojolPlatform = '') {
   const ojolActive = orderType === 'ojol' || item.orderType === 'ojol';
-  const hargaOjol = item.hargaOjol ?? item.menu?.hargaOjol ?? 0;
   const hargaJual = item.hargaJual ?? item.menu?.hargaJual ?? 0;
-  const baseHarga = (ojolActive && hargaOjol > 0) ? hargaOjol : hargaJual;
+  // Cart item (menu lengkap): harga ikut app terpilih (order-follow).
+  // Sale record flat (tanpa menu): hargaOjol tersimpan = harga efektif saat transaksi.
+  const baseHarga = ojolActive
+    ? (item.menu ? getOjolPrice(item.menu, ojolPlatform) : (item.hargaOjol || hargaJual))
+    : hargaJual;
   const qty = Math.max(1, parseInt(item.qty, 10) || 1);
   return (baseHarga * qty) + toppingHarga(item);
 }

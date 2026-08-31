@@ -1,7 +1,7 @@
 {
-  "version": "1.0.73",
-  "cacheBust": "v141",
+  "version": "1.0.74",
+  "cacheBust": "v142",
   "notes": [
-    "🛵 Laporan ojol ber-akordeon; search nempel header; picker jadi akordeon inline"
+    "🧭 Jualan: harga ojol per-app di form menu; catatan & pilih app ojol pindah ke dalam modal Pilihan Menu sebagai tab (harga ikut app terpilih); baris cari dirapikan; produk habis diblokir + peringatan"
   ]
 }

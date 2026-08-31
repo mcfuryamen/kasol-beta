@@ -103,22 +103,7 @@
   <button class="btn btn-sm btn-ghost"   data-action="switch-order-type" data-tipe="takeaway">Take-away</button>
   <button class="btn btn-sm btn-ghost"   data-action="switch-order-type" data-tipe="ojol">Ojol</button>
 </div>
-<!-- Catatan pesanan (akordeon): keterangan tambahan sesuai tipe order -->
-<div id="orderControlsRow" class="order-controls-row">
-  <div id="ojolPickerWrap" style="display:none">
-    <button class="btn btn-secondary ojol-picker-btn" type="button" data-action="toggle-ojol-picker"><span id="ojolPickerLabel">🛵 Pilih app</span><span id="ojolPickerArrow" style="margin-left:auto;font-size:14px;color:var(--text3);transition:transform .2s">›</span></button>
-    <div id="ojolPickerPanel" style="display:none">
-      <button class="ojol-opt" type="button" data-action="pick-ojol-platform" data-platform="GoFood">GoFood</button>
-      <button class="ojol-opt" type="button" data-action="pick-ojol-platform" data-platform="GrabFood">GrabFood</button>
-      <button class="ojol-opt" type="button" data-action="pick-ojol-platform" data-platform="ShopeeFood">ShopeeFood</button>
-      <button class="ojol-opt" type="button" data-action="pick-ojol-platform" data-platform="Maxim">Maxim</button>
-      <button class="ojol-opt" type="button" data-action="pick-ojol-platform" data-platform="Lainnya">Lainnya</button>
-    </div>
-  </div>
-  <div id="orderNoteBox" class="order-note-box" style="display:none">
-    <input type="text" class="form-input" id="orderNoteInput" placeholder="Catatan..." maxlength="120" data-action="order-note-input">
-  </div>
-</div>
+<!-- Catatan pesanan & ojol picker: PINDAH ke dalam modal Pilihan Menu (2026-08-31) -->
 <div class="search-box">
 <span class="search-icon">🔍</span>
 <input type="text" id="searchMenu" placeholder="Cari menu..." data-action="pos-search">
@@ -384,7 +369,19 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="modal">
 <div class="modal-handle"></div>
 <div class="modal-title" id="menuSelectorTitle">📋 Pilihan Menu</div>
+<!-- Tab pilih app ojol — dipindah ke urutan PALING ATAS modal (2026-08-31):
+     harga ojol per app tampil di tab, jadi pilih app dulu sebelum topping/qty. -->
+<div id="ojolTabsWrap" style="display:none;margin:0 0 4px">
+  <div class="form-label" style="margin:0 0 6px;font-size:13px">🛵 Pilih app</div>
+  <div id="ojolTabs" class="ojol-tabs"></div>
+</div>
 <div id="menuSelectorBody"></div>
+<!-- Catatan pesanan — tetap di bawah body; tipe pesanan tetap di halaman Jualan. -->
+<div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:12px 0 0">
+  <div id="orderNoteBox" class="order-note-box">
+    <input type="text" class="form-input" id="orderNoteInput" placeholder="Catatan..." maxlength="120" data-action="order-note-input">
+  </div>
+</div>
 <div class="btn-row">
 <button class="btn btn-secondary" data-action="close-menu-selector">Batal</button>
 <button class="btn btn-primary" data-action="confirm-menu-selector">➕ Tambah ke Keranjang</button>
@@ -468,7 +465,8 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
       </label>
     </div>
     <div id="menuOjolWrap" style="display:none;margin-top:10px">
-      <input type="number" class="form-input" id="menuHargaOjol" placeholder="Contoh: 18000" inputmode="numeric">
+      <div id="menuOjolGrid"></div>
+      <button class="btn btn-outline" type="button" data-action="add-ojol-row" style="margin-top:8px;font-size:13px;width:100%">＋ Tambah baris</button>
     </div>
   </div>
 </div>
@@ -801,7 +799,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=141"></script>
+  <script type="module" src="js/app.js?v=142"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

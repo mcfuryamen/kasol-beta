@@ -7,14 +7,14 @@ import { showToast } from './helpers.js';
 import { cart, setCart, setPosCat, posCat, setLastSaleId, orderType, setOrderType } from './app-state.js';
 import {
   addToCartLogic, changeQtyLogic, hitungKembalianLogic, calculateTotal,
-  generatePresetNominal, parseToppings
+  generatePresetNominal, parseToppings, menuHasOjol, getOjolRows, getOjolPrice
 } from './pos.logic.js';
 import {
   renderPOSCatTabsUI, renderPOSMenuUI, renderCartBar,
   openCartModal, closeCartModal, hitungKembalianUI, refreshCartModalTotals,
   formatBayarInputUI, selectAllBayarInput, setNominalBayarUI,
   showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType,
-  renderOrderNoteBox, getOjolPlatform
+  renderOrderNoteBox, getOjolPlatform, pickOjolPlatform
 } from './pos.ui.js';
 import { saveCart, loadCart, clearCartStorage, simpanPenjualanSync } from './pos.sync.js';
 import { getLicenseStatus } from './license.js';
@@ -27,7 +27,7 @@ export {
   renderPOSCatTabsUI, renderPOSMenuUI, renderCartBar,
   openCartModal, closeCartModal, hitungKembalianUI, refreshCartModalTotals,
   formatBayarInputUI, selectAllBayarInput, setNominalBayarUI,
-  showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType
+  showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType, pickOjolPlatform
 } from './pos.ui.js';
 export {
   saveCart, loadCart, clearCartStorage, simpanPenjualanSync
@@ -64,7 +64,22 @@ const _debouncedRenderPOSMenu = debounce(renderPOSMenu, 300);
 // (permintaan pemilik 2026-08-29) — menu tanpa konfigurasi ojol tidak bisa
 // dijual via ojol, jadi disembunyikan dari grid & tab/accordion kategori.
 function filterOjol(menus) {
-  return orderType === 'ojol' ? menus.filter(m => (m.hargaOjol || 0) > 0) : menus;
+  return orderType === 'ojol' ? menus.filter(m => menuHasOjol(m)) : menus;
+}
+
+// Union nama app dari Harga Ojol semua menu aktif — opsi dinamis tombol
+// "Pilih app" di halaman Jualan (sinkron dengan grid Harga Ojol di form Menu).
+export async function getOjolAppNames() {
+  const menus = await getActiveMenus();
+  const seen = new Set();
+  const names = [];
+  menus.forEach(m => {
+    getOjolRows(m).forEach(r => {
+      const key = r.nama.trim().toLowerCase();
+      if (key && !seen.has(key)) { seen.add(key); names.push(r.nama.trim()); }
+    });
+  });
+  return names;
 }
 
 // ── Ambil menu aktif (tahan boolean) ──
@@ -96,6 +111,8 @@ export async function loadPOS() {
     return;
   }
   renderPOSCatTabsUI(menus);
+  // Blok catatan/tab app ojol modal di-refresh (tipe aktif bisa berubah).
+  renderOrderNoteBox();
   const filtered = posCat !== 'Semua' ? menus.filter(m => m.kategori === posCat) : menus;
   renderPOSMenuUI(filtered);
   renderCartBar();
@@ -112,6 +129,7 @@ export async function loadPOS() {
 // ---- Category tabs (async: DB query + DOM) ----
 export async function renderPOSCatTabs() {
   const menus = filterOjol(await getActiveMenus());
+  renderOrderNoteBox();
   return renderPOSCatTabsUI(menus);
 }
 
@@ -146,8 +164,15 @@ export const renderPOSMenuDebounced = _debouncedRenderPOSMenu;
 export async function addToCart(menuId) {
   const m = await DB.menu.get(menuId);
   if (!m) return;
+  // Produk habis (pakaiStok & stok<=0) TIDAK bisa ditransaksikan — blok sejak
+  // klik kartu (sebelum selector topping/hargaOjol terbuka) + toast peringatan.
+  // Guard data tetap di addToCartLogic (defense in depth).
+  if (m.pakaiStok && (m.stok || 0) <= 0) {
+    showToast(`"${m.nama}" habis — stok harus diisi dulu di menu kelola 📦`, 'error', 3000);
+    return;
+  }
   const toppings = parseToppings(m.toppingList);
-  const hasOjol = (m.hargaOjol || 0) > 0;
+  const hasOjol = menuHasOjol(m);
   // Jika ada topping atau hargaOjol → buka selector dulu, baru masuk keranjang
   if (toppings.length > 0 || hasOjol) {
     openMenuSelector(m, ({ selectedToppings = [], orderType: tipe = orderType, qty = 1, selectedToppingQtys = null }) => {
@@ -206,7 +231,7 @@ export function setCartQty(menuId, qty, rerender = true) {
 
 // ---- Pembayaran ----
 export function hitungKembalian() {
-  const total = calculateTotal(cart);
+  const total = calculateTotal(cart, getOjolPlatform());
   let bayarValue = document.getElementById('bayarInput').value.replace(/\D/g, '');
   const bayar = bayarValue ? parseInt(bayarValue) : 0;
   hitungKembalianUI(total, bayar);
@@ -227,6 +252,19 @@ export async function simpanPenjualan(cetakJuga = false) {
   const items = Object.values(cart).filter(c => c.qty > 0);
   if (items.length === 0) { showToast('Keranjang kosong!', 'error'); return; }
 
+  // Fallback terakhir (2026-08-31): stok bisa berubah SETELAH item masuk
+  // keranjang (isi ulang stok nol, sinkron antar perangkat, dsb). Cek ulang
+  // stok terkini dari DB — produk yang kini habis memblokir transaksi.
+  for (const c of items) {
+    const mid = c.menu && c.menu.id;
+    if (!mid) continue;
+    const fresh = await DB.menu.get(mid);
+    if (fresh && fresh.pakaiStok && (fresh.stok || 0) <= 0) {
+      showToast(`"${c.menu.nama}" habis — hapus dari keranjang dulu 🛒`, 'error', 3500);
+      return;
+    }
+  }
+
   // Kuota transaksi (2026-08-29): saat kuota bulan ini habis, transaksi diblok
   // tapi aplikasi tetap bisa dieksplor — arahkan ke sheet pembelian.
   const licSt = await getLicenseStatus();
@@ -236,7 +274,7 @@ export async function simpanPenjualan(cetakJuga = false) {
     return;
   }
 
-  const totalHarga = calculateTotal(cart);
+  const totalHarga = calculateTotal(cart, getOjolPlatform());
   const totalModal = items.reduce((a,c) => a + c.qty * c.menu.hargaModal, 0);
 
   let bayarValue = document.getElementById('bayarInput').value.replace(/\D/g, '');
@@ -264,7 +302,9 @@ export async function simpanPenjualan(cetakJuga = false) {
       menuId: c.menu.id,
       nama: c.menu.nama,
       hargaJual: c.menu.hargaJual,
-      hargaOjol: c.menu.hargaOjol || 0,
+      // Simpan harga efektif per unit (harga app terpilih saat transaksi ojol)
+      // agar nota/laporan tetap benar walau harga ojol nanti diubah.
+      hargaOjol: ojolPlatform ? getOjolPrice(c.menu, ojolPlatform) : 0,
       hargaModal: c.menu.hargaModal,
       qty: c.qty,
       selectedToppings: c.selectedToppings || [],

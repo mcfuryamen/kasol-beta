@@ -4,6 +4,7 @@ import { escapeHtml, formatRp, showToast } from './helpers.js';
 import { currentPage } from './app-state.js';
 import { showConfirm } from './confirm.js';
 import { loadPOS } from './pos.js';
+import { getOjolRows } from './pos.logic.js';
 import { openModal, closeModal, isModalOpen } from './modal.js';
 
 // Debounced search for menu list
@@ -92,8 +93,10 @@ export async function renderMenuList() {
       const isDim = isStokHabis || !m.aktif;
       // Kartu menu = akordeon (auto close): ketuk baris -> aksi terbuka di panel;
       // kanan trigger = harga jual tanpa label (permintaan pemilik 2026-08-29).
-      html += `<div class="acc acc-menu" style="${isDim ? 'opacity:0.45' : ''}">
-        <div class="trx-item acc-trigger" role="button" tabindex="0" data-action="toggle-menu-acc" data-menu-id="${m.id}">
+      // Dim (stok habis/jeda) HANYA di baris trigger — panel tombol aksi tetap
+      // terang & jelas fungsional (permintaan pemilik 2026-08-31).
+      html += `<div class="acc acc-menu">
+        <div class="trx-item acc-trigger${isDim ? ' dimmed' : ''}" role="button" tabindex="0" data-action="toggle-menu-acc" data-menu-id="${m.id}">
           <div class="trx-icon" style="background:${m.aktif?'var(--green-bg)':'#f5f5f5'};color:${m.aktif?'var(--green)':'#bbb'};font-size:18px">${m.aktif?'✅':'⏸️'}</div>
           <div class="trx-info">
             <div class="trx-title">${escapeHtml(m.nama)}` +
@@ -167,8 +170,9 @@ export async function openMenuForm(id) {
       // Topping list: render sebagai baris grid
       const toppings = parseToppingList(m.toppingList);
       renderToppingRows(toppings);
-      // Harga ojol: 0 = tidak di-set
-      setElemValue('menuHargaOjol', m.hargaOjol || '');
+      // Harga ojol per-app: render sebagai baris grid (ala topping).
+      // Data lama (hargaOjol angka) otomatis terbaca sebagai baris "Lainnya".
+      renderOjolRows(getOjolRows(m));
       // Konsinyasi
       const suplayer = m.suplayer || 'Umum';
       setElemValue('menuSuplayerVal', suplayer);
@@ -199,7 +203,7 @@ export async function openMenuForm(id) {
       setElemValue('menuHargaJual', '');
       setElemValue('menuHargaModal', '');
       renderToppingRows([]);
-      setElemValue('menuHargaOjol', '');
+      renderOjolRows([]);
       setElemValue('menuSuplayerVal', 'Umum');
       setElemChecked('menuPakaiStok', false);
       setElemValue('menuStok', '');
@@ -279,6 +283,38 @@ function collectToppingGrid() {
   return result;
 }
 
+// ── Harga Ojol Grid (pola sama dgn topping: baris nama app | harga + hapus) ──
+
+function renderOjolRows(rows) {
+  const grid = document.getElementById('menuOjolGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  (rows && rows.length ? rows : [{ nama: '', harga: 0 }]).forEach(r => {
+    addOjolRowTo(grid, r.nama, r.harga);
+  });
+}
+
+function addOjolRowTo(grid, nama, harga) {
+  const row = document.createElement('div');
+  row.className = 'topping-grid-row'; // reuse CSS grid baris topping
+  row.innerHTML =
+    `<input class="form-input ojol-nama" type="text" placeholder="Nama app (mis. GoFood)" value="${escapeAttr(nama || '')}">` +
+    `<input class="form-input ojol-harga" type="number" inputmode="numeric" placeholder="Harga" value="${harga || ''}">` +
+    `<button class="topping-rm-btn" type="button" data-action="remove-ojol-row" title="Hapus">✕</button>`;
+  grid.appendChild(row);
+}
+
+function collectOjolGrid() {
+  const rows = document.querySelectorAll('#menuOjolGrid .topping-grid-row');
+  const result = [];
+  rows.forEach(r => {
+    const nama = (r.querySelector('.ojol-nama') || {}).value || '';
+    const harga = parseInt((r.querySelector('.ojol-harga') || {}).value) || 0;
+    if (nama.trim()) result.push({ nama: nama.trim(), harga: Math.max(0, harga) });
+  });
+  return result;
+}
+
 window.addEventListener('click', e => {
   const rm = e.target.closest('[data-action="remove-topping-row"]');
   if (rm) { rm.closest('.topping-grid-row')?.remove(); return; }
@@ -286,6 +322,14 @@ window.addEventListener('click', e => {
   if (add) {
     const grid = document.getElementById('menuToppingGrid');
     if (grid) addToppingRowTo(grid, '', 0, grid.children.length);
+  }
+  // Harga Ojol per-app: hapus & tambah baris
+  const rmo = e.target.closest('[data-action="remove-ojol-row"]');
+  if (rmo) { rmo.closest('.topping-grid-row')?.remove(); return; }
+  const ado = e.target.closest('[data-action="add-ojol-row"]');
+  if (ado) {
+    const grid = document.getElementById('menuOjolGrid');
+    if (grid) addOjolRowTo(grid, '', 0);
   }
 });
 
@@ -552,7 +596,11 @@ export async function saveMenu() {
   let kategori = document.getElementById('menuKategori').value;
   const hargaJual = parseInt(document.getElementById('menuHargaJual').value) || 0;
   const hargaModal = parseInt(document.getElementById('menuHargaModal').value) || 0;
-  const hargaOjol = parseInt(document.getElementById('menuHargaOjol').value) || 0;
+  // Harga Ojol per-app: kumpulkan baris grid → JSON ojolPrices.
+  // hargaOjol (field lama) = harga baris pertama — kompatibilitas laporan/nota lama.
+  const ojolRows = collectOjolGrid();
+  const ojolPrices = JSON.stringify(ojolRows);
+  const hargaOjol = ojolRows.length > 0 ? ojolRows[0].harga : 0;
   const toppingList = buildToppingListString(collectToppingGrid());
   const suplayer = document.getElementById('menuSuplayerSelect').value || 'Umum';
   const pakaiStok = document.getElementById('menuPakaiStok').checked ? 1 : 0;
@@ -564,7 +612,7 @@ export async function saveMenu() {
   // (Audit 2026-08-19) Dihapus: auto-overwrite kategori jadi 'Titipan' menghapus pilihan user.
   // Penandaan titipan cukup dari field suplayer (lihat badge di daftar & laporan konsinyasi).
 
-  const updateData = { nama, kategori, hargaJual, hargaModal, hargaOjol, toppingList, suplayer, pakaiStok, stok };
+  const updateData = { nama, kategori, hargaJual, hargaModal, hargaOjol, ojolPrices, toppingList, suplayer, pakaiStok, stok };
   if (id) {
     // Pertahankan retur yang sudah ada; jangan overwrite
     const existing = await DB.menu.get(parseInt(id));

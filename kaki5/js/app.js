@@ -48,7 +48,7 @@ let _pengeluaranModule = null;
 let _berandaModule = null;
 
 // Wire page modules on first use
-const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput', toggleOjolPicker: 'toggleOjolPicker', pickOjolPlatform: 'pickOjolPlatform' };
+const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput', pickOjolPlatform: 'pickOjolPlatform' };
 const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu', addCustomSuplayer: 'addCustomSuplayer', addCustomKategori: 'addCustomKategori', pickKategori: 'pickKategori', pickSuplayer: 'pickSuplayer', syncPakaiStokToggle: 'syncPakaiStokToggle', openReturModal: 'openReturModal', closeReturModal: 'closeReturModal', confirmRetur: 'confirmRetur', openKonsinyasiRetur: 'openKonsinyasiRetur' };
 const _laporanWireMap = { __wired: false, loadReport: 'loadReport', setReportPeriod: 'setReportPeriodUI', setReportPeriodUI: 'setReportPeriodUI', navReportDate: 'navReportDate', toggleExpenseCat: 'toggleExpenseCat', setCustomDate: 'setCustomDate', toggleCustomPicker: 'toggleCustomPicker', pickDate: 'pickDate', pickWeek: 'pickWeek', pickMonth: 'pickMonth', pickCustomDate: 'pickCustomDate' };
 const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaUsaha: 'saveNamaUsaha', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification' };
@@ -567,22 +567,6 @@ function handleDataAction(action, el, event) {
     case 'apply-topping':
       if (window.applySelectedTopping) window.applySelectedTopping();
       break;
-    case 'menu-selector-type': {
-      const tipe = (el.closest?.('[data-tipe]') || {}).dataset?.tipe || 'dine-in';
-      // Update active state tombol tipe di selector
-      const container = document.getElementById('menuSelectorOrderBtns');
-      if (container) {
-        container.querySelectorAll('.btn').forEach(b => {
-          b.classList.remove('btn-primary');
-          b.classList.add('btn-ghost');
-          if (b.dataset.tipe === tipe) {
-            b.classList.remove('btn-ghost');
-            b.classList.add('btn-primary');
-          }
-        });
-      }
-      break;
-    }
     case 'close-menu-selector':
       if (window.closeMenuSelector) window.closeMenuSelector();
       break;
@@ -622,10 +606,7 @@ function handleDataAction(action, el, event) {
       if (window.saveTxn) window.saveTxn();
       break;
 
-    // Ojol platform picker (POS)
-    case 'toggle-ojol-picker':
-      if (window.toggleOjolPicker) window.toggleOjolPicker();
-      break;
+    // Ojol app tabs (modal menu selector)
     case 'pick-ojol-platform':
       if (window.pickOjolPlatform) window.pickOjolPlatform(el?.dataset?.platform || 'Lainnya');
       break;
