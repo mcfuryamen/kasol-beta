@@ -1,9 +1,15 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v145 — ubah angka INI juga setiap swap (harus sama dengan
+// Cache version v146 — ubah angka INI juga setiap swap (harus sama dengan
 // CACHE_NAME di bawah; baris ini tertinggal di v119 selama belasan rilis
 // dan bikin salah baca seolah CACHE_NAME tidak di-bump).
+// v146: laporan konsinyasi — saldo & status Lunas dihitung sejak awal (tidak
+//       lagi berubah saat filter tanggal digeser, dulu suplayer bertagihan bisa
+//       tampil "Lunas" di hari tanpa penjualan); tipe pesanan Ojol otomatis
+//       memilih metode bayar QRIS; harga satuan pindah ke baris nama menu di
+//       modal pilih menu; ✕ batal keranjang jadi lingkaran merah; tombol
+//       "＋ Tambah baris"/"＋ Tambah Topping" jadi outline putus-putus hijau.
 // v145: fix cetak nota saat popup diblokir (fallback iframe tersembunyi,
 //       sebelumnya TypeError null di printer.js:436 pada perangkat beta) +
 //       lepas fokus sebelum overlay aria-hidden (warning Chromium hilang).
@@ -19,7 +25,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v145';
+const CACHE_NAME = 'kasir-solo-kaki5-v146';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

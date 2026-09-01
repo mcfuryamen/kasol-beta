@@ -67,6 +67,12 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .btn-red:active{background:#8E0000;transform:scale(.97)}
 .btn-outline{background:#fff;color:var(--primary);border:2px solid var(--primary)}
 .btn-outline:active{background:var(--orange-bg)}
+/* Komentar browser #4+#5 (v146): tombol "＋ Tambah baris" & "＋ Tambah Topping"
+   jadi garis putus-putus hijau, labelnya ikut hijau. Kelas khusus — .btn-outline
+   masih dipakai tombol lisensi/QRIS, jadi tidak diubah global. Ukuran tetap ikut
+   .btn (tidak menyentuh height) agar tidak bentrok dengan .btn media-query. */
+.btn-add-dashed{background:#fff;color:var(--green);border:2px dashed var(--green)}
+.btn-add-dashed:active{background:var(--green-bg)}
 .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
 .btn-ghost:active{background:#f5f5f5}
 .btn-sm{padding:10px 16px;font-size:14px;min-height:42px;border-radius:10px}
@@ -88,7 +94,11 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 
 /* cartModal footer: Batal & Simpan sama besar (bagi sisa area), Simpan & Cetak auto size */
 #cartModal .btn-row .btn{flex:1 1 0;width:auto}
-#cartModal .btn-row [data-action="close-cart"]{flex:0 0 auto;width:48px}
+/* Komentar browser #2 (v146): tombol ✕ batal di keranjang jadi lingkaran merah.
+   height/min-height dipin di sini supaya tidak kalah dari .btn{min-height:…}
+   di media query (specificity 0,1,0) pada breakpoint lain. */
+#cartModal .btn-row [data-action="close-cart"]{flex:0 0 auto;width:48px;height:48px;min-height:48px;border-radius:50%;background:var(--red);border-color:var(--red);color:#fff}
+#cartModal .btn-row [data-action="close-cart"]:active{background:#8E0000;border-color:#8E0000}
 #cartModal .btn-row [data-action="save-sale-print"]{flex:0 0 auto;width:auto}
 
 /* FAB */
@@ -302,8 +312,9 @@ button[data-action="topping-qty"]{width:30px;height:30px;min-width:30px;min-heig
 .ojol-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:8px;-webkit-overflow-scrolling:touch}
 .ojol-tab{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:64px;padding:7px 12px;font-size:13px;font-weight:700;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text2);cursor:pointer;white-space:nowrap}
 .ojol-tab.active{border-color:var(--primary);background:var(--orange-bg);color:var(--primary)}
-.ojol-tab-harga{font-size:11px;font-weight:800;color:var(--text3);white-space:nowrap}
-.ojol-tab.active .ojol-tab-harga{color:var(--primary)}
+/* Harga satuan pindah ke baris nama menu (komentar browser #1, v146) — dulu
+   .ojol-tab-harga menempel di dalam tiap tab app, sekarang di kiri tombol −. */
+.ms-harga{font-size:15px;font-weight:800;color:var(--primary);white-space:nowrap}
 #menuSelectorModal #orderNoteBox{margin:8px 0 0} /* override margin -2px base .order-note-box */
 /* Modal catat transaksi: tab Pengeluaran | Pemasukan */
 .txn-tabs{display:flex;gap:4px;margin-bottom:14px;background:var(--bg);padding:4px;border-radius:10px}

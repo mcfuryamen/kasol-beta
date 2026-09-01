@@ -287,17 +287,32 @@ export async function loadReport() {
   }
 
   // ── Blok Konsinyasi ──────────────────────────────────────────────────────
+  // SALDO konsinyasi (utang ke suplayer + setoran) adalah konsep SEJAK AWAL,
+  // bukan per periode. Dulu dihitung dari `sales`/`expenses` yang sudah
+  // difilter rentang tanggal laporan, sehingga menggeser filter tanggal
+  // mengubah-ubah angka "Lunas": lihat hari tanpa penjualan → utang 0 dan
+  // setoran 0 → sisa 0 → suplayer tampil LUNAS padahal masih punya sisa
+  // tagihan. Koreksi retur (m.selisihQty) juga akumulatif tanpa tanggal, jadi
+  // memang mustahil di-scope per periode. Yang tetap mengikuti filter periode
+  // hanyalah angka "terjual" per menu, ditampilkan sebagai info tambahan.
   const allMenus = await DB.menu.toArray();
   const titipan = allMenus.filter(m => m.suplayer && m.suplayer !== 'Umum');
   if (titipan.length > 0) {
-    // Hitung terjual per menu dari sales di periode ini
+    // Terjual SEJAK AWAL — dasar utang ke suplayer.
+    const allSales = await DB.penjualan.toArray();
+    const terjualAllPerMenu = {};
+    allSales.forEach(s => {
+      (s.items || []).forEach(i => { terjualAllPerMenu[i.menuId] = (terjualAllPerMenu[i.menuId] || 0) + (i.qty || 0); });
+    });
+    // Terjual dalam periode terpilih — info pergerakan stok, bukan dasar utang.
     const terjualPerMenu = {};
     sales.forEach(s => {
       (s.items || []).forEach(i => { terjualPerMenu[i.menuId] = (terjualPerMenu[i.menuId] || 0) + (i.qty || 0); });
     });
-    // Hitung setoran per suplayer dari expense "Setoran Konsinyasi"
+    // Setoran per suplayer — SEMUA setoran, tidak ikut difilter periode.
     const setorPerSuplayer = {};
-    expenses.filter(e => e.kategori === 'Setoran Konsinyasi').forEach(e => {
+    const allSetor = await DB.pengeluaran.where('kategori').equals('Setoran Konsinyasi').toArray();
+    allSetor.forEach(e => {
       const sp = e.keterangan?.match(/^Setoran (.+?) ·/)?.[1] || e.suplayer || 'Lainnya';
       setorPerSuplayer[sp] = (setorPerSuplayer[sp] || 0) + (e.jumlah || 0);
     });
@@ -310,23 +325,25 @@ export async function loadReport() {
       bySuplayer[sp].push(m);
     });
 
-    // Agregat per suplayer. Keluar efektif per menu = penjualan tercatat +
-    // selisihQty (koreksi dari retur: barang hilang/lebih dianggap keluar),
-    // sehingga utang & nominal setoran akurat berdasarkan barang yang
-    // benar-benar keluar dari rak.
+    // Agregat per suplayer. Keluar efektif per menu = penjualan tercatat sejak
+    // awal + selisihQty (koreksi dari retur: barang hilang/lebih dianggap
+    // keluar), sehingga utang & nominal setoran akurat berdasarkan barang yang
+    // benar-benar keluar dari rak — dan TETAP saat filter tanggal diubah.
     const suplayerStats = Object.entries(bySuplayer).map(([sp, items]) => {
-      let terjual = 0, utang = 0, stok = 0;
+      let terjual = 0, terjualPeriode = 0, utang = 0, stok = 0;
       items.forEach(m => {
-        const keluar = (terjualPerMenu[m.id] || 0) + (m.selisihQty || 0);
+        const keluar = (terjualAllPerMenu[m.id] || 0) + (m.selisihQty || 0);
         terjual += keluar;
+        terjualPeriode += terjualPerMenu[m.id] || 0;
         utang += keluar * (m.hargaModal || 0);
         stok += m.pakaiStok ? (m.stok || 0) : 0;
       });
       const setor = setorPerSuplayer[sp] || 0;
-      return { sp, items, terjual, utang, stok, setor, sisa: utang - setor };
+      return { sp, items, terjual, terjualPeriode, utang, stok, setor, sisa: utang - setor };
     });
 
-    let konsoHtml = '<div class="card"><div class="card-title">🤝 Konsinyasi</div>';
+    let konsoHtml = '<div class="card"><div class="card-title">🤝 Konsinyasi</div>'
+      + '<div class="trx-sub kfs11" style="margin:-2px 0 4px">Saldo &amp; status lunas dihitung sejak awal (tidak berubah saat filter tanggal diganti) · terjual per menu mengikuti periode terpilih</div>';
     suplayerStats.forEach((s, idx) => {
       const konspId = `konsp-${idx}`;
       const lunas = s.sisa <= 0;
@@ -340,8 +357,10 @@ export async function loadReport() {
         </div>
         <div id="${konspId}" class="trx-day-panel" style="display:none;padding-left:8px;border-left:2px solid var(--orange-bg);margin-bottom:8px">
           ${s.items.map(m => {
-            const keluar = (terjualPerMenu[m.id] || 0) + (m.selisihQty || 0);
+            const keluar = (terjualAllPerMenu[m.id] || 0) + (m.selisihQty || 0);
+            const periode = terjualPerMenu[m.id] || 0;
             const stokSub = m.pakaiStok ? ` · stok ${m.stok || 0}` : '';
+            const periodeSub = periode > 0 ? ` · ${periode} di periode ini` : '';
             const catatan = m.catatanSelisih
               ? `<div class="trx-sub" style="color:var(--orange)">📝 ${escapeHtml(m.catatanSelisih)}</div>`
               : '';
@@ -349,7 +368,7 @@ export async function loadReport() {
               <div class="trx-icon" style="background:var(--orange-bg);color:var(--primary)">🧾</div>
               <div class="trx-info">
                 <div class="trx-title">${escapeHtml(m.nama)}</div>
-                <div class="trx-sub">${keluar} terjual${stokSub}</div>
+                <div class="trx-sub">${keluar} terjual sejak awal${stokSub}${periodeSub}</div>
                 ${catatan}
               </div>
               <div class="trx-amount" style="color:var(--orange)">${formatRp(keluar * (m.hargaModal || 0))}</div>

@@ -36,6 +36,7 @@ export function openMenuSelector(menu, onConfirm) {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div class="kfw600 ktext2">${escapeHtml(menu.nama)}</div>
         <div style="display:flex;align-items:center;gap:8px">
+          <div class="ms-harga" id="menuSelectorHarga">${formatRp(hargaUnitBase())}</div>
           <button type="button" class="btn btn-sm btn-ghost" data-action="menu-selector-qty" data-delta="-1" aria-label="Kurangi jumlah">−</button>
           <input type="number" id="menuSelectorQty" class="ms-qty-input" min="1" max="99" value="1" inputmode="numeric" aria-label="Jumlah">
           <button type="button" class="btn btn-sm btn-ghost" data-action="menu-selector-qty" data-delta="1" aria-label="Tambah jumlah">＋</button>
@@ -58,6 +59,35 @@ export function openMenuSelector(menu, onConfirm) {
   if (itemNoteEl) itemNoteEl.value = '';
   // Kondisi awal blok catatan/tab app (placeholder & tab sesuai tipe aktif di halaman)
   renderOrderNoteBox();
+  // renderOjolTabs di atas dapat menyinkronkan ojolPlatform ke app milik menu
+  // ini → segarkan harga setelah DOM topping tersedia.
+  updateMenuSelectorHarga();
+}
+
+// ── Harga satuan di baris judul modal (komentar browser #1, v146) ────────────
+// Dulu harga ojol menempel di dalam tiap tab app; kini dipindah ke baris
+// nama menu/produk, di kiri tombol minus. Basisnya mengikuti tipe pesanan:
+// Ojol → harga app ojol terpilih (getOjolPrice), selain itu → hargaJual.
+// Ditambah harga topping yang sedang dicentang (harga per-satuan, bukan total).
+function hargaUnitBase() {
+  const menu = _menuSelectorMenu;
+  if (!menu) return 0;
+  const tipe = _menuSelectorOrderType || orderType;
+  return tipe === 'ojol' ? getOjolPrice(menu, ojolPlatform) : (menu.hargaJual || 0);
+}
+
+function hargaUnitSelector() {
+  // NB: template innerHTML membaca hargaUnitBase() saja — saat innerHTML
+  // dibangun, DOM topping masih milik menu sebelumnya. Topping dihitung lewat
+  // updateMenuSelectorHarga() setelah modal ter-render.
+  const top = [...document.querySelectorAll('#menuSelectorToppings input[type="checkbox"]:checked')]
+    .reduce((s, cb) => s + (Number(cb.dataset.harga) || 0), 0);
+  return hargaUnitBase() + top;
+}
+
+function updateMenuSelectorHarga() {
+  const el = document.getElementById('menuSelectorHarga');
+  if (el) el.textContent = formatRp(hargaUnitSelector());
 }
 
 // Render 1 baris opsi topping — checkbox + nama + harga + stepper qty (hidden sampai checked).
@@ -93,6 +123,8 @@ export function syncToppingStepperVisibility(scope, nama) {
     const inp = row.querySelector('.topping-qty-input');
     if (inp && (parseInt(inp.value, 10) || 0) < 1) inp.value = 1;
   }
+  // Centang/lepas centang topping mengubah harga satuan di baris judul modal.
+  if (scope === 'ms') updateMenuSelectorHarga();
 }
 
 // Ubah jumlah di menu selector (batas 1–99).
@@ -271,7 +303,7 @@ function renderOjolTabs() {
   const cur = (ojolPlatform || '').trim().toLowerCase();
   const activeIdx = Math.max(0, list.findIndex(r => r.nama.trim().toLowerCase() === cur));
   tabs.innerHTML = list.map((r, i) =>
-    `<button class="ojol-tab${i === activeIdx ? ' active' : ''}" type="button" data-action="pick-ojol-platform" data-platform="${escapeHtml(r.nama)}">${escapeHtml(r.nama)}${r.harga != null ? `<span class="ojol-tab-harga">${formatRp(r.harga)}</span>` : ''}</button>`
+    `<button class="ojol-tab${i === activeIdx ? ' active' : ''}" type="button" data-action="pick-ojol-platform" data-platform="${escapeHtml(r.nama)}">${escapeHtml(r.nama)}</button>`
   ).join('');
   // Sinkronkan platform tersimpan bila tidak cocok dengan daftar menu ini
   // (mis. pilihan dari menu lain) — tab aktif & harga selalu konsisten.
@@ -279,12 +311,15 @@ function renderOjolTabs() {
     ojolPlatform = list[activeIdx].nama;
     try { localStorage.setItem(OJOL_PLATFORM_KEY, ojolPlatform); } catch (_) {}
   }
+  // Harga tidak lagi tampil di dalam tab (komentar browser #1) — pindah ke
+  // baris judul modal, jadi tiap ganti app harga satuan ikut tersegarkan.
+  updateMenuSelectorHarga();
 }
 
 export function pickOjolPlatform(p) {
   ojolPlatform = p;
   try { localStorage.setItem(OJOL_PLATFORM_KEY, p); } catch (_) {}
-  renderOjolTabs(); // refresh tab aktif
+  renderOjolTabs(); // refresh tab aktif + harga satuan di baris judul
 }
 
 // ── Metode pembayaran: Tunai | QRIS | Transfer ──────────────────────────────
@@ -401,6 +436,12 @@ export function handlePayProofFile(input) {
 
 export function toggleOrderType(tipe) {
   setOrderType(tipe);
+  // Pesanan Ojol dibayar lewat aplikasi/QRIS, jadi metode bayar otomatis ikut
+  // terpilih QRIS (permintaan 2026-09-01). setPaymentMethod sudah menjaga:
+  // bila opsi QRIS dimatikan di Pengaturan, metode tidak dipaksa berubah.
+  // Saat pindah kembali ke Dine-in/Take-away pilihan kasir tidak ditimpa —
+  // dia mungkin memang melayani QRIS untuk makan di tempat.
+  if (tipe === 'ojol') setPaymentMethod('qris');
   // Feedback visual: tombol tipe terpilih = primary, lainnya ghost
   const box = document.getElementById('orderTypeButtons');
   if (box) {
@@ -414,6 +455,10 @@ export function toggleOrderType(tipe) {
   renderOrderNoteBox();
   // Re-render grid agar harga sesuai tipe (mis. hargaOjol saat pilih Ojol)
   import('./pos.js').then(({ renderPOSMenu }) => renderPOSMenu()).catch(() => {});
+  // Total di cart bar & modal ikut tipe BARU — dulu cuma grid yang disegarkan,
+  // jadi cart bar masih menampilkan harga tipe sebelumnya sampai cart berubah.
+  renderCartBar();
+  refreshCartModalTotals();
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

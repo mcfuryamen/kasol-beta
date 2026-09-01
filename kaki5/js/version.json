@@ -1,9 +1,10 @@
 {
-  "version": "1.0.77",
-  "cacheBust": "v145",
+  "version": "1.0.78",
+  "cacheBust": "v146",
   "notes": [
-    "🖨️ Cetak nota tidak lagi gagal di aplikasi yang berjalan sendiri (PWA) atau saat popup diblokir browser: kalau tab nota tidak bisa dibuka, nota dicetak lewat jendela cetak tersembunyi. Sebelumnya muncul error \"Cannot read properties of null\" dan nota tidak keluar sama sekali",
-    "♿ Modal lebih bersih: fokus pada tombol dilepas sebelum overlay disembunyikan, sehingga peringatan \"Blocked aria-hidden\" hilang saat menutup modal pilihan menu dan keranjang",
-    "💳 Pembayaran simpel (lanjutan v144): QRIS & Transfer tetap memakai 📸 foto bukti pembayaran + catatan bayar; saklar opsi metode ada di Pengaturan → Metode Pembayaran"
+    "🤝 Laporan konsinyasi diperbaiki: saldo utang ke suplayer & status Lunas kini dihitung sejak awal, tidak lagi berubah saat filter tanggal/periode digeser. Sebelumnya membuka hari tanpa penjualan membuat suplayer bertagihan tampil 'Lunas' karena utang & setoran ikut difilter per hari. Angka 'terjual' per menu tetap mengikuti periode terpilih dan kini ditulis jelas 'terjual sejak awal'",
+    "🛵 Pilih tipe pesanan Ojol → metode pembayaran otomatis terpilih QRIS (kalau QRIS aktif di Pengaturan). Pindah kembali ke Dine-in/Take-away tidak menimpa pilihan kasir",
+    "🧾 Modal pilih menu: harga satuan dipindah ke baris nama menu/produk, di kiri tombol −, dan ikut berubah saat ganti app ojol atau centang topping (sebelumnya menempel kecil di dalam tiap tab app)",
+    "🎨 Tombol ✕ batal di keranjang jadi lingkaran merah; tombol '＋ Tambah baris' & '＋ Tambah Topping' di form menu jadi garis putus-putus hijau berikut labelnya"
   ]
 }
