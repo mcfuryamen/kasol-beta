@@ -122,6 +122,12 @@ export function closeModal(overlayId) {
   if (!overlay) return;
 
   overlay.classList.remove('show');
+  // v145: lepas fokus dulu bila masih tertinggal di dalam overlay.
+  // Chromium memblokir aria-hidden pada elemen yang turunannya masih fokus
+  // (warning "Blocked aria-hidden ..." di log beta saat tutup modal menu/keranjang).
+  if (overlay.contains(document.activeElement)) {
+    try { document.activeElement.blur(); } catch (e) { /* noop */ }
+  }
   overlay.setAttribute('aria-hidden', 'true');
   refreshScrollLock();
 

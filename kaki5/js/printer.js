@@ -432,38 +432,88 @@ function printNotaBrowser(sale, warungName, alamat = '') {
                   String(d.getHours()).padStart(2, '0') + ':' +
                   String(d.getMinutes()).padStart(2, '0');
 
-  const printWindow = window.open('', '_blank', 'width=320,height=600');
-  printWindow.document.write('<html><head><title>Nota</title><style>body{font-family:monospace;font-size:12px;width:280px;margin:0 auto;padding:8px}h2{text-align:center;margin:0;font-size:14px}p.sub{text-align:center;margin:2px 0;font-size:11px;color:#666}hr{border:none;border-top:1px dashed #000;margin:6px 0}table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:11px;vertical-align:top}.total{font-weight:bold;font-size:13px}.footer{text-align:center;margin-top:8px;font-size:11px}@media print{body{width:100%}}</style></head><body>');
-  printWindow.document.write('<h2>' + escapeHtml(safeStr(warungName, 'Warung Saya')) + '</h2>');
+  // v145: nota dirakit jadi SATU string dulu.
+  // Sebab window.open() bisa mengembalikan null (popup diblokir / PWA standalone /
+  // user gesture sudah habis karena await di printNota) → akses .document crash (log beta).
+  const htmlParts = [];
+  htmlParts.push('<html><head><title>Nota</title><style>body{font-family:monospace;font-size:12px;width:280px;margin:0 auto;padding:8px}h2{text-align:center;margin:0;font-size:14px}p.sub{text-align:center;margin:2px 0;font-size:11px;color:#666}p.kfs11{margin:2px 0;font-size:11px}hr{border:none;border-top:1px dashed #000;margin:6px 0}table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:11px;vertical-align:top}.total{font-weight:bold;font-size:13px}.footer{text-align:center;margin-top:8px;font-size:11px}@media print{body{width:100%}}</style></head><body>');
+  htmlParts.push('<h2>' + escapeHtml(safeStr(warungName, 'Warung Saya')) + '</h2>');
   const alamatTxt = String(alamat || '').trim();
-  if (alamatTxt) printWindow.document.write('<p class="sub">' + escapeHtml(alamatTxt) + '</p>');
-  printWindow.document.write('<hr>');
-  printWindow.document.write('<p class="kfs11">' + dateStr + '</p>');
+  if (alamatTxt) htmlParts.push('<p class="sub">' + escapeHtml(alamatTxt) + '</p>');
+  htmlParts.push('<hr>');
+  htmlParts.push('<p class="kfs11">' + dateStr + '</p>');
   // Tipe pesanan selalu tampil (kiri), catatan pesanan di kanan
   const ORDER_TYPE_LABELS = { 'dine-in': 'Dine-in', 'takeaway': 'Take-away', 'ojol': 'Ojol' };
   const typeLabel = ORDER_TYPE_LABELS[sale.orderType] || 'Dine-in';
   const noteHtml = String(sale.orderNote || '').trim();
-  printWindow.document.write('<p class="kfs11" style="display:flex;justify-content:space-between;gap:8px"><span>' + escapeHtml(typeLabel) + '</span>' +
+  htmlParts.push('<p class="kfs11" style="display:flex;justify-content:space-between;gap:8px"><span>' + escapeHtml(typeLabel) + '</span>' +
     (noteHtml ? '<span style="text-align:right"><b>Note:</b> ' + escapeHtml(noteHtml) + '</span>' : '') + '</p>');
-  printWindow.document.write('<hr>');
-  printWindow.document.write('<table>' + itemsHtml + '</table>');
-  printWindow.document.write('<hr>');
+  htmlParts.push('<hr>');
+  htmlParts.push('<table>' + itemsHtml + '</table>');
+  htmlParts.push('<hr>');
   const PAY_SHORT2 = { tunai: 'Tunai', qris: 'QRIS', transfer: 'Transfer' };
   const refPrint = String(sale.refBayar || '').trim();
   const catPrint = String(sale.catatanBayar || '').trim();
-  printWindow.document.write('<table><tr class="total"><td>TOTAL</td><td class="kright">' + formatRp(safeNum(sale.totalHarga, 0)) + '</td></tr>');
-  printWindow.document.write('<tr><td>Bayar via</td><td class="kright">' + escapeHtml(PAY_SHORT2[sale.metodeBayar] || 'Tunai') + '</td></tr>');
-  if (refPrint) printWindow.document.write('<tr><td>Ref</td><td class="kright">' + escapeHtml(refPrint) + '</td></tr>');
-  if (catPrint) printWindow.document.write('<tr><td>Catatan bayar</td><td class="kright">' + escapeHtml(catPrint) + '</td></tr>');
-  printWindow.document.write('<tr><td>Bayar</td><td class="kright">' + formatRp(safeNum(sale.bayar, 0)) + '</td></tr>');
-  printWindow.document.write('<tr><td>Kembali</td><td class="kright">' + formatRp(safeNum(sale.kembalian, 0)) + '</td></tr></table>');
+  htmlParts.push('<table><tr class="total"><td>TOTAL</td><td class="kright">' + formatRp(safeNum(sale.totalHarga, 0)) + '</td></tr>');
+  htmlParts.push('<tr><td>Bayar via</td><td class="kright">' + escapeHtml(PAY_SHORT2[sale.metodeBayar] || 'Tunai') + '</td></tr>');
+  if (refPrint) htmlParts.push('<tr><td>Ref</td><td class="kright">' + escapeHtml(refPrint) + '</td></tr>');
+  if (catPrint) htmlParts.push('<tr><td>Catatan bayar</td><td class="kright">' + escapeHtml(catPrint) + '</td></tr>');
+  htmlParts.push('<tr><td>Bayar</td><td class="kright">' + formatRp(safeNum(sale.bayar, 0)) + '</td></tr>');
+  htmlParts.push('<tr><td>Kembali</td><td class="kright">' + formatRp(safeNum(sale.kembalian, 0)) + '</td></tr></table>');
   // Foto bukti pembayaran non-tunai (QRIS/Transfer) — hanya di nota browser print
-  if (sale.buktiBayar) printWindow.document.write('<div style="margin-top:8px"><b>Bukti pembayaran:</b><br><img src="' + sale.buktiBayar + '" style="max-width:280px;border-radius:8px"></div>');
-  printWindow.document.write('<hr>');
-  printWindow.document.write('<p class="footer">Terima kasih! Semoga berkah<br><span style="font-size:10px;color:#666">Kasir Solo - Kaki Lima</span></p>');
-  printWindow.document.write('</body></html>');
-  printWindow.document.close();
-  setTimeout(() => { printWindow.print(); }, 300);
+  if (sale.buktiBayar) htmlParts.push('<div style="margin-top:8px"><b>Bukti pembayaran:</b><br><img src="' + sale.buktiBayar + '" style="max-width:280px;border-radius:8px"></div>');
+  htmlParts.push('<hr>');
+  htmlParts.push('<p class="footer">Terima kasih! Semoga berkah<br><span style="font-size:10px;color:#666">Kasir Solo - Kaki Lima</span></p>');
+  htmlParts.push('</body></html>');
+  const notaHtml = htmlParts.join('');
+
+  // Jalur 1: tab popup (perilaku lama)
+  const printWindow = window.open('', '_blank', 'width=320,height=600');
+  if (printWindow && printWindow.document) {
+    printWindow.document.write(notaHtml);
+    printWindow.document.close();
+    setTimeout(() => {
+      try { printWindow.focus(); printWindow.print(); } catch (e) { console.warn('print popup gagal:', e); }
+    }, 300);
+    return;
+  }
+
+  // Jalur 2 (fallback): iframe tersembunyi di dokumen yang sama — tidak kena popup blocker
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.setAttribute('title', 'cetak-nota');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    let removed = false;
+    const cleanup = () => {
+      if (removed) return;
+      removed = true;
+      try { window.removeEventListener('afterprint', cleanup); } catch (e) { /* noop */ }
+      setTimeout(() => { try { iframe.remove(); } catch (e) { /* noop */ } }, 100);
+    };
+    window.addEventListener('afterprint', cleanup);
+    document.body.appendChild(iframe);
+    const idoc = iframe.contentWindow && iframe.contentWindow.document;
+    if (!idoc) throw new Error('iframe dokumen tidak tersedia');
+    idoc.open();
+    idoc.write(notaHtml);
+    idoc.close();
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {
+        console.warn('print iframe gagal:', e);
+        cleanup();
+        showToast('Gagal membuka dialog cetak', 'error');
+      }
+    }, 300);
+    // Safety net: dialog cetak tidak selalu memicu afterprint (mis. dibatalkan)
+    setTimeout(cleanup, 60000);
+  } catch (err) {
+    console.error('printNotaBrowser fallback error:', err);
+    showToast('Gagal membuka dialog cetak', 'error');
+  }
 }
 
 // ── Test Print (M1: refactor pakai buildReceiptText) ──────────────────────
