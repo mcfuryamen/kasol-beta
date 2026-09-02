@@ -5,13 +5,15 @@ import { openModal, closeModal } from './modal.js';
 
 let _confirmYesHandler = null;
 
-export async function showConfirm(icon, text, btnText, callback) {
+export async function showConfirm(icon, text, btnText, callback, cancelText) {
   setConfirmCallback(callback);
   setConfirmState({ open: true, icon, text, btnText });
   
   document.getElementById('confirmIcon').textContent = icon;
   document.getElementById('confirmText').textContent = text;
   document.getElementById('confirmYes').textContent = btnText;
+  // v157 komentar #3: label tombol batal bisa diganti per-dialog (default "Batal").
+  document.getElementById('confirmNo').textContent = cancelText || 'Batal';
   
   // Remove previous handler if any
   if (_confirmYesHandler) {

@@ -2,11 +2,15 @@
 // Database save operations. No DOM access.
 
 import { DB } from './db.js';
-import { cart, setCart, setLastSaleId } from './app-state.js';
+import { cart, setCart, setLastSaleId, getResumedHeldId, setResumedHeldId } from './app-state.js';
 import { todayStr } from './helpers.js';
 import { nextNomor } from './nomor.js';
 
 const CART_KEY = 'kaki5-cart';
+// v154: id pesanan ditahan yang sedang dibuka di cart — ikut dipersist supaya
+// reload/PWA restart tidak mengubahnya jadi "cart manual" (bikin dobel record
+// saat dibayar, karena row held-nya masih ada).
+const HELD_ID_KEY = 'kaki5-cart-held-id';
 
 export function saveCart() {
   try {
@@ -24,6 +28,9 @@ export function saveCart() {
       };
     });
     localStorage.setItem(CART_KEY, JSON.stringify(slim));
+    const rid = getResumedHeldId();
+    if (rid && Object.keys(cart).length > 0) localStorage.setItem(HELD_ID_KEY, String(rid));
+    else localStorage.removeItem(HELD_ID_KEY);
   } catch (e) {
     console.warn('[Cart] failed to persist', e.message);
   }
@@ -53,14 +60,24 @@ export async function loadCart() {
       }
     }
     setCart(restored);
+    // v154: pulihkan id held yang sedang dibuka — hanya bermakna kalau cart terisi.
+    if (Object.keys(restored).length === 0) {
+      setResumedHeldId(null);
+      try { localStorage.removeItem(HELD_ID_KEY); } catch (_) {}
+    } else {
+      const rid = Number(localStorage.getItem(HELD_ID_KEY));
+      setResumedHeldId(Number.isFinite(rid) && rid > 0 ? rid : null);
+    }
   } catch (e) {
     console.warn('[Cart] load failed', e.message);
     setCart({});
+    setResumedHeldId(null);
   }
 }
 
 export function clearCartStorage() {
   try { localStorage.removeItem(CART_KEY); } catch (e) {}
+  try { localStorage.removeItem(HELD_ID_KEY); } catch (e) {}
 }
 
 export async function simpanPenjualanSync(sale) {
@@ -134,12 +151,15 @@ export async function deleteHeldSync(id) {
 // `waktu` (waktu dibuat/ditahan) TETAP — jawaban user #4: pertahankan createdAt.
 // `status` jadi 'completed' agar laporan & query selesai tidak ikut hitung.
 // Sisipkan field bayar/kembalian/metode/bukti/catatan bayar seperti record baru.
-export async function payHeldSync(id, { bayar, kembalian, metodeBayar, buktiBayar, catatanBayar }) {
+// v154: saat pesanan ditahan DIBUKA lalu dibayar, isi cart bisa sudah diedit
+// (qty berubah, item tambah/buang) — payload items/total/orderType/orderNote/
+// ojolPlatform ikut di-update kalau dikirim, supaya record final = cart terkini.
+export async function payHeldSync(id, { items, totalHarga, totalModal, orderType, orderNote, ojolPlatform, bayar, kembalian, metodeBayar, buktiBayar, catatanBayar }) {
   const numId = Number(id);
   const row = await DB.penjualan.get(numId);
   if (!row) throw new Error('Held order tidak ditemukan');
   if (row.status !== 'held') throw new Error('Order ini bukan held');
-  await DB.penjualan.update(numId, {
+  const patch = {
     status: 'completed',
     bayar,
     kembalian,
@@ -147,10 +167,39 @@ export async function payHeldSync(id, { bayar, kembalian, metodeBayar, buktiBaya
     buktiBayar: buktiBayar || '',
     catatanBayar: catatanBayar || '',
     paidAt: Date.now()
-  });
+  };
+  if (items) {
+    patch.items = items;
+    patch.totalHarga = totalHarga;
+    patch.totalModal = totalModal;
+    patch.orderType = orderType || 'dine-in';
+    patch.orderNote = orderNote || '';
+    patch.ojolPlatform = ojolPlatform || '';
+  }
+  await DB.penjualan.update(numId, patch);
   // Kuota transaksi ikut naik (sama seperti simpanPenjualanSync).
   try { const { incrementTxCount } = await import('./license.js'); await incrementTxCount(); } catch (_) {}
   return numId;
+}
+
+// v154: "Tahan" ulang pesanan yang SEDANG dibuka → perbarui row held yang sama
+// (nomor TRX & waktu tahan asli tetap) alih-alih membuat duplikat. Return
+// false kalau row sudah hilang/bukan held lagi → pemanggil fallback ke
+// holdCartSync (buat baru).
+export async function updateHeldSync(id, { items, totalHarga, totalModal, orderType, orderNote, ojolPlatform, heldName }) {
+  const numId = Number(id);
+  const row = await DB.penjualan.get(numId);
+  if (!row || row.status !== 'held') return false;
+  await DB.penjualan.update(numId, {
+    items,
+    totalHarga,
+    totalModal,
+    orderType: orderType || 'dine-in',
+    orderNote: orderNote || '',
+    ojolPlatform: ojolPlatform || '',
+    heldName: (heldName || '').trim().slice(0, 60) || row.heldName || ''
+  });
+  return true;
 }
 
 // Count held aktif — untuk badge FAB. Cepat karena pakai index `status`.

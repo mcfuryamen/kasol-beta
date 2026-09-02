@@ -2,11 +2,11 @@
 // DOM operations only. No DB access. No state mutations.
 
 import { escapeHtml, formatRp, showToast } from './helpers.js';
-import { cart, posCat, orderType, setOrderType, setCart } from './app-state.js';
+import { cart, posCat, orderType, setOrderType, setCart, setResumedHeldId } from './app-state.js';
 import { generatePresetNominal, parseToppings, toppingHarga, hargaEfektif, normalizeToppingQtys, getOjolPrice, getOjolRows, menuHasOjol, lineTotal as lineTotalLogic } from './pos.logic.js';
 import { openModal, closeModal } from './modal.js';
 import { showConfirm } from './confirm.js';
-import { clearCartStorage } from './pos.sync.js';
+import { clearCartStorage, saveCart } from './pos.sync.js';
 
 let _toppingTargetMenuId = null; // menuId yang topping-nya sedang dipilih (di cart)
 let _menuSelectorMenu = null;   // menu yang sedang dibuka di menu selector (utk harga ojol picker)
@@ -438,6 +438,15 @@ export function handlePayProofFile(input) {
 
 export function toggleOrderType(tipe) {
   setOrderType(tipe);
+  // v158 (laporan bug pemilik): tipe pesanan itu properti TRANSAKSI, bukan
+  // properti item. Item yang sudah masuk keranjang ikut bermigrasi ke tipe baru
+  // supaya tidak ada lagi harga ojol nyangkut di pesanan Dine-in (dan sebaliknya).
+  if (Object.keys(cart).length > 0) {
+    const migrated = {};
+    Object.entries(cart).forEach(([k, v]) => { migrated[k] = { ...v, orderType: tipe }; });
+    setCart(migrated);
+    saveCart();
+  }
   // Pesanan Ojol dibayar lewat aplikasi/QRIS, jadi metode bayar otomatis ikut
   // terpilih QRIS (permintaan 2026-09-01). setPaymentMethod sudah menjaga:
   // bila opsi QRIS dimatikan di Pengaturan, metode tidak dipaksa berubah.
@@ -763,6 +772,9 @@ export function clearCart() {
   }
   setCart({});
   try { clearCartStorage(); } catch (_) {}
+  // v154: kosongkan cart = tutup "sesi buka" — row held-nya TETAP ada di daftar,
+  // tinggal dibuka lagi kapan pun.
+  setResumedHeldId(null);
   const noteInput = document.getElementById('globalNoteInput');
   if (noteInput) noteInput.value = '';
   try { localStorage.removeItem(GLOBAL_NOTE_KEY); } catch (_) {}
@@ -879,70 +891,6 @@ function renderHeldRows() {
   box.innerHTML = rows.map(r => renderHeldRow(r)).join('');
 }
 
-// ── Modal input catatan "Tahan" (v149) ──────────────────────────────────────
-// Saat user tap 🤚 Tahan, WAJIB mengisi catatan identifikasi supaya pesanan
-// yang ditahan mudah dibedakan (mis. "Meja 3", "Budi", "Ojol #42"). Mengembalikan
-// Promise<string> (catatan) atau null bila dibatalkan. Penyelesaian robust:
-// tombol Batal/confirm memanggil _holdNoteFinish, sedangkan dismiss lewat Esc /
-// klik backdrop (yang memanggil closeModal() langsung di modal.js/app.js) tertangkap
-// oleh MutationObserver → resolve(null), sehingga Promise tidak pernah menggantung.
-let _holdNoteFinish = null;
-export function showHoldNoteModal(summaryText) {
-  return new Promise((resolve) => {
-    const overlay = document.getElementById('holdNoteModal');
-    let done = false;
-    let obs = null;
-    const finish = (val) => {
-      if (done) return;
-      done = true;
-      if (obs) { try { obs.disconnect(); } catch (_) {} obs = null; }
-      _holdNoteFinish = null;
-      closeModal('holdNoteModal');
-      resolve(val);
-    };
-    _holdNoteFinish = finish;
-    try {
-      obs = new MutationObserver(() => {
-        if (overlay && !overlay.classList.contains('show')) finish(null);
-      });
-      if (overlay) obs.observe(overlay, { attributes: true, attributeFilter: ['class'] });
-    } catch (_) { /* MutationObserver selalu ada di browser modern; fallback: hanya tombol */ }
-
-    const sum = document.getElementById('holdNoteSummary');
-    if (sum) sum.textContent = summaryText || '';
-    const inp = document.getElementById('holdNoteInput');
-    if (inp) inp.value = '';
-    const err = document.getElementById('holdNoteErr');
-    if (err) err.hidden = true;
-    openModal('holdNoteModal');
-    setTimeout(() => { try { inp && inp.focus(); } catch (_) {} }, 80);
-  });
-}
-
-export function submitHoldNote() {
-  const inp = document.getElementById('holdNoteInput');
-  const val = String(inp?.value || '').trim();
-  if (!val) {
-    const err = document.getElementById('holdNoteErr');
-    if (err) err.hidden = false;
-    if (inp) { inp.focus(); inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); }
-    return;
-  }
-  if (_holdNoteFinish) _holdNoteFinish(val.slice(0, 60));
-}
-
-export function cancelHoldNote() {
-  if (_holdNoteFinish) _holdNoteFinish(null);
-}
-
-// Enter pada input catatan = submit (delegasi sekali di level modul).
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && e.target && e.target.id === 'holdNoteInput') {
-    e.preventDefault();
-    submitHoldNote();
-  }
-});
-
 // v151 komentar browser #3: filter live daftar held saat user mengetik.
 document.addEventListener('input', (e) => {
   if (e.target && e.target.id === 'heldSearchInput') renderHeldRows();
@@ -965,13 +913,13 @@ function renderHeldRow(r) {
       <div class="held-row-main">
         <div class="held-row-head">
           <div class="held-row-title">${nameBadge}<span class="held-row-type">${typeLabel}</span></div>
-          <div class="held-row-total">${formatRp(r.totalHarga || 0)}</div>
         </div>
         <div class="held-row-meta">${itemCount} item · ${escapeHtml(itemSummary)}</div>
         <div class="held-row-time">⏱ ${tglLabel}${r.nomor ? ' · ' + escapeHtml(r.nomor) : ''}</div>
-        ${r.orderNote ? `<div class="held-row-note">📝 ${escapeHtml(r.orderNote)}</div>` : ''}
+        ${''/* v157 #1: baris catatan dihapus, judul kartu sudah memuatnya */}
       </div>
       <div class="held-row-actions">
+        <div class="held-row-total">${formatRp(r.totalHarga || 0)}</div>
         <button type="button" class="btn btn-ghost btn-sm held-row-delete" data-action="delete-held" data-held-id="${r.id}" title="Hapus pesanan ditahan" aria-label="Hapus">🗑️</button>
       </div>
     </div>

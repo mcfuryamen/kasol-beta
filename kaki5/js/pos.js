@@ -4,7 +4,7 @@
 
 import { DB, getSetting } from './db.js';
 import { showToast } from './helpers.js';
-import { cart, setCart, setPosCat, posCat, setLastSaleId, orderType, setOrderType } from './app-state.js';
+import { cart, setCart, setPosCat, posCat, setLastSaleId, orderType, setOrderType, getResumedHeldId, setResumedHeldId } from './app-state.js';
 import {
   addToCartLogic, changeQtyLogic, hitungKembalianLogic, calculateTotal,
   generatePresetNominal, parseToppings, menuHasOjol, getOjolRows, getOjolPrice
@@ -17,10 +17,9 @@ import {
   renderOrderNoteBox, getOjolPlatform, pickOjolPlatform,
   getPaymentMethod, setPaymentMethod, applyPayMethodUI, setPayOptions, paymentMethodLabel, GLOBAL_NOTE_KEY,
   getPayProof, getPayNote, removePayProof,
-  updateHeldFab, renderHeldListModal, lineTotal,
-  showHoldNoteModal, submitHoldNote, cancelHoldNote
+  updateHeldFab, renderHeldListModal, lineTotal
 } from './pos.ui.js';
-import { saveCart, loadCart, clearCartStorage, simpanPenjualanSync, holdCartSync, listHeldSync, getHeldSync, deleteHeldSync, payHeldSync, countHeldSync } from './pos.sync.js';
+import { saveCart, loadCart, clearCartStorage, simpanPenjualanSync, holdCartSync, updateHeldSync, listHeldSync, getHeldSync, deleteHeldSync, payHeldSync, countHeldSync } from './pos.sync.js';
 import { getLicenseStatus } from './license.js';
 
 export {
@@ -35,12 +34,11 @@ export {
   setPaymentMethod, getPaymentMethod, paymentMethodLabel,
   capturePayProof, handlePayProofFile, removePayProof,
   clearCart,
-  updateHeldFab, renderHeldListModal,
-  showHoldNoteModal, submitHoldNote, cancelHoldNote
+  updateHeldFab, renderHeldListModal
 } from './pos.ui.js';
 export {
   saveCart, loadCart, clearCartStorage, simpanPenjualanSync,
-  holdCartSync, listHeldSync, getHeldSync, deleteHeldSync, payHeldSync, countHeldSync
+  holdCartSync, updateHeldSync, listHeldSync, getHeldSync, deleteHeldSync, payHeldSync, countHeldSync
 } from './pos.sync.js';
 // holdOrder/resumeHeldOrder/deleteHeldOrder/openHeldListModal/refreshHeldFab:
 // orkestrasi DB+state yang didefinisikan di file ini (blok "FITUR TAHAN" di
@@ -70,12 +68,14 @@ export async function holdOrder(heldName) {
   const orderNote = (document.getElementById('globalNoteInput')?.value || '').trim();
 
   try {
-    const heldId = await holdCartSync({
+    const payload = {
       items: items.map(c => ({
         menuId: c.menu.id,
         nama: c.menu.nama,
         hargaJual: c.menu.hargaJual,
-        hargaOjol: getOjolPrice(c.menu, ojolPlat),
+        // v158: harga ojol HANYA untuk pesanan tipe Ojol (sama seperti saleRec) —
+        // dulu field ini selalu terisi walau ditahan sebagai Dine-in/Take-away.
+        hargaOjol: ojolPlat ? getOjolPrice(c.menu, ojolPlat) : 0,
         hargaModal: c.menu.hargaModal,
         qty: c.qty,
         selectedToppings: c.selectedToppings || [],
@@ -88,7 +88,19 @@ export async function holdOrder(heldName) {
       orderNote,
       ojolPlatform: ojolPlat,
       heldName: (heldName || '').trim().slice(0, 60)
-    });
+    };
+    // v154: kalau cart ini hasil MEMBUKA pesanan ditahan (resumedHeldId terisi),
+    // "Tahan" ulang = PERBARUI row yang sama — jangan bikin duplikat; nomor TRX
+    // & waktu tahan asli tetap. Row hilang/bukan held → fallback buat baru.
+    const resumedId = getResumedHeldId();
+    let heldId = null;
+    let updated = false;
+    if (resumedId) {
+      updated = await updateHeldSync(resumedId, payload);
+      if (updated) heldId = resumedId;
+    }
+    if (!updated) heldId = await holdCartSync(payload);
+    setResumedHeldId(null);
 
     // Reset state UI (pola reuse dari simpanPenjualan).
     setCart({});
@@ -106,7 +118,7 @@ export async function holdOrder(heldName) {
     // Refresh FAB + tampilkan toast.
     const count = await countHeldSync().catch(() => 1);
     await updateHeldFab(count);
-    showToast(`🤚 Ditahan${heldName ? ` "${heldName}"` : ''} — ${items.length} item · ${formatRpSimple(totalHarga)}`);
+    showToast(`${updated ? '🔄 Diperbarui' : '🤚 Ditahan'}${heldName ? ` "${heldName}"` : ''} — ${items.length} item · ${formatRpSimple(totalHarga)}`);
     return heldId;
   } catch (e) {
     console.error('[Hold] gagal:', e?.message || e);
@@ -115,19 +127,22 @@ export async function holdOrder(heldName) {
   }
 }
 
-// Orkestrasi "Tahan" dengan catatan WAJIB (v149): buka modal input catatan
-// identifikasi, tunggu konfirmasi user, baru simpan sebagai held. Batal/Esc →
-// tidak menyimpan apa pun. Catatan jadi `heldName` (badge di daftar held).
+// v155 komentar browser: modal input catatan DIHAPUS ("hapus halaman ini").
+// "Tahan" memakai catatan yang SUDAH terisi di keranjang (globalNoteInput) —
+// jangan bikin catatan baru. Catatan kosong → toast peringatan, tidak menahan
+// apa pun (modal keranjang tetap terbuka biar user bisa langsung mengisi).
 export async function holdOrderWithNote() {
-  const { items, totalHarga } = _calcCartTotals();
+  const { items } = _calcCartTotals();
   if (items.length === 0) {
     showToast('Keranjang kosong — tambahkan item dulu', 'error');
     return null;
   }
-  const summary = `${items.length} item · ${formatRpSimple(totalHarga)}`;
-  const note = await showHoldNoteModal(summary);
-  if (note === null || note === undefined) return null; // dibatalkan
-  return holdOrder(note);
+  const note = (document.getElementById('globalNoteInput')?.value || '').trim();
+  if (!note) {
+    showToast('📝 Isi catatan terlebih dahulu — biar pesanan ditahan gampang dibedakan', 'error', 3000);
+    return null;
+  }
+  return holdOrder(note.slice(0, 60));
 }
 
 function formatRpSimple(n) {
@@ -157,6 +172,9 @@ export async function deleteHeldOrder(heldId) {
   window.showConfirm('🗑️', `Hapus pesanan ditahan "${label}"? Tindakan ini tidak bisa dibatalkan.`, 'Ya, Hapus', async () => {
     try {
       await deleteHeldSync(id);
+      // v154: baris yang dihapus ternyata sedang terbuka di cart → lepas penanda
+      // (cart jadi manual; saat dibayar dibuat record baru, bukan payHeldSync).
+      if (getResumedHeldId() === Number(id)) setResumedHeldId(null);
       const n = await countHeldSync();
       await updateHeldFab(n);
       showToast('🗑️ Pesanan dihapus');
@@ -169,10 +187,20 @@ export async function deleteHeldOrder(heldId) {
   });
 }
 
-// Resume held → muat ke cart. Hapus row held (pindah ke cart aktif).
-// Jika cart aktif tidak kosong → minta konfirmasi timpa via showConfirm.
+// Resume held → muat ke cart. v154: row held TIDAK dihapus — tetap di daftar
+// sampai dibayar (payHeldSync → nomor TRX asli) atau ditahan ulang
+// (updateHeldSync). Komentar browser: "buka pesanan ditahan lainnya otomatis
+// ganti daftar pesanannya, pesanan yang lama jangan dihapus".
 export async function resumeHeldOrder(heldId, opts = {}) {
   const id = Number(heldId);
+  // Kartu yang SAMA dan sedang dibuka → cukup tampilkan keranjang; jangan
+  // reload dari DB supaya editan di cart tidak hilang diam-diam.
+  if (getResumedHeldId() === id && Object.keys(cart).length > 0) {
+    const _m = document.getElementById('heldListModal');
+    if (_m) _m.classList.remove('show');
+    await openCartModal();
+    return;
+  }
   const perform = async () => {
     const row = await getHeldSync(id);
     if (!row) {
@@ -190,6 +218,9 @@ export async function resumeHeldOrder(heldId, opts = {}) {
       newCart[it.menuId] = {
         menu: menuRow,
         qty: it.qty || 1,
+        // v158: item hasil buka-tahan membawa tipe pesanannya (dulu kosong, jadi
+        // pesanan Ojol hasil resume sempat dihitung dengan harga jual).
+        orderType: row.orderType || 'dine-in',
         selectedToppings: it.selectedToppings || [],
         toppingQtys: it.toppingQtys || {},
         catatanItem: it.catatanItem || ''
@@ -198,6 +229,7 @@ export async function resumeHeldOrder(heldId, opts = {}) {
     if (Object.keys(newCart).length === 0) {
       showToast('Menu di pesanan ini sudah dihapus dari database', 'error', 3500);
       await deleteHeldSync(id).catch(() => {});
+      if (getResumedHeldId() === id) setResumedHeldId(null);
       const n = await countHeldSync();
       await updateHeldFab(n);
       const rows = await listHeldSync();
@@ -205,6 +237,9 @@ export async function resumeHeldOrder(heldId, opts = {}) {
       return;
     }
     setCart(newCart);
+    // v154: tandai "sedang dibuka" — saveCart ikut mempersist id ini supaya
+    // reload/PWA restart tidak mengubah statusnya jadi cart manual.
+    setResumedHeldId(id);
     saveCart();
     // Pulihkan tipe order + platform ojol (jawaban #4: konsisten).
     if (row.orderType) setOrderType(row.orderType);
@@ -218,10 +253,8 @@ export async function resumeHeldOrder(heldId, opts = {}) {
     const restoredNote = row.orderNote || row.heldName || '';
     if (noteInput) noteInput.value = restoredNote;
     try { localStorage.setItem(GLOBAL_NOTE_KEY, restoredNote); } catch (_) {}
-    // Hapus row held (sudah pindah ke cart aktif).
-    await deleteHeldSync(id);
-    const n = await countHeldSync();
-    await updateHeldFab(n);
+    // v154: row held TIDAK dihapus — tetap di daftar & badge sampai dibayar
+    // (payHeldSync) atau ditahan ulang (updateHeldSync).
     renderCartBar();
     renderPOSMenu();
     await openCartModal();
@@ -231,13 +264,14 @@ export async function resumeHeldOrder(heldId, opts = {}) {
     showToast(`↩ Pesanan${row.heldName ? ` "${row.heldName}"` : ''} dibuka kembali`);
   };
 
-  // Konfirmasi timpa kalau cart aktif tidak kosong (kecuali opts.force).
+  // v154: cart hasil buka pesanan ditahan → GANTI OTOMATIS tanpa konfirmasi.
+  // Peringatan timpa (v151) hanya berlaku untuk cart manual yang belum disimpan.
   const curItems = Object.values(cart).filter(c => c.qty > 0);
-  if (!opts.force && curItems.length > 0) {
+  if (!opts.force && curItems.length > 0 && getResumedHeldId() === null) {
     if (typeof window.showConfirm === 'function') {
       // v151 komentar browser: peringatan diarahkan untuk MENYIMPAN dulu
       // pesanan yang sedang dibuka (tahan/bayar); "Buang & Ganti" jalan kedua.
-      window.showConfirm('⚠️', `Keranjang masih berisi ${curItems.reduce((s, c) => s + (c.qty || 0), 0)} item dari pesanan yang dibuka. Simpan/tahan dulu pesanan tersebut, atau buang & ganti dengan pesanan ini?`, 'Buang & Ganti', perform);
+      window.showConfirm('⚠️', `Keranjang masih berisi ${curItems.reduce((s, c) => s + (c.qty || 0), 0)} item yang belum disimpan. Tahan dulu pesanan ini, atau buang & ganti dengan pesanan yang dibuka?`, 'Buang & Ganti', perform);
       return;
     }
   }
@@ -464,7 +498,7 @@ export function setCartQty(menuId, qty, rerender = true) {
 
 // ---- Pembayaran ----
 export function hitungKembalian() {
-  const total = calculateTotal(cart, getOjolPlatform());
+  const total = calculateTotal(cart, getOjolPlatform(), orderType);
   let bayarValue = document.getElementById('bayarInput').value.replace(/\D/g, '');
   const bayar = bayarValue ? parseInt(bayarValue) : 0;
   hitungKembalianUI(total, bayar);
@@ -507,7 +541,7 @@ export async function simpanPenjualan(cetakJuga = false) {
     return;
   }
 
-  const totalHarga = calculateTotal(cart, getOjolPlatform());
+  const totalHarga = calculateTotal(cart, getOjolPlatform(), orderType);
   const totalModal = items.reduce((a,c) => a + c.qty * c.menu.hargaModal, 0);
 
   // Metode pembayaran (komentar browser #5): QRIS/Transfer = bayar pas sesuai
@@ -541,7 +575,11 @@ export async function simpanPenjualan(cetakJuga = false) {
     return;
   }
 
-  const saleId = await simpanPenjualanSync({
+  // v154: kalau cart ini hasil MEMBUKA pesanan ditahan → bayar row aslinya
+  // (payHeldSync): nomor TRX tetap sama sejak ditahan, status → completed,
+  // isi di-update sesuai cart terkini (bisa sudah diedit). Row hilang / sudah
+  // bukan held lagi (race) → fallback simpan sebagai penjualan baru.
+  const saleRec = {
     tanggal: _tgl,
     orderType,
     orderNote,
@@ -560,14 +598,29 @@ export async function simpanPenjualan(cetakJuga = false) {
       catatanItem: (c.catatanItem || '').trim()
     })),
     totalHarga,
-    totalModal,
+    totalModal
+  };
+  const payRec = {
+    ...saleRec,
     bayar,
     kembalian: isCash ? (bayar - totalHarga) : 0,
     metodeBayar: payMethod,
     buktiBayar,
     catatanBayar,
     waktu: Date.now()
-  });
+  };
+  const resumedId = getResumedHeldId();
+  let saleId = null;
+  if (resumedId) {
+    try {
+      saleId = await payHeldSync(resumedId, payRec);
+    } catch (e) {
+      console.warn('[POS] payHeldSync gagal, simpan sebagai penjualan baru:', e?.message || e);
+      saleId = null;
+    }
+  }
+  if (!saleId) saleId = await simpanPenjualanSync(payRec);
+  setResumedHeldId(null);
 
   // Kurangi stok untuk item titipan yang pakaiStok. Re-read stok dari DB
   // untuk hindari decrement dari snapshot cart yang mungkin sudah stale
@@ -599,10 +652,16 @@ export async function simpanPenjualan(cetakJuga = false) {
   closeCartModal();
   renderCartBar();
   renderPOSMenu();
+  // v154: kalau cart tadi hasil buka pesanan ditahan, row-nya baru saja jadi
+  // completed → badge FAB held harus disegarkan (jalur manual: count tidak
+  // berubah, panggilan ini tetap murah & aman).
+  try { const _nh = await countHeldSync(); await updateHeldFab(_nh); } catch (_) {}
   showToast('✅ Penjualan tersimpan!');
   showAfterSaleActions();
-  // "Simpan & Cetak": langsung cetak nota via printer Bluetooth setelah tersimpan
-  if (cetakJuga) {
+  // v152 komentar browser: "Bayar" = simpan transaksi lalu TANYA cetak nota
+  // atau tidak. "Tidak" → flow selesai (cart modal sudah ditutup, kembali ke
+  // katalog). "Cetak" → lanjut flow cetak nota yang sudah ada (printLastNota).
+  const doPrintNota = async () => {
     try {
       const { printLastNota } = await import('./printer.js');
       await printLastNota();
@@ -610,5 +669,10 @@ export async function simpanPenjualan(cetakJuga = false) {
       console.error('[POS] cetak setelah simpan:', e?.message || e);
       showToast('Nota tersimpan, tapi cetak gagal: ' + (e?.message || 'error'), 'error');
     }
+  };
+  if (cetakJuga === 'ask' && typeof window.showConfirm === 'function') {
+    window.showConfirm('🧾', 'Transaksi tersimpan. Cetak nota sekarang?', '🖨️ Cetak', () => { doPrintNota(); }, 'Tidak');
+  } else if (cetakJuga) {
+    await doPrintNota();
   }
 }

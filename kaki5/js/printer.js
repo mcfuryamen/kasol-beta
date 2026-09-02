@@ -462,8 +462,8 @@ function printNotaBrowser(sale, warungName, alamat = '') {
   if (catPrint) htmlParts.push('<tr><td>Catatan bayar</td><td class="kright">' + escapeHtml(catPrint) + '</td></tr>');
   htmlParts.push('<tr><td>Bayar</td><td class="kright">' + formatRp(safeNum(sale.bayar, 0)) + '</td></tr>');
   htmlParts.push('<tr><td>Kembali</td><td class="kright">' + formatRp(safeNum(sale.kembalian, 0)) + '</td></tr></table>');
-  // Foto bukti pembayaran non-tunai (QRIS/Transfer) — hanya di nota browser print
-  if (sale.buktiBayar) htmlParts.push('<div style="margin-top:8px"><b>Bukti pembayaran:</b><br><img src="' + sale.buktiBayar + '" style="max-width:280px;border-radius:8px"></div>');
+  // v159 (permintaan pemilik): foto bukti pembayaran TIDAK dicetak di nota.
+  // Bukti tetap tersimpan di record penjualan dan tetap tampil di detail transaksi.
   htmlParts.push('<hr>');
   htmlParts.push('<p class="footer">Terima kasih! Semoga berkah<br><span style="font-size:10px;color:#666">Kasir Solo - Kaki Lima</span></p>');
   htmlParts.push('</body></html>');

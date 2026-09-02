@@ -1,10 +1,8 @@
 {
-  "version": "1.0.83",
-  "cacheBust": "v151",
+  "version": "1.0.91",
+  "cacheBust": "v159",
   "notes": [
-    "🤚 Tahan makin cepat: tombol Tahan kini ada di header modal keranjang (sebelah kiri tombol kosongkan), selain di cart bar. Membuka pesanan ditahan lain saat keranjang masih terisi sekarang diberi peringatan untuk menyimpan dulu pesanan yang sedang dibuka.",
-    "🔎 Pesanan Ditahan: kotak pencarian live (catatan, nomor transaksi, nama menu, tipe), tombol 'Buka' dihapus — ketuk kartunya langsung; tombol hapus jadi lingkaran outline merah.",
-    "💳 Pembayaran lebih jelas: tombol 'Simpan' → 'Bayar', 'Simpan & Cetak' → 'Bayar & Cetak'. Default metode bayar: Tunai untuk dine-in/take-away, QRIS otomatis hanya untuk ojol. Catatan pesanan ditahan otomatis tampil saat kartunya dibuka.",
-    "🎨 Pengaturan: 'Cek Data Online' pindah ke kartu Perangkat; bar kuota transaksi gratis kini oranye brand."
+    "🧾 Nota cetak tidak lagi melampirkan foto bukti pembayaran QRIS/Transfer. Bukti tetap tersimpan di data transaksi dan tetap tampil di halaman detail transaksi.",
+    "🛵 Perbaikan harga per tipe pesanan (v158): Dine-in & Take-away selalu harga jual, Ojol selalu harga ojol; resume pesanan ditahan ikut memulihkan tipenya; detail transaksi ojol tampil harga ojol per baris."
   ]
 }

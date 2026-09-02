@@ -167,9 +167,13 @@ export function hitungKembalianLogic(total, bayar) {
   return Math.max(0, bayar - total);
 }
 
-export function calculateTotal(cart, ojolPlatform = '') {
+// orderType (v158): tipe pesanan AKTIF = sumber kebenaran untuk SELURUH keranjang.
+// Dulu tiap item membawa orderType-nya sendiri, jadi item yang masuk saat mode
+// Ojol tetap dihitung dengan harga ojol setelah kasir pindah ke Dine-in, dan
+// sebaliknya. Param null/undefined → fallback ke flag per-item (data lama).
+export function calculateTotal(cart, ojolPlatform = '', orderType = null) {
   return Object.values(cart).reduce((sum, item) => {
-    const isOjol = item.orderType === 'ojol';
+    const isOjol = orderType == null ? item.orderType === 'ojol' : orderType === 'ojol';
     const baseHarga = isOjol ? getOjolPrice(item.menu, ojolPlatform) : item.menu.hargaJual;
     // Σ (harga topping × qty topping) — qty per-topping independen
     const topSum = toppingHarga(item);
@@ -188,7 +192,11 @@ export function countItems(cart) {
 // Total satu baris item. Bekerja untuk cart item (dengan item.menu.*) maupun
 // sale record (item.hargaJual/hargaOjol flat). Dipakai oleh trx detail & nota.
 export function lineTotal(item, orderType = null, ojolPlatform = '') {
-  const ojolActive = orderType === 'ojol' || item.orderType === 'ojol';
+  // v158: orderType EKSPLISIT menang atas flag per-item. Cart selalu mengirim
+  // tipe aktif di halaman Jualan → Dine-in/Take-away tidak lagi kebagian harga
+  // ojol cuma karena item-nya dulu masuk saat mode Ojol. Tanpa param (sale
+  // record flat) → ikuti flag record/item seperti sebelumnya.
+  const ojolActive = orderType == null ? item.orderType === 'ojol' : orderType === 'ojol';
   const hargaJual = item.hargaJual ?? item.menu?.hargaJual ?? 0;
   // Cart item (menu lengkap): harga ikut app terpilih (order-follow).
   // Sale record flat (tanpa menu): hargaOjol tersimpan = harga efektif saat transaksi.

@@ -17,9 +17,11 @@ export const loadBeranda = withPageLoading('recentTrx', async function () {
   // Tiga query independen dijalankan barengan (bukan ngantri) — total waktu =
   // query terlama, bukan jumlahnya.
   const [penjualan, pengeluaran, all] = await Promise.all([
-    DB.penjualan.where('tanggal').equals(tgl).toArray(),
+    // v156: row status 'held' (pesanan ditahan) BUKAN penjualan — jangan ikut
+    // omzet/transaksi/porsi di ringkasan hari ini maupun daftar transaksi terakhir.
+    DB.penjualan.where('tanggal').equals(tgl).toArray().then(rows => rows.filter(s => s.status !== 'held')),
     DB.pengeluaran.where('tanggal').equals(tgl).toArray(),
-    DB.penjualan.orderBy('id').reverse().limit(5).toArray()
+    DB.penjualan.orderBy('id').reverse().filter(s => s.status !== 'held').limit(5).toArray()
   ]);
 
   const omzet = penjualan.reduce((s, p) => s + (p.totalHarga || 0), 0);

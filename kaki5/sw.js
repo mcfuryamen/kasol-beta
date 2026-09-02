@@ -1,21 +1,51 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v151 — ubah angka INI juga setiap swap (harus sama dengan
+// Cache version v159 — ubah angka INI juga setiap swap (harus sama dengan
 // CACHE_NAME di bawah; baris ini tertinggal di v119 selama belasan rilis
 // dan bikin salah baca seolah CACHE_NAME tidak di-bump).
-// v151: polish UI dari komentar browser — baris "Cek Data Online" pindah ke
-//       kartu Perangkat di Pengaturan; bar kuota lisensi jadi oranye brand
-//       (hapus override hijau inline); modal Pesanan Ditahan dapat kotak
-//       PENCARIAN live (catatan/nomor/menu/tipe); tombol "Buka" dihapus —
-//       seluruh kartu held yang diklik untuk membuka pesanan; tombol hapus
-//       held jadi lingkaran outline merah; tombol Tahan ditambah di header
-//       modal keranjang (kiri tombol kosongkan, aksi hold-cart, modal
-//       keranjang ditutup dulu); label "Simpan"/"Simpan & Cetak" jadi
-//       "Bayar"/"Bayar & Cetak"; default bayar Tunai utk dine-in/take-away
-//       (QRIS otomatis hanya ojol); resume held menampilkan catatan yang
-//       sudah diinput (orderNote || heldName); konfirmasi buka held saat
-//       cart terisi kini mengingatkan SIMPAN/TAHAN dulu.
+// v159: nota cetak TIDAK lagi melampirkan foto bukti pembayaran QRIS/Transfer
+//       (permintaan pemilik). Foto tetap tersimpan di record penjualan dan tetap
+//       tampil di halaman detail transaksi; jalur printer thermal memang teks
+//       saja jadi tidak pernah menyertakan foto.
+// v158: FIX harga per tipe pesanan — Dine-in & Take-away SELALU pakai harga
+//       jual, Ojol SELALU pakai harga ojol. Tipe pesanan aktif jadi satu-satunya
+//       sumber kebenaran: item yang masuk saat mode Ojol tidak lagi terbawa
+//       harga ojol ke pesanan Dine-in (cart bar, total keranjang, & total
+//       tersimpan), pesanan ojol hasil buka-tahan tidak lagi dihitung dengan
+//       harga jual, dan detail transaksi ojol menampilkan harga ojol per baris.
+// v157: gelombang komentar keenam — kartu held: baris catatan ganda DIHAPUS
+//       (judul sudah memuatnya) & total sejajar vertikal tombol hapus; dialog
+//       cetak nota: "Batal" → "Tidak" (cancelText per-dialog di showConfirm);
+//       riwayat laporan: isi catatan pindah ke baris sendiri.
+// v156: FIX laporan — row status 'held' (pesanan ditahan) tidak lagi ikut
+//       terhitung sebagai penjualan di Laporan (omzet/transaksi/porsi/riwayat/
+//       titipan), ringkasan Beranda, daftar transaksi terakhir, dan retur
+//       konsinyasi.
+// v155: modal input catatan "Tahan" DIHAPUS — tombol Tahan di footer keranjang
+//       auto size & langsung menyimpan pesanan ditahan memakai catatan yang
+//       sudah terisi (kosong → toast peringatan); "Bayar" mengisi sisa lebar
+//       sehingga lebih panjang dari "Tahan".
+// v154: MODEL BARU pesanan ditahan — buka held TIDAK menghapus row-nya; pindah
+//       antar held = ganti cart OTOMATIS (peringatan hanya utk cart manual);
+//       bayar memakai nomor TRX asli (payHeldSync); tahan ulang = perbarui row
+//       yang sama (updateHeldSync). Tombol tutup daftar held jadi "Kembali"
+//       oranye.
+// v153: gelombang komentar browser ketiga — tombol "Tahan" di cart bar bawah
+//       DIHAPUS (aksi tahan cukup dari footer modal keranjang sejak v152);
+//       #cartBar wrapper tetap, .cart-bar-inner flex:1 sehingga keranjang
+//       kembali melebar penuh.
+// v152: gelombang komentar browser kedua — footer modal keranjang dirombak:
+//       tombol utama jadi "Tahan" (aksi hold-cart; tombol Tahan header
+//       v151 dihapus karena rangkap) dan "Bayar" menyimpan transaksi lalu
+//       MENANYAKAN cetak nota atau tidak (tidak → selesai & kembali ke
+//       katalog; ya → flow printLastNota). Klik kartu Pesanan Ditahan
+//       membuka modal keranjang berisi produk pesanan (sudah ada v151,
+//       diverifikasi ulang).
+// v151: polish UI — "Cek Data Online" ke kartu Perangkat; bar kuota oranye;
+//       pencarian live + kartu clickable + hapus lingkaran merah di Pesanan
+//       Ditahan; default bayar Tunai (QRIS hanya ojol); resume bawa catatan;
+//       warning simpan-dulu saat ganti pesanan.
 // v150: PENOMORAN TRANSAKSI — tiap transaksi (penjualan/held=TRX, pemasukan=MSK,
 //       pengeluaran=BLJ) dapat nomor PREFIX-YYYYMMDD-NNN, urut harian, dihitung
 //       dari data tersimpan (modul baru nomor.js). Tampil di nota (thermal &
@@ -47,7 +77,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v151';
+const CACHE_NAME = 'kasir-solo-kaki5-v159';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

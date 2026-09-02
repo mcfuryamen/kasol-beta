@@ -49,7 +49,7 @@ let _pengeluaranModule = null;
 let _berandaModule = null;
 
 // Wire page modules on first use
-const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', clearCart: 'clearCart', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput', pickOjolPlatform: 'pickOjolPlatform', setPaymentMethod: 'setPaymentMethod', capturePayProof: 'capturePayProof', handlePayProofFile: 'handlePayProofFile', removePayProof: 'removePayProof', holdOrder: 'holdOrder', holdOrderWithNote: 'holdOrderWithNote', submitHoldNote: 'submitHoldNote', cancelHoldNote: 'cancelHoldNote', openHeldListModal: 'openHeldListModal', resumeHeldOrder: 'resumeHeldOrder', deleteHeldOrder: 'deleteHeldOrder', refreshHeldFab: 'refreshHeldFab' };
+const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', clearCart: 'clearCart', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput', pickOjolPlatform: 'pickOjolPlatform', setPaymentMethod: 'setPaymentMethod', capturePayProof: 'capturePayProof', handlePayProofFile: 'handlePayProofFile', removePayProof: 'removePayProof', holdOrder: 'holdOrder', holdOrderWithNote: 'holdOrderWithNote', openHeldListModal: 'openHeldListModal', resumeHeldOrder: 'resumeHeldOrder', deleteHeldOrder: 'deleteHeldOrder', refreshHeldFab: 'refreshHeldFab' };
 const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu', addCustomSuplayer: 'addCustomSuplayer', addCustomKategori: 'addCustomKategori', pickKategori: 'pickKategori', pickSuplayer: 'pickSuplayer', syncPakaiStokToggle: 'syncPakaiStokToggle', openReturModal: 'openReturModal', closeReturModal: 'closeReturModal', confirmRetur: 'confirmRetur', openKonsinyasiRetur: 'openKonsinyasiRetur' };
 const _laporanWireMap = { __wired: false, loadReport: 'loadReport', setReportPeriod: 'setReportPeriodUI', setReportPeriodUI: 'setReportPeriodUI', navReportDate: 'navReportDate', toggleExpenseCat: 'toggleExpenseCat', setCustomDate: 'setCustomDate', toggleCustomPicker: 'toggleCustomPicker', pickDate: 'pickDate', pickWeek: 'pickWeek', pickMonth: 'pickMonth', pickCustomDate: 'pickCustomDate' };
 const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaUsaha: 'saveNamaUsaha', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification', savePayOptions: 'savePayOptions' };
@@ -527,26 +527,15 @@ function handleDataAction(action, el, event) {
       if (window.closeCartModal) window.closeCartModal();
       break;
     case 'hold-cart': {
-      // v149: tahan cart aktif → modal input catatan WAJIB → simpan ke
-      // penjualan.status='held' (heldName = catatan), kosongkan cart.
+      // v155: modal catatan DIHAPUS — "Tahan" langsung menyimpan pesanan
+      // ditahan memakai catatan yang sudah terisi di keranjang. Catatan
+      // kosong → toast peringatan (keranjang sengaja TIDAK ditutup dulu
+      // supaya user bisa langsung mengisi).
       // stopPropagation supaya klik tombol tidak ikut buka modal keranjang.
       try { event?.stopPropagation?.(); event?.preventDefault?.(); } catch (_) {}
-      // v151 komentar browser: kalau dipicu dari header modal keranjang,
-      // tutup dulu modal keranjang — holdNoteModal ada lebih awal di DOM dan
-      // akan tertutup overlay cartModal kalau dibiarkan terbuka.
-      const _cm = document.getElementById('cartModal');
-      if (_cm && (_cm.classList.contains('open') || _cm.classList.contains('show')) && window.closeCartModal) {
-        window.closeCartModal();
-      }
       if (window.holdOrderWithNote) window.holdOrderWithNote().catch(e => console.error('[hold-cart]', e));
       break;
     }
-    case 'confirm-hold-note':
-      if (window.submitHoldNote) window.submitHoldNote();
-      break;
-    case 'cancel-hold-note':
-      if (window.cancelHoldNote) window.cancelHoldNote();
-      break;
     case 'open-held-list':
       if (window.openHeldListModal) window.openHeldListModal();
       break;
@@ -587,11 +576,10 @@ function handleDataAction(action, el, event) {
       );
       break;
     }
-    case 'save-sale':
-      if (window.simpanPenjualan) window.simpanPenjualan();
-      break;
     case 'save-sale-print':
-      if (window.simpanPenjualan) window.simpanPenjualan(true);
+      // v152 komentar browser: tombol "Bayar" = simpan transaksi lalu tawarkan
+      // cetak nota atau tidak ('ask' ditangani di pos.simpanPenjualan).
+      if (window.simpanPenjualan) window.simpanPenjualan('ask');
       break;
     case 'switch-order-type': {
       const tipe = (el.closest?.('[data-tipe]') || {}).dataset?.tipe || 'dine-in';

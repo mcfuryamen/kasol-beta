@@ -116,14 +116,11 @@
 <div class="menu-grid" id="posMenuGrid"></div>
 
 <!-- Keranjang floating — styling di css/style.css (#cartBar), JS toggle display.
-     v149: #cartBar jadi WRAPPER transparan (flex row). Tombol "Tahan" DI LUAR
-     kontainer hijau, di SEBELAH KIRI, sejajar vertikal dengan tombol keranjang
-     (permintaan komentar browser). Kontainer hijau = .cart-bar-inner, tetap
-     tombol buka keranjang (data-action="open-cart"). -->
+     v153: tombol "Tahan" di cart bar DIHAPUS (aksi tahan sudah pindah ke footer
+     modal keranjang sejak v152). #cartBar wrapper flex tetap, isinya hanya
+     .cart-bar-inner (kontainer hijau = tombol buka keranjang,
+     data-action="open-cart") sehingga keranjang kembali melebar penuh. -->
 <div id="cartBar">
-<button type="button" class="btn-hold-cart" data-action="hold-cart" title="Tahan pesanan — simpan dulu, bayar nanti" aria-label="Tahan pesanan">
-  🤚 <span class="btn-hold-cart-label">Tahan</span>
-</button>
 <div class="cart-bar-inner" data-action="open-cart">
 <div class="kflex-between">
 <div class="kflex-gap10">
@@ -151,25 +148,7 @@
 <input type="text" id="heldSearchInput" class="held-search-input" placeholder="🔍 Cari catatan, nomor, atau menu..." autocomplete="off">
 <div id="heldListBody"></div>
 <div class="btn-row kmt12">
-  <button type="button" class="btn btn-secondary btn-sm btn-icon" data-action="close-held-list" title="Tutup" aria-label="Tutup">✕</button>
-</div>
-</div>
-</div>
-
-<!-- Modal input catatan saat Tahan (v149): WAJIB isi catatan identifikasi supaya
-     pesanan yang ditahan mudah dibedakan. Confirm/cancel → pos.ui submitHoldNote/
-     cancelHoldNote (di-wire app.js). Esc/backdrop → resolve(null) via observer. -->
-<div class="modal-overlay" id="holdNoteModal" role="dialog" aria-modal="true" aria-labelledby="holdNoteTitle">
-<div class="modal hold-note-modal">
-<div class="modal-handle"></div>
-<div class="modal-title" id="holdNoteTitle">🤚 Tahan Pesanan</div>
-<div class="hold-note-summary" id="holdNoteSummary"></div>
-<label class="hold-note-label" for="holdNoteInput">Catatan identifikasi <span class="hold-note-req">*</span></label>
-<input type="text" id="holdNoteInput" class="hold-note-input" maxlength="60" placeholder="Mis. Meja 3 · Budi · Ojol #42" autocomplete="off">
-<div class="hold-note-err" id="holdNoteErr" hidden>Catatan wajib diisi — biar pesanan yang ditahan gampang dibedakan.</div>
-<div class="btn-row kmt12">
-  <button type="button" class="btn btn-secondary" data-action="cancel-hold-note">Batal</button>
-  <button type="button" class="btn btn-primary" data-action="confirm-hold-note">🤚 Tahan</button>
+  <button type="button" class="btn btn-orange" data-action="close-held-list" title="Kembali" aria-label="Kembali">Kembali</button>
 </div>
 </div>
 </div>
@@ -401,11 +380,6 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="cartOrderTypeHeader" class="cart-order-head">
   <div class="cart-order-type-row">
     <div class="cart-order-type" id="cartOrderTypeLabel"></div>
-    <!-- v151 komentar browser: tombol Tahan di header modal keranjang, di
-         SEBELAH KIRI tombol kosongkan — reuse aksi 'hold-cart' (modal catatan
-         wajib → tahan). Modal keranjang ditutup dulu di app.js supaya modal
-         catatan (DOM lebih awal) tidak tertutup overlay. -->
-    <button class="btn-hold-cart-modal" data-action="hold-cart" aria-label="Tahan pesanan" title="Tahan pesanan — simpan dulu, bayar nanti">🤚 Tahan</button>
     <!-- Tombol kosongkan keranjang (komentar browser v147): hapus semua item,
          reset catatan global, reset bukti bayar. Konfirmasi dulu via showConfirm. -->
     <button class="btn-clear-cart" data-action="clear-cart" aria-label="Kosongkan keranjang" title="Kosongkan keranjang">🗑️</button>
@@ -466,8 +440,8 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 <div class="btn-row kmt12">
 <button class="btn btn-secondary btn-sm btn-icon" data-action="close-cart" title="Batal">✕</button>
-<button class="btn btn-primary" data-action="save-sale">Bayar</button>
-<button class="btn btn-green" data-action="save-sale-print">🖨️ Bayar &amp; Cetak</button>
+<button class="btn btn-primary" data-action="hold-cart">🤚 Tahan</button>
+<button class="btn btn-green" data-action="save-sale-print">Bayar</button>
 </div>
 <div id="afterSaleActions" style="display:none;margin-top:8px">
 <button class="btn btn-primary" data-action="print-last-nota">🖨️ Cetak Nota</button>
@@ -795,7 +769,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="confirm-icon" id="confirmIcon">⚠️</div>
 <div class="confirm-text" id="confirmText">Yakin?</div>
 <div class="btn-row">
-<button class="btn btn-secondary btn-sm" data-action="close-confirm">Batal</button>
+<button class="btn btn-secondary btn-sm" id="confirmNo" data-action="close-confirm">Batal</button>
 <button class="btn btn-red btn-sm" id="confirmYes">Ya, Hapus</button>
 </div>
 </div>
@@ -912,7 +886,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=151"></script>
+  <script type="module" src="js/app.js?v=159"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

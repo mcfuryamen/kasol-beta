@@ -715,7 +715,7 @@ export async function openKonsinyasiRetur(sp) {
   // Keluar efektif = penjualan tercatat (lifetime) + akumulasi selisih dari
   // retur-retur sebelumnya. Est. sisa = stokAwal − keluar.
   const terjualMap = {};
-  (await DB.penjualan.toArray()).forEach(s => {
+  (await DB.penjualan.toArray()).filter(s => s.status !== 'held').forEach(s => { // v156: held belum terjual
     (s.items || []).forEach(i => { terjualMap[i.menuId] = (terjualMap[i.menuId] || 0) + (i.qty || 0); });
   });
   const keluarMap = {};

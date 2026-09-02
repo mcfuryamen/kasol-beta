@@ -62,6 +62,9 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .btn-primary:active{background:var(--primary-dark);transform:scale(.97)}
 .btn-green{background:var(--green);color:#fff}
 .btn-secondary{border:2px solid var(--primary);color:var(--primary);background:transparent}
+/* v154: varian oranye (senada FAB held) — dipakai tombol "Kembali" daftar held */
+.btn-orange{background:var(--orange,#ff8a3d);color:#fff}
+.btn-orange:active{filter:brightness(.92);transform:scale(.97)}
 .btn-green:active{background:#1B5E20;transform:scale(.97)}
 .btn-red{background:var(--red);color:#fff}
 .btn-red:active{background:#8E0000;transform:scale(.97)}
@@ -92,14 +95,16 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 /* menuSelectorModal: Batal kecil (auto), Tambah ke Keranjang full-width */
 #menuSelectorModal .btn-row .btn:first-child{flex:0;width:auto;min-width:80px}
 
-/* cartModal footer: Batal & Simpan sama besar (bagi sisa area), Simpan & Cetak auto size */
+/* cartModal footer (v155): ✕ lingkaran merah tetap; "Tahan" auto size mengikuti
+   label; "Bayar" mengisi sisa area sehingga LEBIH PANJANG dari "Tahan". */
 #cartModal .btn-row .btn{flex:1 1 0;width:auto}
 /* Komentar browser #2 (v146): tombol ✕ batal di keranjang jadi lingkaran merah.
    height/min-height dipin di sini supaya tidak kalah dari .btn{min-height:…}
    di media query (specificity 0,1,0) pada breakpoint lain. */
 #cartModal .btn-row [data-action="close-cart"]{flex:0 0 auto;width:48px;height:48px;min-height:48px;border-radius:50%;background:var(--red);border-color:var(--red);color:#fff}
 #cartModal .btn-row [data-action="close-cart"]:active{background:#8E0000;border-color:#8E0000}
-#cartModal .btn-row [data-action="save-sale-print"]{flex:0 0 auto;width:auto}
+#cartModal .btn-row [data-action="hold-cart"]{flex:0 0 auto;width:auto;padding:0 20px}
+#cartModal .btn-row [data-action="save-sale-print"]{flex:1 1 0;width:auto}
 
 /* FAB */
 .fab{position:fixed;bottom:calc(var(--nav-h) + 16px);right:16px;width:64px;height:64px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:32px;cursor:pointer;box-shadow:0 4px 16px rgba(230,81,0,.4);z-index:50;display:flex;align-items:center;justify-content:center;transition:transform .2s,background-color .2s,box-shadow .2s}
@@ -741,19 +746,13 @@ button,[role="button"]{touch-action:manipulation}
 /* === P1 audit 2026-08-22 — paritas components-modal.css & components-cart.css === */
 #licenseGate{display:none;position:fixed;inset:0;background:var(--bg);z-index:500;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
 body.modal-open .main-content{overflow:hidden}
-/* v149: #cartBar = WRAPPER transparan (flex row) — Tahan di kiri, keranjang
-   hijau di kanan, sejajar vertikal (tinggi sama rata via align-items:stretch).
+/* v153: #cartBar = WRAPPER transparan (flex row). Tombol "Tahan" cart-bar sudah
+   DIHAPUS (aksi tahan pindah ke footer modal keranjang sejak v152) — isi wrapper
+   hanya .cart-bar-inner (flex:1 → keranjang kembali melebar penuh).
    JS toggle display:flex/none (renderCartBar). */
 #cartBar{display:none;position:fixed;bottom:calc(var(--nav-h) + 8px);left:8px;right:8px;max-width:90%;margin:0 auto;background:transparent;color:#fff;border-radius:0;padding:0;z-index:50;align-items:stretch;gap:10px}
 /* Kontainer hijau keranjang (dulu #cartBar) — tetap tombol buka modal cart. */
 .cart-bar-inner{flex:1 1 auto;min-width:0;background:var(--green);color:#fff;border-radius:16px;padding:14px 20px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3)}
-/* Tombol "Tahan" (v149): DI LUAR kontainer hijau, berdiri sendiri di kiri,
-   sejajar vertikal dengan keranjang. Oranye senada FAB held biar kebaca "aksi
-   tahan" & tegas beda dari hijau keranjang. Stop-propagation di handler app.js. */
-.btn-hold-cart{flex:0 0 auto;background:var(--orange,#ff8a3d);color:#fff;border:none;border-radius:16px;padding:0 18px;font-weight:800;font-size:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.28);transition:filter .15s ease,transform .1s ease}
-.btn-hold-cart:hover,.btn-hold-cart:focus{filter:brightness(1.06);outline:none}
-.btn-hold-cart:active{transform:translateY(1px)}
-.btn-hold-cart-label{font-weight:800}
 /* FAB "Tahan" (v148): pojok kanan bawah di atas cart. Default hidden (display:none)
    sampai class `.show` ditambah oleh updateHeldFab(). Badge counter di pojok
    kanan-atas (lingkaran merah kecil seperti FAB Material). */
@@ -775,8 +774,9 @@ body.modal-open .main-content{overflow:hidden}
 .held-row-total{font-weight:800;color:var(--primary,#2563eb);font-size:15px}
 .held-row-meta{font-size:12px;color:var(--text2,#555);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .held-row-time{font-size:11px;color:var(--text2,#888)}
-.held-row-note{font-size:11px;color:var(--text2,#555);margin-top:2px;font-style:italic}
-.held-row-actions{display:flex;flex-direction:column;gap:6px;justify-content:center}
+/* v157 komentar #1: .held-row-note DIHAPUS — baris catatan tak lagi dirender (sudah ada di judul kartu) */
+/* v157 komentar #2: total dipindah ke kolom aksi, SEJAJAR tombol hapus (center vertikal) */
+.held-row-actions{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:10px;flex:0 0 auto}
 /* v151 komentar browser: tombol hapus held = lingkaran rasio 1:1 outline merah
    (satu bahasa visual dengan .btn-clear-cart di header keranjang). */
 .held-row-delete{width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;transition:background-color .15s,color .15s}
@@ -789,17 +789,6 @@ body.modal-open .main-content{overflow:hidden}
 /* v151 komentar browser #3: kotak pencarian di modal daftar held. */
 .held-search-input{width:100%;box-sizing:border-box;padding:11px 14px;font-size:15px;border:1.5px solid var(--border,#ccc);border-radius:12px;background:var(--bg,#fff);color:var(--text,#111);margin:10px 0}
 .held-search-input:focus{outline:none;border-color:var(--orange,#ff8a3d)}
-/* Modal input catatan "Tahan" (v149): catatan identifikasi WAJIB. */
-.hold-note-modal{max-width:420px}
-.hold-note-summary{font-size:14px;color:var(--text2,#666);margin:2px 0 16px;text-align:center;font-weight:700}
-.hold-note-label{display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text,#111)}
-.hold-note-req{color:#e23b3b}
-.hold-note-input{width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border:1.5px solid var(--border,#ccc);border-radius:12px;background:var(--bg,#fff);color:var(--text,#111)}
-.hold-note-input:focus{outline:none;border-color:var(--orange,#ff8a3d)}
-.hold-note-err{font-size:12px;color:#e23b3b;margin-top:6px}
-.hold-note-input.shake{animation:holdNoteShake .3s}
-@keyframes holdNoteShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-@media(max-width:380px){.btn-hold-cart-label{display:none}.btn-hold-cart{padding:0 12px}}
 
 /* =========================================
    KSR UTILITIES (P4 2026-08-22)
@@ -1016,10 +1005,6 @@ body.modal-open .main-content{overflow:hidden}
 .btn-clear-cart{flex:0 0 auto;width:36px;height:36px;border-radius:50%;border:1px solid var(--red);background:#fff;color:var(--red);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:background-color .15s,color .15s}
 .btn-clear-cart:hover,.btn-clear-cart:focus-visible{background:var(--red);color:#fff;outline:none}
 .btn-clear-cart:active{transform:scale(.96)}
-/* v151 komentar browser: tombol Tahan di header modal keranjang — pill oranye
-   ringkas sejajar tinggi (36px) dgn tombol kosongkan. Aksi: hold-cart (v149). */
-.btn-hold-cart-modal{flex:0 0 auto;height:36px;padding:0 12px;border:none;border-radius:999px;background:var(--orange,#ff8a3d);color:#fff;font-weight:800;font-size:13px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-.btn-hold-cart-modal:active{transform:scale(.96)}
 .cart-global-note{width:100%;font-size:13px;font-weight:600;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--text)}
 .cart-global-note::placeholder{color:var(--text3);font-weight:500}
 .cart-global-note:focus{outline:none;border-color:var(--primary)}

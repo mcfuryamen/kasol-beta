@@ -84,7 +84,9 @@ export async function loadReport() {
       dateRange = { start: customStart, end: customEnd };
     }
 
-    const sales = await DB.penjualan.where('tanggal').between(dateRange.start, dateRange.end, true, true).toArray();
+    // v156: kecualikan row status 'held' — pesanan ditahan BELUM terjual,
+    // jangan ikut omzet/transaksi/porsi/riwayat (bug lama sejak fitur held).
+    const sales = (await DB.penjualan.where('tanggal').between(dateRange.start, dateRange.end, true, true).toArray()).filter(s => s.status !== 'held');
     const expenses = await DB.pengeluaran.where('tanggal').between(dateRange.start, dateRange.end, true, true).toArray();
 
   // Pemasukan lain disimpan di tabel yang sama dengan jenis:'pemasukan' —
@@ -299,7 +301,7 @@ export async function loadReport() {
   const titipan = allMenus.filter(m => m.suplayer && m.suplayer !== 'Umum');
   if (titipan.length > 0) {
     // Terjual SEJAK AWAL — dasar utang ke suplayer.
-    const allSales = await DB.penjualan.toArray();
+    const allSales = (await DB.penjualan.toArray()).filter(s => s.status !== 'held'); // v156: held belum terjual
     const terjualAllPerMenu = {};
     allSales.forEach(s => {
       (s.items || []).forEach(i => { terjualAllPerMenu[i.menuId] = (terjualAllPerMenu[i.menuId] || 0) + (i.qty || 0); });
@@ -420,12 +422,12 @@ export async function loadReport() {
         <div id="${tglId}" class="trx-day-panel" style="display:${isOpen ? 'block' : 'none'};padding-left:8px;border-left:2px solid var(--orange-bg);margin-bottom:8px">`;
       items.forEach(s => {
         const itemNames = s.items ? s.items.map(i => `${escapeHtml(i.nama)}×${i.qty}`).join(', ') : '';
-        const noteSub = s.orderNote ? ' · 📝 ' + escapeHtml(s.orderNote) : '';
+        const noteLine = s.orderNote ? `<div class="trx-sub">📝 ${escapeHtml(s.orderNote)}</div>` : ''; // v157 #4: isi catatan di baris baru
         const PAY_SHORT = { tunai: '💵', qris: '📱 QRIS', transfer: '🏦 Transfer' };
         const paySub = ' · ' + (PAY_SHORT[s.metodeBayar] || '💵');
         html += `<div class="trx-item trx-detail-item" data-id="${s.id}">
           <div class="trx-icon sale">🛒</div>
-          <div class="trx-info"><div class="trx-title">${itemNames}</div><div class="trx-sub">${s.nomor ? escapeHtml(s.nomor) + ' · ' : ''}${escapeHtml(formatTime(s.waktu))}${noteSub}${paySub}</div></div>
+          <div class="trx-info"><div class="trx-title">${itemNames}</div><div class="trx-sub">${s.nomor ? escapeHtml(s.nomor) + ' · ' : ''}${escapeHtml(formatTime(s.waktu))}${paySub}</div>${noteLine}</div>
           <div class="trx-amount green">${formatRp(s.totalHarga)}</div>
         </div>`;
       });

@@ -7,6 +7,12 @@ import { todayStr } from './helpers.js';
 // --- Cart --- // {menuId: {menu, qty, selectedToppings[], toppingQtys{}, orderType}}
 export let cart = {};
 
+// --- Held order yang SEDANG DIBUKA di cart (v154) --- //
+// Model baru: buka pesanan ditahan TIDAK menghapus row-nya — row tetap 'held'
+// sampai dibayar (payHeldSync → nomor TRX asli) atau ditahan ulang
+// (updateHeldSync → data row diperbarui). null = cart manual/bukan hasil buka.
+export let resumedHeldId = null;
+
 // --- Order type: dine-in | takeaway | ojol
 export let orderType = 'dine-in';
 
@@ -60,6 +66,13 @@ export let confirmState = { open: false, icon: '', text: '', btnText: '' };
 // ==================== SETTERS ====================
 export function setCart(value) {
   cart = value;
+}
+
+export function setResumedHeldId(value) {
+  resumedHeldId = (value === null || value === undefined || value === '') ? null : Number(value);
+}
+export function getResumedHeldId() {
+  return resumedHeldId;
 }
 
 export function setCurrentPage(value) {

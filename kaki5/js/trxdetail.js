@@ -28,7 +28,9 @@ export async function showTrxDetail(id) {
     html += '<table style="width:100%;border-collapse:collapse;font-size:14px">';
     html += '<tr style="background:#f5f5f5"><th class="kp10 kleft">Menu</th><th class="kp10 kcenter">Jml</th><th class="kp10 kright">Harga</th></tr>';
     s.items.forEach(i => {
-      const itemTotal = lineTotal(i);
+      // v158: kirim tipe pesanan record — transaksi Ojol menampilkan harga ojol
+      // tersimpan (sama seperti nota/printer), bukan harga jual.
+      const itemTotal = lineTotal(i, s.orderType || null);
       html += `<tr style="border-top:1px solid var(--border)"><td class="kp10 kfw600">${escapeHtml(i.nama)}`;
       // Topping list (dengan qty per-topping — sinkron dengan nota/cart via normalizeToppingQtys)
       if (Array.isArray(i.selectedToppings) && i.selectedToppings.length > 0) {
