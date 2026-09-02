@@ -148,6 +148,7 @@
 <div class="modal">
 <div class="modal-handle"></div>
 <div class="modal-title" id="heldListTitle">🤚 Pesanan Ditahan</div>
+<input type="text" id="heldSearchInput" class="held-search-input" placeholder="🔍 Cari catatan, nomor, atau menu..." autocomplete="off">
 <div id="heldListBody"></div>
 <div class="btn-row kmt12">
   <button type="button" class="btn btn-secondary btn-sm btn-icon" data-action="close-held-list" title="Tutup" aria-label="Tutup">✕</button>
@@ -268,6 +269,13 @@
 <div class="setting-info"><div class="s-title" id="pwaInstallTitle">Pasang Aplikasi</div><div class="s-desc" id="pwaInstallDesc">Buka kayak app native di HP</div></div>
 <div class="setting-arrow">›</div>
 </div>
+<!-- v151 komentar browser #1: "Cek Data Online" dipindah dari kartu Data &
+     Cadangan ke kartu Perangkat. -->
+<div class="setting-item" data-action="open-sync-diag">
+<div class="setting-icon kbg-orange">🩺</div>
+<div class="setting-info"><div class="s-title">Cek Data Online</div><div class="s-desc">Pastikan data usaha aman & tersimpan di server</div></div>
+<div class="setting-arrow">›</div>
+</div>
 </div>
 <div class="card">
 <div class="card-title">💾 Data & Cadangan</div>
@@ -290,11 +298,6 @@
 <div class="setting-item" data-action="cloud-restore-latest">
 <div class="setting-icon kbg-blue">☁️</div>
 <div class="setting-info"><div class="s-title">Pulihkan Cloud</div><div class="s-desc">Ambil cadangan terakhir dari server · 🔒 khusus lisensi aktif</div></div>
-<div class="setting-arrow">›</div>
-</div>
-<div class="setting-item" data-action="open-sync-diag">
-<div class="setting-icon kbg-orange">🩺</div>
-<div class="setting-info"><div class="s-title">Cek Data Online</div><div class="s-desc">Pastikan data usaha aman & tersimpan di server</div></div>
 <div class="setting-arrow">›</div>
 </div>
 <div class="setting-item" data-action="confirm-clear-all">
@@ -398,6 +401,11 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="cartOrderTypeHeader" class="cart-order-head">
   <div class="cart-order-type-row">
     <div class="cart-order-type" id="cartOrderTypeLabel"></div>
+    <!-- v151 komentar browser: tombol Tahan di header modal keranjang, di
+         SEBELAH KIRI tombol kosongkan — reuse aksi 'hold-cart' (modal catatan
+         wajib → tahan). Modal keranjang ditutup dulu di app.js supaya modal
+         catatan (DOM lebih awal) tidak tertutup overlay. -->
+    <button class="btn-hold-cart-modal" data-action="hold-cart" aria-label="Tahan pesanan" title="Tahan pesanan — simpan dulu, bayar nanti">🤚 Tahan</button>
     <!-- Tombol kosongkan keranjang (komentar browser v147): hapus semua item,
          reset catatan global, reset bukti bayar. Konfirmasi dulu via showConfirm. -->
     <button class="btn-clear-cart" data-action="clear-cart" aria-label="Kosongkan keranjang" title="Kosongkan keranjang">🗑️</button>
@@ -458,8 +466,8 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 <div class="btn-row kmt12">
 <button class="btn btn-secondary btn-sm btn-icon" data-action="close-cart" title="Batal">✕</button>
-<button class="btn btn-primary" data-action="save-sale">Simpan</button>
-<button class="btn btn-green" data-action="save-sale-print">🖨️ Simpan &amp; Cetak</button>
+<button class="btn btn-primary" data-action="save-sale">Bayar</button>
+<button class="btn btn-green" data-action="save-sale-print">🖨️ Bayar &amp; Cetak</button>
 </div>
 <div id="afterSaleActions" style="display:none;margin-top:8px">
 <button class="btn btn-primary" data-action="print-last-nota">🖨️ Cetak Nota</button>
@@ -904,7 +912,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=150"></script>
+  <script type="module" src="js/app.js?v=151"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

@@ -777,7 +777,18 @@ body.modal-open .main-content{overflow:hidden}
 .held-row-time{font-size:11px;color:var(--text2,#888)}
 .held-row-note{font-size:11px;color:var(--text2,#555);margin-top:2px;font-style:italic}
 .held-row-actions{display:flex;flex-direction:column;gap:6px;justify-content:center}
-.held-row-delete{color:#e23b3b}
+/* v151 komentar browser: tombol hapus held = lingkaran rasio 1:1 outline merah
+   (satu bahasa visual dengan .btn-clear-cart di header keranjang). */
+.held-row-delete{width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;transition:background-color .15s,color .15s}
+.held-row-delete:hover,.held-row-delete:focus-visible{background:var(--red);color:#fff;outline:none}
+.held-row-delete:active{transform:scale(.96)}
+/* v151 komentar browser #4+#5: seluruh kartu held bisa diklik (buka pesanan)
+   — kasih affordance pointer + feedback tekan seperti .menu-item. */
+.held-row{cursor:pointer}
+.held-row:active{background:var(--orange-bg,#fff3e0);transform:scale(.99)}
+/* v151 komentar browser #3: kotak pencarian di modal daftar held. */
+.held-search-input{width:100%;box-sizing:border-box;padding:11px 14px;font-size:15px;border:1.5px solid var(--border,#ccc);border-radius:12px;background:var(--bg,#fff);color:var(--text,#111);margin:10px 0}
+.held-search-input:focus{outline:none;border-color:var(--orange,#ff8a3d)}
 /* Modal input catatan "Tahan" (v149): catatan identifikasi WAJIB. */
 .hold-note-modal{max-width:420px}
 .hold-note-summary{font-size:14px;color:var(--text2,#666);margin:2px 0 16px;text-align:center;font-weight:700}
@@ -1005,6 +1016,10 @@ body.modal-open .main-content{overflow:hidden}
 .btn-clear-cart{flex:0 0 auto;width:36px;height:36px;border-radius:50%;border:1px solid var(--red);background:#fff;color:var(--red);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:background-color .15s,color .15s}
 .btn-clear-cart:hover,.btn-clear-cart:focus-visible{background:var(--red);color:#fff;outline:none}
 .btn-clear-cart:active{transform:scale(.96)}
+/* v151 komentar browser: tombol Tahan di header modal keranjang — pill oranye
+   ringkas sejajar tinggi (36px) dgn tombol kosongkan. Aksi: hold-cart (v149). */
+.btn-hold-cart-modal{flex:0 0 auto;height:36px;padding:0 12px;border:none;border-radius:999px;background:var(--orange,#ff8a3d);color:#fff;font-weight:800;font-size:13px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.btn-hold-cart-modal:active{transform:scale(.96)}
 .cart-global-note{width:100%;font-size:13px;font-weight:600;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--text)}
 .cart-global-note::placeholder{color:var(--text3);font-weight:500}
 .cart-global-note:focus{outline:none;border-color:var(--primary)}

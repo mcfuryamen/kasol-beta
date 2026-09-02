@@ -55,6 +55,8 @@ export function licenseStatusHtml(st, inputId) {
   const used = Math.max(0, quota - remaining);
   const pct = quota > 0 ? Math.min(100, Math.max(4, Math.round((remaining / quota) * 100))) : 0;
   const adj = Number(st.txAdjust) || 0;
+  // v151 komentar browser #2: bar kuota pakai oranye brand — override hijau
+  // inline dihapus, fallback ke gradient .license-progress span di style.css.
   return `
     <div class="card license-card-trial license-state-card">
       ${licenseSteps(1)}
@@ -64,7 +66,7 @@ export function licenseStatusHtml(st, inputId) {
         <span class="badge ${habis ? 'red' : (remaining <= 10 ? 'orange' : 'green')}">${habis ? 'Habis bulan ini' : 'Sisa ' + remaining + ' transaksi'}</span>
       </div>
       <div class="license-description">Setiap bulan kamu dapat <b>${quota} transaksi</b> gratis tanpa batas waktu — kuota segar lagi di awal bulan. Terpakai <b>${used}</b> bulan ini${adj ? ' · termasuk bonus admin ' + (adj > 0 ? '+' : '') + adj : ''}.</div>
-      <div class="license-progress"><span style="width:${pct}%;background:var(--green);animation:none"></span></div>
+      <div class="license-progress"><span style="width:${pct}%;animation:none"></span></div>
     </div>
     <div class="license-actions license-actions-row">
       <button class="btn btn-primary" data-action="open-purchase-sheet">💳 Beli Lisensi</button>

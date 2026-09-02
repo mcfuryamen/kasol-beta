@@ -1,9 +1,10 @@
 {
-  "version": "1.0.82",
-  "cacheBust": "v150",
+  "version": "1.0.83",
+  "cacheBust": "v151",
   "notes": [
-    "🔢 PENOMORAN TRANSAKSI (fitur baru): setiap transaksi kini punya nomor unik otomatis dengan format PREFIKS-JENIS + TANGGAL + URUT HARIAN. Penjualan & pesanan ditahan = TRX-YYYYMMDD-NNN, Pemasukan = MSK-YYYYMMDD-NNN, Pengeluaran = BLJ-YYYYMMDD-NNN. Urutan reset tiap hari dan tidak memakai ulang nomor transaksi yang dihapus.",
-    "🧾 Nomor tampil di mana-mana: di nota cetak (thermal & browser, baris 'No:'), daftar Riwayat Transaksi di Laporan, detail transaksi/pengeluaran, dan daftar pesanan ditahan. Pesanan yang ditahan lalu dibayar mempertahankan nomor aslinya (satu transaksi = satu nomor sejak ditahan).",
-    "♻️ Transaksi lama otomatis dinomori ulang saat aplikasi dibuka (backfill sekali jalan, urut berdasarkan waktu). Tidak ada perubahan skema DB — nomor disimpan sebagai field biasa."
+    "🤚 Tahan makin cepat: tombol Tahan kini ada di header modal keranjang (sebelah kiri tombol kosongkan), selain di cart bar. Membuka pesanan ditahan lain saat keranjang masih terisi sekarang diberi peringatan untuk menyimpan dulu pesanan yang sedang dibuka.",
+    "🔎 Pesanan Ditahan: kotak pencarian live (catatan, nomor transaksi, nama menu, tipe), tombol 'Buka' dihapus — ketuk kartunya langsung; tombol hapus jadi lingkaran outline merah.",
+    "💳 Pembayaran lebih jelas: tombol 'Simpan' → 'Bayar', 'Simpan & Cetak' → 'Bayar & Cetak'. Default metode bayar: Tunai untuk dine-in/take-away, QRIS otomatis hanya untuk ojol. Catatan pesanan ditahan otomatis tampil saat kartunya dibuka.",
+    "🎨 Pengaturan: 'Cek Data Online' pindah ke kartu Perangkat; bar kuota transaksi gratis kini oranye brand."
   ]
 }

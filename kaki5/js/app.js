@@ -531,6 +531,13 @@ function handleDataAction(action, el, event) {
       // penjualan.status='held' (heldName = catatan), kosongkan cart.
       // stopPropagation supaya klik tombol tidak ikut buka modal keranjang.
       try { event?.stopPropagation?.(); event?.preventDefault?.(); } catch (_) {}
+      // v151 komentar browser: kalau dipicu dari header modal keranjang,
+      // tutup dulu modal keranjang — holdNoteModal ada lebih awal di DOM dan
+      // akan tertutup overlay cartModal kalau dibiarkan terbuka.
+      const _cm = document.getElementById('cartModal');
+      if (_cm && (_cm.classList.contains('open') || _cm.classList.contains('show')) && window.closeCartModal) {
+        window.closeCartModal();
+      }
       if (window.holdOrderWithNote) window.holdOrderWithNote().catch(e => console.error('[hold-cart]', e));
       break;
     }

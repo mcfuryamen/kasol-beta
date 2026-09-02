@@ -441,9 +441,12 @@ export function toggleOrderType(tipe) {
   // Pesanan Ojol dibayar lewat aplikasi/QRIS, jadi metode bayar otomatis ikut
   // terpilih QRIS (permintaan 2026-09-01). setPaymentMethod sudah menjaga:
   // bila opsi QRIS dimatikan di Pengaturan, metode tidak dipaksa berubah.
-  // Saat pindah kembali ke Dine-in/Take-away pilihan kasir tidak ditimpa —
-  // dia mungkin memang melayani QRIS untuk makan di tempat.
+  // Saat pindah tipe, metode bayar ikut di-set default (v151 komentar browser):
+  // ojol → QRIS (dibayar lewat aplikasi), dine-in & take-away → Tunai.
+  // setPaymentMethod sudah menjaga: opsi yang dimatikan di Pengaturan tidak
+  // dipaksa berubah.
   if (tipe === 'ojol') setPaymentMethod('qris');
+  else setPaymentMethod('tunai');
   // Feedback visual: tombol tipe terpilih = primary, lainnya ghost
   const box = document.getElementById('orderTypeButtons');
   if (box) {
@@ -836,15 +839,44 @@ export async function updateHeldFab(n) {
 
 // ── Render modal daftar held (rows = array of penjualan.status='held') ──
 // UI murni: pos.js pre-fetch rows via listHeldSync, lalu panggil ini.
+// v151 komentar browser #3: baris di-cache di modul supaya input pencarian
+// bisa memfilter live tanpa query DB ulang; cache & input direset tiap modal dibuka.
+let _heldRowsCache = [];
 export function renderHeldListModal(rows) {
+  _heldRowsCache = rows || [];
+  const inp = document.getElementById('heldSearchInput');
+  if (inp) inp.value = '';
+  renderHeldRows();
+  openModal('heldListModal');
+}
+
+// Pencarian held (komentar browser #3): cocokkan catatan pesanan (heldName),
+// nomor transaksi, nama menu, catatan transaksi, dan tipe pesanan.
+function heldMatchesQuery(r, q) {
+  if (!q) return true;
+  const hay = [
+    r.heldName, r.nomor, r.orderNote,
+    (r.items || []).map(i => i.nama).join(' '),
+    r.orderType === 'ojol' ? 'ojol ' + (r.ojolPlatform || '')
+      : r.orderType === 'takeaway' ? 'take-away takeaway' : 'dine-in dine'
+  ].filter(Boolean).join(' ').toLowerCase();
+  return hay.includes(q);
+}
+
+function renderHeldRows() {
   const box = document.getElementById('heldListBody');
   if (!box) return;
-  if (!rows || rows.length === 0) {
+  if (_heldRowsCache.length === 0) {
     box.innerHTML = `<div class="empty-state"><div class="empty-icon">🤚</div><div class="empty-text">Belum ada pesanan yang ditahan.<br>Ketuk "Tahan" di cart bar untuk menyimpan pesanan yang belum dibayar.</div></div>`;
-  } else {
-    box.innerHTML = rows.map(r => renderHeldRow(r)).join('');
+    return;
   }
-  openModal('heldListModal');
+  const q = String(document.getElementById('heldSearchInput')?.value || '').trim().toLowerCase();
+  const rows = q ? _heldRowsCache.filter(r => heldMatchesQuery(r, q)) : _heldRowsCache;
+  if (rows.length === 0) {
+    box.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Tidak ada pesanan yang cocok dengan pencarian.</div></div>`;
+    return;
+  }
+  box.innerHTML = rows.map(r => renderHeldRow(r)).join('');
 }
 
 // ── Modal input catatan "Tahan" (v149) ──────────────────────────────────────
@@ -911,6 +943,11 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// v151 komentar browser #3: filter live daftar held saat user mengetik.
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'heldSearchInput') renderHeldRows();
+});
+
 function renderHeldRow(r) {
   const tgl = new Date(r.waktu || Date.now());
   const tglLabel = tgl.toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
@@ -920,8 +957,11 @@ function renderHeldRow(r) {
   const typeLabel = r.orderType === 'ojol' ? '🛵 ' + (r.ojolPlatform || 'Ojol')
     : r.orderType === 'takeaway' ? '🥡 Take-away' : '🍽️ Dine-in';
   const nameBadge = r.heldName ? `<span class="held-name-badge">${escapeHtml(r.heldName)}</span>` : '';
+  // v151 komentar browser #4+#5: tombol "Buka" dihapus — SELURUH kartu bisa
+  // diklik untuk membuka pesanan (data-action di .held-row). Tombol hapus tetap:
+  // closest('[data-action]') menemukan tombol lebih dulu sebelum kartu.
   return `
-    <div class="held-row" data-held-id="${r.id}">
+    <div class="held-row" data-action="resume-held" data-held-id="${r.id}">
       <div class="held-row-main">
         <div class="held-row-head">
           <div class="held-row-title">${nameBadge}<span class="held-row-type">${typeLabel}</span></div>
@@ -932,7 +972,6 @@ function renderHeldRow(r) {
         ${r.orderNote ? `<div class="held-row-note">📝 ${escapeHtml(r.orderNote)}</div>` : ''}
       </div>
       <div class="held-row-actions">
-        <button type="button" class="btn btn-primary btn-sm" data-action="resume-held" data-held-id="${r.id}">↩ Buka</button>
         <button type="button" class="btn btn-ghost btn-sm held-row-delete" data-action="delete-held" data-held-id="${r.id}" title="Hapus pesanan ditahan" aria-label="Hapus">🗑️</button>
       </div>
     </div>

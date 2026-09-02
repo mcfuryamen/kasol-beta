@@ -211,9 +211,13 @@ export async function resumeHeldOrder(heldId, opts = {}) {
     if (row.orderType === 'ojol' && row.ojolPlatform) {
       try { pickOjolPlatform(row.ojolPlatform); } catch (_) {}
     }
+    // v151 komentar browser: saat pesanan ditahan dibuka kembali, tampilkan
+    // otomatis catatan yang sudah diinput — orderNote dulu, fallback ke
+    // heldName (catatan wajib dari modal Tahan) biar identitasnya terlihat.
     const noteInput = document.getElementById('globalNoteInput');
-    if (noteInput) noteInput.value = row.orderNote || '';
-    try { localStorage.setItem(GLOBAL_NOTE_KEY, row.orderNote || ''); } catch (_) {}
+    const restoredNote = row.orderNote || row.heldName || '';
+    if (noteInput) noteInput.value = restoredNote;
+    try { localStorage.setItem(GLOBAL_NOTE_KEY, restoredNote); } catch (_) {}
     // Hapus row held (sudah pindah ke cart aktif).
     await deleteHeldSync(id);
     const n = await countHeldSync();
@@ -231,7 +235,9 @@ export async function resumeHeldOrder(heldId, opts = {}) {
   const curItems = Object.values(cart).filter(c => c.qty > 0);
   if (!opts.force && curItems.length > 0) {
     if (typeof window.showConfirm === 'function') {
-      window.showConfirm('⚠️', `Keranjang berisi ${curItems.length} item. Timpa dengan pesanan yang dibuka?`, 'Ya, Timpa', perform);
+      // v151 komentar browser: peringatan diarahkan untuk MENYIMPAN dulu
+      // pesanan yang sedang dibuka (tahan/bayar); "Buang & Ganti" jalan kedua.
+      window.showConfirm('⚠️', `Keranjang masih berisi ${curItems.reduce((s, c) => s + (c.qty || 0), 0)} item dari pesanan yang dibuka. Simpan/tahan dulu pesanan tersebut, atau buang & ganti dengan pesanan ini?`, 'Buang & Ganti', perform);
       return;
     }
   }
