@@ -26,6 +26,7 @@ import { showExpenseDetail, closeExpenseDetail } from './expensedetail.js';
 import { subscribeToLicenseUpdates, openPurchaseSheet, purchaseShowUpload, handleBuktiUpload, submitPurchase, pollLicenseStatus } from './purchase.js';
 import { syncNow as _ksrSyncNow } from './settings.sync.js';
 import { saveCart } from './pos.sync.js';
+import { ensureNomorBackfill } from './nomor.js';
 import { selectTopping, applySelectedTopping, toggleOrderType, openMenuSelector, confirmMenuSelector, closeMenuSelector, changeMenuSelectorQty, changeToppingQty, syncToppingStepperVisibility } from './pos.ui.js';
 import { APP_VERSION, APP_VERSION_LABEL } from './version.js';
 import { startUpdateWatcher, checkForUpdate } from './update.js';
@@ -48,7 +49,7 @@ let _pengeluaranModule = null;
 let _berandaModule = null;
 
 // Wire page modules on first use
-const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput', pickOjolPlatform: 'pickOjolPlatform', setPaymentMethod: 'setPaymentMethod', capturePayProof: 'capturePayProof', handlePayProofFile: 'handlePayProofFile', removePayProof: 'removePayProof' };
+const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', clearCart: 'clearCart', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput', pickOjolPlatform: 'pickOjolPlatform', setPaymentMethod: 'setPaymentMethod', capturePayProof: 'capturePayProof', handlePayProofFile: 'handlePayProofFile', removePayProof: 'removePayProof', holdOrder: 'holdOrder', holdOrderWithNote: 'holdOrderWithNote', submitHoldNote: 'submitHoldNote', cancelHoldNote: 'cancelHoldNote', openHeldListModal: 'openHeldListModal', resumeHeldOrder: 'resumeHeldOrder', deleteHeldOrder: 'deleteHeldOrder', refreshHeldFab: 'refreshHeldFab' };
 const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu', addCustomSuplayer: 'addCustomSuplayer', addCustomKategori: 'addCustomKategori', pickKategori: 'pickKategori', pickSuplayer: 'pickSuplayer', syncPakaiStokToggle: 'syncPakaiStokToggle', openReturModal: 'openReturModal', closeReturModal: 'closeReturModal', confirmRetur: 'confirmRetur', openKonsinyasiRetur: 'openKonsinyasiRetur' };
 const _laporanWireMap = { __wired: false, loadReport: 'loadReport', setReportPeriod: 'setReportPeriodUI', setReportPeriodUI: 'setReportPeriodUI', navReportDate: 'navReportDate', toggleExpenseCat: 'toggleExpenseCat', setCustomDate: 'setCustomDate', toggleCustomPicker: 'toggleCustomPicker', pickDate: 'pickDate', pickWeek: 'pickWeek', pickMonth: 'pickMonth', pickCustomDate: 'pickCustomDate' };
 const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaUsaha: 'saveNamaUsaha', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification', savePayOptions: 'savePayOptions' };
@@ -132,6 +133,7 @@ window.showPage           = navigateTo;
 window._ksr_navigateTo    = navigateTo;
 window._ksr_syncNow       = _ksrSyncNow;
 window.closeConfirm       = closeConfirm;
+window.showConfirm        = showConfirm;
 window.exportData         = exportData;
 window.importData         = importData;
 window.confirmClearAll    = confirmClearAll;
@@ -524,6 +526,60 @@ function handleDataAction(action, el, event) {
     case 'close-cart':
       if (window.closeCartModal) window.closeCartModal();
       break;
+    case 'hold-cart': {
+      // v149: tahan cart aktif → modal input catatan WAJIB → simpan ke
+      // penjualan.status='held' (heldName = catatan), kosongkan cart.
+      // stopPropagation supaya klik tombol tidak ikut buka modal keranjang.
+      try { event?.stopPropagation?.(); event?.preventDefault?.(); } catch (_) {}
+      if (window.holdOrderWithNote) window.holdOrderWithNote().catch(e => console.error('[hold-cart]', e));
+      break;
+    }
+    case 'confirm-hold-note':
+      if (window.submitHoldNote) window.submitHoldNote();
+      break;
+    case 'cancel-hold-note':
+      if (window.cancelHoldNote) window.cancelHoldNote();
+      break;
+    case 'open-held-list':
+      if (window.openHeldListModal) window.openHeldListModal();
+      break;
+    case 'close-held-list':
+      // Tutup modal held list via closeModal (a11y + state cleanup terpusat).
+      if (window._ksr_closeModal) window._ksr_closeModal('heldListModal');
+      else document.getElementById('heldListModal')?.classList.remove('show');
+      break;
+    case 'resume-held': {
+      const id = parseInt(el?.dataset?.heldId || '0', 10);
+      if (id > 0 && window.resumeHeldOrder) window.resumeHeldOrder(id);
+      break;
+    }
+    case 'delete-held': {
+      const id = parseInt(el?.dataset?.heldId || '0', 10);
+      if (id > 0 && window.deleteHeldOrder) window.deleteHeldOrder(id);
+      break;
+    }
+    case 'clear-cart': {
+      // Komentar browser v147: tombol "🗑️" di header keranjang — kosongkan
+      // semua item. Konfirmasi dulu via showConfirm (pola sama dengan hapus
+      // menu/transaksi), dan kalau keranjang sudah kosong kasih toast info.
+      // Cart dibaca dari localStorage (live snapshot) — `pos.js` re-export
+      // `cart` hanya menangkap binding awal, bukan hasil `setCart()` runtime.
+      if (typeof window.showConfirm !== 'function' || !window.clearCart) break;
+      let liveCart = {};
+      try { liveCart = JSON.parse(localStorage.getItem('kaki5-cart') || '{}') || {}; } catch (_) {}
+      const itemCount = Object.values(liveCart).filter(c => c && c.qty > 0).length;
+      if (itemCount === 0) {
+        window.showToast?.('Keranjang sudah kosong', 'info');
+        break;
+      }
+      window.showConfirm(
+        '🗑️',
+        `Kosongkan ${itemCount} item dari keranjang? Catatan & bukti bayar akan ikut dihapus.`,
+        'Ya, Kosongkan',
+        () => { try { window.clearCart(); } catch (e) { console.error('[clear-cart]', e); } }
+      );
+      break;
+    }
     case 'save-sale':
       if (window.simpanPenjualan) window.simpanPenjualan();
       break;
@@ -1040,6 +1096,10 @@ async function boot() {
   // ═══════════════════════════════════════════════════════════════════════
   // FASE 2: RENDER UI (data sudah fresh di IndexedDB)
   // ═══════════════════════════════════════════════════════════════════════
+
+  // Penomoran transaksi: beri nomor ke transaksi lama SEKALI (guard flag),
+  // sebelum render supaya daftar/nota langsung menampilkan nomor yang benar.
+  try { await ensureNomorBackfill(); } catch (e) { console.warn('[BOOT] nomor backfill gagal:', e?.message || e); }
 
   try { await loadBeranda(); } catch (e) { console.error('[BOOT] loadBeranda gagal:', e); }
 

@@ -741,7 +741,54 @@ button,[role="button"]{touch-action:manipulation}
 /* === P1 audit 2026-08-22 — paritas components-modal.css & components-cart.css === */
 #licenseGate{display:none;position:fixed;inset:0;background:var(--bg);z-index:500;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
 body.modal-open .main-content{overflow:hidden}
-#cartBar{display:none;position:fixed;bottom:calc(var(--nav-h) + 8px);left:8px;right:8px;max-width:90%;margin:0 auto;background:var(--green);color:#fff;border-radius:16px;padding:14px 20px;z-index:50;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+/* v149: #cartBar = WRAPPER transparan (flex row) — Tahan di kiri, keranjang
+   hijau di kanan, sejajar vertikal (tinggi sama rata via align-items:stretch).
+   JS toggle display:flex/none (renderCartBar). */
+#cartBar{display:none;position:fixed;bottom:calc(var(--nav-h) + 8px);left:8px;right:8px;max-width:90%;margin:0 auto;background:transparent;color:#fff;border-radius:0;padding:0;z-index:50;align-items:stretch;gap:10px}
+/* Kontainer hijau keranjang (dulu #cartBar) — tetap tombol buka modal cart. */
+.cart-bar-inner{flex:1 1 auto;min-width:0;background:var(--green);color:#fff;border-radius:16px;padding:14px 20px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+/* Tombol "Tahan" (v149): DI LUAR kontainer hijau, berdiri sendiri di kiri,
+   sejajar vertikal dengan keranjang. Oranye senada FAB held biar kebaca "aksi
+   tahan" & tegas beda dari hijau keranjang. Stop-propagation di handler app.js. */
+.btn-hold-cart{flex:0 0 auto;background:var(--orange,#ff8a3d);color:#fff;border:none;border-radius:16px;padding:0 18px;font-weight:800;font-size:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.28);transition:filter .15s ease,transform .1s ease}
+.btn-hold-cart:hover,.btn-hold-cart:focus{filter:brightness(1.06);outline:none}
+.btn-hold-cart:active{transform:translateY(1px)}
+.btn-hold-cart-label{font-weight:800}
+/* FAB "Tahan" (v148): pojok kanan bawah di atas cart. Default hidden (display:none)
+   sampai class `.show` ditambah oleh updateHeldFab(). Badge counter di pojok
+   kanan-atas (lingkaran merah kecil seperti FAB Material). */
+.held-fab{display:none;position:fixed;right:14px;bottom:calc(var(--nav-h) + 76px);width:56px;height:56px;border-radius:50%;background:var(--orange,#ff8a3d);color:#fff;border:none;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:pointer;z-index:55;align-items:center;justify-content:center;transition:transform .15s ease, box-shadow .15s ease}
+.held-fab.show{display:flex}
+.held-fab:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.32)}
+.held-fab:active{transform:translateY(0)}
+.held-fab-icon{font-size:26px;line-height:1}
+.held-fab-badge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:10px;background:#e23b3b;color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 1px 4px rgba(0,0,0,.3);border:2px solid #fff}
+/* Modal daftar held (v148): list rows dengan tipe, total, item summary, waktu,
+   tombol "Buka" + "Hapus". Padding aman untuk layar kecil. */
+#heldListBody{max-height:60vh;overflow-y:auto}
+.held-row{display:flex;align-items:stretch;gap:8px;padding:12px;margin-bottom:10px;background:var(--card-bg,#f7f7f7);border:1px solid var(--border,#e3e3e3);border-radius:12px}
+.held-row-main{flex:1;min-width:0}
+.held-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.held-row-title{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.held-name-badge{background:var(--orange,#ff8a3d);color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800}
+.held-row-type{font-size:12px;color:var(--text2,#555);font-weight:600}
+.held-row-total{font-weight:800;color:var(--primary,#2563eb);font-size:15px}
+.held-row-meta{font-size:12px;color:var(--text2,#555);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.held-row-time{font-size:11px;color:var(--text2,#888)}
+.held-row-note{font-size:11px;color:var(--text2,#555);margin-top:2px;font-style:italic}
+.held-row-actions{display:flex;flex-direction:column;gap:6px;justify-content:center}
+.held-row-delete{color:#e23b3b}
+/* Modal input catatan "Tahan" (v149): catatan identifikasi WAJIB. */
+.hold-note-modal{max-width:420px}
+.hold-note-summary{font-size:14px;color:var(--text2,#666);margin:2px 0 16px;text-align:center;font-weight:700}
+.hold-note-label{display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text,#111)}
+.hold-note-req{color:#e23b3b}
+.hold-note-input{width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border:1.5px solid var(--border,#ccc);border-radius:12px;background:var(--bg,#fff);color:var(--text,#111)}
+.hold-note-input:focus{outline:none;border-color:var(--orange,#ff8a3d)}
+.hold-note-err{font-size:12px;color:#e23b3b;margin-top:6px}
+.hold-note-input.shake{animation:holdNoteShake .3s}
+@keyframes holdNoteShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@media(max-width:380px){.btn-hold-cart-label{display:none}.btn-hold-cart{padding:0 12px}}
 
 /* =========================================
    KSR UTILITIES (P4 2026-08-22)
@@ -953,7 +1000,11 @@ body.modal-open .main-content{overflow:hidden}
    per transaksi (komentar browser #3 & #4, 2026-08-31). Nama app ditarik dari
    pilihan "Pilih app" di modal Pilihan Menu (getOjolPlatform). ── */
 .cart-order-head{display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:var(--orange-bg);border-radius:12px;margin-bottom:8px}
-.cart-order-type{display:flex;align-items:center;gap:6px;font-size:17px;font-weight:800;color:var(--primary);line-height:1.2}
+.cart-order-type-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cart-order-type{display:flex;align-items:center;gap:6px;font-size:17px;font-weight:800;color:var(--primary);line-height:1.2;min-width:0;flex:1 1 auto}
+.btn-clear-cart{flex:0 0 auto;width:36px;height:36px;border-radius:50%;border:1px solid var(--red);background:#fff;color:var(--red);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:background-color .15s,color .15s}
+.btn-clear-cart:hover,.btn-clear-cart:focus-visible{background:var(--red);color:#fff;outline:none}
+.btn-clear-cart:active{transform:scale(.96)}
 .cart-global-note{width:100%;font-size:13px;font-weight:600;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--text)}
 .cart-global-note::placeholder{color:var(--text3);font-weight:500}
 .cart-global-note:focus{outline:none;border-color:var(--primary)}

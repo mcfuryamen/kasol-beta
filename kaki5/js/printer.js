@@ -259,6 +259,7 @@ export function buildReceiptText(sale, warungName, alamat = '') {
   const timeStr = String(d.getHours()).padStart(2, '0') + ':' +
                   String(d.getMinutes()).padStart(2, '0');
   txt += 'Tgl: ' + dateStr + '  ' + timeStr + LF;
+  if (sale.nomor) txt += 'No: ' + safeStr(sale.nomor) + LF;
   // Tipe pesanan selalu tercetak (kiri), catatan pesanan di kanan
   const ORDER_TYPE_LABELS = { 'dine-in': 'Dine-in', 'takeaway': 'Take-away', 'ojol': 'Ojol' };
   const typeLabel = ORDER_TYPE_LABELS[sale.orderType] || 'Dine-in';
@@ -442,6 +443,7 @@ function printNotaBrowser(sale, warungName, alamat = '') {
   if (alamatTxt) htmlParts.push('<p class="sub">' + escapeHtml(alamatTxt) + '</p>');
   htmlParts.push('<hr>');
   htmlParts.push('<p class="kfs11">' + dateStr + '</p>');
+  if (sale.nomor) htmlParts.push('<p class="kfs11" style="font-weight:bold">No: ' + escapeHtml(String(sale.nomor)) + '</p>');
   // Tipe pesanan selalu tampil (kiri), catatan pesanan di kanan
   const ORDER_TYPE_LABELS = { 'dine-in': 'Dine-in', 'takeaway': 'Take-away', 'ojol': 'Ojol' };
   const typeLabel = ORDER_TYPE_LABELS[sale.orderType] || 'Dine-in';

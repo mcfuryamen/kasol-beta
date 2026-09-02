@@ -75,6 +75,20 @@ db.version(5).stores({
   platformMessages: '++id, order, visibleFrom, visibleUntil'
 });
 
+// version 6: fitur "Tahan" — transaksi disimpan dulu, dibayar nanti (komentar
+//    browser v148, 2026-09-01). Field `status` membedakan held vs completed;
+//    `heldName` label opsional biar user bisa kasih nama ("Meja 3", "Budi").
+//    Index `status` agar query daftar held cepat & laporan tidak ikut hitung
+//    held sebagai penjualan. Field baru migration-free.
+db.version(6).stores({
+  menu: '++id, nama, kategori, hargaJual, hargaModal, aktif, urutan, suplayer',
+  penjualan: '++id, tanggal, items, totalHarga, totalModal, bayar, kembalian, waktu, status',
+  pengeluaran: '++id, tanggal, keterangan, kategori, jumlah, waktu',
+  pengaturan: 'key',
+  settings: 'key',
+  platformMessages: '++id, order, visibleFrom, visibleUntil'
+});
+
 // ==================== SETTINGS ====================
 // `settings` uses { key, value } rows keyed on `key`.
 export async function getSetting(key, defaultVal) {

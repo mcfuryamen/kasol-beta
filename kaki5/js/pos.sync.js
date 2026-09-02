@@ -4,6 +4,7 @@
 import { DB } from './db.js';
 import { cart, setCart, setLastSaleId } from './app-state.js';
 import { todayStr } from './helpers.js';
+import { nextNomor } from './nomor.js';
 
 const CART_KEY = 'kaki5-cart';
 
@@ -63,9 +64,96 @@ export function clearCartStorage() {
 }
 
 export async function simpanPenjualanSync(sale) {
-  const saleId = await DB.penjualan.add(sale);
+  // Penomoran (TRX harian) dihitung & ditulis dalam satu transaksi Dexie supaya
+  // dua checkout beruntun tidak menghasilkan nomor kembar.
+  const saleId = await DB.transaction('rw', DB.penjualan, async () => {
+    const nomor = await nextNomor('penjualan', sale.tanggal);
+    return DB.penjualan.add({ ...sale, nomor });
+  });
   // Kuota transaksi (2026-08-29): tiap penjualan selesai naikkan penghitung.
   // Titik tunggu penulisan penjualan — semua jalur checkout lewat sini.
   try { const { incrementTxCount } = await import('./license.js'); await incrementTxCount(); } catch (_) { /* kuota gagal dicatat jangan gagalkan penjualan */ }
   return saleId;
+}
+
+// ==================== FITUR "TAHAN" (v148, 2026-09-01) ====================
+// Skema: pakai tabel `penjualan` dengan field `status` ('held' | 'completed').
+// `heldName` = label opsional (mis. "Meja 3", "Budi") supaya user bisa bedakan
+// banyak pesanan yang ditahan bersamaan (jawaban user #2: multi-held).
+// Field `waktu` = waktu订单 DITAHAN; saat dibayar → `paidAt` dicatat tapi `waktu`
+// tetap waktu awal ditahan (jawaban user #4). createdAt identik dengan `waktu`.
+
+// Simpan cart aktif sebagai held order baru. items, totalHarga, totalModal
+// sudah dihitung dari cart — sama persis seperti record penjualan normal,
+// hanya status='held' + heldName opsional.
+export async function holdCartSync({ items, totalHarga, totalModal, orderType, orderNote, ojolPlatform, heldName }) {
+  const tgl = todayStr();
+  // Held ikut deret TRX harian (satu transaksi = satu nomor sejak ditahan;
+  // saat dibayar nomor tetap sama — lihat payHeldSync).
+  return DB.transaction('rw', DB.penjualan, async () => {
+    const nomor = await nextNomor('penjualan', tgl);
+    return DB.penjualan.add({
+      tanggal: tgl,
+      items,
+      totalHarga,
+      totalModal,
+      orderType: orderType || 'dine-in',
+      orderNote: orderNote || '',
+      ojolPlatform: ojolPlatform || '',
+      heldName: heldName || '',
+      status: 'held',
+      nomor,
+      waktu: Date.now()
+    });
+  });
+}
+
+// Daftar semua held orders, urut waktu paling lama dulu (FIFO). Exclude yang
+// sudah completed. Return: array of {id, waktu, totalHarga, items, heldName, ...}.
+export async function listHeldSync() {
+  const rows = await DB.penjualan.where('status').equals('held').toArray();
+  // Urut waktu ASC: yang paling lama ditahan duluan (paling urgent).
+  return rows.sort((a, b) => (a.waktu || 0) - (b.waktu || 0));
+}
+
+// Ambil satu held order by id. Return null kalau sudah bukan held (race: user
+// lain menghapus saat modal terbuka).
+export async function getHeldSync(id) {
+  const row = await DB.penjualan.get(Number(id));
+  if (!row || row.status !== 'held') return null;
+  return row;
+}
+
+// Hapus held order permanen (user pilih "Hapus" di modal daftar). Tidak bisa
+// undo — sama seperti hapus transaksi dari laporan.
+export async function deleteHeldSync(id) {
+  return DB.penjualan.delete(Number(id));
+}
+
+// Update held → completed saat user bayar. Field `paidAt` = waktu bayar.
+// `waktu` (waktu dibuat/ditahan) TETAP — jawaban user #4: pertahankan createdAt.
+// `status` jadi 'completed' agar laporan & query selesai tidak ikut hitung.
+// Sisipkan field bayar/kembalian/metode/bukti/catatan bayar seperti record baru.
+export async function payHeldSync(id, { bayar, kembalian, metodeBayar, buktiBayar, catatanBayar }) {
+  const numId = Number(id);
+  const row = await DB.penjualan.get(numId);
+  if (!row) throw new Error('Held order tidak ditemukan');
+  if (row.status !== 'held') throw new Error('Order ini bukan held');
+  await DB.penjualan.update(numId, {
+    status: 'completed',
+    bayar,
+    kembalian,
+    metodeBayar: metodeBayar || 'tunai',
+    buktiBayar: buktiBayar || '',
+    catatanBayar: catatanBayar || '',
+    paidAt: Date.now()
+  });
+  // Kuota transaksi ikut naik (sama seperti simpanPenjualanSync).
+  try { const { incrementTxCount } = await import('./license.js'); await incrementTxCount(); } catch (_) {}
+  return numId;
+}
+
+// Count held aktif — untuk badge FAB. Cepat karena pakai index `status`.
+export async function countHeldSync() {
+  return DB.penjualan.where('status').equals('held').count();
 }

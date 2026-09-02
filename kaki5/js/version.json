@@ -1,10 +1,9 @@
 {
-  "version": "1.0.78",
-  "cacheBust": "v146",
+  "version": "1.0.82",
+  "cacheBust": "v150",
   "notes": [
-    "🤝 Laporan konsinyasi diperbaiki: saldo utang ke suplayer & status Lunas kini dihitung sejak awal, tidak lagi berubah saat filter tanggal/periode digeser. Sebelumnya membuka hari tanpa penjualan membuat suplayer bertagihan tampil 'Lunas' karena utang & setoran ikut difilter per hari. Angka 'terjual' per menu tetap mengikuti periode terpilih dan kini ditulis jelas 'terjual sejak awal'",
-    "🛵 Pilih tipe pesanan Ojol → metode pembayaran otomatis terpilih QRIS (kalau QRIS aktif di Pengaturan). Pindah kembali ke Dine-in/Take-away tidak menimpa pilihan kasir",
-    "🧾 Modal pilih menu: harga satuan dipindah ke baris nama menu/produk, di kiri tombol −, dan ikut berubah saat ganti app ojol atau centang topping (sebelumnya menempel kecil di dalam tiap tab app)",
-    "🎨 Tombol ✕ batal di keranjang jadi lingkaran merah; tombol '＋ Tambah baris' & '＋ Tambah Topping' di form menu jadi garis putus-putus hijau berikut labelnya"
+    "🔢 PENOMORAN TRANSAKSI (fitur baru): setiap transaksi kini punya nomor unik otomatis dengan format PREFIKS-JENIS + TANGGAL + URUT HARIAN. Penjualan & pesanan ditahan = TRX-YYYYMMDD-NNN, Pemasukan = MSK-YYYYMMDD-NNN, Pengeluaran = BLJ-YYYYMMDD-NNN. Urutan reset tiap hari dan tidak memakai ulang nomor transaksi yang dihapus.",
+    "🧾 Nomor tampil di mana-mana: di nota cetak (thermal & browser, baris 'No:'), daftar Riwayat Transaksi di Laporan, detail transaksi/pengeluaran, dan daftar pesanan ditahan. Pesanan yang ditahan lalu dibayar mempertahankan nomor aslinya (satu transaksi = satu nomor sejak ditahan).",
+    "♻️ Transaksi lama otomatis dinomori ulang saat aplikasi dibuka (backfill sekali jalan, urut berdasarkan waktu). Tidak ada perubahan skema DB — nomor disimpan sebagai field biasa."
   ]
 }

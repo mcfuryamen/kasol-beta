@@ -1,9 +1,19 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v146 — ubah angka INI juga setiap swap (harus sama dengan
+// Cache version v150 — ubah angka INI juga setiap swap (harus sama dengan
 // CACHE_NAME di bawah; baris ini tertinggal di v119 selama belasan rilis
 // dan bikin salah baca seolah CACHE_NAME tidak di-bump).
+// v150: PENOMORAN TRANSAKSI — tiap transaksi (penjualan/held=TRX, pemasukan=MSK,
+//       pengeluaran=BLJ) dapat nomor PREFIX-YYYYMMDD-NNN, urut harian, dihitung
+//       dari data tersimpan (modul baru nomor.js). Tampil di nota (thermal &
+//       browser), daftar Riwayat Laporan, detail transaksi/pengeluaran, & daftar
+//       held. Backfill sekali-jalan untuk transaksi lama saat boot.
+// v149: fitur "Tahan" (hold order) — tombol 🤚 Tahan dipisah KELUAR dari
+//       kontainer hijau cart bar, jadi tombol berdiri sendiri di SEBELAH KIRI,
+//       sejajar vertikal dengan keranjang (permintaan komentar browser). Kontainer
+//       hijau (.cart-bar-inner) tetap tombol buka keranjang. Resume held kembali
+//       ke halaman Jualan (bukan langsung buka keranjang). DB v6 status='held'.
 // v146: laporan konsinyasi — saldo & status Lunas dihitung sejak awal (tidak
 //       lagi berubah saat filter tanggal digeser, dulu suplayer bertagihan bisa
 //       tampil "Lunas" di hari tanpa penjualan); tipe pesanan Ojol otomatis
@@ -25,7 +35,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v146';
+const CACHE_NAME = 'kasir-solo-kaki5-v150';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

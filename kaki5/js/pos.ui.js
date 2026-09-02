@@ -5,6 +5,8 @@ import { escapeHtml, formatRp, showToast } from './helpers.js';
 import { cart, posCat, orderType, setOrderType, setCart } from './app-state.js';
 import { generatePresetNominal, parseToppings, toppingHarga, hargaEfektif, normalizeToppingQtys, getOjolPrice, getOjolRows, menuHasOjol, lineTotal as lineTotalLogic } from './pos.logic.js';
 import { openModal, closeModal } from './modal.js';
+import { showConfirm } from './confirm.js';
+import { clearCartStorage } from './pos.sync.js';
 
 let _toppingTargetMenuId = null; // menuId yang topping-nya sedang dipilih (di cart)
 let _menuSelectorMenu = null;   // menu yang sedang dibuka di menu selector (utk harga ojol picker)
@@ -469,7 +471,7 @@ function hargaPerItem(item) {
 // Total satu baris cart: harga dasar × qty + Σ (topping_i × qty_topping_i).
 // Qty topping independen per-topping (tiap opsi punya stepper sendiri).
 // Mis. nasi 2 + telur dadar 1, ayam goreng 2 → (5000*2) + (3000*1) + (5000*2) = 23.000.
-function lineTotal(item) {
+export function lineTotal(item) {
   // Delegasi ke logic: harga ojol ikut app terpilih (order-follow).
   return lineTotalLogic(item, orderType, ojolPlatform);
 }
@@ -609,7 +611,7 @@ export function renderCartBar() {
   const totalPrice = items.reduce((a,c) => a + lineTotal(c), 0);
 
   if (totalQty > 0) {
-    bar.style.display = 'block';
+    bar.style.display = 'flex';
     document.getElementById('cartCount').textContent = totalQty + ' item';
     document.getElementById('cartTotal').textContent = formatRp(totalPrice);
   } else {
@@ -746,6 +748,30 @@ export function refreshCartModalTotals() {
   hitungKembalianUI(total, bayarVal ? parseInt(bayarVal, 10) : 0);
 }
 
+// Kosongkan keranjang TANPA menyimpan penjualan (komentar browser v147).
+// Pola reset disamakan dengan akhir `simpanPenjualan` (pos.js:370-379): cart={},
+// localStorage.cart dihapus, catatan GLOBAL & bukti bayar di-reset, render
+// ulang. TIDUP menutup modal — biar kasir bisa tetap di halaman POS.
+export function clearCart() {
+  const items = Object.values(cart).filter(c => c.qty > 0);
+  if (items.length === 0) {
+    showToast('Keranjang sudah kosong', 'info');
+    return;
+  }
+  setCart({});
+  try { clearCartStorage(); } catch (_) {}
+  const noteInput = document.getElementById('globalNoteInput');
+  if (noteInput) noteInput.value = '';
+  try { localStorage.removeItem(GLOBAL_NOTE_KEY); } catch (_) {}
+  removePayProof();
+  const payNoteEl = document.getElementById('payNoteInput');
+  if (payNoteEl) payNoteEl.value = '';
+  closeCartModal();
+  renderCartBar();
+  renderPOSMenu();
+  showToast(`🗑️ ${items.length} item dihapus dari keranjang`);
+}
+
 export function closeCartModal() {
   _toppingTargetMenuId = null;
   const sel = document.getElementById('toppingSelector');
@@ -784,4 +810,131 @@ export function showAfterSaleActions() {
     afterActions.style.display = 'block';
     setTimeout(() => { afterActions.style.display = 'none'; }, 15000);
   }
+}
+
+// ==================== FITUR "TAHAN" (v148, 2026-09-01) ====================
+// Lihat pos.js (holdOrder/resumeHeldOrder/payHeldOrder/deleteHeldOrder) untuk
+// orkestrasi DB+state. Modul ini DOM-only: render FAB badge + modal daftar.
+// Pemisahan sesuai arsitektur: pos.ui.js = DOM, pos.js = DB + state.
+
+// ── FAB visibility + badge counter ───────────────────────────────────────
+// Dipanggil setelah hold/resume/pay/delete dari pos.js.
+export async function updateHeldFab(n) {
+  const fab = document.getElementById('heldFab');
+  const badge = document.getElementById('heldFabBadge');
+  if (!fab || !badge) return;
+  if (typeof n !== 'number') return; // pemanggil harus sediakan count
+  if (n > 0) {
+    fab.classList.add('show');
+    badge.textContent = n > 99 ? '99+' : String(n);
+    badge.style.display = 'flex';
+  } else {
+    fab.classList.remove('show');
+    badge.style.display = 'none';
+  }
+}
+
+// ── Render modal daftar held (rows = array of penjualan.status='held') ──
+// UI murni: pos.js pre-fetch rows via listHeldSync, lalu panggil ini.
+export function renderHeldListModal(rows) {
+  const box = document.getElementById('heldListBody');
+  if (!box) return;
+  if (!rows || rows.length === 0) {
+    box.innerHTML = `<div class="empty-state"><div class="empty-icon">🤚</div><div class="empty-text">Belum ada pesanan yang ditahan.<br>Ketuk "Tahan" di cart bar untuk menyimpan pesanan yang belum dibayar.</div></div>`;
+  } else {
+    box.innerHTML = rows.map(r => renderHeldRow(r)).join('');
+  }
+  openModal('heldListModal');
+}
+
+// ── Modal input catatan "Tahan" (v149) ──────────────────────────────────────
+// Saat user tap 🤚 Tahan, WAJIB mengisi catatan identifikasi supaya pesanan
+// yang ditahan mudah dibedakan (mis. "Meja 3", "Budi", "Ojol #42"). Mengembalikan
+// Promise<string> (catatan) atau null bila dibatalkan. Penyelesaian robust:
+// tombol Batal/confirm memanggil _holdNoteFinish, sedangkan dismiss lewat Esc /
+// klik backdrop (yang memanggil closeModal() langsung di modal.js/app.js) tertangkap
+// oleh MutationObserver → resolve(null), sehingga Promise tidak pernah menggantung.
+let _holdNoteFinish = null;
+export function showHoldNoteModal(summaryText) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('holdNoteModal');
+    let done = false;
+    let obs = null;
+    const finish = (val) => {
+      if (done) return;
+      done = true;
+      if (obs) { try { obs.disconnect(); } catch (_) {} obs = null; }
+      _holdNoteFinish = null;
+      closeModal('holdNoteModal');
+      resolve(val);
+    };
+    _holdNoteFinish = finish;
+    try {
+      obs = new MutationObserver(() => {
+        if (overlay && !overlay.classList.contains('show')) finish(null);
+      });
+      if (overlay) obs.observe(overlay, { attributes: true, attributeFilter: ['class'] });
+    } catch (_) { /* MutationObserver selalu ada di browser modern; fallback: hanya tombol */ }
+
+    const sum = document.getElementById('holdNoteSummary');
+    if (sum) sum.textContent = summaryText || '';
+    const inp = document.getElementById('holdNoteInput');
+    if (inp) inp.value = '';
+    const err = document.getElementById('holdNoteErr');
+    if (err) err.hidden = true;
+    openModal('holdNoteModal');
+    setTimeout(() => { try { inp && inp.focus(); } catch (_) {} }, 80);
+  });
+}
+
+export function submitHoldNote() {
+  const inp = document.getElementById('holdNoteInput');
+  const val = String(inp?.value || '').trim();
+  if (!val) {
+    const err = document.getElementById('holdNoteErr');
+    if (err) err.hidden = false;
+    if (inp) { inp.focus(); inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); }
+    return;
+  }
+  if (_holdNoteFinish) _holdNoteFinish(val.slice(0, 60));
+}
+
+export function cancelHoldNote() {
+  if (_holdNoteFinish) _holdNoteFinish(null);
+}
+
+// Enter pada input catatan = submit (delegasi sekali di level modul).
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target && e.target.id === 'holdNoteInput') {
+    e.preventDefault();
+    submitHoldNote();
+  }
+});
+
+function renderHeldRow(r) {
+  const tgl = new Date(r.waktu || Date.now());
+  const tglLabel = tgl.toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+  const itemCount = (r.items || []).reduce((s, i) => s + (i.qty || 0), 0);
+  const itemSummary = (r.items || []).slice(0, 3).map(i => escapeHtml(i.nama)).join(', ')
+    + ((r.items || []).length > 3 ? ` +${r.items.length - 3}` : '');
+  const typeLabel = r.orderType === 'ojol' ? '🛵 ' + (r.ojolPlatform || 'Ojol')
+    : r.orderType === 'takeaway' ? '🥡 Take-away' : '🍽️ Dine-in';
+  const nameBadge = r.heldName ? `<span class="held-name-badge">${escapeHtml(r.heldName)}</span>` : '';
+  return `
+    <div class="held-row" data-held-id="${r.id}">
+      <div class="held-row-main">
+        <div class="held-row-head">
+          <div class="held-row-title">${nameBadge}<span class="held-row-type">${typeLabel}</span></div>
+          <div class="held-row-total">${formatRp(r.totalHarga || 0)}</div>
+        </div>
+        <div class="held-row-meta">${itemCount} item · ${escapeHtml(itemSummary)}</div>
+        <div class="held-row-time">⏱ ${tglLabel}${r.nomor ? ' · ' + escapeHtml(r.nomor) : ''}</div>
+        ${r.orderNote ? `<div class="held-row-note">📝 ${escapeHtml(r.orderNote)}</div>` : ''}
+      </div>
+      <div class="held-row-actions">
+        <button type="button" class="btn btn-primary btn-sm" data-action="resume-held" data-held-id="${r.id}">↩ Buka</button>
+        <button type="button" class="btn btn-ghost btn-sm held-row-delete" data-action="delete-held" data-held-id="${r.id}" title="Hapus pesanan ditahan" aria-label="Hapus">🗑️</button>
+      </div>
+    </div>
+  `;
 }

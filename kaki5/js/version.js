@@ -4,7 +4,7 @@
 // drifted apart: index.html "Versi 1.0", README "?v=36", app.js cache-bust "?v=46",
 // and sw.js CACHE_NAME "v40". Update APP_VERSION here only; every consumer reads
 // from this module (or window.APP_VERSION, set by app.js).
-export const APP_VERSION = '1.0.78';
+export const APP_VERSION = '1.0.82';
 
 // Human-friendly short label for the UI (the "Versi X.Y.Z" shown on the Settings
 // license card). Derived from APP_VERSION so it can never drift.
@@ -15,4 +15,4 @@ export const APP_VERSION_LABEL = 'Versi ' + APP_VERSION;
 // KONVENSI RILIS (jangan pecah lagi — lihat insiden v100): SATU bump harus
 // menyentuh 4 tempat sekaligus: CACHE_BUST di sini, cacheBust di version.json,
 // CACHE_NAME di sw.js, dan ?v= di index.html.
-export const CACHE_BUST = 'v146';
+export const CACHE_BUST = 'v150';

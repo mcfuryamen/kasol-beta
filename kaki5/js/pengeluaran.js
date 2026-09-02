@@ -6,6 +6,7 @@ import { showToast } from './helpers.js';
 import { expDate } from './app-state.js';
 import { loadReport } from './laporan.js';
 import { openModal, closeModal } from './modal.js';
+import { nextNomor } from './nomor.js';
 
 export async function openExpenseForm(prefill = {}) {
   switchTxnTab('expense');
@@ -55,14 +56,18 @@ export async function saveIncome() {
   const jumlah = parseInt(document.getElementById('incJumlah').value) || 0;
   if (!keterangan) { showToast('Keterangan harus diisi!', 'error'); return; }
   if (jumlah <= 0) { showToast('Jumlah harus diisi!', 'error'); return; }
-  await DB.pengeluaran.add({
-    tanggal: expDate,
-    keterangan,
-    kategori,
-    jumlah,
-    suplayer: '',
-    jenis: 'pemasukan',
-    waktu: Date.now()
+  await DB.transaction('rw', DB.pengeluaran, async () => {
+    const nomor = await nextNomor('pemasukan', expDate);
+    return DB.pengeluaran.add({
+      tanggal: expDate,
+      keterangan,
+      kategori,
+      jumlah,
+      suplayer: '',
+      jenis: 'pemasukan',
+      nomor,
+      waktu: Date.now()
+    });
   });
   closeExpenseModal();
   await loadReport();
@@ -77,15 +82,19 @@ export async function saveExpense() {
   if (!keterangan) { showToast('Keterangan harus diisi!', 'error'); return; }
   if (jumlah <= 0) { showToast('Jumlah harus diisi!', 'error'); return; }
 
-  await DB.pengeluaran.add({
-    tanggal: expDate,
-    keterangan,
-    kategori,
-    jumlah,
-    suplayer: kategori === 'Setoran Konsinyasi'
-      ? keterangan.match(/^Setoran (.+?) ·/)?.[1] || ''
-      : '',
-    waktu: Date.now()
+  await DB.transaction('rw', DB.pengeluaran, async () => {
+    const nomor = await nextNomor('pengeluaran', expDate);
+    return DB.pengeluaran.add({
+      tanggal: expDate,
+      keterangan,
+      kategori,
+      jumlah,
+      suplayer: kategori === 'Setoran Konsinyasi'
+        ? keterangan.match(/^Setoran (.+?) ·/)?.[1] || ''
+        : '',
+      nomor,
+      waktu: Date.now()
+    });
   });
 
   closeExpenseModal();

@@ -33,6 +33,7 @@ export async function showExpenseDetail(id) {
       </div>
 
       <div style="background:#f9f9f9;border-radius:10px;padding:14px;margin-bottom:12px">
+        ${exp.nomor ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span class="kfs20">🔢</span><div class="kflex-1"><div style="font-size:12px;color:var(--text3);margin-bottom:2px">Nomor</div><div class="kfw600 kfs15">${escapeHtml(String(exp.nomor))}</div></div></div>` : ''}
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <span class="kfs20">📝</span>
           <div class="kflex-1">

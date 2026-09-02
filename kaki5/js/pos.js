@@ -16,9 +16,11 @@ import {
   showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType,
   renderOrderNoteBox, getOjolPlatform, pickOjolPlatform,
   getPaymentMethod, setPaymentMethod, applyPayMethodUI, setPayOptions, paymentMethodLabel, GLOBAL_NOTE_KEY,
-  getPayProof, getPayNote, removePayProof
+  getPayProof, getPayNote, removePayProof,
+  updateHeldFab, renderHeldListModal, lineTotal,
+  showHoldNoteModal, submitHoldNote, cancelHoldNote
 } from './pos.ui.js';
-import { saveCart, loadCart, clearCartStorage, simpanPenjualanSync } from './pos.sync.js';
+import { saveCart, loadCart, clearCartStorage, simpanPenjualanSync, holdCartSync, listHeldSync, getHeldSync, deleteHeldSync, payHeldSync, countHeldSync } from './pos.sync.js';
 import { getLicenseStatus } from './license.js';
 
 export {
@@ -31,11 +33,220 @@ export {
   formatBayarInputUI, selectAllBayarInput, setNominalBayarUI,
   showAfterSaleActions, selectTopping, applySelectedTopping, toggleOrderType, pickOjolPlatform,
   setPaymentMethod, getPaymentMethod, paymentMethodLabel,
-  capturePayProof, handlePayProofFile, removePayProof
+  capturePayProof, handlePayProofFile, removePayProof,
+  clearCart,
+  updateHeldFab, renderHeldListModal,
+  showHoldNoteModal, submitHoldNote, cancelHoldNote
 } from './pos.ui.js';
 export {
-  saveCart, loadCart, clearCartStorage, simpanPenjualanSync
+  saveCart, loadCart, clearCartStorage, simpanPenjualanSync,
+  holdCartSync, listHeldSync, getHeldSync, deleteHeldSync, payHeldSync, countHeldSync
 } from './pos.sync.js';
+// holdOrder/resumeHeldOrder/deleteHeldOrder/openHeldListModal/refreshHeldFab:
+// orkestrasi DB+state yang didefinisikan di file ini (blok "FITUR TAHAN" di
+// bawah) — sudah otomatis di-export via `export async function` di deklarasi.
+
+// ==================== FITUR "TAHAN" (v148, 2026-09-01) ====================
+// Orkestrasi DB + state. Lihat pos.sync.js untuk layer DB & pos.ui.js untuk DOM
+// murni (render FAB badge + modal daftar). Workflow: tahan→resume→bayar.
+
+// Hitung total harga sesuai tipe order aktif (sama dengan checkout normal).
+function _calcCartTotals() {
+  const items = Object.values(cart).filter(c => c.qty > 0);
+  const totalHarga = items.reduce((s, c) => s + lineTotal(c), 0);
+  const totalModal = items.reduce((s, c) => s + (c.qty * (c.menu.hargaModal || 0)), 0);
+  return { items, totalHarga, totalModal };
+}
+
+// Tahan: simpan cart aktif → penjualan.status='held', kosongkan cart.
+// Pola sama dengan simpanPenjualan (reuse, bukan duplicate logic).
+export async function holdOrder(heldName) {
+  const { items, totalHarga, totalModal } = _calcCartTotals();
+  if (items.length === 0) {
+    showToast('Keranjang kosong — tambahkan item dulu', 'error');
+    return null;
+  }
+  const ojolPlat = orderType === 'ojol' ? (getOjolPlatform() || 'Lainnya') : '';
+  const orderNote = (document.getElementById('globalNoteInput')?.value || '').trim();
+
+  try {
+    const heldId = await holdCartSync({
+      items: items.map(c => ({
+        menuId: c.menu.id,
+        nama: c.menu.nama,
+        hargaJual: c.menu.hargaJual,
+        hargaOjol: getOjolPrice(c.menu, ojolPlat),
+        hargaModal: c.menu.hargaModal,
+        qty: c.qty,
+        selectedToppings: c.selectedToppings || [],
+        toppingQtys: c.toppingQtys || {},
+        catatanItem: (c.catatanItem || '').trim()
+      })),
+      totalHarga,
+      totalModal,
+      orderType,
+      orderNote,
+      ojolPlatform: ojolPlat,
+      heldName: (heldName || '').trim().slice(0, 60)
+    });
+
+    // Reset state UI (pola reuse dari simpanPenjualan).
+    setCart({});
+    try { clearCartStorage(); } catch (_) {}
+    const noteInput = document.getElementById('globalNoteInput');
+    if (noteInput) noteInput.value = '';
+    try { localStorage.removeItem(GLOBAL_NOTE_KEY); } catch (_) {}
+    removePayProof();
+    const payNoteEl = document.getElementById('payNoteInput');
+    if (payNoteEl) payNoteEl.value = '';
+    closeCartModal();
+    renderCartBar();
+    renderPOSMenu();
+
+    // Refresh FAB + tampilkan toast.
+    const count = await countHeldSync().catch(() => 1);
+    await updateHeldFab(count);
+    showToast(`🤚 Ditahan${heldName ? ` "${heldName}"` : ''} — ${items.length} item · ${formatRpSimple(totalHarga)}`);
+    return heldId;
+  } catch (e) {
+    console.error('[Hold] gagal:', e?.message || e);
+    showToast('Gagal menahan pesanan: ' + (e?.message || 'error'), 'error', 3000);
+    return null;
+  }
+}
+
+// Orkestrasi "Tahan" dengan catatan WAJIB (v149): buka modal input catatan
+// identifikasi, tunggu konfirmasi user, baru simpan sebagai held. Batal/Esc →
+// tidak menyimpan apa pun. Catatan jadi `heldName` (badge di daftar held).
+export async function holdOrderWithNote() {
+  const { items, totalHarga } = _calcCartTotals();
+  if (items.length === 0) {
+    showToast('Keranjang kosong — tambahkan item dulu', 'error');
+    return null;
+  }
+  const summary = `${items.length} item · ${formatRpSimple(totalHarga)}`;
+  const note = await showHoldNoteModal(summary);
+  if (note === null || note === undefined) return null; // dibatalkan
+  return holdOrder(note);
+}
+
+function formatRpSimple(n) {
+  try { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); } catch (_) { return 'Rp ' + (n || 0); }
+}
+
+// Buka modal daftar held (FAB tap target). pos.ui.js render murni, pos.js sediakan data.
+export async function openHeldListModal() {
+  try {
+    const rows = await listHeldSync();
+    renderHeldListModal(rows);
+  } catch (e) {
+    showToast('Gagal memuat daftar ditahan', 'error');
+  }
+}
+
+// Hapus held order dari modal daftar.
+export async function deleteHeldOrder(heldId) {
+  const id = Number(heldId);
+  const row = await getHeldSync(id).catch(() => null);
+  const label = row?.heldName || row?.items?.[0]?.nama || `pesanan #${id}`;
+  // Pakai window.showConfirm (sama dengan clearCart v147) — sudah di-wire app.js.
+  if (typeof window.showConfirm !== 'function') {
+    showToast('Modal konfirmasi belum siap, coba lagi', 'error');
+    return;
+  }
+  window.showConfirm('🗑️', `Hapus pesanan ditahan "${label}"? Tindakan ini tidak bisa dibatalkan.`, 'Ya, Hapus', async () => {
+    try {
+      await deleteHeldSync(id);
+      const n = await countHeldSync();
+      await updateHeldFab(n);
+      showToast('🗑️ Pesanan dihapus');
+      // Refresh daftar.
+      const rows = await listHeldSync();
+      renderHeldListModal(rows);
+    } catch (e) {
+      showToast('Gagal menghapus: ' + (e?.message || 'error'), 'error');
+    }
+  });
+}
+
+// Resume held → muat ke cart. Hapus row held (pindah ke cart aktif).
+// Jika cart aktif tidak kosong → minta konfirmasi timpa via showConfirm.
+export async function resumeHeldOrder(heldId, opts = {}) {
+  const id = Number(heldId);
+  const perform = async () => {
+    const row = await getHeldSync(id);
+    if (!row) {
+      showToast('Pesanan ini sudah tidak ada', 'info');
+      const rows = await listHeldSync().catch(() => []);
+      renderHeldListModal(rows);
+      return;
+    }
+    // Susun cart dari row.items. Lookup menu terkini dari DB (harga bisa
+    // berubah sejak ditahan). Skip menu yang sudah dihapus.
+    const newCart = {};
+    for (const it of (row.items || [])) {
+      const menuRow = await DB.menu.get(it.menuId);
+      if (!menuRow) continue;
+      newCart[it.menuId] = {
+        menu: menuRow,
+        qty: it.qty || 1,
+        selectedToppings: it.selectedToppings || [],
+        toppingQtys: it.toppingQtys || {},
+        catatanItem: it.catatanItem || ''
+      };
+    }
+    if (Object.keys(newCart).length === 0) {
+      showToast('Menu di pesanan ini sudah dihapus dari database', 'error', 3500);
+      await deleteHeldSync(id).catch(() => {});
+      const n = await countHeldSync();
+      await updateHeldFab(n);
+      const rows = await listHeldSync();
+      renderHeldListModal(rows);
+      return;
+    }
+    setCart(newCart);
+    saveCart();
+    // Pulihkan tipe order + platform ojol (jawaban #4: konsisten).
+    if (row.orderType) setOrderType(row.orderType);
+    if (row.orderType === 'ojol' && row.ojolPlatform) {
+      try { pickOjolPlatform(row.ojolPlatform); } catch (_) {}
+    }
+    const noteInput = document.getElementById('globalNoteInput');
+    if (noteInput) noteInput.value = row.orderNote || '';
+    try { localStorage.setItem(GLOBAL_NOTE_KEY, row.orderNote || ''); } catch (_) {}
+    // Hapus row held (sudah pindah ke cart aktif).
+    await deleteHeldSync(id);
+    const n = await countHeldSync();
+    await updateHeldFab(n);
+    renderCartBar();
+    renderPOSMenu();
+    await openCartModal();
+    // Tutup modal held kalau terbuka.
+    const modal = document.getElementById('heldListModal');
+    if (modal) modal.classList.remove('show');
+    showToast(`↩ Pesanan${row.heldName ? ` "${row.heldName}"` : ''} dibuka kembali`);
+  };
+
+  // Konfirmasi timpa kalau cart aktif tidak kosong (kecuali opts.force).
+  const curItems = Object.values(cart).filter(c => c.qty > 0);
+  if (!opts.force && curItems.length > 0) {
+    if (typeof window.showConfirm === 'function') {
+      window.showConfirm('⚠️', `Keranjang berisi ${curItems.length} item. Timpa dengan pesanan yang dibuka?`, 'Ya, Timpa', perform);
+      return;
+    }
+  }
+  await perform();
+}
+
+// Inisialisasi FAB count saat halaman POS dibuka (dipanggil dari loadPOS).
+export async function refreshHeldFab() {
+  try {
+    const n = await countHeldSync();
+    await updateHeldFab(n);
+  } catch (_) {
+    await updateHeldFab(0);
+  }
+}
 
 // Debounced search for POS menu
 let _debouncedPosSearch = null;
@@ -137,6 +348,8 @@ export async function loadPOS() {
       transfer: (await getSetting('payOptTransfer', '1')) !== '0'
     });
   } catch (_) { /* DB sibuk → semua opsi default aktif */ }
+  // Refresh FAB "Tahan" — tampilkan badge sesuai jumlah held aktif (v148).
+  refreshHeldFab();
 }
 
 // ---- Category tabs (async: DB query + DOM) ----

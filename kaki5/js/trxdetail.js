@@ -14,6 +14,7 @@ export async function showTrxDetail(id) {
   if (!s) return;
 
   let html = `<div class="kcenter kmb16">
+    ${s.nomor ? `<div class="kfw800 kfs14" style="letter-spacing:.3px">${escapeHtml(String(s.nomor))}</div>` : ''}
     <div class="kfs13 ktext3">${formatDate(s.tanggal)} · ${formatTime(s.waktu)}</div>
   </div>`;
 

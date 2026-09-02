@@ -269,7 +269,7 @@ export async function loadReport() {
         expCatItems[cat]
           .sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')) || (b.waktu || 0) - (a.waktu || 0))
           .forEach(e => {
-            const sub = (reportPeriod !== 'harian' && e.tanggal ? formatDate(e.tanggal) + ' · ' : '') + formatTime(e.waktu);
+            const sub = (e.nomor ? e.nomor + ' · ' : '') + (reportPeriod !== 'harian' && e.tanggal ? formatDate(e.tanggal) + ' · ' : '') + formatTime(e.waktu);
             html += `<div class="trx-item expense-detail-item" data-id="${e.id}" style="padding:10px 0;gap:10px">
             <div style="width:12px;height:12px;background:var(--red-light);border-radius:50%;flex-shrink:0"></div>
             <div class="trx-info kflex-1">
@@ -425,7 +425,7 @@ export async function loadReport() {
         const paySub = ' · ' + (PAY_SHORT[s.metodeBayar] || '💵');
         html += `<div class="trx-item trx-detail-item" data-id="${s.id}">
           <div class="trx-icon sale">🛒</div>
-          <div class="trx-info"><div class="trx-title">${itemNames}</div><div class="trx-sub">${escapeHtml(formatTime(s.waktu))}${noteSub}${paySub}</div></div>
+          <div class="trx-info"><div class="trx-title">${itemNames}</div><div class="trx-sub">${s.nomor ? escapeHtml(s.nomor) + ' · ' : ''}${escapeHtml(formatTime(s.waktu))}${noteSub}${paySub}</div></div>
           <div class="trx-amount green">${formatRp(s.totalHarga)}</div>
         </div>`;
       });

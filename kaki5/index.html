@@ -115,14 +115,60 @@
 </div><!-- /.pos-controls -->
 <div class="menu-grid" id="posMenuGrid"></div>
 
-<!-- Keranjang floating — styling di components-cart.css (#cartBar), JS toggle display -->
-<div id="cartBar" data-action="open-cart">
+<!-- Keranjang floating — styling di css/style.css (#cartBar), JS toggle display.
+     v149: #cartBar jadi WRAPPER transparan (flex row). Tombol "Tahan" DI LUAR
+     kontainer hijau, di SEBELAH KIRI, sejajar vertikal dengan tombol keranjang
+     (permintaan komentar browser). Kontainer hijau = .cart-bar-inner, tetap
+     tombol buka keranjang (data-action="open-cart"). -->
+<div id="cartBar">
+<button type="button" class="btn-hold-cart" data-action="hold-cart" title="Tahan pesanan — simpan dulu, bayar nanti" aria-label="Tahan pesanan">
+  🤚 <span class="btn-hold-cart-label">Tahan</span>
+</button>
+<div class="cart-bar-inner" data-action="open-cart">
 <div class="kflex-between">
 <div class="kflex-gap10">
 <span class="kfs24">🛒</span>
 <span class="kfw800 kfs16" id="cartCount">0 item</span>
 </div>
 <div class="kfw800 kfs18" id="cartTotal">Rp 0</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- FAB "Tahan" (v148) — pojok kanan bawah di atas cart. Muncul saat ada ≥1
+     pesanan ditahan. Badge counter di pojok kanan-atas FAB. Tap → modal daftar held. -->
+<button type="button" class="held-fab" id="heldFab" data-action="open-held-list" title="Pesanan yang ditahan" aria-label="Pesanan ditahan">
+  <span class="held-fab-icon">🤚</span>
+  <span class="held-fab-badge" id="heldFabBadge">0</span>
+</button>
+
+<!-- Modal daftar held (v148) -->
+<div class="modal-overlay" id="heldListModal" role="dialog" aria-modal="true" aria-labelledby="heldListTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="heldListTitle">🤚 Pesanan Ditahan</div>
+<div id="heldListBody"></div>
+<div class="btn-row kmt12">
+  <button type="button" class="btn btn-secondary btn-sm btn-icon" data-action="close-held-list" title="Tutup" aria-label="Tutup">✕</button>
+</div>
+</div>
+</div>
+
+<!-- Modal input catatan saat Tahan (v149): WAJIB isi catatan identifikasi supaya
+     pesanan yang ditahan mudah dibedakan. Confirm/cancel → pos.ui submitHoldNote/
+     cancelHoldNote (di-wire app.js). Esc/backdrop → resolve(null) via observer. -->
+<div class="modal-overlay" id="holdNoteModal" role="dialog" aria-modal="true" aria-labelledby="holdNoteTitle">
+<div class="modal hold-note-modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="holdNoteTitle">🤚 Tahan Pesanan</div>
+<div class="hold-note-summary" id="holdNoteSummary"></div>
+<label class="hold-note-label" for="holdNoteInput">Catatan identifikasi <span class="hold-note-req">*</span></label>
+<input type="text" id="holdNoteInput" class="hold-note-input" maxlength="60" placeholder="Mis. Meja 3 · Budi · Ojol #42" autocomplete="off">
+<div class="hold-note-err" id="holdNoteErr" hidden>Catatan wajib diisi — biar pesanan yang ditahan gampang dibedakan.</div>
+<div class="btn-row kmt12">
+  <button type="button" class="btn btn-secondary" data-action="cancel-hold-note">Batal</button>
+  <button type="button" class="btn btn-primary" data-action="confirm-hold-note">🤚 Tahan</button>
 </div>
 </div>
 </div>
@@ -350,7 +396,12 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
      transaksi — bisa dipakai untuk nama driver, nomor orderan ojol, no. meja, dll
      (komentar browser #3 & #4, 2026-08-31). -->
 <div id="cartOrderTypeHeader" class="cart-order-head">
-  <div class="cart-order-type" id="cartOrderTypeLabel"></div>
+  <div class="cart-order-type-row">
+    <div class="cart-order-type" id="cartOrderTypeLabel"></div>
+    <!-- Tombol kosongkan keranjang (komentar browser v147): hapus semua item,
+         reset catatan global, reset bukti bayar. Konfirmasi dulu via showConfirm. -->
+    <button class="btn-clear-cart" data-action="clear-cart" aria-label="Kosongkan keranjang" title="Kosongkan keranjang">🗑️</button>
+  </div>
   <input type="text" class="cart-global-note" id="globalNoteInput" placeholder="Catatan transaksi: nama driver, no. orderan ojol, no. meja…" maxlength="120" data-action="global-note-input" aria-label="Catatan global transaksi">
 </div>
 <div id="cartItems"></div>
@@ -853,7 +904,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=146"></script>
+  <script type="module" src="js/app.js?v=150"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>
