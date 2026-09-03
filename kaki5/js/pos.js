@@ -4,6 +4,8 @@
 
 import { DB, getSetting } from './db.js';
 import { showToast } from './helpers.js';
+// Gerbang kas (v161) — kas.js tidak mengimpor pos.js, jadi aman statis.
+import { getOpenShift, openBukaKasModal } from './kas.js';
 import { cart, setCart, setPosCat, posCat, setLastSaleId, orderType, setOrderType, getResumedHeldId, setResumedHeldId } from './app-state.js';
 import {
   addToCartLogic, changeQtyLogic, hitungKembalianLogic, calculateTotal,
@@ -518,6 +520,15 @@ export function setNominalBayar(nominal) {
 export async function simpanPenjualan(cetakJuga = false) {
   const items = Object.values(cart).filter(c => c.qty > 0);
   if (items.length === 0) { showToast('Keranjang kosong!', 'error'); return; }
+
+  // v161 (adopsi buka/tutup kas dari rosok): uang di laci harus punya titik
+  // awal yang jelas. Tanpa shift 'buka', angka saat tutup kas tidak akan pernah
+  // cocok, jadi transaksi diblok SEBELUM ada yang ditulis ke DB.
+  if (!(await getOpenShift())) {
+    showToast('Kas belum dibuka — buka kas dulu untuk mulai transaksi 💰', 'error', 4000);
+    openBukaKasModal();
+    return;
+  }
 
   // Fallback terakhir (2026-08-31): stok bisa berubah SETELAH item masuk
   // keranjang (isi ulang stok nol, sinkron antar perangkat, dsb). Cek ulang

@@ -89,6 +89,27 @@ db.version(6).stores({
   platformMessages: '++id, order, visibleFrom, visibleUntil'
 });
 
+// version 7: fitur KAS (adopsi dari rosok, v161) — tiga tabel baru, semuanya
+// migration-free (tabel kosong, tidak ada data lama yang perlu diubah).
+//   kasShift : satu baris per sesi buka→tutup kas. `status` STRING ('buka'|
+//              'tutup') dan di-index — boolean TIDAK ter-index oleh IndexedDB.
+//              `tanggalBuka` 'YYYY-MM-DD' di-index untuk lookup harian;
+//              `waktuBuka`/`waktuTutup` ms epoch (sama seperti `waktu` di tabel lain).
+//   kas      : mutasi uang laci yang BUKAN penjualan/pengeluaran (ambil kas
+//              buat setor bank, nambah uang kembalian, dsb) — tidak masuk laba.
+//   tutupBuku: snapshot rekap tahunan (sekali per tahun).
+db.version(7).stores({
+  menu: '++id, nama, kategori, hargaJual, hargaModal, aktif, urutan, suplayer',
+  penjualan: '++id, tanggal, items, totalHarga, totalModal, bayar, kembalian, waktu, status',
+  pengeluaran: '++id, tanggal, keterangan, kategori, jumlah, waktu',
+  pengaturan: 'key',
+  settings: 'key',
+  platformMessages: '++id, order, visibleFrom, visibleUntil',
+  kasShift: '++id, status, tanggalBuka, waktuBuka',
+  kas: '++id, tanggal, tipe, shiftId',
+  tutupBuku: '++id, tahun'
+});
+
 // ==================== SETTINGS ====================
 // `settings` uses { key, value } rows keyed on `key`.
 export async function getSetting(key, defaultVal) {

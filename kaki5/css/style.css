@@ -251,14 +251,26 @@ button[data-action="topping-qty"]{width:30px;height:30px;min-width:30px;min-heig
    user wajib tekan OKE -> reload -> profil tersinkron & aset baru termuat. */
 #updateOverlay{position:fixed;inset:0;z-index:800;background:rgba(43,36,32,.94);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
 #updateOverlay.show{display:flex}
-.update-card{background:#fff;border-radius:20px;padding:24px 20px;max-width:420px;width:100%;max-height:88vh;overflow-y:auto;text-align:center;animation:popIn .3s ease}
-.update-title{font-size:20px;font-weight:800;margin-top:4px}
+/* v162 (komentar browser #1-#7) + revisi v163: kartu update dipecah jadi 3 zona.
+   HEAD = judul, badge versi, intro, label "Yang baru" — nempel di atas. Logo
+   dihapus atas permintaan pemilik (2026-09-03), kalimat penenang "Data jualanmu
+   aman, tidak ada yang hilang." pindah dari hint footer ke intro header.
+   BODY = daftar catatan, satu-satunya bagian yang memanjang tiap rilis, jadi
+   cuma dia yang menggulir; min-height:0 wajib supaya area ini mau menyusut
+   (bukan mendorong kartu/melempar footer ke luar layar) saat catatannya banyak.
+   FOOT = tombol OKE saja, nempel di bawah. Flex column + scroll internal begini
+   lebih jujur daripada position:sticky + shadow "menyamarkan" teks yang lewat:
+   header/footer benar-benar tidak pernah tertutupi catatan. */
+.update-card{background:#fff;border-radius:20px;padding:0;max-width:420px;width:100%;max-height:88vh;overflow:hidden;text-align:center;animation:popIn .3s ease;display:flex;flex-direction:column}
+.update-head{flex:0 0 auto;padding:20px 20px 12px;background:#fff;box-shadow:0 10px 12px -12px rgba(43,36,32,.28)}
+.update-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:12px 20px 10px;-webkit-overflow-scrolling:touch;text-align:left}
+.update-foot{flex:0 0 auto;padding:14px 20px 20px;background:#fff;box-shadow:0 -10px 12px -12px rgba(43,36,32,.28)}
+.update-title{font-size:20px;font-weight:800;margin-top:0}
 .update-version{display:inline-block;background:var(--orange-bg);color:var(--primary);font-weight:800;font-size:13px;border-radius:20px;padding:4px 14px;margin-top:8px}
 .update-sub{font-size:13.5px;color:var(--text2);line-height:1.6;margin-top:12px;text-align:left}
 .update-notes-title{font-size:13px;font-weight:800;margin-top:14px;text-align:left}
-.update-notes{list-style:none;padding:0;margin:8px 0 0;text-align:left;display:flex;flex-direction:column;gap:8px}
+.update-notes{list-style:none;padding:0;margin:0;text-align:left;display:flex;flex-direction:column;gap:8px}
 .update-notes li{font-size:13px;color:var(--text);line-height:1.55;background:var(--paper);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
-.update-hint{font-size:12px;color:var(--text3);margin-top:10px;line-height:1.5}
 
 /* EMPTY STATE */
 .empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
@@ -718,8 +730,10 @@ button,[role="button"]{touch-action:manipulation}
 .license-secondary-actions .btn{font-size:12px}
 .license-active-actions{margin-top:14px}
 .license-active-actions .btn{width:100%}
-.license-progress{height:6px;border-radius:99px;background:#f3eadf;overflow:hidden;margin:16px 0 4px}
-.license-progress span{display:block;width:66%;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--primary-light),var(--primary));animation:licenseProgress 1.6s ease-in-out infinite alternate}
+/* v160 (komentar browser #1 & #2): ISI bar kuota hijau, WADAH/track oranye.
+   Sebelumnya terbalik — isi oranye brand (override v151) di atas track krem #f3eadf. */
+.license-progress{height:6px;border-radius:99px;background:#FFE0B2;overflow:hidden;margin:16px 0 4px}
+.license-progress span{display:block;width:66%;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--green-light),var(--green));animation:licenseProgress 1.6s ease-in-out infinite alternate}
 @keyframes licenseProgress{from{width:54%}to{width:78%}}
 .license-hint{color:var(--text3);font-size:11px;margin-top:10px}
 .badge.amber{background:#FFF8E1;color:#b45309}
@@ -1081,3 +1095,20 @@ body.modal-open .main-content{overflow:hidden}
    tidak memblok interaksi konten di bawahnya (pointer-events none di wrapper). */
 #quotaBanner{position:fixed;left:12px;right:12px;top:calc(var(--header-h) + 10px);z-index:850;pointer-events:none}
 #quotaBanner .quota-banner-card{pointer-events:auto;background:#fff7ed;border:1px solid #fdba74;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.14)}
+
+/* ==================== KAS / SHIFT (v161, adopsi rosok) ====================
+   Kartu status kas di Beranda (#kasCard), kotak rincian di modal Tutup Kas,
+   dan grid ringkasan (dipakai kartu Beranda + modal Tutup Buku). */
+.kas-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.kas-cell{background:var(--bg);border-radius:10px;padding:8px 10px;min-width:0}
+.kas-cell-label{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:2px}
+.kas-cell-value{font-size:14px;font-weight:800;color:var(--text);overflow-wrap:anywhere}
+.kas-cell-value.strong{color:var(--primary)}
+.kas-box{background:var(--bg);border-radius:12px;padding:4px 12px}
+.kas-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--border)}
+.kas-row:last-child{border-bottom:none}
+.kas-row span{color:var(--text2)}
+.kas-row b{overflow-wrap:anywhere;text-align:right}
+.kas-row.total{border-top:1px solid var(--border);border-bottom:none;margin-top:2px;padding-top:9px;font-weight:800}
+.kas-row.total span{color:var(--text);font-weight:800}
+.kas-row.total b{font-size:15px;color:var(--primary)}

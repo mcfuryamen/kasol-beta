@@ -26,6 +26,16 @@ export let currentPage = 'beranda';
 // --- POS category filter ---
 export let posCat = 'Semua';
 
+// --- Kas / shift (v161, adopsi rosok) --- //
+// Baris `kasShift` yang sedang berstatus 'buka', atau null. Hanya CACHE untuk
+// membaca cepat di gerbang POS; sumber kebenaran tetap IndexedDB. Setiap kali
+// status kas berubah, modul kas.js memanggil refreshShiftCache() lalu setter ini.
+export let openShift = null;
+
+export function setOpenShift(value) {
+  openShift = value || null;
+}
+
 // --- Pengeluaran date navigation ---
 export let expDate = todayStr();
 

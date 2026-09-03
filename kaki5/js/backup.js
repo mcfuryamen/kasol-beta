@@ -51,31 +51,47 @@ export async function verifyBackupSignature(data, expectedSig) {
 
 // Payload cadangan bersama (file lokal & cloud): PRODUK & TRANSAKSI saja
 // (permintaan pemilik 2026-08-29) — profil usaha sumber kebenarannya Supabase.
+// v161: tabel kas (shift, catat kas manual, tutup buku) IKUT dicadangkan.
+// Di rosok tiga tabel ini lupa dimasukkan ke backup sehingga riwayat shift
+// dan rekap tahunan hilang saat restore — tidak ikut diadopsi.
 async function buildBackupPayload() {
   return {
-    version: 2,
+    version: 3,
     exportDate: new Date().toISOString(),
     menu: await DB.menu.toArray(),
     penjualan: await DB.penjualan.toArray(),
-    pengeluaran: await DB.pengeluaran.toArray()
+    pengeluaran: await DB.pengeluaran.toArray(),
+    kasShift: await DB.kasShift.toArray(),
+    kas: await DB.kas.toArray(),
+    tutupBuku: await DB.tutupBuku.toArray()
   };
 }
 
-// Terapkan isi cadangan: clear + bulkAdd 3 tabel dalam SATU transaksi atomik
-// (gagal di tengah = rollback total). Dipakai restore file lokal & cloud.
+// Terapkan isi cadangan: clear + bulkAdd seluruh tabel data dalam SATU
+// transaksi atomik (gagal di tengah = rollback total). Dipakai restore file
+// lokal & cloud. File lama (v1/v2) tidak punya kunci kas → dianggap kosong.
 async function applyBackupData(data) {
   data.penjualan = data.penjualan || [];
   data.pengeluaran = data.pengeluaran || [];
+  data.kasShift = data.kasShift || [];
+  data.kas = data.kas || [];
+  data.tutupBuku = data.tutupBuku || [];
   await DB.transaction(
     'rw',
-    [DB.menu, DB.penjualan, DB.pengeluaran],
+    [DB.menu, DB.penjualan, DB.pengeluaran, DB.kasShift, DB.kas, DB.tutupBuku],
     async () => {
       await DB.menu.clear();
       await DB.penjualan.clear();
       await DB.pengeluaran.clear();
+      await DB.kasShift.clear();
+      await DB.kas.clear();
+      await DB.tutupBuku.clear();
       if (data.menu.length) await DB.menu.bulkAdd(data.menu);
       if (data.penjualan.length) await DB.penjualan.bulkAdd(data.penjualan);
       if (data.pengeluaran.length) await DB.pengeluaran.bulkAdd(data.pengeluaran);
+      if (data.kasShift.length) await DB.kasShift.bulkAdd(data.kasShift);
+      if (data.kas.length) await DB.kas.bulkAdd(data.kas);
+      if (data.tutupBuku.length) await DB.tutupBuku.bulkAdd(data.tutupBuku);
     }
   );
   clearCartStorage();
@@ -123,7 +139,7 @@ export async function validateBackup(data) {
   }
   const ok = arr => !arr || (Array.isArray(arr) &&
     arr.every(r => r && typeof r === 'object' && !Array.isArray(r)));
-  if (!ok(data.penjualan) || !ok(data.pengeluaran) || !ok(data.pengaturan) || !ok(data.settings) || !ok(data.platformMessages)) {
+  if (!ok(data.penjualan) || !ok(data.pengeluaran) || !ok(data.pengaturan) || !ok(data.settings) || !ok(data.platformMessages) || !ok(data.kasShift) || !ok(data.kas) || !ok(data.tutupBuku)) {
     return 'File tidak valid: isi data rusak!';
   }
 
@@ -154,6 +170,25 @@ export async function validateBackup(data) {
     if (!isNum(e.jumlah)) return 'File ditolak: ada pengeluaran dengan jumlah uang rusak.';
     if (!validId(e)) return 'File ditolak: ada pengeluaran dengan id tidak valid.';
   }
+  // v161 — Kas: shift, catat kas manual, dan rekap tahunan ikut divalidasi.
+  const isStatusShift = v => v === 'buka' || v === 'tutup';
+  for (const s of (data.kasShift || [])) {
+    if (!isDate(s.tanggalBuka)) return 'File ditolak: ada shift kas dengan tanggal buka rusak.';
+    if (!isStatusShift(s.status)) return 'File ditolak: ada shift kas dengan status tidak dikenal.';
+    if (s.modalAwal !== undefined && !isNum(s.modalAwal)) return 'File ditolak: ada shift kas dengan modal awal rusak.';
+    if (!validId(s)) return 'File ditolak: ada shift kas dengan id tidak valid.';
+  }
+  for (const k of (data.kas || [])) {
+    if (!isDate(k.tanggal)) return 'File ditolak: ada catatan kas dengan tanggal rusak.';
+    if (k.tipe !== 'masuk' && k.tipe !== 'keluar') return 'File ditolak: ada catatan kas dengan tipe tidak dikenal.';
+    if (!isNum(k.jumlah)) return 'File ditolak: ada catatan kas dengan jumlah uang rusak.';
+    if (!validId(k)) return 'File ditolak: ada catatan kas dengan id tidak valid.';
+  }
+  for (const b of (data.tutupBuku || [])) {
+    if (!Number.isInteger(b.tahun) || b.tahun < 2000 || b.tahun > 2100) return 'File ditolak: ada tutup buku dengan tahun tidak valid.';
+    if (!isDate(b.tanggalTutup)) return 'File ditolak: ada tutup buku dengan tanggal tutup rusak.';
+    if (!validId(b)) return 'File ditolak: ada tutup buku dengan id tidak valid.';
+  }
   // settings/pengaturan: key wajib string terisi.
   for (const r of (data.settings || [])) {
     if (!isStr(r.key) || !r.key) return 'File ditolak: ada pengaturan dengan key rusak.';
@@ -172,7 +207,8 @@ export async function validateBackup(data) {
     }
     return null;
   };
-  const dup = dupCheck(data.menu, 'menu') || dupCheck(penjualan, 'transaksi') || dupCheck(data.pengeluaran || [], 'pengeluaran');
+  const dup = dupCheck(data.menu, 'menu') || dupCheck(penjualan, 'transaksi') || dupCheck(data.pengeluaran || [], 'pengeluaran')
+    || dupCheck(data.kasShift || [], 'shift kas') || dupCheck(data.kas || [], 'catatan kas') || dupCheck(data.tutupBuku || [], 'tutup buku');
   if (dup) return dup;
 
   // ── Lapis 3: Signature verification (NEW 2026-08-20) ──
@@ -302,6 +338,9 @@ export function confirmClearAll() {
     await DB.menu.clear();
     await DB.penjualan.clear();
     await DB.pengeluaran.clear();
+    await DB.kasShift.clear();
+    await DB.kas.clear();
+    await DB.tutupBuku.clear();
     await DB.pengaturan.clear();
     await DB.settings.clear();
     await DB.platformMessages.clear();

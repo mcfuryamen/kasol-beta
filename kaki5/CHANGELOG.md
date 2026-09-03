@@ -2,6 +2,25 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-09-03 (v163 / 1.0.95: revisi modal "Versi Baru Tersedia" — lihat gambar)
+- **Logo dihapus** dari header (`<img class="update-logo">` + rule `.update-logo` dibuang); judul jadi elemen pertama header.
+- **Kalimat penenang pindah**: "Data jualanmu aman, tidak ada yang hilang." sekarang menutup paragraf intro `.update-sub` di header, dan **hint di bawah tombol OKE dihapus** (rule `.update-hint` ikut dibuang). Footer tinggal tombol OKE.
+- **Badan konten dijamin bisa menggulir**: `.update-body` dapat `min-height:0` (syarat flex scroll-child) supaya daftar catatan yang panjang menyusut di dalam area sendiri, bukan mendorong kartu/melempar footer ke luar layar; padding bawah header/footer dinaikkan sedikit (`10px`) biar catatan terakhir tidak nempel ke garis footer.
+
+## 2026-09-03 (v162 / 1.0.94: modal "Versi Baru Tersedia" jadi header + footer sticky)
+- **Tiga zona di `.update-card`** (komentar browser #1–#7): `.update-head` (logo, judul, badge versi, intro, label "Yang baru di versi ini:") nempel di atas; `.update-body` = daftar catatan, satu-satunya bagian yang menggulir; `.update-foot` (tombol OKE + hint muat ulang) nempel di bawah. Kartu jadi flex column `max-height:88vh` + `overflow:hidden`.
+- **Menggantikan trik v160**: `#updateOkBtn position:sticky` + `box-shadow` putih yang "menyamarkan" catatan yang lewat di belakangnya — sekarang header/footer benar-benar tidak bisa tertutupi, dan style atribut inline pada logo pindah ke kelas `.update-logo`.
+- **Bug fix `app.js`**: `case 'open-sync-diag'` tercatat dua kali di switch `handleDataAction` (sejak v151). Yang kedua tidak pernah jalan karena switch berhenti di match pertama; salinan kedua dihapus.
+
+## 2026-09-03 (v161 / 1.0.93: adopsi fitur Kas dari Kasir Solo Rosok)
+- **Buka/tutup kas (shift laci)**: tabel Dexie baru `kasShift` (v7) + kartu status kas di Beranda (`#kasCard`). Buka kas mencatat modal awal; transaksi POS **ditolak selama kas belum dibuka** (gerbang di `pos.js simpanPenjualan`, sama pola gerbang kuota).
+- **Tutup kas**: rincian lengkap (modal awal, penjualan tunai, pengeluaran, pemasukan, ambil/tambah kas) → **kas sistem** dibandingkan uang fisik → selisih + catatan tersimpan di shift. Beda dengan rosok: kas sistem dihitung ulang dari data yang ada dan **hanya penjualan tunai** yang masuk laci — QRIS/Transfer dilaporkan terpisah sebagai uang rekening.
+- **Catat Kas manual** (`➕ Tambah Kas` / `➖ Ambil Kas`, tabel `kas`): mutasi uang laci yang bukan penjualan/pengeluaran (setor bank, nambah kembalian) sehingga tidak mengocok laba.
+- **Laporan**: kartu "🕐 Riwayat Buka/Tutup Kas" (10 shift terakhir, modal/sistem/fisik/selisih + catatan) dan "📕 Tutup Buku Tahunan".
+- **Tutup buku tahunan** (tabel `tutupBuku`): snapshot rekap satu tahun kalender — omzet, modal barang, pengeluaran, pemasukan, laba, jumlah transaksi, perkiraan arus kas. Laba memakai rumus yang sama dengan Beranda & Laporan (rosok memakai jual − beli sehingga beda angka). Tahun yang sudah ditutup tidak dikunci, tapi menghapus data di tahun itu memunculkan peringatan.
+- **Backup/restore/reset**: tiga tabel kas ikut tercakup (payload v3) + validasi field & cek id ganda. Di rosok tabel ini lupa dicadangkan sehingga riwayat shift hilang saat restore.
+- **Perbaikan service worker**: `./js/onboarding.js` (file tidak ada — membuat `cache.addAll()` gagal total) dihapus dari precache; `./js/modal.js`, `./js/nomor.js`, `./js/app-link.js` yang selama ini tidak ikut diprecache ditambahkan.
+
 ## 2026-08-30 (v120–v132 / 1.0.51–1.0.63: topping grid, polish keranjang, konsinyasi & retur barang)
 - **Topping grid (v120)**: textarea "Nama|Harga" diganti grid 2 kolom (Nama | Harga) + tombol "＋ Tambah Topping" (`#menuToppingGrid`, `renderToppingRows`/`collectToppingGrid`); toggle topping mati otomatis saat menu tanpa topping (v121); tombol hapus kotak rounded oranye seukuran field; placeholder harga rata kiri.
 - **Polish keranjang (v121–v122)**: helper "Kosongkan jika…" dihapus; tombol Batal keranjang jadi ✕ kotak 48×48 rounded (`.btn-icon` radius 10px, `#cartModal .btn-row [data-action="close-cart"]` width 48 fix); header keranjang menampilkan catatan order (`orderNoteInput`) pengganti "berlaku untuk semua item".

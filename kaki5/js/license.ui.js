@@ -55,8 +55,9 @@ export function licenseStatusHtml(st, inputId) {
   const used = Math.max(0, quota - remaining);
   const pct = quota > 0 ? Math.min(100, Math.max(4, Math.round((remaining / quota) * 100))) : 0;
   const adj = Number(st.txAdjust) || 0;
-  // v151 komentar browser #2: bar kuota pakai oranye brand — override hijau
-  // inline dihapus, fallback ke gradient .license-progress span di style.css.
+  // Warna bar kuota dimiliki style.css (.license-progress): v160 (komentar
+  // browser #1 & #2) = ISI hijau di atas track oranye. Jangan pasang override
+  // inline di sini lagi — v151 pernah begitu dan warnanya jadi tidak konsisten.
   return `
     <div class="card license-card-trial license-state-card">
       ${licenseSteps(1)}

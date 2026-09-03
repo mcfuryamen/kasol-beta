@@ -1,9 +1,50 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v159 — ubah angka INI juga setiap swap (harus sama dengan
+// Cache version v163 — ubah angka INI juga setiap swap (harus sama dengan
 // CACHE_NAME di bawah; baris ini tertinggal di v119 selama belasan rilis
 // dan bikin salah baca seolah CACHE_NAME tidak di-bump).
+// v163: REVISI modal "Versi Baru Tersedia" (permintaan pemilik, lihat gambar):
+//       logo dihapus dari header, kalimat "Data jualanmu aman, tidak ada yang
+//       hilang." pindah ke paragraf intro header, hint di bawah tombol OKE
+//       dihapus (rule .update-hint & .update-logo ikut dibuang), dan
+//       .update-body dapat min-height:0 supaya area catatan tetap bisa
+//       menggulir walau daftarnya panjang — tanpa mendorong footer keluar
+//       layar.
+// v162: MODAL "Versi Baru Tersedia" dipecah jadi 3 zona (komentar browser #1-#7):
+//       .update-head sticky di atas (logo, judul, badge versi, intro, label
+//       "Yang baru"), .update-body satu-satunya bagian yang menggulir (daftar
+//       catatan), .update-foot sticky di bawah (tombol OKE + hint). Sebelumnya
+//       tombol OKE pakai position:sticky + shadow putih yang "menyamarkan" teks
+//       catatan di belakangnya. Sekaligus menghapus case 'open-sync-diag' dobel
+//       di app.js (yang kedua tidak pernah jalan karena switch berhenti di
+//       match pertama).
+// v161: ADOPSI FITUR KAS dari Kasir Solo Rosok — buka/tutup kas (shift laci),
+//       catat kas manual, riwayat shift di Laporan, dan tutup buku tahunan.
+//       Tiga tabel Dexie baru (kasShift, kas, tutupBuku) + gerbang transaksi:
+//       penjualan ditolak selama kas belum dibuka. "Kas sistem" dihitung dari
+//       data yang sudah ada (modal awal + penjualan tunai − pengeluaran
+//       + pemasukan ± kas manual), bukan buku besar kas terpisah. Ketiga tabel
+//       ikut backup/restore/reset (di rosok lupa dicadangkan).
+//       Sekaligus memperbaiki daftar precache: ./js/onboarding.js (file tidak
+//       ada → membuat cache.addAll() gagal total) diganti ./js/modal.js,
+//       ./js/nomor.js, ./js/app-link.js yang selama ini tidak ikut diprecache.
+// v160: AUDIT FITUR PEMASUKAN + grafik harian per jam.
+//       (1) Beranda memisahkan baris jenis:'pemasukan' dari total pengeluaran;
+//           Laba Hari Ini = omzet - modal - pengeluaran + pemasukan, sama seperti
+//           Laporan (dulu mencatat pemasukan justru MEMOTONG laba Beranda). Ada
+//           hint "+ pemasukan lain Rp X" di kartu Laba saat nilainya di atas 0.
+//       (2) Kartu "💰 Rincian Pemasukan" baru di Laporan (akordeon per kategori,
+//           reuse toggleExpenseCat) — sebelumnya pemasukan cuma jadi satu angka
+//           statistik tanpa daftar, sehingga salah catat tak bisa dikoreksi.
+//       (3) Modal detail catatan jadi jenis-sadar (judul/emoji/warna/tanda +-)
+//           dan dapat tombol 🗑️ Hapus (data-action="delete-expense", id dari
+//           data-id baris) untuk pengeluaran & pemasukan.
+//       (4) Periode Harian kini punya "📊 Grafik Harian · Per Jam" (omzet vs
+//           pengeluaran per jam dari field waktu; sumbu X dipangkas ke rentang
+//           jam aktif, digeser mendatar bila lebar) mengisi slot yang dulu kosong.
+//       (5) Bar kuota transaksi gratis: isi hijau di atas track oranye
+//           (komentar browser #1 & #2; sebelumnya oranye brand di atas krem).
 // v159: nota cetak TIDAK lagi melampirkan foto bukti pembayaran QRIS/Transfer
 //       (permintaan pemilik). Foto tetap tersimpan di record penjualan dan tetap
 //       tampil di halaman detail transaksi; jalur printer thermal memang teks
@@ -77,7 +118,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v159';
+const CACHE_NAME = 'kasir-solo-kaki5-v163';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -101,7 +142,11 @@ const ASSETS_TO_CACHE = [
   './js/navigation.js',
   './js/templates.js',
   './js/confirm.js',
-  './js/onboarding.js',
+  './js/modal.js',
+  './js/nomor.js',
+  './js/app-link.js',
+  './js/kas.js',
+  './js/kas.logic.js',
   './js/region.js',
   './js/supabase-config.js',
   './js/supabase.min.js',

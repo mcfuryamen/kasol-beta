@@ -2,6 +2,7 @@
 import { DB, getSetting } from './db.js';
 import { escapeHtml, todayStr, formatRp, formatDate, formatTime, dayName, getGreeting, withPageLoading } from './helpers.js';
 import { renderPlatformCarousel } from './carousel.js';
+import { renderKasCard } from './kas.js';
 
 export const loadBeranda = withPageLoading('recentTrx', async function () {
   document.getElementById('greetText').textContent = getGreeting();
@@ -16,7 +17,7 @@ export const loadBeranda = withPageLoading('recentTrx', async function () {
   const tgl = todayStr();
   // Tiga query independen dijalankan barengan (bukan ngantri) — total waktu =
   // query terlama, bukan jumlahnya.
-  const [penjualan, pengeluaran, all] = await Promise.all([
+  const [penjualan, expRows, all] = await Promise.all([
     // v156: row status 'held' (pesanan ditahan) BUKAN penjualan — jangan ikut
     // omzet/transaksi/porsi di ringkasan hari ini maupun daftar transaksi terakhir.
     DB.penjualan.where('tanggal').equals(tgl).toArray().then(rows => rows.filter(s => s.status !== 'held')),
@@ -24,10 +25,18 @@ export const loadBeranda = withPageLoading('recentTrx', async function () {
     DB.penjualan.orderBy('id').reverse().filter(s => s.status !== 'held').limit(5).toArray()
   ]);
 
+  // v160 (audit pemasukan): satu tabel dipakai dua jenis catatan. Baris
+  // jenis:'pemasukan' BUKAN pengeluaran — dulu ikut dijumlahkan sebagai expense
+  // sehingga mencatat pemasukan justru MEMOTONG "Laba Hari Ini" di Beranda,
+  // padahal Laporan menambahkannya. Sekarang dua halaman membaca hal yang sama.
+  const pengeluaran = expRows.filter(e => e.jenis !== 'pemasukan');
+  const pemasukan = expRows.filter(e => e.jenis === 'pemasukan');
+
   const omzet = penjualan.reduce((s, p) => s + (p.totalHarga || 0), 0);
   const expense = pengeluaran.reduce((s, p) => s + (p.jumlah || 0), 0);
+  const totalInc = pemasukan.reduce((s, p) => s + (p.jumlah || 0), 0);
   const totalModal = penjualan.reduce((s, p) => s + (p.totalModal || 0), 0);
-  const profit = omzet - totalModal - expense;
+  const profit = omzet - totalModal - expense + totalInc;
   const qty = penjualan.reduce((s, p) => s + (p.items ? p.items.reduce((q, it) => q + (it.qty || 0), 0) : 0), 0);
 
   document.getElementById('todayOmzet').textContent = formatRp(omzet);
@@ -37,6 +46,17 @@ export const loadBeranda = withPageLoading('recentTrx', async function () {
   document.getElementById('todayQtyCount').textContent = qty;
   const avgEl = document.getElementById('todayAvgTrx');
   if (avgEl) avgEl.textContent = formatRp(penjualan.length ? Math.round(omzet / penjualan.length) : 0);
+  // Laba bisa naik tanpa ada penjualan (bonus/cashback/modal tambahan) — tunjukkan
+  // asalnya supaya angka Beranda tidak terlihat misterius.
+  const incEl = document.getElementById('todayIncomeHint');
+  if (incEl) {
+    incEl.textContent = totalInc > 0 ? '+ pemasukan lain ' + formatRp(totalInc) : '';
+    incEl.style.display = totalInc > 0 ? 'block' : 'none';
+  }
+
+  // v161: kartu status kas (buka/tutup shift) — query sendiri, kegagalan
+  // render tidak boleh menghentikan Beranda.
+  try { await renderKasCard(); } catch (e) { console.warn('[BERANDA] kartu kas:', e?.message || e); }
 
   // Render platform carousel (PALING AWAL, selalu jalan walau belum ada transaksi)
   await renderPlatformCarousel();

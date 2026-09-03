@@ -7,6 +7,7 @@ import { loadBeranda } from './beranda.js';
 import { loadReport } from './laporan.js';
 import { openModal, closeModal } from './modal.js';
 import { lineTotal, normalizeToppingQtys } from './pos.logic.js';
+import { peringatanTahunTertutup } from './kas.js';
 
 export async function showTrxDetail(id) {
   setSelectedTrxId(id);
@@ -75,10 +76,13 @@ export function closeTrxDetail() {
   closeModal('trxDetailModal');
 }
 
-export function hapusPenjualan() {
+export async function hapusPenjualan() {
   const id = selectedTrxId;
   if (!id) return;
-  showConfirm('🗑️', 'Yakin mau hapus transaksi ini?', 'Ya, Hapus', async () => {
+  // v161: ingatkan kalau tahun transaksi sudah ditutup buku.
+  const row = await DB.penjualan.get(id);
+  const pesan = await peringatanTahunTertutup(row?.tanggal, 'transaksi ini');
+  showConfirm('🗑️', pesan, 'Ya, Hapus', async () => {
     await DB.penjualan.delete(id);
     closeTrxDetail();
     showToast('Transaksi dihapus');

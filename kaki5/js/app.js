@@ -22,11 +22,14 @@ import { exportData, importData, confirmClearAll } from './backup.js';
 import { setupPWA, installPWA, checkPWAInstalled, updateInstallRow } from './pwa.js';
 import { connectBTPrinter, disconnectBTPrinter, printNota, printLastNota, testPrint, getSavedPrinterName } from './printer.js';
 import { showTrxDetail, closeTrxDetail, hapusPenjualan } from './trxdetail.js';
-import { showExpenseDetail, closeExpenseDetail } from './expensedetail.js';
+import { showExpenseDetail, closeExpenseDetail, hapusExpense } from './expensedetail.js';
 import { subscribeToLicenseUpdates, openPurchaseSheet, purchaseShowUpload, handleBuktiUpload, submitPurchase, pollLicenseStatus } from './purchase.js';
 import { syncNow as _ksrSyncNow } from './settings.sync.js';
 import { saveCart } from './pos.sync.js';
 import { ensureNomorBackfill } from './nomor.js';
+// v161: gerbang kas dibutuhkan sejak boot (status shift) — impor statis,
+// wiring fungsi UI-nya tetap lewat _kasWireMap di bawah.
+import { refreshShiftCache } from './kas.js';
 import { selectTopping, applySelectedTopping, toggleOrderType, openMenuSelector, confirmMenuSelector, closeMenuSelector, changeMenuSelectorQty, changeToppingQty, syncToppingStepperVisibility } from './pos.ui.js';
 import { APP_VERSION, APP_VERSION_LABEL } from './version.js';
 import { startUpdateWatcher, checkForUpdate } from './update.js';
@@ -47,6 +50,7 @@ const _settingsReady = new Promise(r => { _settingsReadyResolve = r; });
 let _bantuanModule = null;
 let _pengeluaranModule = null;
 let _berandaModule = null;
+let _kasModule = null;
 
 // Wire page modules on first use
 const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', clearCart: 'clearCart', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput', pickOjolPlatform: 'pickOjolPlatform', setPaymentMethod: 'setPaymentMethod', capturePayProof: 'capturePayProof', handlePayProofFile: 'handlePayProofFile', removePayProof: 'removePayProof', holdOrder: 'holdOrder', holdOrderWithNote: 'holdOrderWithNote', openHeldListModal: 'openHeldListModal', resumeHeldOrder: 'resumeHeldOrder', deleteHeldOrder: 'deleteHeldOrder', refreshHeldFab: 'refreshHeldFab' };
@@ -56,6 +60,8 @@ const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNam
 const _bantuanWireMap = { __wired: false, initBantuan: 'initBantuan', toggleTutorial: 'toggleTutorial' };
 const _pengeluaranWireMap = { __wired: false, openExpenseForm: 'openExpenseForm', closeExpenseModal: 'closeExpenseModal', saveExpense: 'saveExpense', openIncomeForm: 'openIncomeForm', switchTxnTab: 'switchTxnTab', saveTxn: 'saveTxn' };
 const _berandaWireMap = { __wired: false, loadBeranda: 'loadBeranda' };
+// v161 — modul kas (buka/tutup shift, catat kas, tutup buku tahunan)
+const _kasWireMap = { __wired: false, refreshShiftCache: 'refreshShiftCache', renderKasCard: 'renderKasCard', openBukaKasModal: 'openBukaKasModal', closeBukaKasModal: 'closeBukaKasModal', bukaKas: 'bukaKas', openTutupKasModal: 'openTutupKasModal', closeTutupKasModal: 'closeTutupKasModal', perbaruiSelisihUI: 'perbaruiSelisihUI', tutupKas: 'tutupKas', openKasManualModal: 'openKasManualModal', closeKasManualModal: 'closeKasManualModal', setKasTab: 'setKasTab', saveKasManual: 'saveKasManual', openTutupBukuModal: 'openTutupBukuModal', closeTutupBukuModal: 'closeTutupBukuModal', simpanTutupBuku: 'simpanTutupBuku' };
 
 // Pre-wire critical modules immediately (beranda, pos) for snappy first load
 import('./pos.js').then(m => {
@@ -75,6 +81,16 @@ import('./beranda.js').then(m => {
   _berandaWireMap.__wired = true;
   if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Wired beranda module');
 }).catch(e => console.error('[APP] Failed to wire beranda:', e));
+
+// Lazy-wire kas module (v161) — dipakai Beranda, gerbang POS, dan Laporan.
+import('./kas.js').then(m => {
+  _kasModule = m;
+  for (const [key, modKey] of Object.entries(_kasWireMap)) {
+    if (modKey !== '__wired' && m[modKey] !== undefined) window[key] = m[modKey];
+  }
+  _kasWireMap.__wired = true;
+  if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||location.hostname==="127.0.0.1")) console.log('[APP] Wired kas module');
+}).catch(e => console.error('[APP] Failed to wire kas:', e));
 
 // Lazy-wire menu module (less frequently accessed)
 import('./menu.js').then(m => {
@@ -150,6 +166,7 @@ window.showTrxDetail      = showTrxDetail;
 window.closeTrxDetail     = closeTrxDetail;
 window.hapusPenjualan     = hapusPenjualan;
 window.showExpenseDetail  = showExpenseDetail;
+window.hapusExpense       = hapusExpense;
 window.installPWA         = installPWA;
 window.selectTopping      = selectTopping;
 window.applySelectedTopping = applySelectedTopping;
@@ -751,13 +768,55 @@ function handleDataAction(action, el, event) {
     case 'copy-sync-diag':
       if (window.copySyncDiag) window.copySyncDiag();
       break;
-    case 'open-sync-diag':
-      if (window.openSyncDiag) window.openSyncDiag();
-      break;
-
+    // NB: 'open-sync-diag' sudah ditangani di blok Settings di atas. Case dobel
+    // (v151-v161) dihapus di v162 — yang kedua mati karena switch berhenti di match pertama.
     // Purchase/Expense
     case 'open-expense-form':
       if (window.openExpenseForm) window.openExpenseForm();
+      break;
+
+    // ---- KAS / SHIFT (v161, adopsi buka-tutup kas + tutup buku dari rosok) ----
+    case 'open-buka-kas':
+      if (window.openBukaKasModal) window.openBukaKasModal();
+      break;
+    case 'close-buka-kas':
+      if (window.closeBukaKasModal) window.closeBukaKasModal();
+      break;
+    case 'save-buka-kas':
+      if (window.bukaKas) window.bukaKas();
+      break;
+    case 'open-tutup-kas':
+      if (window.openTutupKasModal) window.openTutupKasModal();
+      break;
+    case 'close-tutup-kas':
+      if (window.closeTutupKasModal) window.closeTutupKasModal();
+      break;
+    case 'save-tutup-kas':
+      if (window.tutupKas) window.tutupKas();
+      break;
+    case 'kas-fisik-input':
+      if (window.perbaruiSelisihUI) window.perbaruiSelisihUI();
+      break;
+    case 'open-kas-manual':
+      if (window.openKasManualModal) window.openKasManualModal(el?.dataset?.kastab || 'masuk');
+      break;
+    case 'close-kas-manual':
+      if (window.closeKasManualModal) window.closeKasManualModal();
+      break;
+    case 'kas-tab':
+      if (window.setKasTab) window.setKasTab(el?.dataset?.kastab || 'masuk');
+      break;
+    case 'save-kas-manual':
+      if (window.saveKasManual) window.saveKasManual();
+      break;
+    case 'open-tutup-buku':
+      if (window.openTutupBukuModal) window.openTutupBukuModal(el?.dataset?.tahun);
+      break;
+    case 'close-tutup-buku':
+      if (window.closeTutupBukuModal) window.closeTutupBukuModal();
+      break;
+    case 'save-tutup-buku':
+      if (window.simpanTutupBuku) window.simpanTutupBuku();
       break;
 
     // ---- Dilengkapi (P1 2026-08-22): refactor template lama onclick="..." →
@@ -794,6 +853,12 @@ function handleDataAction(action, el, event) {
     }
     case 'close-expense-detail':
       closeExpenseDetail();
+      break;
+    // v160: hapus catatan pengeluaran/pemasukan dari modal detailnya. Id diambil
+    // dari data-id baris yang diklik (bukan state global) → tidak bisa salah
+    // sasaran kalau user membuka dua detail berturut-turut.
+    case 'delete-expense':
+      hapusExpense(el?.dataset.id);
       break;
     case 'toggle-menu': {
       const id = Number(el?.dataset.menuId);
@@ -1095,6 +1160,10 @@ async function boot() {
   // Penomoran transaksi: beri nomor ke transaksi lama SEKALI (guard flag),
   // sebelum render supaya daftar/nota langsung menampilkan nomor yang benar.
   try { await ensureNomorBackfill(); } catch (e) { console.warn('[BOOT] nomor backfill gagal:', e?.message || e); }
+
+  // v161: kenakan status shift kas SEBELUM halaman pertama dirender, supaya
+  // gerbang POS dan kartu Beranda tidak bekerja dengan cache kosong.
+  try { await refreshShiftCache(); } catch (e) { console.warn('[BOOT] refresh shift kas:', e?.message || e); }
 
   try { await loadBeranda(); } catch (e) { console.error('[BOOT] loadBeranda gagal:', e); }
 

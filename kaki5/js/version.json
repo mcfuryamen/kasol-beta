@@ -1,8 +1,8 @@
 {
-  "version": "1.0.91",
-  "cacheBust": "v159",
+  "version": "1.0.95",
+  "cacheBust": "v163",
   "notes": [
-    "🧾 Nota cetak tidak lagi melampirkan foto bukti pembayaran QRIS/Transfer. Bukti tetap tersimpan di data transaksi dan tetap tampil di halaman detail transaksi.",
-    "🛵 Perbaikan harga per tipe pesanan (v158): Dine-in & Take-away selalu harga jual, Ojol selalu harga ojol; resume pesanan ditahan ikut memulihkan tipenya; detail transaksi ojol tampil harga ojol per baris."
+    "Jendela info versi baru dirapikan lagi: logo dihapus, kalimat \"Data jualanmu aman, tidak ada yang hilang.\" dipindah ke paragraf pembuka di atas, dan keterangan kecil di bawah tombol OKE dihapus.",
+    "Daftar catatan pembaruan sekarang selalu bisa digulir sendiri walau isinya banyak — judul di atas dan tombol OKE di bawah tetap terlihat."
   ]
 }

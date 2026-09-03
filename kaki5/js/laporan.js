@@ -92,7 +92,8 @@ export async function loadReport() {
   // Pemasukan lain disimpan di tabel yang sama dengan jenis:'pemasukan' —
   // pisahkan agar tidak terhitung sebagai pengeluaran.
   const expOnly = expenses.filter(e => e.jenis !== 'pemasukan');
-  const totalInc = expenses.filter(e => e.jenis === 'pemasukan').reduce((a,e) => a + e.jumlah, 0);
+  const incOnly = expenses.filter(e => e.jenis === 'pemasukan');
+  const totalInc = incOnly.reduce((a,e) => a + e.jumlah, 0);
 
   let omzet = 0, modal = 0, totalQty = 0;
   const menuStats = {};
@@ -163,9 +164,13 @@ export async function loadReport() {
     <div style="font-size:20px;font-weight:800;color:${marginPct>30?'var(--green)':marginPct>15?'var(--primary)':'var(--red)'}">${marginPct}%</div>
   </div>`;
 
-  // Chart for weekly/monthly (uses already-fetched sales/expenses — no N+1)
+  // Chart for weekly/monthly (uses already-fetched sales/expenses — no N+1).
+  // v160 (komentar browser #4): periode Harian dulu tidak punya grafik sama
+  // sekali — slot kosong itu sekarang diisi grafik omzet vs pengeluaran PER JAM.
   if (reportPeriod !== 'harian') {
     html += await renderChart(dateRange, reportPeriod, sales, expOnly);
+  } else {
+    html += renderHourlyChart(sales, expOnly, reportDate);
   }
 
   // Top menu
@@ -286,6 +291,79 @@ export async function loadReport() {
     });
     
     html += '</div>';
+  }
+
+  // v160 (audit pemasukan): pemasukan dulu HANYA jadi satu angka di kartu
+  // statistik — tidak pernah muncul di daftar mana pun, jadi salah catat tidak
+  // bisa dikoreksi. Sekarang ada rincian per kategori; tiap barisnya memakai
+  // class .expense-detail-item sehingga klik membuka detail + hapus.
+  if (incOnly.length > 0) {
+    const incCats = {};
+    const incCatItems = {};
+    incOnly.forEach(e => {
+      if (!incCats[e.kategori]) {
+        incCats[e.kategori] = 0;
+        incCatItems[e.kategori] = [];
+      }
+      incCats[e.kategori] += e.jumlah;
+      incCatItems[e.kategori].push(e);
+    });
+    const incEmoji = {'Pemasukan Lain':'💰','Penjualan Non-Menu':'🛍️','Bonus / Cashback':'🎁','Modal Tambahan':'🏦','Lainnya':'📦'};
+    html += '<div class="card"><div class="card-title">💰 Rincian Pemasukan</div>';
+
+    Object.entries(incCats).sort((a,b) => b[1]-a[1]).forEach(([cat, total]) => {
+      const pct = totalInc > 0 ? Math.round((total/totalInc)*100) : 0;
+      const catId = `incCat-${escapeHtml(cat).replace(/\s+/g,'')}`;
+      html += `<div>
+        <div data-catid="${catId}" class="expense-cat-item" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer">
+          <span class="kfs20">${escapeHtml(incEmoji[cat]||'💰')}</span>
+          <div class="kflex-1">
+            <div class="kfw600 kfs14">${escapeHtml(cat)}</div>
+            <div style="background:#f5f5f5;border-radius:6px;height:8px;margin-top:4px;overflow:hidden">
+              <div style="background:var(--green-light);height:100%;width:${pct}%;border-radius:6px"></div>
+            </div>
+          </div>
+          <div class="kright">
+            <div class="kfw800 kfs14 kgreen">${formatRp(total)}</div>
+            <div style="font-size:11px;color:var(--text3)">${pct}%</div>
+          </div>
+          <span id="${catId}-arrow" style="font-size:18px;color:var(--text3);transition:transform .2s">›</span>
+        </div>
+
+        <div id="${catId}" style="display:none;padding-left:32px;border-bottom:1px solid var(--border)">`;
+
+        incCatItems[cat]
+          .sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')) || (b.waktu || 0) - (a.waktu || 0))
+          .forEach(e => {
+            const sub = (e.nomor ? e.nomor + ' · ' : '') + (reportPeriod !== 'harian' && e.tanggal ? formatDate(e.tanggal) + ' · ' : '') + formatTime(e.waktu);
+            html += `<div class="trx-item expense-detail-item" data-id="${e.id}" style="padding:10px 0;gap:10px">
+            <div style="width:12px;height:12px;background:var(--green-light);border-radius:50%;flex-shrink:0"></div>
+            <div class="trx-info kflex-1">
+              <div class="trx-title kfs13">${escapeHtml(e.keterangan)}</div>
+              <div class="trx-sub kfs11">${escapeHtml(sub)}</div>
+            </div>
+            <div class="trx-amount green kfs13">+${formatRp(e.jumlah)}</div>
+          </div>`;
+          });
+
+        html += `</div></div>`;
+    });
+
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;font-weight:800;font-size:14px">
+      <span>Total Pemasukan · ${incOnly.length} catatan</span>
+      <span style="color:var(--green)">${formatRp(totalInc)}</span>
+    </div>`;
+    html += '</div>';
+  }
+
+  // ── Blok Kas (v161): riwayat buka/tutup shift + tutup buku tahunan ───────
+  // Sengaja lewat dynamic import: kas.js memuat laporan.js saat refresh,
+  // siklus impor statis akan membuat salah satu modul undefined saat boot.
+  try {
+    const kas = await import('./kas.js');
+    html += await kas.kasReportBlocksHtml();
+  } catch (e) {
+    console.warn('[LAPORAN] blok kas gagal:', e?.message || e);
   }
 
   // ── Blok Konsinyasi ──────────────────────────────────────────────────────
@@ -511,6 +589,60 @@ async function renderChart(range, period, sales, expenses) {
       <div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--red-light)"></div>Pengeluaran</div>
     </div>
     <div class="chart-bars">${barsHtml}</div>
+  </div>`;
+}
+
+// v160 (komentar browser #4): grafik HARIAN per jam. Sumbernya field `waktu`
+// (ms epoch) tiap transaksi penjualan & pengeluaran, bukan tabel jam terpisah.
+// Sumbu X dipangkas dari jam aktif pertama s/d terakhir (+1 jam longgar di tiap
+// ujung) supaya bar tetap kebaca; kalau lebih dari ~17 jam aktif, wadah grafik
+// bisa digeser mendatar daripada memaksakan 24 kolom selebar 16px.
+function renderHourlyChart(sales, expenses, tanggal) {
+  const inc = new Array(24).fill(0);
+  const exp = new Array(24).fill(0);
+  const hourOf = (t) => {
+    const d = new Date(t);
+    return Number.isNaN(d.getTime()) ? null : d.getHours();
+  };
+  sales.forEach(s => { const h = hourOf(s.waktu); if (h !== null) inc[h] += s.totalHarga || 0; });
+  expenses.forEach(e => { const h = hourOf(e.waktu); if (h !== null) exp[h] += e.jumlah || 0; });
+
+  let lo = -1, hi = -1;
+  for (let h = 0; h < 24; h++) {
+    if (inc[h] > 0 || exp[h] > 0) { if (lo < 0) lo = h; hi = h; }
+  }
+  if (lo < 0) return '';   // belum ada transaksi hari ini → jangan render kartu kosong
+  lo = Math.max(0, lo - 1);
+  hi = Math.min(23, hi + 1);
+  const nCols = hi - lo + 1;
+
+  // L6 (audit 2026-08-17): reduce, bukan spread ke Math.max.
+  const maxVal = [...inc.slice(lo, hi + 1), ...exp.slice(lo, hi + 1), 1].reduce((a, b) => (b > a ? b : a), 1);
+
+  let barsHtml = '';
+  for (let h = lo; h <= hi; h++) {
+    const incH = inc[h] > 0 ? Math.max((inc[h] / maxVal) * 120, 4) : 0;
+    const expH = exp[h] > 0 ? Math.max((exp[h] / maxVal) * 120, 4) : 0;
+    barsHtml += `<div class="chart-col">
+      <div class="chart-val">${inc[h] > 0 ? Math.round(inc[h] / 1000) + 'k' : ''}</div>
+      <div style="display:flex;gap:3px;align-items:flex-end;width:100%;height:120px">
+        <div class="chart-bar income" style="flex:1;height:${incH}px"></div>
+        <div class="chart-bar expense" style="flex:1;height:${expH}px"></div>
+      </div>
+      <div class="chart-label">${String(h).padStart(2, '0')}</div>
+    </div>`;
+  }
+
+  return `<div class="card">
+    <div class="card-title">📊 Grafik Harian · Per Jam</div>
+    <div class="trx-sub kfs11" style="margin:-2px 0 6px">${escapeHtml(formatDate(tanggal))} · jam ${String(lo).padStart(2, '0')}–${String(hi).padStart(2, '0')} · ${sales.length} transaksi${expenses.length ? ' · ' + expenses.length + ' pengeluaran' : ''}</div>
+    <div style="display:flex;gap:12px;margin-bottom:8px;justify-content:center">
+      <div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--green-light)"></div>Omzet</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--red-light)"></div>Pengeluaran</div>
+    </div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <div class="chart-bars" style="min-width:${nCols * 30}px">${barsHtml}</div>
+    </div>
   </div>`;
 }
 
