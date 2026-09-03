@@ -11,8 +11,13 @@ import { openModal, closeModal } from './modal.js';
 import { showConfirm } from './confirm.js';
 import { currentPage } from './app-state.js';
 import { loadBeranda } from './beranda.js';
-import { loadReport } from './laporan.js';
+// v165: loadReport() tidak dipanggil lagi di sini — penyegaran Laporan lewat
+// kas.refreshKasViews() supaya satu jalur untuk semua halaman (lihat hapusExpense).
 import { peringatanTahunTertutup } from './kas.js';
+// v164: catatan kini membawa metode (tunai laci / QRIS / transfer) dan kategori
+// non-usaha — keduanya wajib terlihat di detail supaya user paham kenapa angka
+// Laba tidak berubah.
+import { metodeCatatan, isNonLaba, METODE_LABEL } from './kas.logic.js';
 
 const CAT_EMOJI = {
   'Bahan Baku': '🥬',
@@ -21,6 +26,7 @@ const CAT_EMOJI = {
   'Peralatan': '🍳',
   'Setoran Konsinyasi': '🤝',
   'Retur Konsinyasi': '↩️',
+  'Setor Bank / Prive': '🏧',
   'Lainnya': '📦'
 };
 
@@ -46,6 +52,8 @@ export async function showExpenseDetail(id) {
     const emoji = (isInc ? INC_EMOJI : CAT_EMOJI)[exp.kategori] || (isInc ? '💰' : '📦');
     const accent = isInc ? 'var(--green)' : 'var(--red)';
     const accentBg = isInc ? 'var(--green-bg)' : 'var(--red-bg)';
+    const metode = metodeCatatan(exp);
+    const nonLaba = isNonLaba(exp);
 
     let html = `
       <div class="modal-handle"></div>
@@ -55,6 +63,7 @@ export async function showExpenseDetail(id) {
         <div class="kfs48 kmb8">${escapeHtml(emoji)}</div>
         <div class="kfs28 kfw800 kmb8" style="color:${accent}">${isInc ? '+' : '-'}${formatRp(exp.jumlah)}</div>
         <div class="kfs13 ktext2">${escapeHtml(exp.kategori || (isInc ? 'Pemasukan Lain' : 'Lainnya'))}</div>
+        <div style="font-size:12px;margin-top:6px;color:var(--text2)">${escapeHtml(METODE_LABEL[metode] || metode)}${nonLaba ? ' · <b style="color:var(--orange)">tidak masuk Laba</b>' : ''}</div>
       </div>
 
       <div style="background:#f9f9f9;border-radius:10px;padding:14px;margin-bottom:12px">
@@ -75,7 +84,14 @@ export async function showExpenseDetail(id) {
         </div>
       </div>
 
-      <div class="kgrid-2col-gap8 kmt16">
+      // v165 (poin 6): salah catat tidak perlu dihapus-lalu-tulis-ulang lagi.
+      // Tombol ini membuka form pencatatan yang sama dalam mode edit, lengkap
+      // dengan pemilih tanggal — jadi nomor & jejak aslinya tetap terjaga.
+      <div class="btn-row kmt16">
+        <button class="btn btn-primary" data-action="edit-expense" data-id="${exp.id}">✏️ Ubah Catatan</button>
+      </div>
+      <div class="hint kmt8" style="margin-top:6px">Isi keterangan, jenis, jumlah, metode, dan tanggal bisa dikoreksi. Nomor catatan dipertahankan selama tanggalnya tidak diganti.</div>
+      <div class="kgrid-2col-gap8" style="margin-top:10px">
         <button class="btn btn-secondary" data-action="close-expense-detail">Tutup</button>
         <button class="btn btn-red" data-action="delete-expense" data-id="${exp.id}">🗑️ Hapus</button>
       </div>
@@ -106,7 +122,10 @@ export async function hapusExpense(id) {
     closeExpenseDetail();
     showToast('Catatan dihapus');
     if (currentPage === 'beranda') await loadBeranda();
-    else if (currentPage === 'laporan') await loadReport();
+    // v165: kartu kas Beranda dan blok kas di Laporan membaca tabel yang sama.
+    // refreshKasViews() mengurus keduanya (Laporan hanya bila sedang dibuka),
+    // jadi hapusan dari halaman mana pun langsung terlihat di angka laci.
+    try { const kas = await import('./kas.js'); await kas.refreshKasViews(); } catch (_) { /* bukan fatal */ }
   });
 }
 

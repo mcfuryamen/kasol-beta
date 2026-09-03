@@ -1,9 +1,26 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v163 — ubah angka INI juga setiap swap (harus sama dengan
+// Cache version v165 — ubah angka INI juga setiap swap (harus sama dengan
 // CACHE_NAME di bawah; baris ini tertinggal di v119 selama belasan rilis
 // dan bikin salah baca seolah CACHE_NAME tidak di-bump).
+// v165 (poin 6 + komentar browser #1-#7): form Catat Pengeluaran/Pemasukan kini
+//       punya pemilih TANGGAL dan bisa MENGUBAH catatan lama. `waktu` (ms) ikut
+//       tanggal yang dipilih, bukan waktu klik — kalau tidak, catatan "kemarin"
+//       ikut menggeser laci shift hari ini (dataShift menyaring lewat `waktu`).
+//       Nomor BLJ/MSK dihitung ulang hanya saat tanggalnya pindah hari.
+//       Label metode diganti jadi "Ambil dari?" / "Masuk ke?", teks isian modal
+//       diturunkan ke 16px, dan kartu "Tutup Buku Tahunan" dipindah ke paling
+//       bawah Laporan (bloknya dipecah: kasReportBlocksHtml + kasTutupBukuBlockHtml).
+// v164: SATU JALUR PENCATATAN UANG (permintaan pemilik). Modal "Catat Kas
+//       Manual" dihapus — tombol Catat Kas di Beranda kini membuka form
+//       Pengeluaran/Pemasukan Laporan. Tiap catatan membawa metodeBayar
+//       (tunai laci / QRIS / transfer) dan hanya tunai yang menggeser kas
+//       sistem; kategori Modal Tambahan & Setor Bank / Prive dikecualikan dari
+//       Laba lewat hitungLaba() yang kini dipakai Beranda, Laporan, dan tutup
+//       buku bersama. IndexedDB naik ke version 8: baris tabel `kas` lama
+//       dipindahkan ke `pengeluaran` saat upgrade (tabelnya dibiarkan sebagai
+//       arsip kosong, tidak di-drop). Backup payload naik ke version 4.
 // v163: REVISI modal "Versi Baru Tersedia" (permintaan pemilik, lihat gambar):
 //       logo dihapus dari header, kalimat "Data jualanmu aman, tidak ada yang
 //       hilang." pindah ke paragraf intro header, hint di bawah tombol OKE
@@ -118,7 +135,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v163';
+const CACHE_NAME = 'kasir-solo-kaki5-v165';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

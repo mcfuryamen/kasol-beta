@@ -11,7 +11,7 @@ if (typeof isDev === "function" ? isDev() : (location.hostname==="localhost"||lo
 
 import { navigateTo, initRouter, getCurrentPage } from './navigation.js';
 import { getSetting, setSetting } from './db.js';
-import { validatePhone, formatPhoneDisplay } from './helpers.js';
+import { validatePhone, formatPhoneDisplay, showToast } from './helpers.js';
 import { renderPlatformCarousel, platGoTo } from './carousel.js';
 import { debounce } from './helpers.pure.js';
 import { ensureSynced, startSyncRetryLoop, pullCloudProfileIfOnline } from './sync.js';
@@ -58,10 +58,12 @@ const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderM
 const _laporanWireMap = { __wired: false, loadReport: 'loadReport', setReportPeriod: 'setReportPeriodUI', setReportPeriodUI: 'setReportPeriodUI', navReportDate: 'navReportDate', toggleExpenseCat: 'toggleExpenseCat', setCustomDate: 'setCustomDate', toggleCustomPicker: 'toggleCustomPicker', pickDate: 'pickDate', pickWeek: 'pickWeek', pickMonth: 'pickMonth', pickCustomDate: 'pickCustomDate' };
 const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaUsaha: 'saveNamaUsaha', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification', savePayOptions: 'savePayOptions' };
 const _bantuanWireMap = { __wired: false, initBantuan: 'initBantuan', toggleTutorial: 'toggleTutorial' };
-const _pengeluaranWireMap = { __wired: false, openExpenseForm: 'openExpenseForm', closeExpenseModal: 'closeExpenseModal', saveExpense: 'saveExpense', openIncomeForm: 'openIncomeForm', switchTxnTab: 'switchTxnTab', saveTxn: 'saveTxn' };
+const _pengeluaranWireMap = { __wired: false, openExpenseForm: 'openExpenseForm', closeExpenseModal: 'closeExpenseModal', saveExpense: 'saveExpense', openIncomeForm: 'openIncomeForm', switchTxnTab: 'switchTxnTab', saveTxn: 'saveTxn', ubahCatatan: 'ubahCatatan' };
 const _berandaWireMap = { __wired: false, loadBeranda: 'loadBeranda' };
-// v161 — modul kas (buka/tutup shift, catat kas, tutup buku tahunan)
-const _kasWireMap = { __wired: false, refreshShiftCache: 'refreshShiftCache', renderKasCard: 'renderKasCard', openBukaKasModal: 'openBukaKasModal', closeBukaKasModal: 'closeBukaKasModal', bukaKas: 'bukaKas', openTutupKasModal: 'openTutupKasModal', closeTutupKasModal: 'closeTutupKasModal', perbaruiSelisihUI: 'perbaruiSelisihUI', tutupKas: 'tutupKas', openKasManualModal: 'openKasManualModal', closeKasManualModal: 'closeKasManualModal', setKasTab: 'setKasTab', saveKasManual: 'saveKasManual', openTutupBukuModal: 'openTutupBukuModal', closeTutupBukuModal: 'closeTutupBukuModal', simpanTutupBuku: 'simpanTutupBuku' };
+// v161 — modul kas (buka/tutup shift, tutup buku tahunan).
+// v164 — 4 fungsi "catat kas manual" dihapus dari peta ini: pencatatan uang
+// laci kini lewat form Laporan, Beranda hanya memanggil `catatKasDariBeranda`.
+const _kasWireMap = { __wired: false, refreshShiftCache: 'refreshShiftCache', renderKasCard: 'renderKasCard', openBukaKasModal: 'openBukaKasModal', closeBukaKasModal: 'closeBukaKasModal', bukaKas: 'bukaKas', openTutupKasModal: 'openTutupKasModal', closeTutupKasModal: 'closeTutupKasModal', perbaruiSelisihUI: 'perbaruiSelisihUI', tutupKas: 'tutupKas', catatKasDariBeranda: 'catatKasDariBeranda', openTutupBukuModal: 'openTutupBukuModal', closeTutupBukuModal: 'closeTutupBukuModal', simpanTutupBuku: 'simpanTutupBuku' };
 
 // Pre-wire critical modules immediately (beranda, pos) for snappy first load
 import('./pos.js').then(m => {
@@ -797,17 +799,10 @@ function handleDataAction(action, el, event) {
     case 'kas-fisik-input':
       if (window.perbaruiSelisihUI) window.perbaruiSelisihUI();
       break;
-    case 'open-kas-manual':
-      if (window.openKasManualModal) window.openKasManualModal(el?.dataset?.kastab || 'masuk');
-      break;
-    case 'close-kas-manual':
-      if (window.closeKasManualModal) window.closeKasManualModal();
-      break;
-    case 'kas-tab':
-      if (window.setKasTab) window.setKasTab(el?.dataset?.kastab || 'masuk');
-      break;
-    case 'save-kas-manual':
-      if (window.saveKasManual) window.saveKasManual();
+    case 'kas-catat':
+      // v164: tidak ada lagi modal "catat kas" sendiri. Tombol Beranda membuka
+      // form Pengeluaran/Pemasukan Laporan — satu jalur pencatatan uang laci.
+      if (window.catatKasDariBeranda) window.catatKasDariBeranda(el?.dataset?.kasmode || 'keluar');
       break;
     case 'open-tutup-buku':
       if (window.openTutupBukuModal) window.openTutupBukuModal(el?.dataset?.tahun);
@@ -859,6 +854,19 @@ function handleDataAction(action, el, event) {
     // sasaran kalau user membuka dua detail berturut-turut.
     case 'delete-expense':
       hapusExpense(el?.dataset.id);
+      break;
+    // v165 (poin 6): UBAH catatan dari modal detailnya. Yang dibuka adalah form
+    // pencatatan biasa dalam mode edit — tidak ada jalur tulis kedua, jadi
+    // aturan validasi / nomor / metode otomatis sama persis dengan catatan baru.
+    case 'edit-expense':
+      if (window.ubahCatatan) window.ubahCatatan(el?.dataset?.id);
+      else import('./pengeluaran.js').then(m => {
+        window.ubahCatatan = m.ubahCatatan;
+        return m.ubahCatatan(el?.dataset?.id);
+      }).catch(e => {
+        console.error('[APP] gagal memuat form ubah catatan:', e);
+        showToast('Form ubah belum siap dimuat — coba lagi', 'error');
+      });
       break;
     case 'toggle-menu': {
       const id = Number(el?.dataset.menuId);

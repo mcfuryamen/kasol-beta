@@ -2,8 +2,26 @@
 import { DB } from './db.js';
 import { escapeHtml, formatRp, formatDate, formatTime, todayStr, addDays, dayName, getWeekRange, getMonthRange, showLoading, showToast } from './helpers.js';
 import { reportPeriod, setReportPeriod, reportDate, setReportDate, customStart, customEnd, setCustomStart, setCustomEnd } from './app-state.js';
+// v164: Laba Laporan memakai fungsi yang sama dengan Beranda & tutup buku
+// (satu sumber kebenaran), plus label metode untuk tiap catatan.
+import { hitungLaba, pisahkanCatatan, metodeCatatan, isNonLaba, METODE_LABEL } from './kas.logic.js';
 
 let _customPickerOpen = false;
+
+// v164: satu baris keterangan untuk catatan pengeluaran/pemasukan — nomor,
+// tanggal/waktu, metode kalau tidak lewat laci, dan penanda kalau kategorinya
+// non-usaha sehingga tidak memotong/menambah Laba.
+function subCatatan(e, denganTanggal) {
+  const metode = metodeCatatan(e);
+  const parts = [];
+  if (e.nomor) parts.push(String(e.nomor));
+  if (denganTanggal && e.tanggal) parts.push(formatDate(e.tanggal));
+  parts.push(formatTime(e.waktu));
+  let sub = parts.join(' · ');
+  if (metode !== 'tunai') sub += ' · ' + (METODE_LABEL[metode] || metode);
+  if (isNonLaba(e)) sub += ' · di luar Laba';
+  return sub;
+}
 
 // ── Delegasi klik laporan (CSP-friendly, tanpa inline onclick) ──
 // Render memakai atribut data-* (data-date, data-start-date, data-month-date,
@@ -91,9 +109,7 @@ export async function loadReport() {
 
   // Pemasukan lain disimpan di tabel yang sama dengan jenis:'pemasukan' —
   // pisahkan agar tidak terhitung sebagai pengeluaran.
-  const expOnly = expenses.filter(e => e.jenis !== 'pemasukan');
-  const incOnly = expenses.filter(e => e.jenis === 'pemasukan');
-  const totalInc = incOnly.reduce((a,e) => a + e.jumlah, 0);
+  const { expenses: expOnly, incomes: incOnly } = pisahkanCatatan(expenses);
 
   let omzet = 0, modal = 0, totalQty = 0;
   const menuStats = {};
@@ -109,8 +125,17 @@ export async function loadReport() {
     });
   });
 
-  const totalExp = expOnly.reduce((a,e) => a + e.jumlah, 0);
-  const profit = omzet - modal - totalExp + totalInc;
+  // v164: Laba memakai fungsi yang sama dengan Beranda & tutup buku. Kategori
+  // non-usaha (Modal Tambahan / Setor Bank / Prive) dikecualikan dari Laba tapi
+  // tetap muncul di rincian — dijumlahkan terpisah, bukan dibuang diam-diam.
+  const L = hitungLaba({ omzet, totalModal: modal, expenses: expOnly, incomes: incOnly });
+  const totalExp = L.expenseLaba;   // biaya usaha (masuk Laba)
+  const totalInc = L.incomeLaba;    // pemasukan usaha (masuk Laba)
+  const sumRows = rows => (rows || []).reduce((a, r) => a + (Number(r.jumlah) || 0), 0);
+  const expSemua = sumRows(expOnly); // dasar persentase rincian (semua kategori)
+  const incSemua = sumRows(incOnly);
+  const nonLabaTotal = L.nonLabaKeluar + L.nonLabaMasuk;
+  const profit = L.laba;
   const marginPct = omzet > 0 ? Math.round(((omzet - modal) / omzet) * 100) : 0;
 
   // Ojol: transaksi dengan tipe order 'ojol', digroup per platform preset
@@ -130,7 +155,7 @@ export async function loadReport() {
       <div class="stat-value orange">${formatRp(modal)}</div>
     </div>
     <div class="stat-card" style="background:var(--red-bg);border-color:#EF9A9A">
-      <div class="stat-label">💸 Pengeluaran</div>
+      <div class="stat-label">💸 Biaya Usaha</div>
       <div class="stat-value red">${formatRp(totalExp)}</div>
     </div>
     <div class="stat-card" style="background:var(--blue-bg);border-color:#90CAF9">
@@ -146,9 +171,13 @@ export async function loadReport() {
       <div class="stat-value orange">${totalQty}</div>
     </div>
     <div class="stat-card" style="background:var(--green-bg);border-color:#A5D6A7">
-      <div class="stat-label">💵 Pemasukan</div>
+      <div class="stat-label">💵 Pemasukan Usaha</div>
       <div class="stat-value green">${formatRp(totalInc)}</div>
     </div>
+    ${nonLabaTotal > 0 ? `<div class="stat-card" style="background:#f5f5f5;border-color:var(--border)">
+      <div class="stat-label">🏧 Non-Usaha (laci)</div>
+      <div class="stat-value" style="color:var(--text2)">${formatRp(nonLabaTotal)}</div>
+    </div>` : ''}
     <div class="stat-card" style="background:var(--orange-bg);border-color:#FFCC80">
       <div class="stat-label">🛵 Ojol</div>
       <div class="stat-value orange">${formatRp(ojolTotal)}</div>
@@ -244,11 +273,11 @@ export async function loadReport() {
       expCats[e.kategori] += e.jumlah;
       expCatItems[e.kategori].push(e);
     });
-    const catEmoji = {'Bahan Baku':'🥬','Gas & BBM':'⛽','Sewa Tempat':'🏪','Peralatan':'🍳','Lainnya':'📦'};
+    const catEmoji = {'Bahan Baku':'🥬','Gas & BBM':'⛽','Sewa Tempat':'🏪','Peralatan':'🍳','Setoran Konsinyasi':'🤝','Retur Konsinyasi':'↩️','Setor Bank / Prive':'🏧','Lainnya':'📦'};
     html += '<div class="card"><div class="card-title">💸 Rincian Pengeluaran</div>';
     
     Object.entries(expCats).sort((a,b) => b[1]-a[1]).forEach(([cat, total]) => {
-      const pct = totalExp > 0 ? Math.round((total/totalExp)*100) : 0;
+      const pct = expSemua > 0 ? Math.round((total/expSemua)*100) : 0;
       const catId = `expCat-${escapeHtml(cat).replace(/\s+/g,'')}`;
       
       // Category header (clickable to expand/collapse)
@@ -276,7 +305,7 @@ export async function loadReport() {
         expCatItems[cat]
           .sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')) || (b.waktu || 0) - (a.waktu || 0))
           .forEach(e => {
-            const sub = (e.nomor ? e.nomor + ' · ' : '') + (reportPeriod !== 'harian' && e.tanggal ? formatDate(e.tanggal) + ' · ' : '') + formatTime(e.waktu);
+            const sub = subCatatan(e, reportPeriod !== 'harian');
             html += `<div class="trx-item expense-detail-item" data-id="${e.id}" style="padding:10px 0;gap:10px">
             <div style="width:12px;height:12px;background:var(--red-light);border-radius:50%;flex-shrink:0"></div>
             <div class="trx-info kflex-1">
@@ -312,7 +341,7 @@ export async function loadReport() {
     html += '<div class="card"><div class="card-title">💰 Rincian Pemasukan</div>';
 
     Object.entries(incCats).sort((a,b) => b[1]-a[1]).forEach(([cat, total]) => {
-      const pct = totalInc > 0 ? Math.round((total/totalInc)*100) : 0;
+      const pct = incSemua > 0 ? Math.round((total/incSemua)*100) : 0;
       const catId = `incCat-${escapeHtml(cat).replace(/\s+/g,'')}`;
       html += `<div>
         <div data-catid="${catId}" class="expense-cat-item" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer">
@@ -335,7 +364,7 @@ export async function loadReport() {
         incCatItems[cat]
           .sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')) || (b.waktu || 0) - (a.waktu || 0))
           .forEach(e => {
-            const sub = (e.nomor ? e.nomor + ' · ' : '') + (reportPeriod !== 'harian' && e.tanggal ? formatDate(e.tanggal) + ' · ' : '') + formatTime(e.waktu);
+            const sub = subCatatan(e, reportPeriod !== 'harian');
             html += `<div class="trx-item expense-detail-item" data-id="${e.id}" style="padding:10px 0;gap:10px">
             <div style="width:12px;height:12px;background:var(--green-light);border-radius:50%;flex-shrink:0"></div>
             <div class="trx-info kflex-1">
@@ -351,12 +380,17 @@ export async function loadReport() {
 
     html += `<div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;font-weight:800;font-size:14px">
       <span>Total Pemasukan · ${incOnly.length} catatan</span>
-      <span style="color:var(--green)">${formatRp(totalInc)}</span>
+      <span style="color:var(--green)">${formatRp(incSemua)}</span>
     </div>`;
+    if (L.nonLabaMasuk > 0) {
+      html += `<div class="hint" style="margin-top:6px">Termasuk ${formatRp(L.nonLabaMasuk)} kategori non-usaha (mis. Modal Tambahan) yang mengisi laci tapi TIDAK menambah Laba.</div>`;
+    }
     html += '</div>';
   }
 
-  // ── Blok Kas (v161): riwayat buka/tutup shift + tutup buku tahunan ───────
+  // ── Blok Kas (v161): riwayat buka/tutup shift ─────────────────────────
+  // v165: hanya kartu riwayat shift yang di sini. Kartu "Tutup Buku Tahunan"
+  // dipindah ke paling bawah halaman (lihat akhir fungsi ini).
   // Sengaja lewat dynamic import: kas.js memuat laporan.js saat refresh,
   // siklus impor statis akan membuat salah satu modul undefined saat boot.
   try {
@@ -512,6 +546,16 @@ export async function loadReport() {
       html += '</div></div>';
     });
     html += '</div>';
+  }
+
+  // ── Kartu Tutup Buku Tahunan — paling bawah (v165, komentar UI #7) ──────
+  // Dibaca terakhir karena ini PENUTUP pembukuan satu tahun, bukan bagian dari
+  // laporan harian yang sedang dilihat user di atasnya.
+  try {
+    const kas = await import('./kas.js');
+    html += await kas.kasTutupBukuBlockHtml();
+  } catch (e) {
+    console.warn('[LAPORAN] blok tutup buku gagal:', e?.message || e);
   }
 
   document.getElementById('reportContent').innerHTML = html;

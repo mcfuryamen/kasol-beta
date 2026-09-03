@@ -1,22 +1,29 @@
 // ==================== KAS (ESM) ====================
-// Buka/tutup kas (shift laci) + catat kas manual + tutup buku tahunan.
+// Buka/tutup kas (shift laci) + tutup buku tahunan.
 // Diadopsi dari Kasir Solo Rosok (v161), ditulis ulang mengikuti aturan kaki5:
 //   • tanpa inline onclick (CSP) — dipanggil lewat data-action di app.js
 //   • aritmetika di kas.logic.js (fungsi murni), DB + DOM di sini
-//   • "kas sistem" dihitung dari data yang sudah ada (penjualan tunai,
-//     pengeluaran, pemasukan, kas manual) — kaki5 tidak punya buku besar kas
-//     terpisah, jadi tidak ada baris kas yang ditulis ulang tiap transaksi.
+//   • "kas sistem" dihitung dari data yang sudah ada — kaki5 tidak punya buku
+//     besar kas terpisah, jadi tidak ada baris kas yang ditulis ulang tiap
+//     transaksi.
+//
+// v164 (permintaan pemilik): TIDAK ADA lagi fitur "catat kas manual". Uang yang
+// keluar/masuk laci dicatat lewat form Pengeluaran/Pemasukan Laporan — tombol
+// "Catat Kas" di Beranda hanya membuka modal itu (lihat `catatKasDariBeranda`).
+// Konsekuensi yang harus dijaga di file ini:
+//   • DB.kas tidak dibaca lagi (baris lama sudah dipindah saat upgrade v8).
+//   • Hanya catatan bermode tunai yang menggeser kas sistem (kas.logic.js).
+//   • QRIS/Transfer tidak masuk laci, tapi TETAP ditampilkan sebagai rincian
+//     "Dompet digital" supaya angka laci yang kecil tidak tampak hilang.
 import { DB } from './db.js';
 import { showToast, formatRp, todayStr, formatDate, formatTime, escapeHtml } from './helpers.js';
 import { openShift, setOpenShift, currentPage } from './app-state.js';
 import { openModal, closeModal } from './modal.js';
 import { showConfirm } from './confirm.js';
 import {
-  hitungKasSistem, hitungSelisih, durasiStr, pisahkanCatatan, dalamRentang, rekapTahun
+  hitungKasSistem, hitungSelisih, durasiStr, pisahkanCatatan,
+  rekapTahun, rinciDompetDigital, isNonLaba
 } from './kas.logic.js';
-
-// Tipe tab pada modal "Catat Kas" ('masuk' | 'keluar') — state modul, bukan app-state
-let kasTipe = 'masuk';
 
 // ── Status shift ────────────────────────────────────────────────────────────
 
@@ -47,29 +54,37 @@ export function isKasOpen() {
 }
 
 // Kumpulkan semua data yang menentukan isi laci selama satu shift.
+// v164: DB.kas tidak dibaca lagi — catat-mencatat uang laci kini lewat tabel
+// `pengeluaran` (pengeluaran/pemasukan), yang memang sudah ikut dihitung.
 async function dataShift(shift, sampaiMs = Date.now()) {
   const dari = Number(shift?.waktuBuka) || 0;
-  const [salesAll, expAll, kasAll] = await Promise.all([
+  const [salesAll, expAll] = await Promise.all([
     DB.penjualan.where('waktu').between(dari, sampaiMs).toArray(),
-    DB.pengeluaran.where('waktu').between(dari, sampaiMs).toArray(),
-    DB.kas.toArray()
+    DB.pengeluaran.where('waktu').between(dari, sampaiMs).toArray()
   ]);
-  const sales = salesAll.filter(s => s.status !== 'held');
+  const sales = (salesAll || []).filter(s => s?.status !== 'held');
   const { expenses, incomes } = pisahkanCatatan(expAll);
-  const kasRows = dalamRentang(kasAll, dari, sampaiMs);
-  return { sales, expenses, incomes, kasRows };
+  return { sales, expenses, incomes };
 }
 
 // Perhitungan lengkap satu shift (dipakai kartu Beranda + modal Tutup Kas).
 export async function hitungShift(shift, sampaiMs = Date.now()) {
   const data = await dataShift(shift, sampaiMs);
   const hasil = hitungKasSistem({ modalAwal: shift?.modalAwal, ...data });
-  return { ...hasil, jumlahTransaksi: data.sales.length, lamaMs: sampaiMs - (Number(shift?.waktuBuka) || sampaiMs) };
+  return {
+    ...hasil,
+    dompet: rinciDompetDigital(data),
+    jumlahNonLaba: [...data.expenses, ...data.incomes].filter(isNonLaba).length,
+    jumlahTransaksi: data.sales.length,
+    lamaMs: sampaiMs - (Number(shift?.waktuBuka) || sampaiMs)
+  };
 }
 
 // Segarkan semua tampilan yang menampilkan angka kas: kartu Beranda selalu,
 // Laporan hanya bila sedang dibuka (sama seperti pola pengeluaran.js).
-async function refreshKasViews() {
+// Di-export supaya modul pencatatan (pengeluaran.js, hapus di expensedetail.js)
+// bisa memanggil setelah mengubah tabel `pengeluaran`.
+export async function refreshKasViews() {
   try { await renderKasCard(); } catch (e) { console.warn('[KAS] render kartu:', e?.message || e); }
   if (currentPage === 'laporan') {
     try {
@@ -129,6 +144,31 @@ export async function bukaKas() {
 
 // ── Tutup Kas ───────────────────────────────────────────────────────────────
 
+// Rincian "Dompet digital" di layar Tutup Kas (v164): uang yang tidak pernah
+// lewat laci — penjualan QRIS/Transfer dan catatan non-tunai — dirinci per
+// metode beserta jumlah transaksinya. Bloknya tetap dirender walau kosong dan
+// bilang "tidak ada", supaya angka laci yang kecil tidak dikira error.
+function renderDompetDigital(d) {
+  const box = document.getElementById('tutupKasDompet');
+  if (!box) return;
+  const rows = (d && Array.isArray(d.rows)) ? d.rows : [];
+  if (!rows.length) {
+    box.innerHTML = '<div class="kas-row"><span>Tidak ada transaksi non-tunai shift ini</span><b>Rp 0</b></div>';
+    return;
+  }
+  let html = '';
+  for (const r of rows) {
+    const trx = [];
+    if (r.trxMasuk) trx.push(r.trxMasuk + ' masuk');
+    if (r.trxKeluar) trx.push(r.trxKeluar + ' keluar');
+    const net = (Number(r.masuk) || 0) - (Number(r.keluar) || 0);
+    html += `<div class="kas-row"><span>${escapeHtml(r.label)} · ${escapeHtml(trx.join(' · ') || '0 transaksi')}</span>` +
+      `<b style="color:${net >= 0 ? 'var(--green)' : 'var(--red)'}">${net >= 0 ? '+' : '−'}${formatRp(Math.abs(net))}</b></div>`;
+  }
+  html += `<div class="kas-row total"><span>Total di rekening (bukan laci)</span><b>${formatRp(d.net)}</b></div>`;
+  box.innerHTML = html;
+}
+
 export async function openTutupKasModal() {
   await refreshShiftCache();
   if (!openShift) { showToast('Kas belum dibuka', 'error'); return; }
@@ -141,16 +181,10 @@ export async function openTutupKasModal() {
   set('tutupKasTrxLbl', h.jumlahTransaksi + ' transaksi');
   set('tutupKasModalLbl', formatRp(h.modalAwal));
   set('tutupKasTunaiLbl', '+' + formatRp(h.tunai));
-  set('tutupKasNonTunaiLbl', formatRp(h.nonTunai));
   set('tutupKasExpenseLbl', '−' + formatRp(h.keluar));
   set('tutupKasIncomeLbl', '+' + formatRp(h.masuk));
-  const manualNet = h.kasMasuk - h.kasKeluar;
-  const manualEl = document.getElementById('tutupKasManualLbl');
-  if (manualEl) {
-    manualEl.textContent = (manualNet > 0 ? '+' : manualNet < 0 ? '−' : '') + formatRp(Math.abs(manualNet));
-    manualEl.style.color = manualNet > 0 ? 'var(--green)' : manualNet < 0 ? 'var(--red)' : 'var(--text2)';
-  }
   set('tutupKasSistemLbl', formatRp(h.sistem));
+  renderDompetDigital(h.dompet);
 
   const sel = document.getElementById('tutupKasSelisih');
   if (sel) {
@@ -215,58 +249,20 @@ export async function tutupKas() {
   else showToast('Kas ditutup. Selisih ' + (selisih > 0 ? 'lebih ' : 'kurang ') + formatRp(Math.abs(selisih)), selisih > 0 ? 'success' : 'error', 4000);
 }
 
-// ── Catat Kas manual (bukan penjualan/pengeluaran) ──────────────────────────
-
-export function setKasTab(mode) {
-  kasTipe = mode === 'keluar' ? 'keluar' : 'masuk';
-  document.querySelectorAll('#kasManualModal .txn-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.kastab === kasTipe);
-  });
-  const title = document.getElementById('kasManualModalTitle');
-  if (title) title.textContent = kasTipe === 'keluar' ? '➖ Ambil Kas' : '➕ Tambah Kas';
-  const ket = document.getElementById('kasKeterangan');
-  if (ket) ket.placeholder = kasTipe === 'keluar'
-    ? 'Contoh: Ambil uang buat setor bank'
-    : 'Contoh: Nambah uang kembalian';
-}
-
-export async function openKasManualModal(mode = 'masuk') {
-  await refreshShiftCache();
-  setKasTab(mode);
-  const j = document.getElementById('kasJumlah');
-  if (j) j.value = '';
-  const k = document.getElementById('kasKeterangan');
-  if (k) k.value = '';
-  const hint = document.getElementById('kasShiftHint');
-  if (hint) {
-    hint.textContent = openShift
-      ? 'Dicatat pada shift yang sedang berjalan (sejak ' + formatTime(openShift.waktuBuka) + ').'
-      : 'Belum ada shift buka — catatan ini tetap tersimpan dan ikut dihitung saat shift berikutnya memakai rentang waktunya.';
+// ── Catat uang laci dari Beranda (v164: delegasi penuh ke form Laporan) ─────
+// Satu-satunya jalur mencatat uang keluar/masuk laci non-penjualan adalah modal
+// Pengeluaran/Pemasukan di Laporan. Tombol "Catat Kas" di Beranda hanya
+// membukanya di tab yang benar — tidak ada lagi modal kembar dengan fungsi sama.
+// mode 'keluar' → tab Pengeluaran (kategori Setor Bank / Prive terisi)
+// mode 'masuk'  → tab Pemasukan (kategori Modal Tambahan tersedia)
+export async function catatKasDariBeranda(mode = 'keluar') {
+  try {
+    const m = await import('./pengeluaran.js');
+    await m.bukaCatatanKas(mode === 'masuk' ? 'masuk' : 'keluar');
+  } catch (e) {
+    console.error('[KAS] gagal membuka form catatan:', e);
+    showToast('Form catat belum siap dimuat — coba lagi', 'error');
   }
-  await openModal('kasManualModal');
-}
-
-export function closeKasManualModal() {
-  closeModal('kasManualModal');
-}
-
-export async function saveKasManual() {
-  const raw = (document.getElementById('kasJumlah')?.value || '').replace(/\D/g, '');
-  const jumlah = raw ? parseInt(raw, 10) : 0;
-  if (jumlah <= 0) { showToast('Isi jumlah uang dulu', 'error'); return; }
-  const keterangan = (document.getElementById('kasKeterangan')?.value || '').trim()
-    || (kasTipe === 'keluar' ? 'Ambil kas' : 'Tambah kas');
-  await DB.kas.add({
-    tanggal: todayStr(),
-    waktu: Date.now(),
-    tipe: kasTipe,
-    jumlah,
-    keterangan,
-    shiftId: openShift ? openShift.id : null
-  });
-  closeKasManualModal();
-  await refreshKasViews();
-  showToast('✅ ' + (kasTipe === 'keluar' ? 'Kas keluar dicatat' : 'Kas masuk dicatat'));
 }
 
 // ── Kartu status kas di Beranda ─────────────────────────────────────────────
@@ -294,23 +290,24 @@ export async function renderKasCard() {
 <div class="kas-cell"><div class="kas-cell-label">Transaksi</div><div class="kas-cell-value">${h.jumlahTransaksi}</div></div>
 <div class="kas-cell"><div class="kas-cell-label">Kas Sistem</div><div class="kas-cell-value strong">${formatRp(h.sistem)}</div></div>
 </div>
-<div class="hint">Kas sistem = modal awal + penjualan tunai − pengeluaran + pemasukan ± catat kas. QRIS/Transfer (${formatRp(h.nonTunai)}) masuk rekening, bukan laci.</div>
+<div class="hint">Kas sistem = modal awal + penjualan tunai − pengeluaran tunai + pemasukan tunai. Dompet digital ${formatRp(h.dompet.net)} (${h.dompet.trxMasuk} transaksi masuk) ada di rekening, bukan di laci.${h.jumlahNonLaba ? ' ' + h.jumlahNonLaba + ' catatan setor bank/modal tidak memotong Laba.' : ''}</div>
 <div class="btn-row" style="margin-top:12px">
-<button class="btn btn-secondary" type="button" data-action="open-kas-manual">➕ Catat Kas</button>
+<button class="btn btn-secondary" type="button" data-action="kas-catat">💸 Catat Kas</button>
 <button class="btn btn-primary" type="button" data-action="open-tutup-kas">🔒 Tutup Kas</button>
 </div>`;
 }
 
 // ── Blok laporan: riwayat shift + tutup buku tahunan ────────────────────────
 
+// ── Blok laporan: riwayat shift + tutup buku tahunan ────────────────────────
+// v165 (komentar UI #7): dua kartu ini dipisah jadi dua fungsi. Riwayat shift
+// tetap di tempatnya (setelah rincian), sedangkan "Tutup Buku Tahunan" turun ke
+// paling bawah halaman Laporan — ia aksi penutup pembukuan, bukan bagian dari
+// bacaan harian.
+
 // Dipanggil laporan.js (lewat dynamic import) supaya tidak ada siklus impor.
 export async function kasReportBlocksHtml() {
-  const [shifts, buku] = await Promise.all([
-    DB.kasShift.orderBy('waktuBuka').reverse().limit(10).toArray(),
-    DB.tutupBuku.orderBy('tahun').reverse().toArray()
-  ]);
-  const tahunIni = new Date().getFullYear();
-  const tutupTahunIni = buku.find(b => Number(b.tahun) === tahunIni);
+  const shifts = await DB.kasShift.orderBy('waktuBuka').reverse().limit(10).toArray();
   const openShiftRow = shifts.find(s => s.status === 'buka');
 
   let html = `<div class="card"><div class="card-title">🕐 Riwayat Buka/Tutup Kas</div>`;
@@ -338,8 +335,16 @@ ${s.catatanTutup ? `<div class="trx-sub kfs11" style="font-style:italic">"${esca
     html += `<div class="btn-row" style="margin-top:12px"><button class="btn btn-primary" type="button" data-action="open-buka-kas">🔓 Buka Kas</button></div>`;
   }
   html += '</div>';
+  return html;
+}
 
-  html += `<div class="card"><div class="card-title">📕 Tutup Buku Tahunan <span class="badge ${tutupTahunIni ? 'green' : 'orange'}">${tutupTahunIni ? 'Tahun ' + tahunIni + ' ditutup' : 'Tahun ' + tahunIni + ' belum'}</span></div>
+// Kartu "Tutup Buku Tahunan" — paling bawah di halaman Laporan (v165).
+export async function kasTutupBukuBlockHtml() {
+  const buku = await DB.tutupBuku.orderBy('tahun').reverse().toArray();
+  const tahunIni = new Date().getFullYear();
+  const tutupTahunIni = buku.find(b => Number(b.tahun) === tahunIni);
+
+  let html = `<div class="card"><div class="card-title">📕 Tutup Buku Tahunan <span class="badge ${tutupTahunIni ? 'green' : 'orange'}">${tutupTahunIni ? 'Tahun ' + tahunIni + ' ditutup' : 'Tahun ' + tahunIni + ' belum'}</span></div>
 <div class="hint" style="margin-top:0">Kunci rekap laba satu tahun kalender. Data lama tidak dihapus — hanya jadi patokan akhir pembukuan.</div>`;
   if (!buku.length) {
     html += `<div class="hint" style="margin-top:8px">Belum ada buku yang ditutup.</div>`;
@@ -362,13 +367,12 @@ ${s.catatanTutup ? `<div class="trx-sub kfs11" style="font-style:italic">"${esca
 
 export async function openTutupBukuModal(tahunParam) {
   const tahun = Number(tahunParam) || new Date().getFullYear();
-  const [sales, expRows, kasRows] = await Promise.all([
+  const [sales, expRows] = await Promise.all([
     DB.penjualan.toArray(),
-    DB.pengeluaran.toArray(),
-    DB.kas.toArray()
+    DB.pengeluaran.toArray()
   ]);
   const { expenses, incomes } = pisahkanCatatan(expRows);
-  const r = rekapTahun({ sales, expenses, incomes, kasRows, tahun });
+  const r = rekapTahun({ sales, expenses, incomes, tahun });
   const sudah = await DB.tutupBuku.where('tahun').equals(tahun).first();
 
   const body = document.getElementById('tutupBukuBody');
@@ -382,7 +386,7 @@ export async function openTutupBukuModal(tahunParam) {
 <div class="kas-cell"><div class="kas-cell-label">Pemasukan</div><div class="kas-cell-value">${formatRp(r.totalIncome)}</div></div>
 <div class="kas-cell"><div class="kas-cell-label">Laba Bersih</div><div class="kas-cell-value strong">${formatRp(r.laba)}</div></div>
 </div>
-<div class="hint">Perkiraan arus kas sampai 31 ${escapeHtml(formatDate(tahun + '-12-31')).split(' ').slice(-2).join(' ')}: <b>${formatRp(r.kasAkhir)}</b> (di luar modal awal laci). Laba memakai rumus yang sama dengan Beranda &amp; Laporan.</div>
+<div class="hint">Arus kas <b>tunai</b> kumulatif sampai 31 ${escapeHtml(formatDate(tahun + '-12-31')).split(' ').slice(-2).join(' ')}: <b>${formatRp(r.kasAkhir)}</b> (di luar modal awal laci). Dompet digital kumulatif: <b>${formatRp(r.nonTunai)}</b> di rekening.<br>Di luar Laba: setor bank/ambil uang ${formatRp(r.nonLabaKeluar)}, modal tambahan ${formatRp(r.nonLabaMasuk)} — keduanya menggeser laci tapi bukan hasil usaha. Laba memakai rumus yang sama dengan Beranda &amp; Laporan.</div>
 ${sudah
     ? `<div class="hint" style="margin-top:12px">📕 Tahun ${tahun} <b>sudah ditutup</b> pada ${escapeHtml(formatDate(sudah.tanggalTutup))}. Rekap tidak diubah ulang.</div>`
     : `<div class="form-group" style="margin-top:14px">
@@ -412,13 +416,12 @@ export async function simpanTutupBuku() {
     showToast('Tahun ' + tahun + ' sudah pernah ditutup buku', 'error', 3500);
     return;
   }
-  const [sales, expRows, kasRows] = await Promise.all([
+  const [sales, expRows] = await Promise.all([
     DB.penjualan.toArray(),
-    DB.pengeluaran.toArray(),
-    DB.kas.toArray()
+    DB.pengeluaran.toArray()
   ]);
   const { expenses, incomes } = pisahkanCatatan(expRows);
-  const r = rekapTahun({ sales, expenses, incomes, kasRows, tahun });
+  const r = rekapTahun({ sales, expenses, incomes, tahun });
   showConfirm('📕', 'Tutup buku tahun ' + tahun + '? Rekap: laba ' + formatRp(r.laba) + ' dari ' + r.jumlahTransaksi + ' transaksi. Rekap tersimpan permanen.', 'Ya, Tutup Buku', async () => {
     await DB.tutupBuku.add({
       tahun,
@@ -430,7 +433,12 @@ export async function simpanTutupBuku() {
       totalExpense: r.totalExpense,
       totalIncome: r.totalIncome,
       laba: r.laba,
-      kasAkhir: r.kasAkhir
+      kasAkhir: r.kasAkhir,
+      // v164: rekap tahunan ikut menyimpan angka non-usaha & dompet digital,
+      // supaya laporan lama tetap bisa dibaca tanpa menghitung ulang.
+      nonLabaKeluar: r.nonLabaKeluar,
+      nonLabaMasuk: r.nonLabaMasuk,
+      nonTunai: r.nonTunai
     });
     closeTutupBukuModal();
     showToast('📕 Buku tahun ' + tahun + ' ditutup.');

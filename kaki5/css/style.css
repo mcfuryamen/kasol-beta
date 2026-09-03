@@ -1105,6 +1105,10 @@ body.modal-open .main-content{overflow:hidden}
 .kas-cell-value{font-size:14px;font-weight:800;color:var(--text);overflow-wrap:anywhere}
 .kas-cell-value.strong{color:var(--primary)}
 .kas-box{background:var(--bg);border-radius:12px;padding:4px 12px}
+/* Judul kecil di dalam kotak rincian (v164: blok "Dompet digital" di modal
+   Tutup Kas). Baris pertama .kas-row diberi border atas tipis supaya judulnya
+   tidak tampak menggantung di atas angka. */
+.kas-box-title{font-size:12px;font-weight:800;color:var(--text2);padding:9px 0 2px;border-bottom:1px solid var(--border)}
 .kas-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--border)}
 .kas-row:last-child{border-bottom:none}
 .kas-row span{color:var(--text2)}
@@ -1112,3 +1116,14 @@ body.modal-open .main-content{overflow:hidden}
 .kas-row.total{border-top:1px solid var(--border);border-bottom:none;margin-top:2px;padding-top:9px;font-weight:800}
 .kas-row.total span{color:var(--text);font-weight:800}
 .kas-row.total b{font-size:15px;color:var(--primary)}
+
+/* ── v165 (komentar UI #1 #2 #4 #5): skala teks form "Catat" ─────────────────
+   Opsi kategori/metode itu teks panjang + emoji; 18px bold bikin modal terasa
+   berat dan opsi terpotong di layar sempit. Satu skala saja untuk seluruh
+   modal (label 15px -> isian 16px) supaya proporsional, dan padding kanan
+   select dilebarkan agar panah dropdown tidak menimpa teks.
+   Spesifik ke #expenseModal: form lain (menu, pengaturan) sengaja tidak ikut
+   berubah. Diletakkan di akhir file supaya menang atas .form-input di media
+   query. */
+#expenseModal .form-input{font-size:16px;padding:13px 16px}
+#expenseModal select.form-input{padding:13px 40px 13px 16px}

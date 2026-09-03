@@ -3,6 +3,10 @@ import { DB, getSetting } from './db.js';
 import { escapeHtml, todayStr, formatRp, formatDate, formatTime, dayName, getGreeting, withPageLoading } from './helpers.js';
 import { renderPlatformCarousel } from './carousel.js';
 import { renderKasCard } from './kas.js';
+// v164: Laba Hari Ini tidak dihitung lokal lagi — Beranda, Laporan, dan tutup
+// buku memanggil SATU fungsi (hitungLaba) supaya ketiga angka itu tidak bisa
+// beda lagi seperti bug pemasukan v160.
+import { hitungLaba, pisahkanCatatan } from './kas.logic.js';
 
 export const loadBeranda = withPageLoading('recentTrx', async function () {
   document.getElementById('greetText').textContent = getGreeting();
@@ -29,14 +33,17 @@ export const loadBeranda = withPageLoading('recentTrx', async function () {
   // jenis:'pemasukan' BUKAN pengeluaran — dulu ikut dijumlahkan sebagai expense
   // sehingga mencatat pemasukan justru MEMOTONG "Laba Hari Ini" di Beranda,
   // padahal Laporan menambahkannya. Sekarang dua halaman membaca hal yang sama.
-  const pengeluaran = expRows.filter(e => e.jenis !== 'pemasukan');
-  const pemasukan = expRows.filter(e => e.jenis === 'pemasukan');
+  // v164: kategori non-usaha (Modal Tambahan / Setor Bank / Prive) dikecualikan
+  // dari Laba oleh hitungLaba() — uangnya tetap menggeser laci, hanya bukan
+  // hasil usaha. Rinciannya tetap muncul di Laporan.
+  const { expenses: pengeluaran, incomes: pemasukan } = pisahkanCatatan(expRows);
 
   const omzet = penjualan.reduce((s, p) => s + (p.totalHarga || 0), 0);
-  const expense = pengeluaran.reduce((s, p) => s + (p.jumlah || 0), 0);
-  const totalInc = pemasukan.reduce((s, p) => s + (p.jumlah || 0), 0);
   const totalModal = penjualan.reduce((s, p) => s + (p.totalModal || 0), 0);
-  const profit = omzet - totalModal - expense + totalInc;
+  const L = hitungLaba({ omzet, totalModal, expenses: pengeluaran, incomes: pemasukan });
+  const expense = L.expenseLaba;
+  const totalInc = L.incomeLaba;
+  const profit = L.laba;
   const qty = penjualan.reduce((s, p) => s + (p.items ? p.items.reduce((q, it) => q + (it.qty || 0), 0) : 0), 0);
 
   document.getElementById('todayOmzet').textContent = formatRp(omzet);

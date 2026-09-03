@@ -1,8 +1,10 @@
 {
-  "version": "1.0.95",
-  "cacheBust": "v163",
+  "version": "1.0.97",
+  "cacheBust": "v165",
   "notes": [
-    "Jendela info versi baru dirapikan lagi: logo dihapus, kalimat \"Data jualanmu aman, tidak ada yang hilang.\" dipindah ke paragraf pembuka di atas, dan keterangan kecil di bawah tombol OKE dihapus.",
-    "Daftar catatan pembaruan sekarang selalu bisa digulir sendiri walau isinya banyak — judul di atas dan tombol OKE di bawah tetap terlihat."
+    "Catatan pengeluaran/pemasukan yang salah kini bisa diperbaiki. Buka rinciannya lalu pilih \"Ubah Catatan\": keterangan, jumlah, metode, dan tanggalnya diedit lewat form yang sama.",
+    "Form Catat punya kolom Tanggal, jadi catatan boleh diisi mundur. Nomor BLJ/MSK dihitung ulang mengikuti tanggal yang dipilih, dan catatan tanggal lama tidak lagi menggeser laci shift hari ini.",
+    "Tahun yang sudah ditutup buku tetap boleh diperbaiki, tapi aplikasi meminta konfirmasi lebih dulu supaya pembukuannya tidak berubah tanpa sadar.",
+    "Label metode disingkat jadi \"Ambil dari?\" dan \"Masuk ke?\", ukuran teks form Catat diperkecil agar proporsional, dan kartu Tutup Buku Tahunan dipindah ke urutan paling bawah di Laporan."
   ]
 }

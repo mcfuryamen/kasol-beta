@@ -110,6 +110,69 @@ db.version(7).stores({
   tutupBuku: '++id, tahun'
 });
 
+// version 8: SATU jalur pencatatan uang (permintaan pemilik, v164).
+//
+// Fitur "catat kas manual" di Beranda dihapus — tambah/ambil uang laci sekarang
+// dicatat lewat form Pengeluaran/Pemasukan Laporan. Supaya uang yang sudah
+// pernah dicatat lewat fitur lama tidak hilang, baris tabel `kas` DIPINDAHKAN
+// ke `pengeluaran` sekali saat upgrade:
+//   kas.tipe 'masuk'  → pemasukan kategori 'Modal Tambahan'   (non-laba)
+//   kas.tipe 'keluar' → pengeluaran kategori 'Setor Bank / Prive' (non-laba)
+// Keduanya mode tunai, jadi isi laci tetap sama persis sebelum & sesudah
+// migrasi; yang berubah hanya Laba (uang pemilik memang bukan hasil usaha).
+//
+// Tabel `kas` SENGAJA tidak di-drop: menghapus object store di tengah transaksi
+// upgrade berisiko kalau ada perangkat yang datanya belum selesai disalin, dan
+// tabel kosong tidak mengganggu apa pun. Tidak ada lagi kode yang membaca atau
+// menulisnya — lihat `sumber: 'migrasi-kas-v164'` sebagai penanda arsip.
+//
+// Index `jenis` + `metodeBayar` ditambahkan karena laporan/kas kini menyaring
+// catatan berdasarkan keduanya.
+function tanggalDariMs(ms) {
+  const d = new Date(Number(ms));
+  if (!Number.isFinite(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+db.version(8).stores({
+  menu: '++id, nama, kategori, hargaJual, hargaModal, aktif, urutan, suplayer',
+  penjualan: '++id, tanggal, items, totalHarga, totalModal, bayar, kembalian, waktu, status',
+  pengeluaran: '++id, tanggal, keterangan, kategori, jumlah, waktu, jenis, metodeBayar',
+  pengaturan: 'key',
+  settings: 'key',
+  platformMessages: '++id, order, visibleFrom, visibleUntil',
+  kasShift: '++id, status, tanggalBuka, waktuBuka',
+  kas: '++id, tanggal, tipe, shiftId',
+  tutupBuku: '++id, tahun'
+}).upgrade(async tx => {
+  const kasTabel = tx.table('kas');
+  const rows = await kasTabel.toArray();
+  if (!rows.length) return;
+  const exp = tx.table('pengeluaran');
+  let dipindah = 0;
+  for (const k of rows) {
+    const jumlah = Number(k?.jumlah) || 0;
+    if (jumlah <= 0) continue;                    // baris rusak: tidak ada uang yang dipindah
+    const masuk = k.tipe === 'masuk';
+    const waktu = Number(k.waktu) || Date.now();
+    await exp.add({
+      tanggal: k.tanggal || tanggalDariMs(waktu),
+      waktu,
+      keterangan: (k.keterangan || '').trim() || (masuk ? 'Tambah kas (catatan lama)' : 'Ambil kas (catatan lama)'),
+      kategori: masuk ? 'Modal Tambahan' : 'Setor Bank / Prive',
+      jumlah,
+      suplayer: '',
+      ...(masuk ? { jenis: 'pemasukan' } : {}),
+      metodeBayar: 'tunai',
+      shiftId: k.shiftId ?? null,
+      sumber: 'migrasi-kas-v164'
+    });
+    dipindah++;
+  }
+  await kasTabel.clear();
+  console.log('[DB] v164: ' + dipindah + ' catatan kas manual dipindah ke Pengeluaran/Pemasukan');
+});
+
 // ==================== SETTINGS ====================
 // `settings` uses { key, value } rows keyed on `key`.
 export async function getSetting(key, defaultVal) {

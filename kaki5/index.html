@@ -631,12 +631,27 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <option value="Peralatan">🍳 Peralatan</option>
 <option value="Setoran Konsinyasi">🤝 Setoran Konsinyasi</option>
 <option value="Retur Konsinyasi">↩️ Retur Konsinyasi</option>
+<option value="Setor Bank / Prive">🏧 Setor Bank / Ambil Uang</option>
 <option value="Lainnya">📦 Lainnya</option>
 </select>
 </div>
 <div class="form-group">
+<label class="form-label">Tanggal Catatan</label>
+<input type="date" class="form-input" id="expTanggal">
+<div class="hint" style="margin-top:6px">Boleh mundur beberapa hari untuk mencatat yang ketinggalan. Tanggal menentukan laporan hari apa catatan ini masuk.</div>
+</div>
+<div class="form-group">
 <label class="form-label">Jumlah Uang (Rp)</label>
 <input type="number" class="form-input" id="expJumlah" placeholder="Contoh: 50000" inputmode="numeric">
+</div>
+<div class="form-group">
+<label class="form-label">Ambil dari?</label>
+<select class="form-input" id="expMetode">
+<option value="tunai">💵 Tunai dari laci</option>
+<option value="qris">📱 QRIS (dari rekening)</option>
+<option value="transfer">🏦 Transfer bank</option>
+</select>
+<div class="hint" id="expMetodeHint" style="margin-top:6px">Hanya "Tunai dari laci" yang mengurangi uang laci waktu tutup kas. Kategori 🏧 Setor Bank tidak memotong Laba — itu uang pemilik, bukan kerugian.</div>
 </div>
 </div>
 <div id="txnIncomeBody" style="display:none">
@@ -655,13 +670,27 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </select>
 </div>
 <div class="form-group">
+<label class="form-label">Tanggal Catatan</label>
+<input type="date" class="form-input" id="incTanggal">
+<div class="hint" style="margin-top:6px">Boleh mundur beberapa hari untuk mencatat yang ketinggalan. Tanggal menentukan laporan hari apa catatan ini masuk.</div>
+</div>
+<div class="form-group">
 <label class="form-label">Jumlah Uang (Rp)</label>
 <input type="number" class="form-input" id="incJumlah" placeholder="Contoh: 15000" inputmode="numeric">
+</div>
+<div class="form-group">
+<label class="form-label">Masuk ke?</label>
+<select class="form-input" id="incMetode">
+<option value="tunai">💵 Tunai ke laci</option>
+<option value="qris">📱 QRIS (ke rekening)</option>
+<option value="transfer">🏦 Transfer bank</option>
+</select>
+<div class="hint" style="margin-top:6px">Kategori 🏦 Modal Tambahan (isi laci dari dompet pribadi) tidak menambah Laba — itu uang pemilik, bukan hasil jualan.</div>
 </div>
 </div>
 <div class="btn-row">
 <button class="btn btn-secondary" data-action="close-expense-modal">Batal</button>
-<button class="btn btn-primary" data-action="save-txn">💾 Simpan</button>
+<button class="btn btn-primary" id="saveTxnBtn" data-action="save-txn">💾 Simpan</button>
 </div>
 </div>
 </div>
@@ -692,14 +721,17 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="kas-row"><span>Jumlah transaksi</span><b id="tutupKasTrxLbl">0 transaksi</b></div>
 </div>
 <div class="kas-box" style="margin-top:10px">
-<div class="kas-row"><span>Modal awal</span><b id="tutupKasModalLbl">Rp 0</b></div>
+<div class="kas-row"><span>Modal awal di laci</span><b id="tutupKasModalLbl">Rp 0</b></div>
 <div class="kas-row"><span>Penjualan tunai</span><b id="tutupKasTunaiLbl" style="color:var(--green)">Rp 0</b></div>
-<div class="kas-row"><span>Pengeluaran</span><b id="tutupKasExpenseLbl" style="color:var(--red)">Rp 0</b></div>
-<div class="kas-row"><span>Pemasukan</span><b id="tutupKasIncomeLbl" style="color:var(--green)">Rp 0</b></div>
-<div class="kas-row"><span>Ambil / tambah kas</span><b id="tutupKasManualLbl">Rp 0</b></div>
+<div class="kas-row"><span>Pengeluaran tunai</span><b id="tutupKasExpenseLbl" style="color:var(--red)">Rp 0</b></div>
+<div class="kas-row"><span>Pemasukan tunai</span><b id="tutupKasIncomeLbl" style="color:var(--green)">Rp 0</b></div>
 <div class="kas-row total"><span>Kas sistem (perkiraan di laci)</span><b id="tutupKasSistemLbl">Rp 0</b></div>
 </div>
-<div class="hint">QRIS/Transfer tidak masuk laci — tercatat <b id="tutupKasNonTunaiLbl">Rp 0</b> masuk rekening.</div>
+<div class="kas-box" style="margin-top:10px">
+<div class="kas-box-title">📱 Dompet digital — di luar laci</div>
+<div id="tutupKasDompet"><div class="kas-row"><span>Belum ada transaksi non-tunai</span><b>Rp 0</b></div></div>
+</div>
+<div class="hint">Uang di atas tidak lewat laci: QRIS/Transfer masuk rekening, dan pengeluaran non-tunai dibayar dari rekening juga. Yang dibandingkan dengan hitungan fisik cuma <b>Kas sistem</b>.</div>
 <div class="form-group" style="margin-top:14px">
 <label class="form-label">Uang tunai fisik di laci (hitung manual)</label>
 <input type="number" class="form-input" id="tutupKasFisik" placeholder="Contoh: 268000" inputmode="numeric" data-action="kas-fisik-input">
@@ -715,28 +747,8 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 </div></div>
 
-<!-- CATAT KAS MANUAL -->
-<div class="modal-overlay" id="kasManualModal" role="dialog" aria-modal="true" aria-labelledby="kasManualModalTitle"><div class="modal">
-<div class="modal-handle"></div>
-<div class="modal-title" id="kasManualModalTitle">➕ Tambah Kas</div>
-<div class="txn-tabs">
-<button class="txn-tab active" type="button" data-action="kas-tab" data-kastab="masuk">➕ Tambah Kas</button>
-<button class="txn-tab" type="button" data-action="kas-tab" data-kastab="keluar">➖ Ambil Kas</button>
-</div>
-<div class="form-group">
-<label class="form-label">Jumlah Uang (Rp)</label>
-<input type="number" class="form-input" id="kasJumlah" placeholder="Contoh: 50000" inputmode="numeric">
-</div>
-<div class="form-group">
-<label class="form-label">Keterangan</label>
-<input type="text" class="form-input" id="kasKeterangan" placeholder="Contoh: Nambah uang kembalian">
-</div>
-<div class="hint" id="kasShiftHint" style="margin-top:-6px"></div>
-<div class="btn-row">
-<button class="btn btn-secondary" type="button" data-action="close-kas-manual">Batal</button>
-<button class="btn btn-primary" type="button" data-action="save-kas-manual">💾 Simpan</button>
-</div>
-</div></div>
+<!-- CATAT KAS MANUAL dihapus v164: tambah/ambil uang laci dicatat lewat
+     #expenseModal (tab Pengeluaran/Pemasukan) — satu jalur, satu sumber data. -->
 
 <!-- TUTUP BUKU TAHUNAN -->
 <div class="modal-overlay" id="tutupBukuModal" role="dialog" aria-modal="true" aria-labelledby="tutupBukuModalTitle"><div class="modal">
@@ -975,7 +987,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=163"></script>
+  <script type="module" src="js/app.js?v=165"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

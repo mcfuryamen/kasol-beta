@@ -54,43 +54,77 @@ export async function verifyBackupSignature(data, expectedSig) {
 // v161: tabel kas (shift, catat kas manual, tutup buku) IKUT dicadangkan.
 // Di rosok tiga tabel ini lupa dimasukkan ke backup sehingga riwayat shift
 // dan rekap tahunan hilang saat restore — tidak ikut diadopsi.
+// v164 (version 4): kunci `kas` DIHAPUS dari cadangan baru — fitur catat kas
+// manual tidak ada lagi, uangnya tercatat di `pengeluaran`. File lama yang masih
+// punya kunci `kas` tetap diterima dan dipindahkan saat restore (lihat
+// applyBackupData), jadi cadangan sebelum v164 tidak membuat uang hilang.
 async function buildBackupPayload() {
   return {
-    version: 3,
+    version: 4,
     exportDate: new Date().toISOString(),
     menu: await DB.menu.toArray(),
     penjualan: await DB.penjualan.toArray(),
     pengeluaran: await DB.pengeluaran.toArray(),
     kasShift: await DB.kasShift.toArray(),
-    kas: await DB.kas.toArray(),
     tutupBuku: await DB.tutupBuku.toArray()
+  };
+}
+
+// Baris `kas` dari cadangan lama → bentuk catatan pengeluaran/pemasukan.
+// Sama persis dengan migrasi db.version(8): 'masuk' jadi Pemasukan kategori
+// 'Modal Tambahan', 'keluar' jadi Pengeluaran kategori 'Setor Bank / Prive',
+// keduanya tunai sehingga isi laci tidak berubah.
+function catatanKasLama(k) {
+  const jumlah = Number(k?.jumlah) || 0;
+  if (jumlah <= 0) return null;
+  const masuk = k.tipe === 'masuk';
+  const waktu = Number(k.waktu) || Date.now();
+  const d = new Date(waktu);
+  const tanggal = /^\d{4}-\d{2}-\d{2}$/.test(k?.tanggal || '')
+    ? k.tanggal
+    : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  return {
+    tanggal,
+    waktu,
+    keterangan: (k.keterangan || '').trim() || (masuk ? 'Tambah kas (catatan lama)' : 'Ambil kas (catatan lama)'),
+    kategori: masuk ? 'Modal Tambahan' : 'Setor Bank / Prive',
+    jumlah,
+    suplayer: '',
+    ...(masuk ? { jenis: 'pemasukan' } : {}),
+    metodeBayar: 'tunai',
+    shiftId: k.shiftId ?? null,
+    sumber: 'migrasi-kas-v164'
   };
 }
 
 // Terapkan isi cadangan: clear + bulkAdd seluruh tabel data dalam SATU
 // transaksi atomik (gagal di tengah = rollback total). Dipakai restore file
 // lokal & cloud. File lama (v1/v2) tidak punya kunci kas → dianggap kosong.
+// Kunci `kas` pada file v3 TIDAK ditulis ke tabel kas lagi — dipindah ke
+// `pengeluaran` supaya tetap dihitung oleh Laba dan kas sistem.
 async function applyBackupData(data) {
   data.penjualan = data.penjualan || [];
   data.pengeluaran = data.pengeluaran || [];
   data.kasShift = data.kasShift || [];
-  data.kas = data.kas || [];
   data.tutupBuku = data.tutupBuku || [];
+  const kasLama = Array.isArray(data.kas)
+    ? data.kas.map(catatanKasLama).filter(Boolean)
+    : [];
+  if (kasLama.length) console.log('[BACKUP] ' + kasLama.length + ' catatan kas lama dipindah ke Pengeluaran/Pemasukan');
+  const pengeluaran = data.pengeluaran.concat(kasLama);
   await DB.transaction(
     'rw',
-    [DB.menu, DB.penjualan, DB.pengeluaran, DB.kasShift, DB.kas, DB.tutupBuku],
+    [DB.menu, DB.penjualan, DB.pengeluaran, DB.kasShift, DB.tutupBuku],
     async () => {
       await DB.menu.clear();
       await DB.penjualan.clear();
       await DB.pengeluaran.clear();
       await DB.kasShift.clear();
-      await DB.kas.clear();
       await DB.tutupBuku.clear();
       if (data.menu.length) await DB.menu.bulkAdd(data.menu);
       if (data.penjualan.length) await DB.penjualan.bulkAdd(data.penjualan);
-      if (data.pengeluaran.length) await DB.pengeluaran.bulkAdd(data.pengeluaran);
+      if (pengeluaran.length) await DB.pengeluaran.bulkAdd(pengeluaran);
       if (data.kasShift.length) await DB.kasShift.bulkAdd(data.kasShift);
-      if (data.kas.length) await DB.kas.bulkAdd(data.kas);
       if (data.tutupBuku.length) await DB.tutupBuku.bulkAdd(data.tutupBuku);
     }
   );
