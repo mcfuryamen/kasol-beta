@@ -3,7 +3,7 @@
    laporan.js — Reports
    ========================================================================= */
 import { db } from './db.js';
-import { laporanPeriode, laporanDateFrom, laporanDateTo, setLaporanPeriode as setLaporanPeriodeState, setLaporanDateFrom, setLaporanDateTo } from './app-state.js';
+import { laporanPeriode, laporanAnchor, laporanDateFrom, laporanDateTo, setLaporanPeriode as setLaporanPeriodeState, setLaporanDateFrom, setLaporanDateTo, setLaporanAnchor } from './app-state.js';
 import { fmtRupiah, fmtKg, fmtDate, escapeHtml, openOverlay, closeSheet, toast, unformatRupiah } from './utils.js';
 
 let _lunasiId = null;
@@ -17,96 +17,248 @@ function toLocalISO(d){
   return `${y}-${m}-${day}`;
 }
 
+// Jangkar default = hari ini (sekali, saat modul siap).
+if(!laporanAnchor) setLaporanAnchor(toLocalISO(new Date()));
+
+// ── Navigasi periode ala kaki5: tab segmen + date-nav akordeon ────────────
+// Baris date-nav (‹ label ›) = badan akordeon: default TERTUTUP, membuka
+// saat tab filter diklik (klik tab yang sama lagi = menutup). Klik label
+// tanggal saat terbuka men-toggle panel picker.
 export function setLaporanPeriode(p){
+  const sameTab = laporanPeriode === p; // baca SEBELUM setter mengganti nilai
   setLaporanPeriodeState(p);
-  const custom = p === 'custom';
-  const rangeEl = document.getElementById('laporanCustomRange');
-  if(rangeEl) rangeEl.classList.toggle('hidden', !custom);
-  const lbl = document.getElementById('laporanPeriodeLbl');
-  if(lbl) lbl.textContent = formatLaporanPeriodeLbl();
-  document.querySelectorAll('#screenLaporanFilter .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.p===p));
-  renderLaporan();
+  // Akordeon: klik tab lain -> buka; klik tab yang sudah aktif -> tutup.
+  _navOpen = sameTab ? !_navOpen : true;
+  _pickerOpen = false;
+  document.querySelectorAll('#screenLaporanFilter .report-tab').forEach(b=>b.classList.toggle('active', b.dataset.p===p));
+  renderDateNav();
+  renderLaporan(); renderRiwayat();
 }
 
-export function applyLaporanCustom(){
-  const from = document.getElementById('laporanFrom').value;
-  const to = document.getElementById('laporanTo').value;
-  setLaporanDateFrom(from);
-  setLaporanDateTo(to);
-  if(laporanPeriode !== 'custom') setLaporanPeriodeState('custom');
-  document.querySelectorAll('#screenLaporanFilter .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.p==='custom'));
-  const lbl = document.getElementById('laporanPeriodeLbl');
-  if(lbl) lbl.textContent = formatLaporanPeriodeLbl();
-  renderLaporan();
-}
-
-export function resetLaporanPeriode(){
-  setLaporanDateFrom('');
-  setLaporanDateTo('');
-  const fromEl = document.getElementById('laporanFrom');
-  const toEl = document.getElementById('laporanTo');
-  if(fromEl) fromEl.value = '';
-  if(toEl) toEl.value = '';
-  setLaporanPeriode('semua');
-}
-
-function formatLaporanPeriodeLbl(){
-  const d = dt => dt ? dt.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) : '';
-  switch(laporanPeriode){
-    case 'semua': return 'Semua periode';
-    case 'today': return 'Periode: Hari Ini';
-    case 'week':  return 'Periode: 7 hari terakhir';
-    case 'month': return 'Periode: 30 hari terakhir';
-    case 'custom':{
-      if(laporanDateFrom && laporanDateTo) return `Periode: ${d(new Date(laporanDateFrom+'T00:00:00'))} – ${d(new Date(laporanDateTo+'T00:00:00'))}`;
-      if(laporanDateFrom) return `Periode: dari ${d(new Date(laporanDateFrom+'T00:00:00'))}`;
-      if(laporanDateTo) return `Periode: sampai ${d(new Date(laporanDateTo+'T00:00:00'))}`;
-      return 'Periode: Pilih tanggal di bawah';
-    }
-    default: return '';
+// Geser jangkar ‹ / › : harian ±1 hari, mingguan ±7 hari, bulanan ±1 kalender.
+export function shiftLaporanPeriod(delta){
+  if(laporanPeriode !== 'harian' && laporanPeriode !== 'mingguan' && laporanPeriode !== 'bulanan') return;
+  const [y, m, d] = laporanAnchor.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  if(laporanPeriode === 'harian') dt.setDate(dt.getDate() + delta);
+  else if(laporanPeriode === 'mingguan') dt.setDate(dt.getDate() + delta*7);
+  else {
+    const day = dt.getDate();
+    dt.setDate(1);
+    dt.setMonth(dt.getMonth() + delta);
+    const last = new Date(dt.getFullYear(), dt.getMonth()+1, 0).getDate();
+    dt.setDate(Math.min(day, last));
   }
+  setLaporanAnchor(toLocalISO(dt));
+  renderDateNav();
+  renderLaporan(); renderRiwayat();
 }
 
-function reportRange(){
-  if(laporanPeriode === 'semua') return { start: null, end: null };
+// Senin sebagai awal minggu.
+function weekStart(ds){
+  const [y, m, d] = ds.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  dt.setDate(dt.getDate() - ((dt.getDay() + 6) % 7));
+  return toLocalISO(dt);
+}
+
+function anchorLabel(){
+  const [y, m, d] = laporanAnchor.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  if(laporanPeriode === 'harian'){
+    return laporanAnchor === toLocalISO(new Date()) ? 'Hari Ini'
+      : dt.toLocaleDateString('id-ID', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+  }
+  if(laporanPeriode === 'mingguan'){
+    const start = new Date(y, m-1, d); start.setDate(start.getDate() - ((start.getDay()+6)%7));
+    const end = new Date(start); end.setDate(end.getDate() + 6);
+    const f = x => x.toLocaleDateString('id-ID', {day:'numeric', month:'short'});
+    return `${f(start)} – ${f(end)} ${end.getFullYear()}`;
+  }
+  // bulanan
+  return dt.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
+}
+
+function renderDateNav(){
+  const box = document.getElementById('reportDateNav');
+  if(!box) return;
+  // Akordeon: baris date-nav tidak dirender saat tertutup (default).
+  if(!_navOpen){ box.innerHTML = ''; return; }
+  const stepped = laporanPeriode === 'harian' || laporanPeriode === 'mingguan' || laporanPeriode === 'bulanan';
+  const label = laporanPeriode === 'custom' ? customLabel() : `📅 ${anchorLabel()}`;
+  const navArea = stepped
+    ? `<button class="date-btn" onclick="window._ksr_shiftLaporanPeriod(-1)" aria-label="Periode sebelumnya">‹</button>
+       <div class="date-label toggle-picker-btn${_pickerOpen ? ' active' : ''}" onclick="window._ksr_togglePicker()">${label}</div>
+       <button class="date-btn" onclick="window._ksr_shiftLaporanPeriod(1)" aria-label="Periode berikutnya">›</button>`
+    : `<div class="date-label toggle-picker-btn${_pickerOpen ? ' active' : ''}" onclick="window._ksr_togglePicker()">${label}</div>`;
+  // Panel picker hanya dirender saat TERBUKA (klik manual pada label).
+  // Default tertutup — ikut tertutup saat ganti periode, pindah halaman, & refresh.
+  box.innerHTML = `
+    <div class="date-nav">
+      ${navArea}
+    </div>
+    ${_pickerOpen ? `<div class="custom-picker">${buildPickerBody()}</div>` : ''}`;
+}
+
+function customLabel(){
+  if(laporanDateFrom && laporanDateTo) return `📅 ${fmtShort(laporanDateFrom)} – ${fmtShort(laporanDateTo)}`;
+  if(laporanDateFrom) return `📅 mulai ${fmtShort(laporanDateFrom)}`;
+  if(laporanDateTo) return `📅 s/d ${fmtShort(laporanDateTo)}`;
+  return '📅 Pilih Rentang Tanggal';
+}
+function fmtShort(ds){
+  const [y,m,d] = ds.split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
+}
+
+// ── Picker bodies (pola kaki5) ────────────────────────────────────────────
+let _pickerOpen = false;
+let _navOpen = false; // akordeon baris date-nav: default tertutup
+// Bulan yang sedang dilihat di kalender custom (default ikut tanggal terpilih).
+let _viewStart = null; // 'YYYY-MM'
+let _viewEnd = null;
+
+function buildPickerBody(){
+  if(laporanPeriode === 'harian') return buildDayCalendar();
+  if(laporanPeriode === 'mingguan') return buildWeekOptions();
+  if(laporanPeriode === 'bulanan') return buildMonthOptions();
+  return buildCustomPicker();
+}
+
+function buildDayCalendar(){
+  const ym = laporanAnchor.slice(0,7);
+  const [y, m] = ym.split('-').map(Number);
+  const sel = laporanAnchor;
+  const today = toLocalISO(new Date());
+  const firstDow = (new Date(y, m-1, 1).getDay() + 6) % 7; // Senin = 0
+  const daysInMonth = new Date(y, m, 0).getDate();
+  let cells = '';
+  for(let i=0; i<firstDow; i++) cells += '<div class="cal-cell empty"></div>';
+  for(let d=1; d<=daysInMonth; d++){
+    const ds = `${ym}-${String(d).padStart(2,'0')}`;
+    const cls = 'cal-cell' + (ds === sel ? ' sel' : '') + (ds === today ? ' today' : '');
+    cells += `<div class="${cls}" onclick="window._ksr_pickDate('${ds}')">${d}</div>`;
+  }
+  const heads = ['Sen','Sel','Rab','Kam','Jum','Sab','Min'].map(h=>`<div class="cal-head">${h}</div>`).join('');
+  return `<div class="cal-title">${new Date(y, m-1, 1).toLocaleDateString('id-ID',{month:'long', year:'numeric'})}</div>
+    <div class="cal-grid">${heads}${cells}</div>`;
+}
+
+function buildWeekOptions(){
+  const ym = laporanAnchor.slice(0,7);
+  const [y, m] = ym.split('-').map(Number);
+  const first = `${ym}-01`;
+  const lastDs = `${ym}-${String(new Date(y, m, 0).getDate()).padStart(2,'0')}`;
+  let cursor = weekStart(first);
+  const active = weekStart(laporanAnchor);
+  const weeks = [];
+  let n = 1;
+  while(cursor <= lastDs && n <= 6){
+    const s = new Date(cursor.slice(0,4), cursor.slice(5,7)-1, cursor.slice(8,10));
+    const e = new Date(s); e.setDate(e.getDate() + 6);
+    const f = x => x.toLocaleDateString('id-ID', {day:'numeric', month:'short'});
+    const a = cursor === active ? ' sel' : '';
+    weeks.push(`<button class="week-opt${a}" onclick="window._ksr_pickWeek('${cursor}')"><b>Minggu ${n}</b><span>${f(s)} – ${f(e)}</span></button>`);
+    const nxt = new Date(s); nxt.setDate(nxt.getDate() + 7);
+    cursor = toLocalISO(nxt); n++;
+  }
+  return weeks.join('');
+}
+
+function buildMonthOptions(){
+  const y = laporanAnchor.slice(0,4);
+  const cur = laporanAnchor.slice(5,7);
+  const opts = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'].map((mn,i)=>{
+    const mm = String(i+1).padStart(2,'0');
+    const a = mm === cur ? ' sel' : '';
+    return `<button class="month-opt${a}" onclick="window._ksr_pickMonth('${y}-${mm}-01')"><b>${mn}</b><span>${y}</span></button>`;
+  }).join('');
+  return `<div class="month-grid">${opts}</div>`;
+}
+
+function buildCustomPicker(){
+  if(!_viewStart) _viewStart = (laporanDateFrom || laporanAnchor).slice(0,7);
+  if(!_viewEnd) _viewEnd = (laporanDateTo || laporanDateFrom || laporanAnchor).slice(0,7);
+  return `
+    <div class="custom-two">
+      ${buildMonthCal(_viewStart, 'start', 'Dari')}
+      ${buildMonthCal(_viewEnd, 'end', 'Sampai')}
+    </div>`;
+}
+
+function buildMonthCal(ym, side, title){
+  const [y, m] = ym.split('-').map(Number);
+  const today = toLocalISO(new Date());
+  const firstDow = (new Date(y, m-1, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(y, m, 0).getDate();
+  let cells = '';
+  for(let i=0; i<firstDow; i++) cells += '<div class="cal-cell empty"></div>';
+  for(let d=1; d<=daysInMonth; d++){
+    const ds = `${ym}-${String(d).padStart(2,'0')}`;
+    const isSel = (side==='start' && ds===laporanDateFrom) || (side==='end' && ds===laporanDateTo);
+    const inRange = laporanDateFrom && laporanDateTo && ds > laporanDateFrom && ds < laporanDateTo;
+    const cls = 'cal-cell' + (isSel ? ' sel' : '') + (inRange ? ' inrange' : '') + (ds === today ? ' today' : '');
+    cells += `<div class="${cls}" onclick="window._ksr_pickCustomDate('${side}','${ds}')">${d}</div>`;
+  }
+  const heads = ['Sen','Sel','Rab','Kam','Jum','Sab','Min'].map(h=>`<div class="cal-head">${h}</div>`).join('');
+  const mname = new Date(y, m-1, 1).toLocaleDateString('id-ID',{month:'long', year:'numeric'});
+  return `
+    <div class="cal-half">
+      <div class="cal-half-title">${title}</div>
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="window._ksr_pickNavMonth('${side}',-1)" aria-label="Bulan sebelumnya">‹</button>
+        <div class="cal-title">${mname}</div>
+        <button class="cal-nav-btn" onclick="window._ksr_pickNavMonth('${side}',1)" aria-label="Bulan berikutnya">›</button>
+      </div>
+      <div class="cal-grid">${heads}${cells}</div>
+    </div>`;
+}
+
+export function reportRange(){
+  // Semua range pakai waktu LOKAL (T00:00/T23:59) supaya transaksi dini hari
+  // tidak terlempar ke hari lain (beda dengan lama yang campur UTC).
   if(laporanPeriode === 'custom'){
     const start = laporanDateFrom ? new Date(laporanDateFrom + 'T00:00:00') : null;
     const end = laporanDateTo ? new Date(laporanDateTo + 'T23:59:59.999') : null;
     return { start, end };
   }
-  return { start: periodeStartDate(), end: null };
+  const [y, m, d] = laporanAnchor.split('-').map(Number);
+  const anchor = new Date(y, m-1, d);
+  if(laporanPeriode === 'harian'){
+    return { start: new Date(y, m-1, d, 0,0,0,0), end: new Date(y, m-1, d, 23,59,59,999) };
+  }
+  if(laporanPeriode === 'mingguan'){
+    // Minggu kalender (Senin–Minggu) yang memuat jangkar — konsisten dgn picker minggu.
+    const [wy, wm, wd] = weekStart(laporanAnchor).split('-').map(Number);
+    const end = new Date(wy, wm-1, wd + 6);
+    return { start: new Date(wy, wm-1, wd, 0,0,0,0), end: new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23,59,59,999) };
+  }
+  // bulanan: 1 s/d akhir bulan kalender jangkar
+  const last = new Date(y, m, 0).getDate();
+  return { start: new Date(y, m-1, 1, 0,0,0,0), end: new Date(y, m-1, last, 23,59,59,999) };
 }
 
-export function periodeStartDate(){
-  const d = new Date();
-  d.setHours(0,0,0,0);
-  if(laporanPeriode === 'today') return d;
-  if(laporanPeriode === 'week') d.setDate(d.getDate() - 6);
-  else if(laporanPeriode === 'month') d.setMonth(d.getMonth() - 1);
-  else d.setDate(d.getDate() - 6); // fallback = 7 hari
-  return d;
-}
-
-// Bucket grafik adaptif: hari ini = per jam; lainnya = per hari (utc).
+// Bucket grafik mengikuti periode jangkar (pola kaki5):
+// harian = per jam; mingguan/bulanan/custom = per hari; semua = per bulan.
 function chartBuckets(){
-  const now = new Date();
-  if(laporanPeriode === 'today'){
+  const [ay, am] = laporanAnchor.split('-').map(Number);
+  if(laporanPeriode === 'harian'){
     const buckets = [];
     for(let h=0; h<24; h++) buckets.push({ key:'h'+String(h).padStart(2,'0'), label:String(h).padStart(2,'0'), beli:0, jual:0 });
     return buckets;
   }
-  if(laporanPeriode === 'semua'){
+  if(laporanPeriode === 'bulanan'){
+    const last = new Date(ay, am, 0).getDate();
     const buckets = [];
-    for(let i=11; i>=0; i--){
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const ym = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-      const label = d.toLocaleDateString('id-ID',{month:'short'});
-      buckets.push({ key: ym, label, beli:0, jual:0 });
+    for(let d=1; d<=last; d++){
+      const iso = `${laporanAnchor.slice(0,7)}-${String(d).padStart(2,'0')}`;
+      buckets.push({ key: iso, label: String(d), beli:0, jual:0 });
     }
     return buckets;
   }
   if(laporanPeriode === 'custom'){
     // Rentang tanggal custom → bucket per hari (abil hingga 45 hari terakhir rentang)
+    const now = new Date();
     const start = laporanDateFrom ? new Date(laporanDateFrom + 'T00:00:00') : null;
     const end = laporanDateTo ? new Date(laporanDateTo + 'T23:59:59.999') : now;
     const dayMs = 24*3600*1000;
@@ -119,26 +271,56 @@ function chartBuckets(){
     }
     return buckets;
   }
-  const days = laporanPeriode==='month' ? 30 : 7;
+  // mingguan: minggu kalender jangkar (Senin–Minggu)
+  const [wy, wm, wd] = weekStart(laporanAnchor).split('-').map(Number);
   const buckets = [];
-  for(let i=days-1; i>=0; i--){
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+  for(let i=0; i<7; i++){
+    const d = new Date(wy, wm-1, wd + i);
     const iso = toLocalISO(d);
-    const dt = new Date(d);
-    const label = laporanPeriode === 'week'
-      ? dt.toLocaleDateString('id-ID',{weekday:'short'})
-      : String(dt.getDate());
+    const label = d.toLocaleDateString('id-ID',{weekday:'short'});
     buckets.push({ key: iso, label, beli:0, jual:0 });
   }
   return buckets;
 }
 
 function chartTitle(){
-  if(laporanPeriode === 'semua') return 'Omzet 12 Bulan Terakhir (per Bulan)';
   if(laporanPeriode === 'custom') return 'Omzet Periode Kustom (per Hari)';
-  return laporanPeriode==='today' ? 'Omzet Hari Ini (per Jam)'
-    : laporanPeriode==='week' ? 'Omzet 7 Hari Terakhir'
-    : 'Omzet 30 Hari Terakhir';
+  if(laporanPeriode === 'custom') return 'Omzet Periode Kustom (per Hari)';
+  if(laporanPeriode === 'harian') return 'Omzet Harian (per Jam)';
+  if(laporanPeriode === 'mingguan') return 'Omzet 7 Hari Terakhir (per Hari)';
+  return 'Omzet Bulan Ini (per Hari)';
+}
+
+// ── Aksi picker (pola kaki5): pilih → langsung filter & tutup panel ───────
+export function pickDate(ds){ setLaporanAnchor(ds); _pickerOpen = false; renderDateNav(); renderLaporan(); renderRiwayat(); }
+export function pickWeek(ds){ setLaporanAnchor(ds); _pickerOpen = false; renderDateNav(); renderLaporan(); renderRiwayat(); }
+export function pickMonth(ds){ setLaporanAnchor(ds); _pickerOpen = false; renderDateNav(); renderLaporan(); renderRiwayat(); }
+export function toggleCustomPicker(){ _pickerOpen = !_pickerOpen; renderDateNav(); }
+// Tutup akordeon + picker sekaligus (dipakai nav.js saat pindah halaman/tab).
+export function closePicker(){ _pickerOpen = false; _navOpen = false; }
+// Navigasi bulan pada kalender custom (kiri/kanan independen).
+export function pickNavMonth(side, delta){
+  const view = side === 'start' ? _viewStart : _viewEnd;
+  if(!view) return;
+  const [y, m] = view.split('-').map(Number);
+  const dt = new Date(y, m-1 + delta, 1);
+  const ym = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0');
+  if(side === 'start') _viewStart = ym; else _viewEnd = ym;
+  renderDateNav();
+}
+export function pickCustomDate(side, ds){
+  if(side === 'start'){
+    setLaporanDateFrom(ds);
+    if(laporanDateTo && ds > laporanDateTo) setLaporanDateTo(ds);
+    _viewStart = ds.slice(0,7);
+  } else {
+    setLaporanDateTo(ds);
+    if(laporanDateFrom && ds < laporanDateFrom) setLaporanDateFrom(ds);
+    _viewEnd = ds.slice(0,7);
+  }
+  if(laporanPeriode !== 'custom') setLaporanPeriodeState('custom');
+  renderDateNav();
+  renderLaporan(); renderRiwayat();
 }
 
 export function openLunasi(id){
@@ -166,11 +348,12 @@ export async function saveLunasi(){
   await db.kas.add({ tanggal: new Date().toISOString(), tipe: t.tipe==='beli'?'keluar':'masuk', jumlah, keterangan: (t.tipe==='beli'?'Pelunasan utang':'Pelunasan piutang') + (t.kontakNama?' - '+t.kontakNama:''), refTransaksiId: t.id });
   closeSheet('sheetLunasi');
   toast(newSisa<=0 ? 'Tempo lunas! 🎉' : 'Pelunasan sebagian tercatat');
-  renderLaporan();
+  renderLaporan(); renderRiwayat();
   window.dispatchEvent(new CustomEvent('ksr-data-changed'));
 }
 
 export async function renderLaporan(){
+  renderDateNav();
   const range = reportRange();
   const inRange = (iso) => {
     const tgl = new Date(iso);
@@ -181,7 +364,7 @@ export async function renderLaporan(){
   const transMap = {};
   for(const t of allTrans) transMap[t.id] = t;
 
-  const stats = { beliPeriode:0, jualPeriode:0, utang:0, piutang:0, pengeluaran:0 };
+  const stats = { beliPeriode:0, jualPeriode:0, utang:0, piutang:0, pengeluaran:0, nTrans:0 };
   const buckets = chartBuckets();
   const bucketMap = {};
   buckets.forEach(b => bucketMap[b.key] = b);
@@ -191,12 +374,12 @@ export async function renderLaporan(){
     const isBeli = t.tipe==='beli';
     const isIn = inRange(t.tanggal);
     if(isIn){
+      stats.nTrans++;
       if(isBeli) stats.beliPeriode += t.total||0; else stats.jualPeriode += t.total||0;
       if((t.sisa||0) > 0){ if(isBeli) stats.utang += t.sisa; else stats.piutang += t.sisa; }
     }
     const localDateStr = toLocalISO(new Date(t.tanggal));
-    const dk = laporanPeriode==='today' ? 'h' + new Date(t.tanggal).getHours().toString().padStart(2,'0')
-      : laporanPeriode==='semua' ? t.tanggal.slice(0,7) // tahun-bulan tetap dari ISO string
+    const dk = laporanPeriode==='harian' ? 'h' + new Date(t.tanggal).getHours().toString().padStart(2,'0')
       : localDateStr;
     const b = bucketMap[dk];
     if(b){ if(isBeli) b.beli += t.total||0; else b.jual += t.total||0; }
@@ -222,11 +405,22 @@ export async function renderLaporan(){
   setEl('lapUtang', fmtRupiah(stats.utang));
   setEl('lapPiutang', fmtRupiah(stats.piutang));
   setEl('lapPengeluaran', fmtRupiah(stats.pengeluaran));
-  setEl('lapSaldo', fmtRupiah(saldo));
-  setEl('lapLabaKotor', fmtRupiah(stats.jualPeriode - stats.beliPeriode));
   setEl('lapLaba', fmtRupiah(stats.jualPeriode - stats.beliPeriode - stats.pengeluaran));
   setEl('kasSaldoBadge', fmtRupiah(saldo));
   setEl('lapKasHarian', fmtRupiah(stats.cashNet));
+  setEl('lapNTrans', String(stats.nTrans));
+
+  // Margin kotor ala kaki5: bar persentase (jual-beli)/jual, warna ikut ambang.
+  const marginCard = document.getElementById('lapMarginCard');
+  if(marginCard){
+    const marginPct = stats.jualPeriode > 0 ? Math.round(((stats.jualPeriode - stats.beliPeriode) / stats.jualPeriode) * 100) : 0;
+    const col = marginPct > 30 ? 'var(--green)' : marginPct > 15 ? 'var(--brand)' : 'var(--red)';
+    marginCard.innerHTML = `
+      <div style="background:var(--line);border-radius:10px;height:14px;overflow:hidden">
+        <div style="background:${col};height:100%;width:${Math.max(marginPct,0)}%;border-radius:10px;transition:width .5s"></div>
+      </div>
+      <div style="text-align:center;margin-top:6px;font-size:20px;font-weight:800;color:${col}">${marginPct}%</div>`;
+  }
 
   const barChart = document.getElementById('barChart');
   if(barChart){
@@ -253,14 +447,26 @@ export async function renderLaporan(){
   const byKat = {};
   for(const it of items){
     const tr = transMap[it.transaksiId];
-    if(tr && !tr.void && inRange(tr.tanggal)) byKat[it.kategoriNama] = (byKat[it.kategoriNama]||0) + it.berat;
+    if(tr && !tr.void && inRange(tr.tanggal)){
+      if(!byKat[it.kategoriNama]) byKat[it.kategoriNama] = { kg:0, omzet:0 };
+      byKat[it.kategoriNama].kg += it.berat;
+      byKat[it.kategoriNama].omzet += it.subtotal || 0;
+    }
   }
   const topList = document.getElementById('topKategoriList');
-  if(topList) topList.innerHTML = Object.entries(byKat).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([nama, berat]) => `
-    <div class="flex-between row-divider">
-      <span>${escapeHtml(nama)}</span><b>${fmtKg(berat)}</b>
-    </div>
-  `).join('');
+  if(topList){
+    const ranked = Object.entries(byKat).sort((a,b)=>b[1].kg - a[1].kg).slice(0,5);
+    topList.innerHTML = ranked.length ? ranked.map(([nama, s], i) => `
+      <div class="top-menu-item">
+        <div class="top-rank">${i+1}</div>
+        <div class="top-menu-info">
+          <div class="top-menu-name">${escapeHtml(nama)}</div>
+          <div class="top-menu-stat">${fmtKg(s.kg)} diperdagangkan</div>
+        </div>
+        <div class="top-menu-total">${fmtRupiah(s.omzet)}</div>
+      </div>
+    `).join('') : '<div class="hint">Belum ada data pada periode ini</div>';
+  }
 
   const tempoList = document.getElementById('tempoList');
   if(tempoList) tempoList.innerHTML = allTrans.filter(t=>!t.void&&(t.sisa||0)>0).sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal)).map(t=>`
@@ -374,8 +580,13 @@ export async function tutupBuku(){
 }
 
 window._ksr_setLaporanPeriode = setLaporanPeriode;
-window._ksr_applyLaporanCustom = applyLaporanCustom;
-window._ksr_resetLaporanPeriode = resetLaporanPeriode;
+window._ksr_shiftLaporanPeriod = shiftLaporanPeriod;
+window._ksr_togglePicker = toggleCustomPicker;
+window._ksr_pickDate = pickDate;
+window._ksr_pickWeek = pickWeek;
+window._ksr_pickMonth = pickMonth;
+window._ksr_pickNavMonth = pickNavMonth;
+window._ksr_pickCustomDate = pickCustomDate;
 window._ksr_renderLaporan = renderLaporan;
 window._ksr_openLunasi = openLunasi;
 window._ksr_saveLunasi = saveLunasi;

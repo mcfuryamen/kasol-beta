@@ -8,7 +8,7 @@ import { refreshShiftCache } from './kas.js';
 import { renderWizardBar, switchTransTab } from './pos.js';
 import { renderStok } from './kategori.js';
 import { renderRiwayat } from './riwayat.js';
-import { renderLaporan } from './laporan.js';
+import { renderLaporan, closePicker } from './laporan.js';
 import { refreshAll } from './dashboard.js';
 import { openBukaKasSheet } from './kas.js';
 
@@ -20,14 +20,20 @@ const SCREEN_TO_ROUTE = {
 
 // ── Show screen by name ────────────────────────────────────────────────────
 export function showScreen(name){
+  // Riwayat menyatu dengan halaman laporan (satu halaman mengalir) —
+  // deep link /riwayat lama tetap dibuka ke halaman yang sama.
+  if(name === 'riwayat') name = 'laporan';
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   document.querySelectorAll('.nav-item[data-screen]').forEach(n=>{
     n.classList.toggle('active', n.dataset.screen === name);
   });
   if(name==='stok') renderStok();
-  if(name==='riwayat') renderRiwayat();
-  if(name==='laporan') renderLaporan();
+  if(name==='laporan'){
+    closePicker(); // akordeon date-nav & picker default tertutup tiap masuk halaman
+    renderLaporan();
+    renderRiwayat();
+  }
   if(name==='dashboard') refreshAll();
   if(name === 'transaksi'){
     document.body.classList.add('transaksi-active');
@@ -56,6 +62,12 @@ export function showScreen(name){
     if(kb) kb.classList.remove('show');
   }
   window.scrollTo(0,0);
+  // Ajakan lengkapi profil (pola kaki5): modal wajib di semua halaman kecuali Pengaturan.
+  try { if(window._ksr_checkProfileNotification) window._ksr_checkProfileNotification(name); } catch(_){}
+  // Pengaturan dibuka → tarik profil cloud dulu sebelum form tampil (pola kaki5).
+  if(name === 'pengaturan'){
+    try { if(window._ksr_onSettingsOpen) window._ksr_onSettingsOpen(); } catch(_){}
+  }
 }
 
 // ── Open transaksi (with route push) ──────────────────────────────────────

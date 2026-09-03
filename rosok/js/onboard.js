@@ -1,25 +1,9 @@
 /* =========================================================================
    KASIR SOLO - ROSOK
-   onboard.js — Onboarding & emoji picker. Imports: utils, state, license.
+   onboard.js — Emoji picker (dipakai form Jenis Rosok).
+   Onboarding wizard dihapus: aplikasi langsung tampil beranda saat boot,
+   identitas usaha diisi belakangan di Pengaturan (pola kaki5).
    ========================================================================= */
-import { setSetting, toast, closeSheet, getSetting } from './utils.js';
-import { SETTINGS, setSETTINGS, loadSettingsIntoState } from './app-state.js';
-import { checkLicenseGate } from './license.js';
-
-
-export async function finishOnboarding(){
-  const name = document.getElementById('onbBizName').value.trim();
-  if(!name){ toast('Isi nama usaha dulu ya'); return; }
-  await setSetting('bizName', name);
-  await setSetting('ownerName', document.getElementById('onbOwnerName').value.trim());
-  await setSetting('bizPhone', document.getElementById('onbPhone').value.trim());
-  await setSetting('setupDone', true);
-  await setSetting('trialStart', new Date().toISOString());
-  await loadSettingsIntoState();
-  closeSheet('sheetOnboarding');
-  toast('Selamat datang! Masa coba 7 hari dimulai 🎉');
-  checkLicenseGate();
-}
 
 // Emoji picker
 const EMOJI_PICKER_LIST = [
@@ -57,4 +41,3 @@ window.pickEmoji = pickEmoji;
 window._ksr_showEmojiPicker = showEmojiPicker;
 window._ksr_hideEmojiPicker = hideEmojiPicker;
 window._ksr_pickEmoji = pickEmoji;
-window._ksr_finishOnboarding = finishOnboarding;

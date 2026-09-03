@@ -7,7 +7,9 @@ import { showScreen } from './nav.js';
 const ROUTES = {
   '/': 'dashboard', '/dashboard': 'dashboard',
   '/transaksi': 'transaksi', '/transaksi/beli': 'transaksi', '/transaksi/jual': 'transaksi',
-  '/stok': 'stok', '/riwayat': 'riwayat', '/laporan': 'laporan', '/pengaturan': 'pengaturan'
+  '/stok': 'stok',
+  // Riwayat tergabung ke halaman laporan (tab) — deep link lama tetap jalan.
+  '/riwayat': 'riwayat', '/laporan': 'laporan', '/pengaturan': 'pengaturan'
 };
 const DEFAULT_ROUTE = '/';
 

@@ -1179,3 +1179,174 @@ body.laporan-active main{padding-bottom:170px;}
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
 }
+
+/* ========== KUOTA TRANSAKSI & BANNER LISENSI (model kaki5) ========== */
+.khide{display:none}
+#quotaBanner{position:fixed; top:calc(var(--safe-top) + 8px); left:12px; right:12px; z-index:var(--z-lock); display:flex; justify-content:center; pointer-events:none;}
+#quotaBanner.khide{display:none;}
+#quotaBanner .quota-banner-card{pointer-events:auto; background:#fff7ed; border:1px solid #fdba74; border-radius:14px; padding:10px 12px; display:flex; align-items:center; gap:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); max-width:520px; width:100%; font-size:13px; line-height:1.45; color:var(--ink);}
+#quotaBanner .quota-banner-close{flex:0 0 auto; width:28px; height:28px; border-radius:50%; background:#fff; border:1px solid #fdba74; color:var(--ink-soft); font-size:14px; cursor:pointer;}
+.license-progress{height:6px; border-radius:99px; background:#FFE0B2; overflow:hidden; margin:14px 0 4px;}
+.license-progress span{display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, #DFF5E1, #22A45D);}
+
+/* ========== LAPORAN ALA KAKI5: tab segmen periode + date-nav + top rank ========== */
+.report-tabs{display:flex; background:var(--line); border-radius:12px; padding:4px; margin-bottom:12px;}
+.report-tab{flex:1; padding:9px 4px; border-radius:10px; text-align:center; font-size:13px; font-weight:700; cursor:pointer; color:var(--ink-soft); transition:background-color .15s, color .15s, box-shadow .15s;}
+.report-tab.active{background:var(--surface); color:var(--brand-dark); box-shadow:0 1px 4px rgba(0,0,0,.1);}
+.date-nav{display:flex; align-items:center; gap:8px; margin-bottom:12px;}
+.date-nav .date-label{flex:1; text-align:center; font-size:13px; font-weight:700; padding:8px 10px; background:var(--surface); border-radius:10px; border:1px solid var(--line); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.date-nav .date-btn{width:36px; height:36px; flex:0 0 36px; border-radius:50%; background:var(--surface); border:1px solid var(--line); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--ink);}
+.date-nav .date-btn:active{background:var(--line);}
+.top-menu-item{display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line);}
+.top-menu-item:last-child{border-bottom:none;}
+.top-rank{width:28px; height:28px; border-radius:50%; background:var(--brand); color:#fff; font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.top-menu-info{flex:1; min-width:0;}
+.top-menu-name{font-weight:700; font-size:14px; color:var(--ink);}
+.top-menu-stat{font-size:12px; color:var(--ink-soft);}
+.top-menu-total{font-weight:800; color:var(--green); font-size:14px; white-space:nowrap;}
+
+/* ========== DATE PICKER ALA KAKI5 (kalender/minggu/bulan/custom) ========== */
+.date-nav .date-label.toggle-picker-btn{cursor:pointer; user-select:none;}
+.date-nav .date-label.active{border-color:var(--brand); background:#FFF6EC;}
+.custom-picker{width:100%; box-sizing:border-box; background:#FFF3E3; border:2px solid rgba(245,130,31,.35); border-radius:12px; padding:8px; box-shadow:0 8px 20px rgba(43,36,32,.14); margin-bottom:12px;}
+.cal-title{text-align:center; font-weight:700; font-size:12px; color:var(--ink); margin-bottom:5px;}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px;}
+.cal-head{text-align:center; font-size:9px; font-weight:800; color:var(--ink-soft); padding-bottom:2px;}
+.cal-cell{height:clamp(26px,6vw,32px); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--ink); background:var(--surface); border-radius:8px; cursor:pointer; user-select:none;}
+.cal-cell.empty{visibility:hidden;}
+.cal-cell.today{border:2px solid var(--brand);}
+.cal-cell.sel{background:var(--brand); color:#fff;}
+.cal-cell.inrange{background:rgba(245,130,31,.16); box-shadow:inset 0 0 0 1px rgba(245,130,31,.35);}
+.cal-cell:active{opacity:.6;}
+.week-opt{display:flex; align-items:center; justify-content:space-between; width:100%; padding:7px 10px; margin-bottom:5px; border:1px solid var(--line); border-radius:10px; background:var(--surface); font-size:12px; cursor:pointer; color:var(--ink);}
+.week-opt b{font-weight:800;}
+.week-opt span{font-size:11px; color:var(--ink-soft); font-weight:600;}
+.week-opt.sel{border-color:var(--brand); background:var(--brand); color:#fff;}
+.week-opt.sel span{color:rgba(255,255,255,.85);}
+.week-opt:active{opacity:.7;}
+.month-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:6px;}
+.month-opt{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:8px 4px; border:1px solid var(--line); border-radius:10px; background:var(--surface); font-size:12px; cursor:pointer; color:var(--ink);}
+.month-opt b{font-weight:800;}
+.month-opt span{font-size:10px; color:var(--ink-soft); font-weight:600;}
+.month-opt.sel{border-color:var(--brand); background:var(--brand); color:#fff;}
+.month-opt.sel span{color:rgba(255,255,255,.85);}
+.custom-two{display:grid; grid-template-columns:1fr; gap:12px;}
+@media (min-width:480px){ .custom-two{grid-template-columns:1fr 1fr;} }
+.cal-half{background:var(--surface); border-radius:10px; padding:8px;}
+.cal-half-title{text-align:center; font-size:11px; font-weight:800; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px;}
+.cal-nav{display:flex; align-items:center; gap:4px; margin-bottom:4px;}
+.cal-nav .cal-title{flex:1; margin-bottom:0;}
+.cal-nav-btn{width:30px; height:30px; flex:0 0 30px; border-radius:50%; border:1px solid var(--line); background:var(--surface); font-size:15px; font-weight:700; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center;}
+
+/* ========== AKORDEON DATE-NAV: buka/tutup via tab filter ========== */
+@keyframes accSlide{from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:none;}}
+#reportDateNav .date-nav{animation:accSlide .18s ease;}
+#reportDateNav .custom-picker{animation:accSlide .18s ease;}
+@media (prefers-reduced-motion: reduce){ #reportDateNav .date-nav, #reportDateNav .custom-picker{animation:none;} }
+
+/* ========== FILTER LAPORAN STICKY (tepi atas sampai tepi atas header, menyelip di bawahnya) ==========
+   Kartu ditarik ke y=0 lewat margin-top negatif (tinggi topbar 66 + padding main 16),
+   padding-top mengembalikan ruang isi: tab mulai 12px di bawah tepi bawah topbar.
+   Selisih padding main antar-breakpoint (20/24px) ikut tersembunyi di balik topbar.
+   Layer tetap di bawah header (z 49 < 50) — kartu meluncur di bawahnya, tanpa celah bocor. */
+#screenLaporanFilter{
+  position:sticky;
+  top:0;
+  z-index:calc(var(--z-header) - 1);
+  margin-left:-16px; margin-right:-16px; /* full-bleed menyatu dgn tepi layar */
+  margin-top:calc(-1 * (var(--safe-top) + 82px));
+  padding-top:calc(var(--safe-top) + 78px);
+  border-radius:0 0 var(--radius-lg) var(--radius-lg);
+  border-top:none;
+  box-shadow:0 4px 14px rgba(43,36,32,.08);
+}
+
+/* ========== PICKER WILAYAH (Provinsi→Kabupaten→Kecamatan→Desa) ========== */
+.region-select{
+  width:100%; padding:11px 12px; margin-bottom:8px;
+  border:1.5px solid var(--line); border-radius:var(--radius-sm);
+  background:var(--surface); color:var(--ink); font-size:15px; font-family:inherit;
+  -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B5F54'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 12px center;
+}
+.region-select:disabled{opacity:.5; background-color:var(--line);}
+.region-select:focus{border-color:var(--brand); outline:none;}
+
+/* ========== BLOK PENGATURAN (judul kartu ala kaki5, visual rosok) ========== */
+.card-title{display:flex; align-items:center; gap:8px; font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; font-size:15px; color:var(--brand-dark); margin-bottom:12px;}
+
+/* ========== KOTAK ALAMAT LENGKAP (klik → modal pilih wilayah) ========== */
+.alamat-box{cursor:pointer; background:var(--surface);}
+.alamat-box:focus{border-color:var(--brand); outline:none;}
+
+/* ========== SETTING-ROW & TOGGLE (mekanisme kaki5, visual rosok) ========== */
+.setting-row{display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line);}
+.setting-row:last-child{border-bottom:none;}
+/* Kartu ringkasan Diagnosa Sinkronisasi (sheet Cek Data Online, port sync.health.js kaki5) */
+.diag-card{text-align:center;padding:16px;border-radius:var(--radius-lg);margin-bottom:12px;display:flex;flex-direction:column;gap:4px;}
+.diag-card b{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;}
+.diag-card.ok{background:#EAF7EC;}
+.diag-card.warn{background:#FFF3E3;}
+.diag-card.fail{background:#FBE0DC;}
+.setting-ic{width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;}
+.setting-ic.ic-green{background:#DFF5E1;}
+.setting-ic.ic-blue{background:#D9ECFB;}
+.setting-ic.ic-orange{background:#FFEFD9;}
+.setting-ic.ic-red{background:#FBE0DC;}
+.setting-txt{flex:1; min-width:0;}
+.setting-txt .s-title{font-weight:700; font-size:14px; color:var(--ink);}
+.setting-txt .s-desc{font-size:12px; color:var(--ink-soft);}
+.setting-arrow{color:var(--ink-soft); font-size:18px;}
+.toggle-switch{position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0;}
+.toggle-switch input{opacity:0; width:0; height:0;}
+.toggle-slider{position:absolute; cursor:pointer; inset:0; background:var(--line); border-radius:24px; transition:.2s;}
+.toggle-slider::before{content:''; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s;}
+.toggle-switch input:checked + .toggle-slider{background:var(--green);}
+.toggle-switch input:checked + .toggle-slider::before{transform:translateX(20px);}
+
+/* ========== DATA & CADANGAN (baris setting ala kaki5) ========== */
+#screen-pengaturan .setting-row input[type="file"]{position:absolute; width:1px; height:1px; opacity:0;}
+
+/* ========== TOMBOL DUA-STATE BELI LISensi (hijau → oranye) ========== */
+.btn-success{background:#22A45D; color:#fff;}
+.btn-success:active{opacity:.85;}
+
+/* ========== BARIS TOMBOL TIMBANG: Batal susut ke label, Keranjang isi sisa ========== */
+.btn-row-timbang .btn{width:auto;}
+.btn-row-timbang .btn-outline{flex:0 0 auto;}
+.btn-row-timbang .btn-primary{flex:1 1 auto;}
+
+/* ========== PANEL TRANSFER (non-tunai, pola kaki5) ========== */
+.transfer-panel{margin-top:var(--sp-8);}
+.transfer-nominal{display:flex; justify-content:space-between; align-items:center; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
+.transfer-nominal span{font-size:13px; color:var(--ink-soft);}
+.transfer-nominal b{font-size:18px; font-weight:800; color:var(--brand-dark);}
+#payProofBtn{width:100%;}
+.pay-proof-wrap{position:relative; margin-bottom:10px;}
+.pay-proof-preview{width:100%; max-height:220px; object-fit:contain; border-radius:12px; border:1px solid var(--line); background:#fff;}
+.pay-proof-remove{position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:50%; border:none; background:rgba(0,0,0,.55); color:#fff; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+#payNoteInput{margin-top:2px;}
+
+/* ========== MODAL WAJIB Lengkapi Profil (pola kaki5, tengah) ========== */
+.overlay.center-overlay{align-items:center; padding:var(--sp-16);}
+.prof-card{background:var(--paper); border-radius:var(--radius-lg); padding:var(--sp-24) var(--sp-20); width:100%; max-width:400px; box-shadow:0 20px 50px rgba(0,0,0,.3); text-align:center; animation:slideUp .28s ease;}
+.prof-emoji{font-size:44px; line-height:1; margin-bottom:var(--sp-12);}
+.prof-title{font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:20px; color:var(--ink); margin-bottom:var(--sp-8);}
+.prof-sub{font-size:13.5px; color:var(--ink-soft); line-height:1.5; margin-bottom:var(--sp-16);}
+.prof-points{text-align:left; display:flex; flex-direction:column; gap:10px; margin-bottom:var(--sp-20);}
+.prof-points > div{display:flex; align-items:flex-start; gap:10px; font-size:13px; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:10px 12px;}
+.prof-points > div span:first-child{font-size:18px; flex-shrink:0;}
+.prof-card .btn{width:100%;}
+
+/* ========== TENTANG APLIKASI (pola kaki5) ========== */
+.app-about{text-align:center; padding:var(--sp-20) var(--sp-12) var(--sp-24); margin-top:var(--sp-8);}
+.about-logo{width:64px; height:64px; border-radius:50%; object-fit:cover; box-shadow:0 4px 14px rgba(245,130,31,.25);}
+.about-name{font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:18px; color:var(--ink); margin-top:10px;}
+.about-company{font-weight:600; font-size:12px; color:var(--ink-soft); margin-top:12px;}
+.about-links{display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:8px;}
+.about-links a{font-size:12px; font-weight:600; text-decoration:none;}
+.about-links a:first-child{color:var(--green);}
+.about-links a:last-child{color:var(--brand-dark);}
+.about-version{font-size:13px; color:var(--ink-soft); margin-top:12px;}
+.about-device{font-size:11px; color:var(--ink-soft); margin-top:2px;}

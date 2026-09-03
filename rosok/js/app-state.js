@@ -10,18 +10,18 @@ export let SETTINGS = {};
 export let KATEGORI = [];
 export let cart = [];
 export let activeTransTipe = 'beli';
-export let riwayatFilter = 'semua';
-export let riwayatPeriode = 'semua'; // semua|today|7d|30d|custom
-export let riwayatDateFrom = '';     // 'YYYY-MM-DD' utk 'custom'
-export let riwayatDateTo = '';       // 'YYYY-MM-DD' utk 'custom'
-export let riwayatPage = 0;
+export let riwayatPage = 0; // riwayat ikut filter periode laporan (laporan.js)
 export const RIWAYAT_PER_PAGE = 20;
-export let laporanPeriode = 'today';
+export let laporanPeriode = 'harian'; // harian|mingguan|bulanan|semua|custom (pola kaki5)
 export let laporanDateFrom = ''; // 'YYYY-MM-DD' utk preset custom
 export let laporanDateTo = '';   // 'YYYY-MM-DD' utk preset custom
+// Tanggal jangkar (YYYY-MM-DD, lokal) untuk navigasi ‹ › ala kaki5:
+// harian = hari tsb, mingguan = 7 hari berakhir tsb, bulanan = bulan tsb.
+export let laporanAnchor = '';
 export function setLaporanPeriode(v){ laporanPeriode = v; }
 export function setLaporanDateFrom(v){ laporanDateFrom = v; }
 export function setLaporanDateTo(v){ laporanDateTo = v; }
+export function setLaporanAnchor(v){ laporanAnchor = v || ''; }
 export let currentTimbangKat = null;
 export let currentBerat = 0;
 export let currentSatuan = 'kg';
@@ -29,7 +29,6 @@ export const SATUAN_FACTOR = {kg:1, ons:0.1, kuintal:100};
 export const SATUAN_LABEL = {kg:'KILOGRAM', ons:'ONS (100 GRAM)', kuintal:'KUINTAL (100 KG)'};
 export let kasFormTipe = 'masuk';
 export let lastNotaData = null;
-export let extendConfirmed = false;
 export let currentWizardStep = 1;
 export let openShiftCache = null;
 export let isSaving = false;
@@ -47,17 +46,12 @@ export function setSETTINGS(v){ SETTINGS = v; }
 export function setKATEGORI(v){ KATEGORI = v; }
 export function setCart(v){ cart = v; }
 export function setActiveTransTipe(v){ activeTransTipe = v; }
-export function setRiwayatFilter(v){ riwayatFilter = v; }
-export function setRiwayatPeriode(v){ riwayatPeriode = v; }
-export function setRiwayatDateFrom(v){ riwayatDateFrom = v; }
-export function setRiwayatDateTo(v){ riwayatDateTo = v; }
 export function setRiwayatPage(v){ riwayatPage = v; }
 export function setCurrentTimbangKat(v){ currentTimbangKat = v; }
 export function setCurrentBerat(v){ currentBerat = v; }
 export function setCurrentSatuan(v){ currentSatuan = v; }
 export function setKasFormTipe(v){ kasFormTipe = v; }
 export function setLastNotaData(v){ lastNotaData = v; }
-export function setExtendConfirmed(v){ extendConfirmed = v; }
 export function setCurrentWizardStep(v){ currentWizardStep = v; }
 export function setOpenShiftCache(v){ openShiftCache = v; }
 export function setIsSaving(v){ isSaving = v; }
@@ -91,10 +85,12 @@ export async function loadSettingsIntoState(){
   set('bizNameHeader', SETTINGS.bizName || "Kasir Solo - Rosok");
   set('bizTagHeader', SETTINGS.bizName ? "Pengepul Rosok" : "Barang Bekas Tak Terpakai");
   setInput('setBizName', SETTINGS.bizName || '');
-  setInput('setBizAddr', SETTINGS.bizAddr || '');
+  setInput('setBizOwner', SETTINGS.ownerName || '');
   setInput('setBizPhone', SETTINGS.bizPhone || '');
-  // Rekening / nama bank untuk metode transfer — ikut terisi jika field ada di UI pengaturan
-  setInput('setBizBank', SETTINGS.bizBank || '');
+  // Kotak alamat lengkap (komposisi detail + desa..provinsi dihitung app.js
+  // lewat updateAlamatBox saat initRegionPicker).
+  const setAlamatBox = document.getElementById('setAlamatLengkap');
+  if(setAlamatBox && typeof window.updateAlamatBox === 'function') window.updateAlamatBox();
 }
 
 export async function seedKategoriIfEmpty(){
@@ -127,7 +123,7 @@ export async function seedPlatformMessagesIfEmpty(){
   const defaults = [
     {order:1, visibleFrom: now, visibleUntil: farFuture, emoji:'🔥', title:'Promo Akhir Bulan!', body:'Setiap pembelian ≥ 50 kg, dapatkan diskon 5% untuk pembelian berikutnya. Berlaku sampai akhir bulan ini.', gradient:'linear-gradient(135deg, #E85D04 0%, #FF8C42 100%)'},
     {order:2, visibleFrom: now, visibleUntil: farFuture, emoji:'📱', title:'Info Penting', body:'Jangan lupa buka kas setiap pagi sebelum mulai transaksi. Tutup kas saat selesai kerja untuk menjaga keamanan.', gradient:'linear-gradient(135deg, #1982C4 0%, #2EABCA 100%)'},
-    {order:3, visibleFrom: now, visibleUntil: farFuture, emoji:'🎁', title:'Perpanjang Trial Gratis', body:'Masih punya masa trial? Perpanjang otomatis 1 hari gratis setiap kali kamu membuka aplikasi!', gradient:'linear-gradient(135deg, #70117E 0%, #B5368D 100%)'},
+    {order:3, visibleFrom: now, visibleUntil: farFuture, emoji:'🎁', title:'Kuota Transaksi Gratis', body:'Setiap bulan kamu dapat 100 transaksi gratis tanpa batas waktu — kuota segar lagi di awal bulan. Aktifkan lisensi untuk tanpa batas.', gradient:'linear-gradient(135deg, #70117E 0%, #B5368D 100%)'},
   ];
   await db.platformMessages.bulkAdd(defaults);
 }

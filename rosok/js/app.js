@@ -3,18 +3,123 @@
    app.js — Entry point. Matched function names to HTML onclick handlers.
    ========================================================================= */
 import { db } from './db.js';
-import { SETTINGS, KATEGORI, loadSettingsIntoState, seedKategoriIfEmpty, seedPlatformMessagesIfEmpty, loadKategori } from './app-state.js';
+import { SETTINGS, loadSettingsIntoState, seedKategoriIfEmpty, seedPlatformMessagesIfEmpty, loadKategori } from './app-state.js';
 import { fmtRupiah, fmtKg, fmtDate, todayStr, showLoading, hideLoading, escapeHtml, formatInputRupiah, unformatRupiah, toast, getSetting, setSetting, generateDeviceId, openOverlay, closeSheet } from './utils.js';
 import { refreshAll } from './dashboard.js';
 import { refreshShiftCache, openBukaKasSheet, bukaKas, openTutupKasSheet, hitungSelisihTutupKas, tutupKas, openKasForm, setKasTipe, saveKasManual } from './kas.js';
+import { openShiftCache } from './app-state.js';
 import { renderStok, openKategoriForm, saveKategori, deleteKategoriConfirm } from './kategori.js';
-import { setRiwayatFilter, setRiwayatPeriode, applyRiwayatCustom, resetRiwayatPeriode, renderRiwayat, loadRiwayatPage, viewTransaksiDetail, deleteTransaksi, voidTransaksi, closeNotaSheet } from './riwayat.js';
-import { setLaporanPeriode, applyLaporanCustom, resetLaporanPeriode, renderLaporan, openLunasi, saveLunasi } from './laporan.js';
-import { checkLicenseGate, updateTrialChip, renderLicenseInfoCard, activateLicense, openExtendFlow, grantExtension, contactViaWA, contactViaEmail, openLicenseSheet, setLicenseRefs } from './license.js';
-import { finishOnboarding } from './onboard.js';
+import { renderRiwayat, loadRiwayatPage, viewTransaksiDetail, deleteTransaksi, voidTransaksi, closeNotaSheet } from './riwayat.js';
+import { setLaporanPeriode, renderLaporan, openLunasi, saveLunasi } from './laporan.js';
+import { checkLicenseGate, updateTrialChip, renderLicenseInfoCard, activateLicense, contactViaWA, contactViaEmail, openLicenseSheet, setLicenseRefs } from './license.js';
 import { renderWizardBar, renderKatGrid, openTimbang, buildKeypad, keypadPress, stepBerat, updateTimbangDisplay, confirmTimbang, renderCartChips, renderCartStep2, cartTotal, removeCartItem, setMetodeBayar, calcKembalian, saveTransaksi, renderNota, shareNotaWA, goToStep, switchTransTab } from './pos.js';
 import { showScreen, openTransaksi, navigateScreen } from './nav.js';
 import { markReady, getRoute } from './router.js';
+import { setupRegionPicker } from './region.js';
+import { loadPayOptions, initPwaInstall } from './settings-x.js';
+import { connectBTPrinter, disconnectBTPrinter, testPrint, restorePrinterStatus } from './printer.js';
+
+// ── Alamat: satu kotak ringkas, modal bertingkat saat diklik (pola emsifa) ─
+// _regionState = pilihan tersimpan; modal bekerja pada salinan (temp) —
+// Batal tidak mengubah kotak, "Gunakan Alamat Ini" menulis hasil ke kotak.
+function alamatLengkap(s){
+  const parts = [s.alamatDetail, s.desa, s.kecamatan, s.kabkota, s.provinsi].filter(Boolean).join(', ');
+  return parts || '';
+}
+
+function savedRegionState(){
+  return {
+    provinsi_id: SETTINGS.bizProvinsiId || '', provinsi: SETTINGS.bizProvinsi || '',
+    kabkota_id: SETTINGS.bizKabkotaId || '', kabkota: SETTINGS.bizKabkota || '',
+    kecamatan_id: SETTINGS.bizKecamatanId || '', kecamatan: SETTINGS.bizKecamatan || '',
+    desa_id: SETTINGS.bizDesaId || '', desa: SETTINGS.bizDesa || '',
+    alamatDetail: SETTINGS.alamatDetail || ''
+  };
+}
+
+// Ada tidaknya nilai wilayah di sebuah state — dipakai sebagai jaring
+// pengaman agar adopsi cloud yang datang belakangan tidak tertimpa tulis
+// ulang dari _regionState yang masih kosong (audit P1 2026-09-04).
+function hasRegionValues(s){
+  return !!(s && (s.provinsi_id || s.kabkota_id || s.kecamatan_id || s.desa_id || s.alamatDetail));
+}
+
+function updateAlamatBox(){
+  const el = document.getElementById('setAlamatLengkap');
+  if(el) el.value = alamatLengkap(_regionState || {});
+}
+
+let _regionState = null;
+let _regionTemp = null;
+
+function initRegionPicker(){
+  _regionState = savedRegionState();
+  updateAlamatBox();
+}
+
+// Buka modal: salin tersimpan → temp, pasang picker pada salinan itu.
+function openAlamatSheet(){
+  _regionTemp = { ...(_regionState || savedRegionState()) };
+  setupRegionPicker({
+    provSel: 'alamatProvinsi', kabSel: 'alamatKabkota',
+    kecSel: 'alamatKecamatan', desaSel: 'alamatDesa',
+    state: _regionTemp
+  });
+  document.getElementById('inAlamatDetail').value = _regionTemp.alamatDetail || '';
+  openOverlay('sheetAlamat');
+}
+
+// Batal: buang salinan, kotak & state tersimpan tak berubah.
+function cancelAlamat(){
+  _regionTemp = null;
+  closeSheet('sheetAlamat');
+}
+
+// Gunakan Alamat Ini: validasi 4 level lengkap → tulis temp ke state + kotak.
+function saveAlamatLengkap(){
+  const pick = (id) => { const el = document.getElementById(id); return el ? { id: el.value, name: el.selectedOptions[0] ? el.selectedOptions[0].textContent : '' } : { id:'', name:'' }; };
+  const pv = pick('alamatProvinsi'), kb = pick('alamatKabkota'), kc = pick('alamatKecamatan'), ds = pick('alamatDesa');
+  if(!pv.id || !kb.id || !kc.id || !ds.id){ toast('Lengkapi provinsi, kab/kota, kecamatan, dan desa dulu ya'); return; }
+  _regionState = {
+    provinsi_id: pv.id, provinsi: pv.name,
+    kabkota_id: kb.id, kabkota: kb.name,
+    kecamatan_id: kc.id, kecamatan: kc.name,
+    desa_id: ds.id, desa: ds.name,
+    alamatDetail: document.getElementById('inAlamatDetail').value.trim()
+  };
+  _regionTemp = null;
+  updateAlamatBox();
+  closeSheet('sheetAlamat');
+  toast('Alamat siap disimpan — jangan lupa klik Simpan Identitas');
+}
+
+window.openAlamatSheet = openAlamatSheet;
+window.cancelAlamat = cancelAlamat;
+window.saveAlamatLengkap = saveAlamatLengkap;
+window.updateAlamatBox = updateAlamatBox;
+
+// ── Segar-kan UI profil setelah cloud pull. Aturan (pemilik 2026-09-04):
+// cloud = sumber kebenaran mutlak untuk profil & lisensi — pull boleh MENIMPA
+// lokal. Hook ini hanya menjaga UI: input yang masih kosong diisi, dan
+// _regionState dibangun ulang dari SETTINGS (mencerminkan nilai cloud terbaru,
+// termasuk bila cloud mengosongkan) selama sheet alamat tidak sedang terbuka.
+// Editan user yang sedang diketik tidak pernah ditimpa.
+window._ksr_profilePulled = () => {
+  const fillIfEmpty = (id, val) => { const el = document.getElementById(id); if(el && !el.value.trim() && val) el.value = val; };
+  fillIfEmpty('setBizName', SETTINGS.bizName || '');
+  fillIfEmpty('setBizOwner', SETTINGS.ownerName || '');
+  fillIfEmpty('setBizPhone', SETTINGS.bizPhone || '');
+  if(!_regionTemp){ _regionState = savedRegionState(); updateAlamatBox(); }
+};
+
+// Buka halaman Pengaturan → tarik profil dari cloud dulu, baru render form
+// (pola kaki5 loadSettings: pull → loadSettingsData). Fire-and-forget dari
+// nav.js; offline = pull return cepat, tetap refresh dari lokal.
+window._ksr_onSettingsOpen = async () => {
+  try { const { pullCloudProfile } = await import('./license.sync.js'); await pullCloudProfile(); } catch(_) {}
+  _regionState = savedRegionState();
+  await loadSettingsIntoState();
+};
 
 // ── Wire cross-module refs ────────────────────────────────────────────────
 import { setPosRefs } from './pos.js';
@@ -25,19 +130,33 @@ setRiwayatRefs({ refreshAll });
 // ── Cache DB ──────────────────────────────────────────────────────────────
 window._ksr_db = db;
 
+// ── Tentang aplikasi (blok footer Pengaturan, pola kaki5) ─────────────────
+const APP_VERSION = '1.0.0';
+function updateAboutInfo(){
+  const v = document.getElementById('appVersionLabel');
+  if(v) v.textContent = APP_VERSION;
+  const d = document.getElementById('aboutDeviceCode');
+  if(d) d.textContent = SETTINGS.deviceCode || getDeviceCode(SETTINGS.deviceId || '') || '—';
+  // Link situs dari cloud (port app-link kaki5): products.store_url →
+  // settings.app_links.rosok → fallback hardcoded. Non-blocking.
+  import('./app-link.js').then(({ getAppLink }) => getAppLink().then(url => {
+    const a = document.getElementById('aboutSiteLink');
+    if(a){ a.href = url; a.textContent = '🌐 ' + url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, ''); }
+  })).catch(() => {});
+}
+window._ksr_updateAboutInfo = updateAboutInfo;
+
 // ── Cache DOM ──────────────────────────────────────────────────────────────
 function cacheDomElements() {
-  const ids = ['timbangKgVal', 'timbangUnitLbl', 'timbangSubtotal', 'katGrid', 'riwayatCard',
-    'lapBeli', 'lapJual', 'lapPengeluaran', 'lapSaldo', 'lapLabaKotor',
-    'lapUtang', 'lapPiutang', 'lapLaba', 'barChart', 'topKategoriList', 'tempoList',
+  const ids = ['timbangKgVal', 'timbangUnitLbl', 'timbangSubtotal', 'katGrid',
+    'lapBeli', 'lapJual', 'lapPengeluaran', 'lapLaba',
+    'lapUtang', 'lapPiutang', 'barChart', 'topKategoriList', 'tempoList',
     'kasList', 'kasSaldoBadge', 'kasShiftHistoryList'];
   ids.forEach(id => { const el = document.getElementById(id); if (el) window['_ksr_' + id] = el; });
 }
 
 // ── Logo ──────────────────────────────────────────────────────────────────
 document.getElementById('headerLogo').src = 'assets/logo.png';
-document.getElementById('lockLogo').src = 'assets/logo.png';
-document.getElementById('onbLogo').src = 'assets/logo.png';
 
 // ── Service Worker ─────────────────────────────────────────────────────────
 if ("serviceWorker" in navigator && window.location.protocol !== 'file:') {
@@ -59,67 +178,76 @@ if ("serviceWorker" in navigator && window.location.protocol !== 'file:') {
 // ── Settings ──────────────────────────────────────────────────────────────
 async function saveBizIdentity() {
   await setSetting('bizName', document.getElementById('setBizName').value.trim());
-  await setSetting('bizAddr', document.getElementById('setBizAddr').value.trim());
-  await setSetting('bizBank', document.getElementById('setBizBank') ? document.getElementById('setBizBank').value.trim() : '');
+  await setSetting('ownerName', document.getElementById('setBizOwner') ? document.getElementById('setBizOwner').value.trim() : '');
   await setSetting('bizPhone', document.getElementById('setBizPhone').value.trim());
+  // Wilayah (pola kaki5): id + nama tiap level disimpan ke settings, ditulis
+  // ke Supabase `clients` (non-blocking) oleh license.sync.pushProfile.
+  // Jaring pengaman P1: _regionState kosong (mis. adopsi cloud datang setelah
+  // initRegionPicker) → bangun ulang dari SETTINGS, jangan tulis string kosong.
+  const regionState = hasRegionValues(_regionState) ? _regionState : savedRegionState();
+  const regionMap = {
+    bizProvinsiId: regionState.provinsi_id, bizProvinsi: regionState.provinsi,
+    bizKabkotaId: regionState.kabkota_id, bizKabkota: regionState.kabkota,
+    bizKecamatanId: regionState.kecamatan_id, bizKecamatan: regionState.kecamatan,
+    bizDesaId: regionState.desa_id, bizDesa: regionState.desa
+  };
+  for(const [k, v] of Object.entries(regionMap)){
+    await setSetting(k, v || '');
+  }
+  await setSetting('alamatDetail', regionState.alamatDetail || '');
   await loadSettingsIntoState();
   toast('Identitas usaha tersimpan');
+  // Sinkron profil ke cloud (best-effort; gagal jaringan = data tetap aman lokal).
+  try { const { pushProfile } = await import('./license.sync.js'); pushProfile(); } catch(_) {}
+  // Setelah profil lengkap, modal ajakan tidak perlu muncul lagi.
+  try { checkProfileNotification('pengaturan'); } catch(_) {}
 }
 
-async function exportData() {
-  showLoading('Mengekspor data...');
-  try {
-    const data = {
-      settings: await db.settings.toArray(),
-      kategori: await db.kategori.toArray(),
-      transaksi: await db.transaksi.toArray(),
-      transaksiItem: await db.transaksiItem.toArray(),
-      kas: await db.kas.toArray(),
-      kasShift: await db.kasShift.toArray(),
-      exportedAt: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `cadangan-kasir-rosok-${todayStr()}.json`;
-    a.click();
-    toast('Cadangan data diunduh');
-  } catch (e) { console.error('Export error:', e); toast('Gagal mengekspor data'); }
-  finally { hideLoading(); }
+// ── Ajakan lengkapi profil (pola kaki5): modal wajib di semua halaman ──────
+// kecuali Pengaturan. Pemicu: nama pemilik / telepon kosong, ATAU alamat
+// (kab/kota atau detail) belum diisi.
+function profileIncomplete(){
+  const owner = SETTINGS.ownerName || '';
+  const phone = SETTINGS.bizPhone || '';
+  const addr  = SETTINGS.bizKabkota || SETTINGS.bizDesa || SETTINGS.alamatDetail || '';
+  return !owner.trim() || !phone.trim() || !addr.trim();
 }
 
-function importData(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  showLoading('Mengimpor data...');
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    try {
-      const data = JSON.parse(ev.target.result);
-      if (!confirm('Impor akan menimpa semua data. Lanjutkan?')) { hideLoading(); return; }
-      await db.transaction('rw', db.settings, db.kategori, db.transaksi, db.transaksiItem, db.kas, db.kasShift, async () => {
-        await db.settings.clear(); await db.kategori.clear(); await db.transaksi.clear();
-        await db.transaksiItem.clear(); await db.kas.clear(); await db.kasShift.clear();
-        if (data.settings) await db.settings.bulkAdd(data.settings);
-        if (data.kategori) await db.kategori.bulkAdd(data.kategori);
-        if (data.transaksi) await db.transaksi.bulkAdd(data.transaksi);
-        if (data.transaksiItem) await db.transaksiItem.bulkAdd(data.transaksiItem);
-        if (data.kas) await db.kas.bulkAdd(data.kas);
-        if (data.kasShift) await db.kasShift.bulkAdd(data.kasShift);
-      });
-      toast('Data berhasil diimpor');
-      hideLoading();
-      location.reload();
-    } catch (err) { console.error('Import error:', err); toast('Gagal impor: file tidak valid'); hideLoading(); }
-  };
-  reader.readAsText(file);
+function checkProfileNotification(currentScreen){
+  const el = document.getElementById('profileBanner');
+  if(!el) return;
+  if(currentScreen === 'pengaturan'){ closeSheet('profileBanner'); return; }
+  if(profileIncomplete()) openOverlay('profileBanner');
+  else closeSheet('profileBanner');
 }
 
-function confirmResetData() {
-  if (!confirm('Yakin hapus SEMUA data transaksi, stok, dan kas?')) return;
-  if (!confirm('Konfirmasi: semua data akan hilang permanen.')) return;
-  Promise.all([db.transaksi.clear(), db.transaksiItem.clear(), db.kas.clear(), db.kasShift.clear()])
-    .then(async () => { await db.kategori.toCollection().modify({ stokKg: 0 }); await loadKategori(); toast('Semua data dihapus'); refreshAll(); });
+function dismissProfileBanner(){
+  closeSheet('profileBanner');
+  showScreen('pengaturan');
+}
+
+window._ksr_checkProfileNotification = checkProfileNotification;
+window._ksr_dismissProfileBanner = dismissProfileBanner;
+
+// ── Kas bar: sinkronkan tombol Buka/Tutup Kas dengan status shift ─────────
+// Didefinisikan di scope modul (bukan di dalam initApp) supaya listener
+// ksr-kas-changed di bawah bisa memanggilnya (dulu selalu undefined).
+async function updateKasBarButtons(){
+  try{
+    const shift = await refreshShiftCache();
+    const btnToggle = document.getElementById('btnToggleKas');
+    const btnManual = document.getElementById('btnOpenKasManual');
+    if(!btnToggle || !btnManual) return;
+    if(shift){
+      btnToggle.className = 'btn btn-primary';
+      btnToggle.textContent = '🔒 Tutup Kas';
+      btnToggle.onclick = () => openTutupKasSheet();
+    } else {
+      btnToggle.className = 'btn btn-outline';
+      btnToggle.textContent = '🔓 Buka Kas';
+      btnToggle.onclick = () => openBukaKasSheet();
+    }
+  }catch(e){ console.error('updateKasBarButtons error', e); }
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
@@ -127,7 +255,7 @@ import { getDeviceCode } from './license.js';
 
 // Wire refs lisensi supaya checkLicenseGate() bisa memanggil updateTrialChip,
 // renderLicenseInfoCard, dan alur extend/grant (tanpa circular import).
-setLicenseRefs({ updateTrialChip, renderLicenseInfoCard, checkLicenseGate, openExtendFlow, grantExtension, openLicenseSheet });
+setLicenseRefs({ updateTrialChip, renderLicenseInfoCard, checkLicenseGate, openLicenseSheet });
 
 async function initApp() {
   // initApp started
@@ -136,53 +264,30 @@ async function initApp() {
     let deviceId = await getSetting('deviceId', null);
     if (!deviceId) { deviceId = generateDeviceId(); await setSetting('deviceId', deviceId); }
     await setSetting('deviceCode', getDeviceCode(deviceId));
-    let setupDone = await getSetting('setupDone', false);
-    let trialStart = await getSetting('trialStart', null);
-    if (!trialStart) { trialStart = new Date().toISOString(); await setSetting('trialStart', trialStart); }
     await loadSettingsIntoState();
+    updateAboutInfo();
+    initRegionPicker();
+    loadPayOptions();   // toggle metode pembayaran + filter tombol di POS
+    initPwaInstall();   // baris "Pasang Aplikasi" (beforeinstallprompt)
+    restorePrinterStatus(); // status printer terakhir (persist kaki5)
+    // Kembali online → kirim user-intent profil yang tertunda (pola flag kaki5).
+    window.addEventListener('online', async () => {
+      try {
+        if (await getSetting('profileSyncPending', false)) {
+          const { pushProfile } = await import('./license.sync.js');
+          pushProfile();
+        }
+      } catch(_) {}
+    });
+    // Realtime lisensi: admin aktivasi/cabut → langsung diterapkan (pola kaki5).
+    try { const { ensureUnitId } = await import('./license.js'); const { subscribeToLicenseUpdates } = await import('./purchase.js'); subscribeToLicenseUpdates(await ensureUnitId()); } catch(_) {}
     await seedKategoriIfEmpty();
     await seedPlatformMessagesIfEmpty();
     await loadKategori();
     await refreshAll();
-    if (!setupDone) openOverlay('sheetOnboarding');
-    else checkLicenseGate();
+    checkLicenseGate();
   } catch (error) { console.error('Init error:', error); toast('Gagal memuat aplikasi: ' + error.message); }
-  // initApp completed
   markReady();
-
-  // Toggle kas bar buttons depending on shift state
-  async function updateKasBarButtons(){
-    try{
-      // refreshShiftCache returns the current open shift (or null)
-      const shift = await refreshShiftCache();
-      const btnToggle = document.getElementById('btnToggleKas');
-      const btnManual = document.getElementById('btnOpenKasManual');
-      if(!btnToggle || !btnManual) return;
-      if(shift){
-        // shift open -> show 'Tutup Kas'
-        btnToggle.className = 'btn btn-primary';
-        btnToggle.textContent = '🔒 Tutup Kas';
-        btnToggle.onclick = () => openTutupKasSheet();
-      } else {
-        // no shift -> show 'Buka Kas'
-        btnToggle.className = 'btn btn-outline';
-        btnToggle.textContent = '🔓 Buka Kas';
-        btnToggle.onclick = () => openBukaKasSheet();
-      }
-    }catch(e){ console.error('updateKasBarButtons error', e); }
-  }
-  // expose so external listeners can call it even if defined inside initApp
-  window.updateKasBarButtons = updateKasBarButtons;
-
-  // global handler for onclick in HTML
-  window.handleToggleKasClick = async function(){
-    try{
-      await refreshShiftCache();
-      const shift = openShiftCache;
-      if(shift) openTutupKasSheet(); else openBukaKasSheet();
-    }catch(e){ console.error('handleToggleKasClick error', e); }
-  };
-
 }
 
 // ── Global exports — EXACT function names matching onclick handlers in HTML ─────────────────
@@ -230,10 +335,6 @@ window.saveKategori = saveKategori;
 window.deleteKategoriConfirm = deleteKategoriConfirm;
 
 // Riwayat
-window.setRiwayatFilter = setRiwayatFilter;
-window.setRiwayatPeriode = setRiwayatPeriode;
-window.applyRiwayatCustom = applyRiwayatCustom;
-window.resetRiwayatPeriode = resetRiwayatPeriode;
 window.renderRiwayat = renderRiwayat;
 window.loadRiwayatPage = loadRiwayatPage;
 window.viewTransaksiDetail = viewTransaksiDetail;
@@ -246,8 +347,6 @@ window._ksr_voidTrans = voidTransaksi;
 
 // Laporan
 window.setLaporanPeriode = setLaporanPeriode;
-window.applyLaporanCustom = applyLaporanCustom;
-window.resetLaporanPeriode = resetLaporanPeriode;
 window.renderLaporan = renderLaporan;
 window.openLunasi = openLunasi;
 window.saveLunasi = saveLunasi;
@@ -270,24 +369,17 @@ window.checkLicenseGate = checkLicenseGate;
 window.updateTrialChip = updateTrialChip;
 window.renderLicenseInfoCard = renderLicenseInfoCard;
 window.activateLicense = activateLicense;
-window.openExtendFlow = openExtendFlow;
-window.grantExtension = grantExtension;
 window.contactViaWA = contactViaWA;
 window.contactViaEmail = contactViaEmail;
 window.openLicenseSheet = openLicenseSheet;
 window._ksr_activateLicense = activateLicense;
-window._ksr_openExtendFlow = openExtendFlow;
 window._ksr_contactViaWA = contactViaWA;
-
-// Onboarding
-window.finishOnboarding = finishOnboarding;
-window._ksr_finishOnboarding = finishOnboarding;
 
 // Settings
 window.saveBizIdentity = saveBizIdentity;
-window.exportData = exportData;
-window.importData = importData;
-window.confirmResetData = confirmResetData;
+window.connectBTPrinter = connectBTPrinter;
+window.disconnectBTPrinter = disconnectBTPrinter;
+window.testPrint = testPrint;
 window._ksr_openLicenseSheet = openLicenseSheet;
 
 // Utility
@@ -302,6 +394,16 @@ window._ksr_openKategoriForm = openKategoriForm;
 window._ksr_viewTransaksiDetail = viewTransaksiDetail;
 
 // ── Boot ──────────────────────────────────────────────────────────────────
-window.addEventListener('ksr-kas-changed', () => { try{ if(typeof updateKasBarButtons === 'function') updateKasBarButtons(); }catch(e){}});
-window.addEventListener('load', async () => { await initApp(); try{ if(typeof updateKasBarButtons === 'function') updateKasBarButtons(); }catch(e){} });
-setInterval(() => { if (SETTINGS.setupDone) checkLicenseGate(); }, 60000);
+// Handler tombol kas-bar: pakai binding openShiftCache yang di-import (live)
+// — dulu ReferenceError karena identifier tak pernah di-import.
+window.handleToggleKasClick = async function(){
+  try{
+    await refreshShiftCache();
+    if(openShiftCache) openTutupKasSheet(); else openBukaKasSheet();
+  }catch(e){ console.error('handleToggleKasClick error', e); }
+};
+window.updateKasBarButtons = updateKasBarButtons;
+
+window.addEventListener('ksr-kas-changed', () => { try{ updateKasBarButtons(); }catch(e){} });
+window.addEventListener('load', async () => { await initApp(); try{ updateKasBarButtons(); }catch(e){} });
+setInterval(checkLicenseGate, 60000);

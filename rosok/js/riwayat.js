@@ -1,88 +1,17 @@
 /* =========================================================================
    KASIR SOLO - ROSOK
    riwayat.js — Transaction history
+   Filter tipe & periode riwayat DIHAPUS: daftar mengikuti filter laporan
+   (reportRange dari laporan.js — Harian/Mingguan/Bulanan/Custom + jangkar).
    ========================================================================= */
 import { db } from './db.js';
-import { riwayatFilter, riwayatPeriode, riwayatDateFrom, riwayatDateTo, riwayatPage, RIWAYAT_PER_PAGE, lastNotaData, setRiwayatFilter as setRiwayatFilterState, setRiwayatPeriode as setRiwayatPeriodeState, setRiwayatDateFrom, setRiwayatDateTo, setRiwayatPage, setLastNotaData } from './app-state.js';
+import { riwayatPage, RIWAYAT_PER_PAGE, lastNotaData, setRiwayatPage, setLastNotaData } from './app-state.js';
 import { fmtRupiah, fmtDate, escapeHtml, openOverlay, closeSheet, toast, showLoading, hideLoading } from './utils.js';
 import { renderNota } from './pos.js';
+import { reportRange } from './laporan.js';
 
 let _refreshAll = null;
 export function setRiwayatRefs(refs){ _refreshAll = refs.refreshAll; }
-
-export function setRiwayatFilter(f){
-  setRiwayatFilterState(f);
-  document.querySelectorAll('#screen-riwayat .tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('#screen-riwayat [data-f]').forEach(b=>b.classList.toggle('active', b.dataset.f===f));
-  renderRiwayat();
-}
-
-// ── Filter periode ─────────────────────────────────────────────────────────
-// Hitung batas [start, end] Date berdasarkan preset periode riwayat.
-function riwayatPeriodRange(){
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  switch(riwayatPeriode){
-    case 'today': return { start: startOfDay, end: now };
-    case '7d':    return { start: new Date(now.getTime() - 6*24*3600*1000), end: now };
-    case '30d':   return { start: new Date(now.getTime() - 29*24*3600*1000), end: now };
-    case 'custom': {
-      const from = riwayatDateFrom ? new Date(riwayatDateFrom + 'T00:00:00') : null;
-      const toRaw = riwayatDateTo ? new Date(riwayatDateTo + 'T23:59:59.999') : null;
-      return { start: from, end: toRaw };
-    }
-    default: return { start: null, end: null };
-  }
-}
-
-function formatPeriodeLbl(){
-  const { start, end } = riwayatPeriodRange();
-  const d = dt => dt ? dt.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) : '';
-  switch(riwayatPeriode){
-    case 'today': return 'Periode: Hari Ini';
-    case '7d':    return 'Periode: 7 hari terakhir';
-    case '30d':   return 'Periode: 30 hari terakhir';
-    case 'custom':
-      if(riwayatDateFrom && riwayatDateTo) return `Periode: ${d(start)} – ${d(end)}`;
-      if(riwayatDateFrom) return `Periode: dari ${d(start)}`;
-      if(riwayatDateTo) return `Periode: sampai ${d(end)}`;
-      return 'Periode: Pilih tanggal di bawah';
-    default: return '';
-  }
-}
-
-export function setRiwayatPeriode(p){
-  setRiwayatPeriodeState(p);
-  const custom = p === 'custom';
-  const rangeEl = document.getElementById('riwayatCustomRange');
-  if(rangeEl) rangeEl.classList.toggle('hidden', !custom);
-  const lbl = document.getElementById('riwayatPeriodeLbl');
-  if(lbl) lbl.textContent = formatPeriodeLbl();
-  document.querySelectorAll('#screen-riwayat [data-p]').forEach(b=>b.classList.toggle('active', b.dataset.p===p));
-  renderRiwayat();
-}
-
-export function applyRiwayatCustom(){
-  const from = document.getElementById('riwayatFrom').value;
-  const to = document.getElementById('riwayatTo').value;
-  setRiwayatDateFrom(from);
-  setRiwayatDateTo(to);
-  if(riwayatPeriode !== 'custom') setRiwayatPeriodeState('custom');
-  document.querySelectorAll('#screen-riwayat [data-p]').forEach(b=>b.classList.toggle('active', b.dataset.p==='custom'));
-  const lbl = document.getElementById('riwayatPeriodeLbl');
-  if(lbl) lbl.textContent = formatPeriodeLbl();
-  renderRiwayat();
-}
-
-export function resetRiwayatPeriode(){
-  setRiwayatDateFrom('');
-  setRiwayatDateTo('');
-  const fromEl = document.getElementById('riwayatFrom');
-  const toEl = document.getElementById('riwayatTo');
-  if(fromEl) fromEl.value = '';
-  if(toEl) toEl.value = '';
-  setRiwayatPeriode('semua');
-}
 
 export async function renderRiwayat(){
   setRiwayatPage(0);
@@ -90,28 +19,27 @@ export async function renderRiwayat(){
 }
 
 export async function loadRiwayatPage(){
+  // Saring dulu di memori (dataset kecil) baru slice — paging konsisten
+  // dengan filter periode (dulu: offset Dexie dulu baru disaring = item hilang).
+  const { start, end } = reportRange();
+  const allTrans = (await db.transaksi.orderBy('tanggal').reverse().toArray())
+    .filter(t => {
+      if(t.void) return false;
+      if(start || end){
+        const dt = new Date(t.tanggal);
+        if(start && dt < start) return false;
+        if(end && dt > end) return false;
+      }
+      return true;
+    });
   const offset = riwayatPage * RIWAYAT_PER_PAGE;
-  let query = db.transaksi.orderBy('tanggal').reverse();
-  if(riwayatFilter !== 'semua') query = db.transaksi.where('tipe').equals(riwayatFilter).reverse();
-  const allTrans = await query.offset(offset).limit(RIWAYAT_PER_PAGE + 1).toArray();
-  // Filter rentang tanggal (periode) terhadap hasil query database
-  const { start, end } = riwayatPeriodRange();
-  let list = allTrans.filter(t => {
-    if(t.void) return false;
-    if(start || end){
-      const dt = new Date(t.tanggal);
-      if(start && dt < start) return false;
-      if(end && dt > end) return false;
-    }
-    return true;
-  });
-  const hasMore = allTrans.filter(t => !t.void).length > RIWAYAT_PER_PAGE && list.length >= RIWAYAT_PER_PAGE;
-  if(hasMore) list = list.slice(0, RIWAYAT_PER_PAGE);
+  const list = allTrans.slice(offset, offset + RIWAYAT_PER_PAGE);
+  const hasMore = allTrans.length > offset + RIWAYAT_PER_PAGE;
 
   const card = document.getElementById('riwayatList');
   if(!card) return;
   if(list.length === 0){
-    card.innerHTML = '<div class="empty-state"><div class="ic">🧾</div><div class="t1">Belum ada transaksi</div><div class="t2">Tidak ada transaksi pada filter ini. Ubah tipe atau periode.</div></div>';
+    card.innerHTML = '<div class="empty-state"><div class="ic">🧾</div><div class="t1">Belum ada transaksi</div><div class="t2">Tidak ada transaksi pada periode ini. Geser periode di filter atas.</div></div>';
     return;
   }
   card.innerHTML = list.map(t => `
@@ -136,6 +64,15 @@ export async function viewTransaksiDetail(id){
     items: items.map(it=>({nama:it.kategoriNama, berat:it.berat, harga:it.hargaSatuan, subtotal:it.subtotal, emoji:''}))
   });
   renderNota(lastNotaData);
+  // Bukti transfer (pola kaki5): tampilkan foto + catatan bila ada.
+  if(t.buktiBayar){
+    const proofNote = t.catatanBayar ? `<div class="nota-sub" style="margin-top:6px">📝 ${escapeHtml(t.catatanBayar)}</div>` : '';
+    document.getElementById('notaBody').insertAdjacentHTML('beforeend',
+      `<div class="divider"></div>
+       <div class="nota-sub">🏦 Bukti Transfer</div>
+       <img src="${t.buktiBayar}" alt="Bukti transfer" style="max-width:100%;border-radius:10px;margin-top:6px;border:1px solid var(--line)" onclick="window.open('${t.buktiBayar}','_blank')">
+       ${proofNote}`);
+  }
   let extraBtns = '';
   if((t.sisa||0) > 0) extraBtns += `<button class="btn btn-primary mt12" onclick="window._ksr_closeNota(); window._ksr_openLunasi(${t.id})">💰 Lunasi Sekarang</button>`;
   extraBtns += `<button class="btn btn-warning mt12" onclick="window._ksr_voidTransaksi(${t.id})">❌ Batal (Void)</button>`;
@@ -183,6 +120,8 @@ export async function voidTransaksi(id){
       showLoading('Membatalkan transaksi...');
       const t = await db.transaksi.get(id);
       if(!t) { throw new Error('Transaksi tidak ditemukan'); }
+      // Guard double-void: void kedua kali akan membalikkan stok dua kali.
+      if(t.void){ throw new Error('Transaksi sudah dibatalkan sebelumnya'); }
       const items = await db.transaksiItem.where('transaksiId').equals(id).toArray();
       for(const it of items){
         const kat = await db.kategori.get(it.kategoriId);
@@ -206,10 +145,6 @@ export async function voidTransaksi(id){
   }
 }
 
-window._ksr_setRiwayatFilter = setRiwayatFilter;
-window._ksr_setRiwayatPeriode = setRiwayatPeriode;
-window._ksr_applyRiwayatCustom = applyRiwayatCustom;
-window._ksr_resetRiwayatPeriode = resetRiwayatPeriode;
 window._ksr_renderRiwayat = renderRiwayat;
 window._ksr_loadRiwayatPage = loadRiwayatPage;
 window._ksr_viewTransaksiDetail = viewTransaksiDetail;

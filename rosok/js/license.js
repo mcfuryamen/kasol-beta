@@ -1,17 +1,37 @@
 /* =========================================================================
    KASIR SOLO - ROSOK
-   license.js — License logic ONLY. Imports: utils.
-   No imports from feature modules.
+   license.js — Lisensi & pembatasan aplikasi (model kaki5).
+   Tier gratis = KUOTA TRANSAKSI selesai per bulan kalender, TANPA batas
+   waktu (trial 7 hari & extend-share dihapus). Kuota habis → banner
+   closable + transaksi terkunci; sisanya aplikasi tetap bisa dieksplor.
+   Lisensi berbayar KSR-... membuka semua fitur (validasi V2/V1 sama).
    ========================================================================= */
 import { SETTINGS } from './app-state.js';
-import { fmtRupiah, fmtDate, setSetting, toast, openOverlay, closeSheet, getWebsiteUrl } from './utils.js';
+import { setSetting, getSetting, toast, openOverlay, closeSheet } from './utils.js';
+import { refreshTxQuotaConfig, syncLicenseStatusThrottled, fetchProductSalt, verifyAndAssignSerial } from './license.sync.js';
 
 const PRODUCT_SALT = "KASIRSOLO-ROSOK-HMAC-V2";
 const B32_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 const LICENSE_SECRET_V1 = "KasirSoloRosok::PTMesinKasirSolo::v1::JANGAN-SEBARKAN-GENERATOR";
-export const TRIAL_DAYS = 7;
-export const EXTEND_DAYS = 1;
-export const MAX_EXTENSIONS = 20;
+
+// ===== KUOTA TRANSAKSI (pola kaki5) =====
+// Angka global diatur admin lewat kartu produk (tabel products, kolom
+// tx_quota) di aplikasi admin dan disinkronkan via Supabase
+// (license.sync.js → settings.trialConfig, cached untuk offline).
+// Kuota segar tiap awal bulan kalender. Tanpa cache cloud → default.
+export const DEFAULT_TX_QUOTA = 100;
+
+export function currentTxMonth(nowMs = Date.now()) {
+  const d = new Date(nowMs);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+export async function getTxQuota() {
+  let cfg = null;
+  try { cfg = await getSetting('trialConfig', null); } catch (_) { /* storage gagal */ }
+  const q = Number(cfg && cfg.txQuota);
+  return (Number.isFinite(q) && q > 0) ? Math.floor(q) : DEFAULT_TX_QUOTA;
+}
 
 export function simpleHash(str) { let h = 0; for (let i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) >>> 0; } return h; }
 
@@ -25,10 +45,10 @@ export function b32Encode(bytes, length) {
   return length ? out.slice(0, length) : out;
 }
 
-export async function hmacSignature(data) {
+export async function hmacSignature(data, salt = PRODUCT_SALT) {
   const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey('raw', enc.encode(PRODUCT_SALT), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(PRODUCT_SALT + data));
+  const key = await crypto.subtle.importKey('raw', enc.encode(salt), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(salt + data));
   return b32Encode(new Uint8Array(sig), 6);
 }
 
@@ -38,19 +58,24 @@ export function getDeviceCode(installId) {
   return b36.slice(0, 4) + '-' + b36.slice(4, 8);
 }
 
-export function checkExpired(expCode, activationDate) {
+export function checkExpired(expCode, activationDate, nowMs = Date.now()) {
   if (expCode === '99') return false;
   if (expCode.endsWith('D')) {
     const days = parseInt(expCode);
     const expiry = new Date(activationDate);
     expiry.setDate(expiry.getDate() + days);
-    return new Date() > expiry;
+    return nowMs > expiry.getTime();
   }
   const months = parseInt(expCode);
   if (!isNaN(months)) {
+    // Clamp tanggal supaya 31 Jan + 1 bulan = 28/29 Feb (bukan 3 Mar).
     const expiry = new Date(activationDate);
+    const day = expiry.getDate();
+    expiry.setDate(1);
     expiry.setMonth(expiry.getMonth() + months);
-    return new Date() > expiry;
+    const lastDay = new Date(expiry.getFullYear(), expiry.getMonth() + 1, 0).getDate();
+    expiry.setDate(Math.min(day, lastDay));
+    return nowMs > expiry.getTime();
   }
   return false;
 }
@@ -63,13 +88,105 @@ export function decodeExpiryLabel(expCode) {
   return expCode;
 }
 
+// ── Anti-rollback jam (T13 kaki5): anchor = waktu tertinggi yang pernah
+// dilihat app. Jam perangkat dimundurkan > 2 hari → pakai anchor.
+const CLOCK_TOLERANCE_MS = 2 * 24 * 60 * 60 * 1000;
+
+export async function getEffectiveNow() {
+  let anchor = 0;
+  try { anchor = Number(await getSetting('clockAnchor', 0)) || 0; } catch (_) { /* storage gagal */ }
+  const now = Date.now();
+  return (anchor && now < anchor - CLOCK_TOLERANCE_MS) ? anchor : now;
+}
+
+async function bumpClockAnchor() {
+  try {
+    const anchor = Number(await getSetting('clockAnchor', 0)) || 0;
+    const now = Date.now();
+    if (now > anchor) await setSetting('clockAnchor', now);
+  } catch (_) { /* penyimpanan gagal → abaikan */ }
+}
+
+// ── State lisensi (satu objek di settings.license) ────────────────────────
+// trial:  { status:'trial', txMonth:'YYYY-MM', txUsed, txAdjust, deviceCode }
+// active: { status:'active', startedAt, serial, deviceCode, expCode?|expiryDate?, expiryLabel }
+
+export async function getLicense() {
+  const stored = await getSetting('license', null);
+  if (stored && typeof stored === 'object' && stored.status) return stored;
+  // Migrasi satu-kali dari skema lama (pra-kuota): lisensi aktif dibawa masuk,
+  // sisa trial lama DIBUANG (model waktu tidak berlaku lagi).
+  const oldStatus = await getSetting('licenseStatus', null);
+  if (oldStatus === 'active') {
+    const startedAt = (await getSetting('licenseActivatedAt', null)) || new Date().toISOString();
+    const lic = {
+      status: 'active',
+      startedAt,
+      serial: (await getSetting('licenseKey', '')) || '',
+      deviceCode: getDeviceIdForLicense(),
+      expiryLabel: (await getSetting('licenseExpiryLabel', '')) || ''
+    };
+    const oldExp = await getSetting('licenseExpiry', null);
+    if (typeof oldExp === 'string' && oldExp.length <= 3) lic.expCode = oldExp;
+    else if (oldExp) lic.expiryDate = new Date(oldExp).toISOString();
+    await saveLicense(lic);
+    return lic;
+  }
+  return {};
+}
+
+export async function saveLicense(lic) {
+  await setSetting('license', lic);
+}
+
+// Identitas unit stabil (kunci baris clients di cloud): 'KSR-' + deviceCode.
+// Lahir sekali lalu dipertahankan — dipakai license.sync.js.
+export async function ensureUnitId() {
+  let unitId = await getSetting('unitId', null);
+  if (unitId) return unitId;
+  unitId = 'KSR-' + getDeviceIdForLicense();
+  await setSetting('unitId', unitId);
+  return unitId;
+}
+
+// Mulai/lanjutkan tier gratis berbasis kuota (idempoten). Bulan baru = kuota segar.
+export async function startTrial() {
+  const lic = await getLicense();
+  if (lic.status === 'active') return lic;
+  const month = currentTxMonth();
+  if (lic.status === 'trial' && lic.txMonth === month) return lic;
+  const carry = (lic.status === 'trial' && lic.txMonth === month) ? (Number(lic.txUsed) || 0) : 0;
+  const trial = {
+    status: 'trial',
+    txMonth: month,
+    txUsed: carry,
+    txAdjust: Number(lic.txAdjust) || 0,
+    deviceCode: lic.deviceCode || getDeviceIdForLicense()
+  };
+  await saveLicense(trial);
+  return trial;
+}
+
+// Naikkan penghitung bulan berjalan. Dipanggil tepat setelah transaksi
+// tersimpan. Lisensi aktif tidak dibatasi kuota — tidak perlu dicatat.
+export async function incrementTxCount() {
+  const lic = await getLicense();
+  if (lic.status !== 'trial') return;
+  const month = currentTxMonth();
+  const used = (lic.txMonth === month ? (Number(lic.txUsed) || 0) : 0) + 1;
+  await saveLicense({ ...lic, txMonth: month, txUsed: used });
+}
+
 export async function validateLicenseKeyV2(rawKey, myDeviceCode, activationDate) {
   const clean = (rawKey || '').trim().toUpperCase().replace(/\s+/g, '');
   const re = /^KSR-([A-Z0-9]{4})-([A-Z0-9]{4})-([A-Z0-9]{2})-([A-Z0-9]{6})$/;
   if (!re.test(clean)) return null;
   const [, d1, d2, exp, sig] = clean.match(re);
   if (d1 + '-' + d2 !== myDeviceCode) return { valid: false, reason: 'device' };
-  const expected = await hmacSignature(d1 + d2 + exp);
+  // Salt dari cloud (products.salt KSR/rosok — admin bisa rotasi), fallback
+  // konstanta build. Port fetchProductSalt kaki5 (2026-08-30).
+  const { salt } = await fetchProductSalt();
+  const expected = await hmacSignature(d1 + d2 + exp, salt);
   if (sig !== expected) return { valid: false, reason: 'Signature HMAC tidak cocok' };
   if (checkExpired(exp, activationDate || new Date().toISOString())) return { valid: false, reason: 'expired' };
   return { valid: true, expiry: exp, expiryLabel: decodeExpiryLabel(exp) };
@@ -109,7 +226,7 @@ export async function validateLicenseKeyV1(rawKey, deviceId) {
 
 export async function validateLicenseKey(rawKey, deviceId) {
   const myDeviceCode = getDeviceIdForLicense();
-  const activationDate = SETTINGS.licenseActivatedAt || SETTINGS.trialStart || new Date().toISOString();
+  const activationDate = new Date().toISOString();
   const resultV2 = await validateLicenseKeyV2(rawKey, myDeviceCode, activationDate);
   if (resultV2 !== null) return resultV2;
   return await validateLicenseKeyV1(rawKey, deviceId);
@@ -119,132 +236,245 @@ export function getDeviceIdForLicense() {
   return getDeviceCode(SETTINGS.deviceId || SETTINGS.installId || 'UNKNOWN');
 }
 
-// ── Trial / License Gate ─────────────────────────────────────────────────
-export function trialEndDate(){
-  const start = new Date(SETTINGS.trialStart || new Date().toISOString());
-  const extUsed = SETTINGS.extensionsUsed || 0;
-  const totalDays = TRIAL_DAYS + (extUsed * EXTEND_DAYS);
-  const end = new Date(start);
-  end.setDate(end.getDate() + totalDays);
-  return end;
+// API state lisensi utk license.sync.js (dioper sebagai parameter — tanpa
+// circular import; sync.js tidak mengimpor license.js).
+export const licenseStateApi = {
+  getLicense,
+  saveLicense,
+  currentTxMonth,
+  getDeviceCode: getDeviceIdForLicense,
+  bumpClockAnchor
+};
+
+// ── Status (dipakai gate, chip, banner, dan blok transaksi di pos.js) ─────
+function licenseExpired(lic, nowMs) {
+  if (lic.expCode) return checkExpired(lic.expCode, lic.startedAt, nowMs);
+  if (lic.expiryDate) return nowMs > new Date(lic.expiryDate).getTime();
+  return false; // tanpa info kedaluwarsa = seumur hidup
 }
 
-export function daysLeft(){
-  const end = trialEndDate();
-  const diff = end.getTime() - Date.now();
-  return Math.ceil(diff / 86400000);
-}
-
-export function isLicensed(){
-  if(SETTINGS.licenseStatus !== 'active') return false;
-  if(SETTINGS.licenseExpiry && typeof SETTINGS.licenseExpiry === 'string' && SETTINGS.licenseExpiry.length <= 3) {
-    return !checkExpired(SETTINGS.licenseExpiry, SETTINGS.licenseActivatedAt || SETTINGS.trialStart || new Date().toISOString());
+export async function getLicenseStatus() {
+  let lic = await getLicense();
+  const nowMs = await getEffectiveNow();
+  if (nowMs === Date.now()) bumpClockAnchor(); // jam sehat → catat jadi anchor
+  if (!lic || !lic.status) lic = await startTrial();
+  const deviceCode = lic.deviceCode || getDeviceIdForLicense();
+  if (lic.status === 'active') {
+    if (licenseExpired(lic, nowMs)) return { status: 'expired', deviceCode, protocol: 'licensed-expired' };
+    return { status: 'active', deviceCode, serial: lic.serial, expiryLabel: lic.expiryLabel };
   }
-  if(SETTINGS.licenseExpiry && new Date(SETTINGS.licenseExpiry).getTime() < Date.now()) return false;
-  return true;
+  if (lic.status === 'trial') {
+    const month = currentTxMonth(nowMs);
+    const used = lic.txMonth === month ? (Number(lic.txUsed) || 0) : 0;
+    const quota = (await getTxQuota()) + (Number(lic.txAdjust) || 0);
+    const remaining = quota - used;
+    if (remaining <= 0) return { status: 'expired', deviceCode, trialExpired: true, txRemaining: 0, txQuota: quota, txUsed: used };
+    return { status: 'trial', deviceCode, txRemaining: remaining, txQuota: quota, txUsed: used };
+  }
+  return { status: 'none', deviceCode };
 }
 
-// These are set by app.js after all modules load
+export async function isLicensed() {
+  const st = await getLicenseStatus();
+  return st.status === 'active';
+}
+
+// ── Wiring antar modul (diisi app.js, hindari circular import) ────────────
 let _updateTrialChip = null;
 let _renderLicenseInfoCard = null;
 let _checkLicenseGate = null;
-let _openExtendFlow = null;
-let _grantExtension = null;
 let _openLicenseSheet = null;
 
 export function setLicenseRefs(refs){
   _updateTrialChip = refs.updateTrialChip;
   _renderLicenseInfoCard = refs.renderLicenseInfoCard;
   _checkLicenseGate = refs.checkLicenseGate;
-  _openExtendFlow = refs.openExtendFlow;
-  _grantExtension = refs.grantExtension;
   _openLicenseSheet = refs.openLicenseSheet;
 }
 
-export function checkLicenseGate(){
-  if(_updateTrialChip) _updateTrialChip();
-  if(_renderLicenseInfoCard) _renderLicenseInfoCard();
-  if(isLicensed()){
-    document.getElementById('lockOverlay').classList.remove('show');
-    return;
+// ── Banner kuota (non-blocking; bisa ditutup untuk sesi ini) ──────────────
+let _quotaBannerDismissed = false;
+
+function showQuotaBanner(st) {
+  if (_quotaBannerDismissed) return;
+  const b = document.getElementById('quotaBanner');
+  if (!b) return;
+  const txt = document.getElementById('quotaBannerText');
+  if (txt) {
+    const paid = st.protocol === 'licensed-expired';
+    txt.innerHTML = (paid
+      ? '🔑 Lisensi berbayar Anda sudah kedaluwarsa — eksplorasi tetap bebas, transaksi terkunci.'
+      : '🚫 Kuota transaksi bulan ini habis — eksplorasi tetap bebas, transaksi terkunci.')
+      + ' <b>ID Perangkat: ' + (st.deviceCode || '—') + '</b>';
   }
-  const left = daysLeft();
-  if(left <= 0){
-    const extUsed = SETTINGS.extensionsUsed || 0;
-    const statusArea = document.getElementById('lockLicenseStatusArea');
-    if(statusArea) statusArea.innerHTML = licenseStatusHtml(left, extUsed, 'lockLicenseInput');
-    document.getElementById('lockOverlay').classList.add('show');
-  } else {
-    document.getElementById('lockOverlay').classList.remove('show');
-  }
+  b.classList.remove('khide');
 }
 
-export function updateTrialChip(){
+export function hideQuotaBanner(byUser) {
+  if (byUser) _quotaBannerDismissed = true;
+  const b = document.getElementById('quotaBanner');
+  if (b) b.classList.add('khide');
+}
+
+// ── Gate — dipanggil saat boot, tiap 60 detik, & setelah transaksi ────────
+export async function checkLicenseGate(){
+  // Tarik pengaturan kuota terbaru dari cloud (non-blocking bila offline).
+  try { await refreshTxQuotaConfig(); } catch(_) { /* offline → pakai cache */ }
+  // Sync penuh ter-throttle (5 menit): adopsi lisensi cloud + reconcile
+  // penghitung kuota dua-arah. Gagal jaringan = lanjut pakai data lokal.
+  try {
+    const unitId = await ensureUnitId();
+    await syncLicenseStatusThrottled(unitId, licenseStateApi);
+  } catch(_) { /* offline → pakai data lokal */ }
+  const st = await getLicenseStatus();
+  if(_updateTrialChip) await _updateTrialChip(st);
+  if(_renderLicenseInfoCard) await _renderLicenseInfoCard();
+  if(st.status === 'expired') showQuotaBanner(st);
+  else hideQuotaBanner();
+}
+
+// ── UI: chip header, kartu status, sheet lisensi, aktivasi ────────────────
+export async function updateTrialChip(st){
   const chip = document.getElementById('trialChip');
-  if(isLicensed()){
-    chip.textContent = '✓ Aktif';
+  if(!chip) return;
+  if(!st) st = await getLicenseStatus();
+  if(st.status === 'active'){
+    chip.innerHTML = '<div class="trial-label-xs">PRO</div><div class="trial-value-sm">✓ Aktif</div>';
     chip.classList.remove('warn');
     return;
   }
-  const left = daysLeft();
-  chip.textContent = left>0 ? `${left} hari lagi` : 'Trial habis';
-  chip.classList.toggle('warn', left<=2);
+  if(st.status === 'expired'){
+    chip.innerHTML = '<div class="trial-label-xs">GRATIS</div><div class="trial-value-sm">Kuota habis</div>';
+    chip.classList.add('warn');
+    return;
+  }
+  chip.innerHTML = '<div class="trial-label-xs">GRATIS</div><div class="trial-value-sm">' + st.txRemaining + ' trx</div>';
+  chip.classList.toggle('warn', st.txRemaining <= 10);
 }
 
-export function openLicenseSheet(){
-  const left = daysLeft();
-  const extUsed = SETTINGS.extensionsUsed || 0;
-  const body = document.getElementById('licenseSheetBody');
-  body.innerHTML = licenseStatusHtml(left, extUsed, 'licenseKeyInputSheet');
-  openOverlay('sheetLicense');
-}
-
-export function licenseStatusHtml(left, extUsed, inputId){
-  if(isLicensed()){
-    const expRaw = SETTINGS.licenseExpiry;
-    let expTxt = 'Berlaku seumur hidup';
-    if (expRaw && typeof expRaw === 'string' && expRaw.length <= 3) {
-      expTxt = 'Masa berlaku: ' + decodeExpiryLabel(expRaw);
-    } else if (expRaw) {
-      expTxt = 'Berlaku sampai ' + fmtDate(expRaw).split(' ').slice(0,3).join(' ');
-    }
+function licenseStatusHtml(st, inputId){
+  if(st.status === 'active'){
+    const expTxt = st.expiryLabel ? 'Masa berlaku: ' + st.expiryLabel : 'Berlaku seumur hidup';
     return `<div class="card license-card-active">
       <div class="license-icon">✅</div>
       <div class="badge green compact">✓ Lisensi Aktif</div>
-      <p class="license-key"><b>${SETTINGS.licenseKey||'-'}</b></p>
-      <p class="license-expiry">Masa berlaku: ${expTxt}</p>
+      <p class="license-key"><b>${(st.serial || '-')}</b></p>
+      <p class="license-expiry">${expTxt}</p>
       <p class="license-desc">Lisensi terikat perangkat ini dan membuka semua fitur tanpa batasan.</p>
     </div>`;
   }
+  const habis = st.status === 'expired';
+  const quota = Number(st.txQuota) || DEFAULT_TX_QUOTA;
+  const remaining = habis ? 0 : Math.max(0, Number(st.txRemaining) || 0);
+  const used = Math.max(0, quota - remaining);
+  const pct = quota > 0 ? Math.min(100, Math.max(4, Math.round((remaining / quota) * 100))) : 0;
+  const menunggu = SETTINGS.purchaseStatus === 'menunggu_verifikasi';
   return `
     <div class="card license-card-trial">
       <div class="license-header">
-        <div class="license-icon">⏰</div>
-        <div class="license-title">Masa Coba Gratis</div>
-        <span class="badge ${left>2?'orange':'red'}">${left>0? left+' hari tersisa' : 'Sudah habis'}</span>
+        <div class="license-icon">🎁</div>
+        <div class="license-title">Kuota Transaksi Gratis</div>
+        <span class="badge ${habis ? 'red' : (remaining <= 10 ? 'orange' : 'green')}">${habis ? 'Habis bulan ini' : 'Sisa ' + remaining + ' transaksi'}</span>
       </div>
-      <div class="license-description">
-        Setiap kali Anda membagikan aplikasi ini ke kontak, Anda akan mendapatkan perpanjangan otomatis yang tersedia 20 kali (maksimal 1 hari per perpanjangan).
-      </div>
-      <div class="license-extend-section">
-        ${extUsed < MAX_EXTENSIONS ? `<button class="btn-extend mt12" onclick="window._ksr_openExtendFlow()">🎁 Tambah 1 Hari Gratis (${MAX_EXTENSIONS-extUsed}x tersisa)</button>` : `<div class="hint mt12">Jatah perpanjangan gratis sudah habis (maks ${MAX_EXTENSIONS}x). Silakan aktivasi lisensi resmi.</div>`}
-        <div class="license-usage">Perpanjangan dipakai <b>${extUsed}/${MAX_EXTENSIONS}</b>x</div>
-      </div>
+      <div class="license-description">Setiap bulan kamu dapat <b>${quota} transaksi</b> gratis tanpa batas waktu — kuota segar lagi di awal bulan. Terpakai <b>${used}</b> bulan ini.</div>
+      <div class="license-progress"><span style="width:${pct}%;animation:none"></span></div>
+      ${menunggu ? '<div class="badge orange mt8" style="display:inline-block">⏳ Pembayaran menunggu verifikasi admin</div>' : ''}
     </div>
-    <div class="field mt12"><label class="field-label">Kode Lisensi</label><input type="text" id="${inputId}" placeholder="KSR-XXXX-XXXX-XX-XXXXXX" class="uppercase"></div>
+    <div class="license-actions" style="display:flex; flex-direction:column; gap:8px;">
+      <button class="btn btn-primary" onclick="window._ksr_openPurchaseSheet()">💳 Beli Lisensi</button>
+    </div>
+    ${inputId ? `<div class="field mt12"><label class="field-label">Aktivasi Manual (Kode)</label><input type="text" id="${inputId}" placeholder="KSR-XXXX-XXXX-XX-XXXXXX" class="uppercase"></div>
     <div class="license-actions">
-      <button class="btn-buy-wa" onclick="window._ksr_contactViaWA()">💬 Beli Lisensi via WA</button>
-      <button class="btn btn-primary" onclick="window._ksr_activateLicense('${inputId}')">🔓 Aktifkan Lisensi</button>
-    </div>
+      <button class="btn-buy-wa" onclick="window._ksr_contactViaWA()">💬 Beli via WhatsApp</button>
+      <button class="btn btn-primary" onclick="window._ksr_activateLicense('${inputId}')">🔓 Aktifkan Kode</button>
+    </div>` : ''}
   `;
 }
 
-export function renderLicenseInfoCard(){
+export async function renderLicenseInfoCard(){
   const card = document.getElementById('licenseInfoCard');
   if(!card) return;
-  const left = daysLeft();
-  const extUsed = SETTINGS.extensionsUsed || 0;
-  card.innerHTML = licenseStatusHtml(left, extUsed, 'licenseKeyInputSettings');
+  const st = await getLicenseStatus();
+  // inputId kosong → tanpa field Kode Lisensi & tombol aktivasi (hanya di sheet lisensi).
+  card.innerHTML = licenseStatusHtml(st, '');
+}
+
+export function openLicenseSheet(){
+  getLicenseStatus().then(st => {
+    const body = document.getElementById('licenseSheetBody');
+    if(body) body.innerHTML = licenseStatusHtml(st, 'licenseKeyInputSheet');
+    openOverlay('sheetLicense');
+  });
+}
+
+// Rate limit aktivasi manual (pola kaki5 rateLimiters.activateLicense:
+// 5 percobaan/menit) — pembatas brute-force ruang kunci HMAC.
+const _activateTimes = [];
+function rateLimitActivate(){
+  const now = Date.now();
+  while(_activateTimes.length && now - _activateTimes[0] > 60000) _activateTimes.shift();
+  if(_activateTimes.length >= 5) return false;
+  _activateTimes.push(now);
+  return true;
+}
+
+export async function activateLicense(inputId){
+  const el = document.getElementById(inputId);
+  const key = ((el && el.value) || '').trim().toUpperCase();
+  if(!key){ toast('Masukkan kode lisensi'); return; }
+  if(!rateLimitActivate()){ toast('Terlalu banyak percobaan aktivasi. Tunggu sebentar.'); return; }
+  toast('Memeriksa lisensi...');
+  const deviceId = SETTINGS.deviceId;
+  try{
+    const result = await validateLicenseKey(key, deviceId);
+    if(result.valid){
+      // Cloud = kebenaran mutlak lisensi (aturan pemilik + pola kaki5
+      // license.ui.activateLicense): saat ONLINE, serial HARUS dikenal cloud
+      // (device_assign). 'serial-not-found' & 'profile-mismatch' & penolakan
+      // lain MEMBLOKIR — kalau tidak, downgrade (A1) di syncLicenseStatus akan
+      // mencabut lisensi ini diam-diam ≤5 menit kemudian. Hanya kegagalan
+      // jaringan/offline yang boleh lanjut ke validasi HMAC lokal (fallback
+      // utk kode yang diterbitkan admin di luar aplikasi).
+      try {
+        const assign = await verifyAndAssignSerial(key, await ensureUnitId());
+        if(!assign.ok && assign.reason !== 'network'){
+          if(assign.reason === 'profile-mismatch'){
+            // Kunci penuh ala kaki5 renderProfileMismatchOverlay — TANPA tombol
+            // tutup (bukan openOverlay, jadi Escape/backdrop tidak menutup).
+            const lock = document.getElementById('mismatchLock');
+            if(lock) lock.classList.add('show');
+            else toast('Profil perangkat tidak cocok dengan serial ini — hubungi admin');
+          }
+          else if(assign.reason === 'serial-not-found') toast('Serial tidak terdaftar di admin. Periksa kembali kode.');
+          else toast('Lisensi ditolak (' + (assign.reason || 'unknown') + '). Hubungi admin.');
+          return;
+        }
+      } catch(_) {}
+      const lic = {
+        status: 'active',
+        startedAt: new Date().toISOString(),
+        serial: key,
+        deviceCode: getDeviceIdForLicense(),
+        expiryLabel: result.expiryLabel || ''
+      };
+      if(result.expiry && typeof result.expiry === 'string' && result.expiry.length <= 3) lic.expCode = result.expiry;
+      else if(result.expiry) lic.expiryDate = new Date(result.expiry).toISOString();
+      await saveLicense(lic);
+      if(_updateTrialChip) await _updateTrialChip();
+      if(_renderLicenseInfoCard) await _renderLicenseInfoCard();
+      closeSheet('sheetLicense');
+      hideQuotaBanner();
+      toast(result.expiryLabel ? `Lisensi aktif! Masa berlaku: ${result.expiryLabel}` : 'Lisensi berhasil diaktifkan 🎉');
+    } else if(result.reason === 'device'){
+      toast('Kode ini bukan untuk perangkat ini');
+    } else if(result.reason === 'expired'){
+      toast('Kode lisensi sudah kedaluwarsa');
+    } else {
+      toast('Kode lisensi tidak valid');
+    }
+  } catch(err){
+    toast('Gagal memeriksa kode lisensi. Coba lagi.');
+  }
 }
 
 export function contactViaWA(){
@@ -260,83 +490,7 @@ export function contactViaEmail(){
   window.location.href = `mailto:owner.kasirsolo@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-let _activateLicenseTarget = null;
-export function setActivateLicenseTarget(fn){ _activateLicenseTarget = fn; }
-
-export async function activateLicense(inputId){
-  const key = (document.getElementById(inputId).value || '').trim().toUpperCase();
-  if(!key){ toast('Masukkan kode lisensi'); return; }
-  toast('Memeriksa lisensi...');
-  const deviceId = SETTINGS.deviceId;
-  const now = new Date().toISOString();
-  try{
-    const result = await validateLicenseKey(key, deviceId);
-    if(result.valid){
-      await setSetting('licenseStatus','active');
-      await setSetting('licenseKey', key);
-      await setSetting('licenseActivatedAt', now);
-      await setSetting('licenseExpiry', result.expiry || null);
-      await setSetting('licenseExpiryLabel', result.expiryLabel || '');
-      if(_updateTrialChip) _updateTrialChip();
-      if(_renderLicenseInfoCard) _renderLicenseInfoCard();
-      closeSheet('sheetLicense');
-      document.getElementById('lockOverlay').classList.remove('show');
-      const msg = result.expiryLabel ? `Lisensi aktif! Masa berlaku: ${result.expiryLabel}` : 'Lisensi berhasil diaktifkan 🎉';
-      toast(msg);
-    } else if(result.reason === 'device'){
-      toast('Kode ini bukan untuk perangkat ini');
-    } else if(result.reason === 'expired'){
-      toast('Kode lisensi sudah kedaluwarsa');
-    } else {
-      toast('Kode lisensi tidak valid');
-    }
-  } catch(err){
-    toast('Gagal memeriksa kode lisensi. Coba lagi.');
-  }
-}
-
-export async function openExtendFlow(){
-  const extUsed = SETTINGS.extensionsUsed || 0;
-  if(extUsed >= MAX_EXTENSIONS){ toast('Jatah perpanjangan sudah habis'); return; }
-  const shareText = `Halo! Saya pakai *Kasir Solo - Rosok* buat catat transaksi rosok saya, gampang & ringan banget. *PT Mesin Kasir Solo* juga menyediakan beragam aplikasi khusus sesuai kebutuhan bisnismu. Info lengkap: WA 0881-6566-935 atau email owner.kasirsolo@gmail.com.\n\nCoba langsung di: ${getWebsiteUrl()}`;
-  if('contacts' in navigator && 'ContactsManager' in window){
-    try{
-      const contacts = await navigator.contacts.select(['name','tel'], {multiple:false});
-      if(contacts && contacts.length >= 1){
-        await tryShare(shareText);
-        if(_grantExtension) _grantExtension();
-        return;
-      }
-    }catch(err){
-      // pengguna batal pilih kontak -> lanjut ke fallback share manual di bawah
-    }
-  }
-  await tryShare(shareText);
-  const ok = confirm('Apakah kamu berhasil membagikan info aplikasi ini ke kontak rekan atau media sosial? \n\nJika ya, kamu akan dapatkan 1 hari masa coba gratis tambahan.');
-  if(ok){ if(_grantExtension) _grantExtension(); }
-  else { toast('Bagikan dulu ke kontak untuk klaim tambahan 1 hari'); }
-}
-
-export async function tryShare(text){
-  if(navigator.share){
-    try{ await navigator.share({title:'Kasir Solo - Rosok', text}); }catch(e){}
-  } else {
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-  }
-}
-
-export async function grantExtension(){
-  const extUsed = (SETTINGS.extensionsUsed || 0) + 1;
-  await setSetting('extensionsUsed', extUsed);
-  await setSetting('lastExtensionAt', new Date().toISOString());
-  if(_updateTrialChip) _updateTrialChip();
-  closeSheet('sheetLicense');
-  document.getElementById('lockOverlay').classList.remove('show');
-  if(_checkLicenseGate) _checkLicenseGate();
-  toast(`Masa coba ditambah 1 hari! 🎉 (${extUsed}/${MAX_EXTENSIONS}) — membagikan info ke kontak membantu kami mengembangkan aplikasi untuk usaha kecil.`);
-}
-
 // Global exports for onclick
 window._ksr_activateLicense = activateLicense;
-window._ksr_openExtendFlow = openExtendFlow;
 window._ksr_contactViaWA = contactViaWA;
+window.hideQuotaBanner = () => hideQuotaBanner(true);

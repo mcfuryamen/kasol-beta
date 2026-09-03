@@ -86,6 +86,37 @@ export function generateDeviceId(){
   return 'DEV-' + rand.toUpperCase();
 }
 
+// ── Deteksi tipe browser & perangkat utk CRM (kolom clients) — port kaki5
+// helpers.getDeviceInfo: murni parse userAgent, ramah offline.
+export function getDeviceInfo(){
+  const ua = String(navigator.userAgent || '');
+  const uaLower = ua.toLowerCase();
+  let browser = 'Lainnya';
+  if (ua.includes('Edg/') || uaLower.includes('edg/')) browser = 'Edge';
+  else if (ua.includes('OPR/') || uaLower.includes('opr/')) browser = 'Opera';
+  else if (ua.includes('SamsungBrowser')) browser = 'Samsung Internet';
+  else if (uaLower.includes('firefox')) browser = 'Firefox';
+  else if (ua.includes('CriOS') || uaLower.includes('crios')) browser = 'Chrome (iOS)';
+  else if (ua.includes('Chrome/')) browser = 'Chrome';
+  else if (ua.includes('Safari/') && !uaLower.includes('chrome')) browser = 'Safari';
+  else if (ua.includes('wv') || uaLower.includes('webview')) browser = 'WebView';
+  let os = 'Lainnya';
+  if (/windows nt/i.test(ua)) os = 'Windows';
+  else if (/android/i.test(ua)) os = 'Android';
+  else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
+  else if (/mac os x/i.test(ua)) os = 'macOS';
+  else if (/linux/i.test(ua)) os = 'Linux';
+  const isTablet = /ipad/i.test(ua) ||
+    (/android/i.test(ua) && !/mobile/i.test(ua)) ||
+    (navigator.maxTouchPoints > 1 && /tablet/i.test(ua)) ||
+    (ua.includes('Macintosh') && navigator.maxTouchPoints > 1 && typeof window.orientation !== 'undefined');
+  const isMobile = !isTablet && (
+    /mobile/i.test(ua) ||
+    /iphone|ipod|android.*mobile|iemobile|blackberry|opera mini/i.test(uaLower)
+  );
+  return { browser, os, deviceType: isTablet ? 'tablet' : (isMobile ? 'mobile' : 'desktop'), userAgent: ua.slice(0, 500) };
+}
+
 export function openOverlay(id){
   const el = document.getElementById(id);
   if(!el) return;

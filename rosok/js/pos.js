@@ -6,9 +6,13 @@ import { db } from './db.js';
 import { KATEGORI, activeTransTipe, cart, currentWizardStep, bayarMetode, lastNotaData, currentTimbangKat, currentBerat, currentSatuan, SATUAN_FACTOR, SATUAN_LABEL, keypadBuffer, openShiftCache, isSaving, SETTINGS, setActiveTransTipe, setCart, setCurrentWizardStep, setBayarMetode, setLastNotaData, setCurrentTimbangKat, setCurrentBerat, setCurrentSatuan, setKeypadBuffer, setIsSaving } from './app-state.js';
 import { fmtRupiah, fmtKg, fmtDate, escapeHtml, openOverlay, closeSheet, toast, showLoading, hideLoading, unformatRupiah } from './utils.js';
 import { refreshShiftCache, openBukaKasSheet } from './kas.js';
+import { getLicenseStatus, incrementTxCount } from './license.js';
 
 let _refreshAll = null;
 export function setPosRefs(refs){ _refreshAll = refs.refreshAll; }
+function openLicenseSheetRef(){
+  if(typeof window.openLicenseSheet === 'function') window.openLicenseSheet();
+}
 
 export function renderWizardBar(){
   const bar = document.getElementById('wizardBar');
@@ -206,31 +210,84 @@ export function setMetodeBayar(m){
   }
     
   const bayarLbl = document.getElementById('bayarUangLabel');
-  if(m === 'tempo'){
-    if(bayarLbl) bayarLbl.textContent = activeTransTipe==='beli' ? 'Uang Muka ke Penjual (opsional)' : 'Uang Muka Diterima (opsional)';
-    const kembEl = document.getElementById('kembalianLbl');
-    if(kembEl) kembEl.textContent = activeTransTipe==='beli' ? 'Sisa Utang' : 'Sisa Piutang';
-    const tempoHintEl = document.getElementById('tempoHint');
-    if(tempoHintEl) tempoHintEl.style.display = 'block';
-    // Saat metode tempo dipilih, input nilai harus nol sesuai permintaan
-    const bayarInputEl = document.getElementById('bayarUangInput');
-    if(bayarInputEl) { bayarInputEl.value = fmtRupiah(0); }
-  } else {
-    if(bayarLbl) bayarLbl.textContent = activeTransTipe==='beli' ? 'Uang Dibayarkan' : 'Uang Diterima';
-    const kembEl = document.getElementById('kembalianLbl');
-    if(kembEl) kembEl.textContent = 'Kembalian';
-    const tempoHintEl = document.getElementById('tempoHint');
+  const cashRow = document.getElementById('cashPayRow');
+  const presets = document.getElementById('presetButtonsContainer');
+  const transferPanel = document.getElementById('transferPanel');
+  const tempoHintEl = document.getElementById('tempoHint');
+  if(m === 'transfer'){
+    // Non-tunai (pola kaki5): nominal pas + foto bukti — sembunyi input tunai & preset.
+    if(cashRow) cashRow.style.display = 'none';
+    if(presets) presets.style.display = 'none';
+    if(transferPanel) transferPanel.classList.remove('hidden');
     if(tempoHintEl) tempoHintEl.style.display = 'none';
+    const tn = document.getElementById('transferNominalLbl');
+    if(tn) tn.textContent = fmtRupiah(cartTotal());
+  } else {
+    if(cashRow) cashRow.style.display = '';
+    if(presets) presets.style.display = '';
+    if(transferPanel) transferPanel.classList.add('hidden');
+    if(m === 'tempo'){
+      if(bayarLbl) bayarLbl.textContent = 'Uang Muka (opsional)';
+      const kembEl = document.getElementById('kembalianLbl');
+      if(kembEl) kembEl.textContent = activeTransTipe==='beli' ? 'Sisa Utang' : 'Sisa Piutang';
+      if(tempoHintEl) tempoHintEl.style.display = 'block';
+      // Saat metode tempo dipilih, input nilai harus nol sesuai permintaan
+      const bayarInputEl = document.getElementById('bayarUangInput');
+      if(bayarInputEl) { bayarInputEl.value = fmtRupiah(0); }
+    } else {
+      if(bayarLbl) bayarLbl.textContent = activeTransTipe==='beli' ? 'Uang Dibayarkan' : 'Uang Diterima';
+      const kembEl = document.getElementById('kembalianLbl');
+      if(kembEl) kembEl.textContent = 'Kembalian';
+      if(tempoHintEl) tempoHintEl.style.display = 'none';
+    }
   }
   calcKembalian();
+}
+
+// ── Foto bukti transfer (pola kaki5 purchase.js: kamera → resize JPEG) ─────
+let _payProof = '';
+export function getPayProof(){ return _payProof; }
+export function getPayNote(){ const el = document.getElementById('payNoteInput'); return el ? el.value.trim().slice(0,120) : ''; }
+export function capturePayProof(){ document.getElementById('payProofFile')?.click(); }
+export function removePayProof(){
+  _payProof = '';
+  const file = document.getElementById('payProofFile'); if(file) file.value = '';
+  const wrap = document.getElementById('payProofPreviewWrap'); if(wrap) wrap.style.display = 'none';
+  const btn = document.getElementById('payProofBtn'); if(btn) btn.style.display = '';
+}
+// Foto kamera HP 3–8 MB → resize kanvas maks 900px + JPEG 0.72 agar IndexedDB aman.
+export function handlePayProof(input){
+  const file = input && input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 900;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * scale);
+      cv.height = Math.round(img.height * scale);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      _payProof = cv.toDataURL('image/jpeg', 0.72);
+      const prev = document.getElementById('payProofPreview');
+      const wrap = document.getElementById('payProofPreviewWrap');
+      const btn = document.getElementById('payProofBtn');
+      if(prev) prev.src = _payProof;
+      if(wrap) wrap.style.display = '';
+      if(btn) btn.style.display = 'none';
+    };
+    img.onerror = () => toast('Foto tidak bisa dibaca — coba ulang 📸');
+    img.src = e.target.result;
+  };
+  reader.onerror = () => toast('Gagal membaca file foto');
+  reader.readAsDataURL(file);
 }
 
 export function calcKembalian(){
   const bayarInputEl = document.getElementById('bayarUangInput');
   const bayar = bayarInputEl ? (unformatRupiah(bayarInputEl.value) || 0) : 0;
   const total = cartTotal();
-  const uangDiterimaEl = document.getElementById('uangDiterimaVal');
-  if(uangDiterimaEl) uangDiterimaEl.textContent = fmtRupiah(bayar);
   const kembalianEl = document.getElementById('kembalianVal');
   if(kembalianEl) kembalianEl.textContent = fmtRupiah(bayarMetode === 'tempo' ? Math.max(0, total - bayar) : bayar - total);
 }
@@ -239,9 +296,18 @@ export function calcKembalian(){
 export async function saveTransaksi(){
   if(isSaving){ toast('Sedang menyimpan transaksi, mohon tunggu...'); return; }
   if(cart.length === 0){ toast('Keranjang masih kosong'); return; }
+  // Kuota transaksi (pola kaki5): kuota bulan ini habis → transaksi diblok,
+  // aplikasi tetap bisa dieksplor; arahkan ke sheet lisensi.
+  // showLoading sengaja SETELAH semua early-return agar overlay tak pernah nyangkut.
+  const licSt = await getLicenseStatus();
+  if(licSt.status === 'expired'){
+    toast('Kuota transaksi bulan ini habis — aktifkan lisensi untuk lanjuk bertransaksi 💳');
+    openLicenseSheetRef();
+    return;
+  }
   showLoading('Menyimpan transaksi...');
   await refreshShiftCache();
-  if(!openShiftCache){ toast('Kas belum dibuka'); goToStep(1); openBukaKasSheet(); return; }
+  if(!openShiftCache){ hideLoading(); toast('Kas belum dibuka'); goToStep(1); openBukaKasSheet(); return; }
 
   setIsSaving(true);
   const wizardBarInner = document.getElementById('wizardBarInner');
@@ -253,9 +319,21 @@ export async function saveTransaksi(){
     const catatan = document.getElementById('transCatatan').value.trim();
     const now = new Date().toISOString();
     const bayarInput = unformatRupiah(document.getElementById('bayarUangInput').value) || 0;
-    let dibayarkan, sisa;
-    // Validation: if payment method is immediate (not 'tempo'), require full payment
-    if(bayarMetode === 'tempo'){
+    let dibayarkan, sisa, buktiBayar = '', catatanBayar = '';
+    if(bayarMetode === 'transfer'){
+      // Non-tunai (pola kaki5): nominal pas, bukti foto WAJIB, tanpa kembalian.
+      buktiBayar = _payProof;
+      catatanBayar = getPayNote();
+      if(!buktiBayar){
+        setIsSaving(false);
+        renderWizardBar();
+        hideLoading();
+        toast('Foto bukti transfer dulu ya 📸');
+        return;
+      }
+      dibayarkan = total;
+      sisa = 0;
+    } else if(bayarMetode === 'tempo'){
       dibayarkan = Math.min(Math.max(0,bayarInput), total);
       sisa = Math.round(total - dibayarkan);
     } else {
@@ -273,7 +351,7 @@ export async function saveTransaksi(){
 
     let transaksiId;
     await db.transaction('rw', db.transaksi, db.transaksiItem, db.kategori, db.kas, async () => {
-      transaksiId = await db.transaksi.add({ tipe: activeTransTipe, tanggal: now, total, kontakNama: namaKontak, catatan, metodeBayar: bayarMetode, dibayarkan, sisa });
+      transaksiId = await db.transaksi.add({ tipe: activeTransTipe, tanggal: now, total, kontakNama: namaKontak, catatan, metodeBayar: bayarMetode, dibayarkan, sisa, buktiBayar, catatanBayar });
       const items = cart.map(item => ({ transaksiId, kategoriId: item.kategoriId,kategoriNama: item.nama, berat: item.berat, hargaSatuan: item.harga, subtotal: item.subtotal }));
       await db.transaksiItem.bulkAdd(items);
       for(const item of cart){
@@ -291,10 +369,16 @@ export async function saveTransaksi(){
     document.getElementById('transNamaKontak').value = '';
     document.getElementById('transCatatan').value = '';
     document.getElementById('bayarUangInput').value = '';
+    removePayProof();
+    const noteEl = document.getElementById('payNoteInput'); if(noteEl) noteEl.value = '';
     renderCartChips(); renderCartStep2(); goToStep(1);
     document.getElementById('wizardBar').classList.remove('show');
     renderNota(lastNotaData);
     openOverlay('sheetNota');
+    // Kuota: naikkan penghitung setelah transaksi benar-benar tersimpan.
+    // Lisensi aktif tak dibatasi kuota — incrementTxCount mengabaikan sendiri.
+    try { await incrementTxCount(); } catch(_) { /* kuota gagal dicatat jangan gagalkan penjualan */ }
+    try { const { checkLicenseGate } = await import('./license.js'); checkLicenseGate(); } catch(_) {}
     if(_refreshAll) _refreshAll();
   } catch(error) {
     console.error('Error:', error);
@@ -462,6 +546,9 @@ window.removeCartItem = removeCartItem;
 window.setMetodeBayar = setMetodeBayar;
 window.calcKembalian = calcKembalian;
 window.autoFillBayar = autoFillBayar;
+window._ksr_capturePayProof = capturePayProof;
+window._ksr_handlePayProof = handlePayProof;
+window._ksr_removePayProof = removePayProof;
 window.setPresetAmount = setPresetAmount;
 window.saveTransaksi = saveTransaksi;
 window.renderNota = renderNota;

@@ -68,10 +68,30 @@ async function hmacSignature(salt, data) {
 async function generateSerial(appType, deviceCodeRaw) {
   const meta = SALT_BY_APP[appType];
   if (!meta) throw new Error(`unknown app_type: ${appType}`);
+  const salt = await resolveSalt(appType);
   const deviceCode = normalizeDeviceCode(deviceCodeRaw);
   const exp = '99'; // seumur hidup
-  const sig = await hmacSignature(meta.salt, deviceCode + exp);
+  const sig = await hmacSignature(salt, deviceCode + exp);
   return `${meta.prefix}-${deviceCode.slice(0,4)}-${deviceCode.slice(4,8)}-${exp}-${sig}`;
+}
+
+// SATU SUMBER KEBENARAN SALT (2026-09-04): products.salt (kartu produk di UI
+// admin) didahulukan; SALT_BY_APP di bawah hanya fallback historis — selama
+// kolom salt kosong, keluarannya identik dengan sebelumnya. Selaras dgn app
+// klien yang memvalidasi pakai fetchProductSalt (products.salt juga).
+async function resolveSalt(appType) {
+  const meta = SALT_BY_APP[appType];
+  if (!meta) return '';
+  try {
+    const rows = await sbQuery(
+      `products?select=salt&kode_produk=eq.${encodeURIComponent(meta.prefix)}&app_type=eq.${encodeURIComponent(appType)}&limit=1`
+    );
+    const dbSalt = Array.isArray(rows) && rows[0] && rows[0].salt ? String(rows[0].salt) : '';
+    if (dbSalt) return dbSalt;
+  } catch (e) {
+    console.warn('resolveSalt: products.salt tak terbaca — fallback konstanta:', e?.message || e);
+  }
+  return meta.salt;
 }
 
 async function sbQuery(path, method = 'GET', body = null) {

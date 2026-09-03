@@ -27,12 +27,14 @@ db.version(3).stores({
   kasShift: '++id, status, waktuBuka',
   platformMessages: '++id, order, visibleFrom, visibleUntil'
 });
-db.version(4).stores({
+db.version(5).stores({
   settings: 'key',
   kategori: '++id, nama, aktif',
   transaksi: '++id, tipe, tanggal',
   transaksiItem: '++id, transaksiId, kategoriId',
-  kas: '++id, tanggal, tipe',
+  // v5: refTransaksiId di-index — dipakai where() saat Hapus/Void transaksi
+  // untuk membalikkan catatan kas terkait (dulu SchemaError).
+  kas: '++id, tanggal, tipe, refTransaksiId',
   kasShift: '++id, status, waktuBuka',
   platformMessages: '++id, order, visibleFrom, visibleUntil',
   tutupBuku: '++id, tahun'

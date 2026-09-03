@@ -37,6 +37,34 @@ function getSaltMap() {
   }
 }
 
+// ── SATU SUMBER KEBENARAN SALT (aturan pemilik 2026-09-04) ────────────────
+// Urutan: products.salt (kartu produk di UI admin — kode_produk = prefix) →
+// override env → konstanta DEFAULT_SALTS. Selama kolom salt kosong, perilaku
+// identik dengan sebelumnya (semua nilai historis sama persis). Rotasi salt
+// kini cukup satu tempat (UI Produk) dan otomatis konsisten dgn app klien
+// yang membaca products.salt (fetchProductSalt di kaki5/rosok).
+let _dbSaltCache = null; // { at, rows } — serverless warm reuse, TTL 60 dtk
+async function productSaltFromDb(prefix) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key || !prefix) return '';
+  try {
+    if (!_dbSaltCache || Date.now() - _dbSaltCache.at > 60000) {
+      const r = await fetch(`${url}/rest/v1/products?select=kode_produk,salt`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` }
+      });
+      if (!r.ok) return '';
+      _dbSaltCache = { at: Date.now(), rows: await r.json() };
+    }
+    const row = (_dbSaltCache.rows || []).find(
+      (p) => String(p.kode_produk || '').toUpperCase() === prefix && p.salt
+    );
+    return row ? String(row.salt) : '';
+  } catch {
+    return ''; // DB gagal → jenjang fallback di bawah yang bicara
+  }
+}
+
 import { checkAdminGate } from './_gate.js';
 
 export default async function handler(req, res) {
@@ -67,9 +95,10 @@ export default async function handler(req, res) {
 
   const upPrefix = String(prefix || '').toUpperCase();
   const saltMap = getSaltMap();
-  // Salt server utk produk resmi; kalau bukan produk resmi, boleh pakai override
-  // dari client (produk kustom). Salt resmi TIDAK dipengaruhi input client.
-  const serverSalt = saltMap[upPrefix] || '';
+  // Salt server utk produk resmi: products.salt → env → konstanta (lihat
+  // productSaltFromDb). Kalau bukan produk resmi, boleh pakai override dari
+  // client (produk kustom). Salt resmi TIDAK pernah dipengaruhi input client.
+  const serverSalt = (await productSaltFromDb(upPrefix)) || saltMap[upPrefix] || '';
   const effectiveSalt = serverSalt || (typeof salt === 'string' ? salt : '');
 
   if (action === 'generate') {

@@ -1,15 +1,18 @@
 /* =========================================================================
    KASIR SOLO - ROSOK
-   Service Worker v12 — SPA fallback + stale-while-revalidate (auto-update)
+   Service Worker — SPA fallback + network-first untuk semua aset
    ========================================================================= */
-const CACHE_VERSION = 'v12';
+const CACHE_VERSION = 'v53';
 const CACHE_NAME = `kasir-solo-rosok-${CACHE_VERSION}`;
 const CORE_ASSETS = [
-  "./", "./index.html", "./style.css", "./dexie.min.js",
-  "./js/app.js", "./js/db.js", "./js/app-state.js", "./js/utils.js",
+  "./", "./index.html", "./style.css?v=SALT-SRC", "./dexie.min.js",
+  "./js/supabase.min.js", "./js/supabase-config.js",
+  "./js/app.js?v=SALT-SRC", "./js/db.js", "./js/app-state.js", "./js/utils.js",
   "./js/router.js", "./js/nav.js", "./js/pos.js", "./js/kategori.js",
   "./js/riwayat.js", "./js/laporan.js", "./js/kas.js",
-  "./js/carousel.js", "./js/license.js", "./js/onboard.js",
+  "./js/carousel.js", "./js/license.js", "./js/license.sync.js", "./js/onboard.js",
+  "./js/region.js", "./assets/region/provinces.json",
+  "./js/settings-x.js", "./js/app-link.js", "./js/printer.js", "./js/backup.js", "./js/purchase.js",
   "./js/dashboard.js",
   "./manifest.json",
   "./assets/logo.png", "./assets/icon-192.png", "./assets/icon-512.png",
@@ -54,20 +57,18 @@ self.addEventListener("fetch", e => {
     return;
   }
 
+  // JS/CSS/aset: NETWORK-FIRST (aman-dev). Offline → fallback cache.
+  // Dulu stale-while-revalidate: tab sering menyajikan salinan lama sehingga
+  // edit/fix baru "tidak muncul" dan bug parse menyamar sampai reload kedua.
   e.respondWith(
-    caches.match(e.request)
-      .then(cached => {
-        // Stale-While-Revalidate: sajikan cache instan, lalu refresh dari jaringan
-        const network = fetch(e.request)
-          .then(r => {
-            if(r && r.ok){
-              const clone = r.clone();
-              caches.open(CACHE_NAME).then(c => c.put(e.request, clone)).catch(() => {});
-            }
-            return r;
-          })
-          .catch(() => cached);
-        return cached || network;
+    fetch(e.request)
+      .then(r => {
+        if(r && r.ok){
+          const clone = r.clone();
+          caches.open(CACHE_NAME).then(c => c.put(e.request, clone)).catch(() => {});
+        }
+        return r;
       })
+      .catch(() => caches.match(e.request).then(c => c || caches.match("./index.html")))
   );
 });
