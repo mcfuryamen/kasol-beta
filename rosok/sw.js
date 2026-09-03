@@ -2,12 +2,12 @@
    KASIR SOLO - ROSOK
    Service Worker — SPA fallback + network-first untuk semua aset
    ========================================================================= */
-const CACHE_VERSION = 'v53';
+const CACHE_VERSION = 'v54';
 const CACHE_NAME = `kasir-solo-rosok-${CACHE_VERSION}`;
 const CORE_ASSETS = [
-  "./", "./index.html", "./style.css?v=SALT-SRC", "./dexie.min.js",
+  "./", "./index.html", "./style.css?v=DOCS-140", "./dexie.min.js",
   "./js/supabase.min.js", "./js/supabase-config.js",
-  "./js/app.js?v=SALT-SRC", "./js/db.js", "./js/app-state.js", "./js/utils.js",
+  "./js/app.js?v=DOCS-140", "./js/db.js", "./js/app-state.js", "./js/utils.js",
   "./js/router.js", "./js/nav.js", "./js/pos.js", "./js/kategori.js",
   "./js/riwayat.js", "./js/laporan.js", "./js/kas.js",
   "./js/carousel.js", "./js/license.js", "./js/license.sync.js", "./js/onboard.js",

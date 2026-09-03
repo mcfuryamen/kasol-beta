@@ -1,7 +1,8 @@
 # AGENTS — Kasir Rosok
 
-Konteks spesifik untuk aplikasi **Kasir Rosok** (bengkel/pengepul barang bekas).
-Selalu baca [`../CONTEXT.md`](../CONTEXT.md) untuk standar ekosistem.
+Konteks spesifik untuk agen AI yang mengerjakan aplikasi **Kasir Rosok**
+(kasir pengepul rosok / barang bekas). Selalu baca [`../CONTEXT.md`](../CONTEXT.md)
+untuk standar ekosistem, dan [`DESIGN.md`](DESIGN.md) untuk arsitektur & kontrak cloud.
 
 ---
 
@@ -10,21 +11,13 @@ Selalu baca [`../CONTEXT.md`](../CONTEXT.md) untuk standar ekosistem.
 | Item | Value |
 |------|-------|
 | **Folder** | `rosok/` |
-| **Prefix** | `KSR` |
-| **Salt** | `KASIRSOLO-ROSOK-HMAC-V2` |
-| **Database** | `KasirSoloRosokDB` |
-| **Vercel Project** | `kasir-rosok` |
-| **Target User** | Pengepul rosok, bengkel, SPK, usaha barang bekas |
-
----
-
-## 🎯 Referensi Utama
-
-Folder `rosok/` (repo ini) adalah **kode aktif & sumber referensi** — arsitektur modular ES6+
-dengan state terpusat di `js/app-state.js` dan handler global (window) di `js/app.js`.
-
-> **Referensi historis:** `rosok.zip` (single-file build ~276KB) dipakai sebagai rujukan saat
-> refactor modular masih berjalan. Sekarang sudah tergantikan oleh struktur modular di `js/`.
+| **Prefix lisensi** | `KSR` |
+| **Salt (fallback)** | `KASIRSOLO-ROSOK-HMAC-V2` — sumber utama = kolom `products.salt` |
+| **Database lokal** | `KasirSoloRosokDB` (Dexie, schema v5) |
+| **App type cloud** | `app_type = 'rosok'` (tabel `clients`/`products`/`settings` SHARED dgn kaki5 dkk — proyek Supabase `hhywrvedlwljawgxzpkq`) |
+| **Vercel (live)** | project `kasir-rosok`, Root Directory `rosok/`, domain `rosok.kasirsolo.com` |
+| **Dev server** | `node run-local.js` → **port 8084** (WAJIB; registry di `../CONTEXT.md`) |
+| **Versi** | 1.4.0 · SW v54 |
 
 ---
 
@@ -32,170 +25,166 @@ dengan state terpusat di `js/app-state.js` dan handler global (window) di `js/ap
 
 ```
 rosok/
-├── index.html          # Entry point (HTML + loader ESM)
-├── style.css           # Seluruh styling (design tokens CSS)
-├── js/                 # Modul ES6+ aktif
-│   ├── app.js          # Entry module — wire window handlers global
-│   ├── app-state.js    # State terpusat + setter (binding read-only)
-│   ├── pos.js          # POS: timbang, keranjang, pembayaran, nota
-│   ├── nav.js          # Navigasi screen + sticky bar
-│   ├── dashboard.js    # Beranda & statistik
-│   ├── kategori.js     # Stok & kategori barang
-│   ├── riwayat.js      # Riwayat transaksi
-│   ├── laporan.js      # Laporan & tempo
-│   ├── kas.js          # Buka/tutup kas & kas manual
-│   ├── license.js      # Lisensi (trial 7 hari / HMAC v2)
-│   ├── onboard.js      # Onboarding pertama
-│   ├── carousel.js     # Platform carousel
-│   ├── router.js       # Route hashing
-│   └── utils.js        # Utilitas (fmt, toast, escape, overlay)
-├── assets/             # Logo, icon, favicon, splash (satu sumber)
-├── sw.js               # Service Worker (Stale-While-Revalidate)
-├── manifest.json       # PWA manifest
-├── dexie.min.js        # Library Dexie (IndexedDB)
-├── run-local.js        # Dev server lokal (node run-local.js)
-├── sync-to-mirror.sh   # Salin produksi -> mirror (whitelist otomatis)
-├── vercel.json / .vercelignore
-├── AGENTS.md / README.md / CHANGELOG.md
-└── docs/               # (opsional) arsip dokumen audit/QA
+├── index.html / style.css / sw.js / manifest.json / vercel.json / .vercelignore
+├── dexie.min.js            # vendor — JANGAN hapus negasi .gitignore-nya
+├── run-local.js            # dev server 8084 (static + CORS utk ESM)
+├── sync-to-mirror.sh       # produksi -> mirror GitHub kasol (whitelist ITEMS)
+├── README.md / AGENTS.md / CHANGELOG.md / DESIGN.md
+├── docs/                   # arsip laporan audit/QA sekali-pakai
+├── assets/                 # logo, icon, splash, region/provinces.json (fallback emsifa)
+└── js/
+    ├── app.js              # ENTRY: boot, wire window handlers, profil UI + hook cloud
+    ├── app-state.js        # state terpusat + setter — ZERO import dari modul lain
+    ├── db.js               # Dexie ONLY — zero import
+    ├── utils.js            # fmt/toast/overlay/getSetting/setSetting/getDeviceInfo
+    ├── router.js  nav.js   # pushState SPA; showScreen + sticky bars + hook layar
+    ├── pos.js  kategori.js  kas.js  laporan.js  riwayat.js  dashboard.js  carousel.js
+    ├── onboard.js          # tersisa emoji picker kategori (wizard onboarding DIHAPUS)
+    ├── license.js          # kuota + HMAC V1/V2 + gate/chip/kartu + rate-limit aktivasi
+    ├── license.sync.js     # KONTRAK SUPABASE (lihat DESIGN.md §Kontrak Cloud)
+    ├── purchase.js         # beli lisensi QRIS/rekening + bukti + polling + realtime
+    ├── settings-x.js       # toggle metode bayar, PWA install, Diagnosa 10 langkah
+    ├── printer.js          # printer thermal BLE (chunk 20B + persist localStorage)
+    ├── backup.js           # export/import payload v3 + cadangan cloud (lisensi aktif)
+    ├── region.js           # picker wilayah 4 level (API emsifa)
+    ├── app-link.js         # link situs dari cloud (products.store_url → app_links)
+    └── supabase-config.js  # URL+anon key runtime (skip fetch di dev host)
 ```
-
-### ⚠️ Konvensi State Modular (PENTING)
-
-Binding `export let` di `js/app-state.js` bersifat **read-only** bagi modul lain (aturan ESM).
-Semua mutasi state harus lewat **setter** (`setCart`, `setActiveTransTipe`, `setCurrentBerat`, dll)
-yang diekspor dari `app-state.js`. **Jangan pernah** menulis `cart = ...` langsung di modul lain —
-itu memicu `SyntaxError: Assignment to constant variable` dan membuat seluruh app gagal load.
-
-Setiap fungsi baru yang menambah/mengubah state harus memakai setter ini.
-
 
 ---
 
-## 🗄️ Database Schema (Dexie v4)
+## ⚠️ Konvensi yang WAJIB dipatuhi
+
+### 1. State modular (ESM)
+Binding `export let` di `app-state.js` **read-only** bagi modul lain — semua mutasi
+lewat setter (`setCart`, `setBayarMetode`, `setSETTINGS`, dst). Menulis langsung =
+`SyntaxError` dan SELURUH app gagal load. Pola berulang di repo ini: satu sisa
+import dari modul yang dihapus bikin seluruh modul mati — selalu sweep referensi.
+
+### 2. Wiring handler
+HTML memakai `onclick="namaFungsi()"` global. Setiap handler baru WAJIB diekspos
+`window.namaFungsi = namaFungsi` di modul pemiliknya (pola di akhir tiap file).
+Verifikasi: sweep `grep -oE 'on(click|change)="([a-zA-Z_]+)' index.html` vs definisi window.
+
+### 3. Rilis = bump 3 titik (insiden cache kaki5/rosok)
+Perubahan kode APAPUN (terutama `index.html`) wajib menaikkan:
+1. `sw.js` → `CACHE_VERSION` (v54 → v55, ...)
+2. `index.html` → token `?v=` di `style.css` dan `js/app.js` (satu kata per rilis, mis `?v=SALT-SRC`)
+3. entri precache `CORE_ASSETS` di `sw.js` bila URL-nya berkueri / ada file baru
+`APP_VERSION` di `js/app.js` (tampil di blok Tentang) naik bila ada perubahan fitur,
+sinkron dengan entri `CHANGELOG.md`. SW network-first, jadi bump = kebersihan cache.
+
+### 4. `.gitignore` monorepo — TRAP vendor `.min.js`
+Root `.gitignore` punya `*.min.js` global + negasi eksplisit per file vendor.
+Vendor baru tanpa negasi = **silam tak ter-commit** → deploy kehilangan file → app
+rusak diam-diam. Sudah terjadi: `rosok/js/supabase.min.js` (2026-09-04).
+Selalu cek `git check-ignore -v <file>` sebelum commit mirror.
+
+### 5. Cloud = sumber kebenaran mutlak (aturan pemilik 2026-09-04)
+Berlaku untuk **profil usaha** dan **lisensi**. Kontrak lengkap + alasan tiap
+cabang ada di `DESIGN.md §Kontrak Cloud`. Ringkas:
+- Simpan profil → `pushProfile()` payload penuh ke `clients`; baris belum ada → insert.
+- Pull (boot / buka Pengaturan / tiap 5 mnt) → cloud MENIMPA lokal; `NULL` = belum pernah di-push → jangan sentuh.
+- Editan yang belum dikonfirmasi cloud → flag `profileSyncPending` menahan pull; retry saat `online`.
+- Lisensi: cloud `'aktif'` → adopsi; cloud `'belum'`/`''`/`batal` + lokal active → **downgrade zombie** wajib ke trial.
+- Aktivasi kode manual: online → serial harus dikenal cloud (`device_assign`); offline → HMAC lokal. `profile-mismatch` → kunci `#mismatchLock`.
+- Salt serial: `products.salt` → env → konstanta — sama di klien, `/api/license`, dan kedua edge functions.
+
+### 6. Jangan diulang (pelajaran audit)
+- `getSupabaseClient()` selalu lewat fungsi (jangan baca global mentah) — bug v40 `isPlaceholderKey` pernah mematikan SEMUA fitur cloud diam-diam.
+- `SETTINGS` yang dipakai modul WAJIB di-import dari `app-state.js` (bug `testPrint` ReferenceError).
+- Baris `setting-row` yang memicu file input butuh `onclick` eksplisit (bug "Pulihkan Data" mati).
+- Cloud 'diam' tanpa error = cek `getSupabaseClient()` null dulu, jangan tuduh RLS.
+
+---
+
+## 🗄️ Database Schema (Dexie — kondisi v5)
 
 ```javascript
-const db = new Dexie("KasirSoloRosokDB");
-db.version(1).stores({
-  settings: 'key',
-  kategori: '++id, nama, aktif',
-  transaksi: '++id, tipe, tanggal',
-  transaksiItem: '++id, transaksiId, kategoriId',
-  kas: '++id, tanggal, tipe'
-});
-db.version(2).stores({
-  settings: 'key',
-  kategori: '++id, nama, aktif',
-  transaksi: '++id, tipe, tanggal',
-  transaksiItem: '++id, transaksiId, kategoriId',
-  kas: '++id, tanggal, tipe',
-  kasShift: '++id, status, waktuBuka'
-});
-db.version(3).stores({
-  settings: 'key',
-  kategori: '++id, nama, aktif',
-  transaksi: '++id, tipe, tanggal',
-  transaksiItem: '++id, transaksiId, kategoriId',
-  kas: '++id, tanggal, tipe',
-  kasShift: '++id, status, waktuBuka',
-  platformMessages: '++id, order, visibleFrom, visibleUntil'
-});
-db.version(4).stores({
-  settings: 'key',
-  kategori: '++id, nama, aktif',
-  transaksi: '++id, tipe, tanggal',
-  transaksiItem: '++id, transaksiId, kategoriId',
-  kas: '++id, tanggal, tipe',
-  kasShift: '++id, status, waktuBuka',
-  platformMessages: '++id, order, visibleFrom, visibleUntil',
-  tutupBuku: '++id, tahun'
-});
+db.version(1): settings:'key' | kategori:'++id,nama,aktif' | transaksi:'++id,tipe,tanggal'
+               transaksiItem:'++id,transaksiId,kategoriId' | kas:'++id,tanggal,tipe'
+db.version(2): + kasShift:'++id,status,waktuBuka'
+db.version(3): + platformMessages:'++id,order,visibleFrom,visibleUntil'
+db.version(5): + tutupBuku:'++id,tahun'  &  kas += refTransaksiId   // v4 dilewati
 ```
 
----
-
-## 🖥️ Screens & Sheets
-
-### 6 Screen (Bottom Nav Tabs)
-
-| Screen | Tab | Fitur |
-|--------|-----|-------|
-| Dashboard | 📊 | Stat cards (kas, stok, beli, jual, laba, utang, piutang), platform carousel |
-| Transaksi | 💳 | Form beli/jual, timbang (kg/ons/kuintal), keranjang, metode bayar (tunai/transfer/tempo) |
-| Stok | 📦 | Kategori barang, daftar stok, tambah/edit kategori |
-| Riwayat | 📋 | List transaksi + filter, detail nota, hapus/void |
-| Laporan | 📈 | Laba kotor, saldo kas, top kategori, chart, periode (7/30/all hari) |
-| Pengaturan | ⚙️ | Profil usaha, buka/tutup kas, lisensi, tentang |
-
-### 7 Sheet (Overlay Forms)
-
-| Sheet | Fungsi |
-|-------|--------|
-| `sheetKas` | Catat kas manual (masuk/keluar) |
-| `sheetBukaKas` | Buka kas shift (input modal awal) |
-| `sheetTutupKas` | Tutup kas (bandingkan sistem vs fisik) |
-| `sheetLunasi` | Lunasi tempo/piutang |
-| `sheetKategori` | Tambah/edit kategori barang |
-| `sheetLicense` | Status lisensi & aktivasi |
-| `sheetOnboard` | Onboarding pertama (nama usaha) |
+`refTransaksiId` (v5) dipakai Hapus/Void transaksi membalikkan kas terkait — tanpa
+index, Dexie `SchemaError` dan transaksi rollback (bug kritis audit 2026-09-03).
 
 ---
 
-## 🚀 Deployment & Monorepo
+## 🖥️ Screens & Overlays (kondisi 2026-09-04)
 
-Folder produksi berkode modular. Deploy ke cloud via monorepo `kasol` (2 skrip):
+### 5 Screen (bottom-nav: Beranda | Stok | [+Transaksi] | Laporan | ⚙️Pengaturan)
 
-1. **`sync-to-mirror.sh`** (di folder produksi) — salin file aplikasi (whitelist modular) ke
-   folder mirror `Documents/GitHub/kasol/rosok`. Sampah dev (node_modules, tes, screenshot,
-   report) otomatis dikecualikan.
-2. **`push-to-github.sh`** (di root monorepo `kasol`) — commit + push ke `origin/main`.
+| Screen | Isi |
+|--------|-----|
+| `screen-dashboard` | stat cards, carousel platformMessages |
+| `screen-transaksi` | wizard timbang → keranjang → bayar (tunai/transfer/tempo) → nota |
+| `screen-stok` | kategori + stok + bar aksi sticky |
+| `screen-laporan` | LAPORAN + RIWAYAT satu halaman mengalir; filter sticky menyelip header |
+| `screen-pengaturan` | 6 blok: Profil Usaha · Metode Pembayaran · Perangkat · Lisensi · Data & Cadangan · Tentang Aplikasi |
 
-**Perilaku Vercel — penting:** deploy **tidak lagi memakai GitHub Actions**. Semua
-`.github/workflows/*` sudah dihapus. Deploy otomatis oleh **Vercel git integration
-(auto-detect)**.
-
-1. Project `kasir-rosok` terhubung ke repo dengan **Root Directory = `rosok/`**.
-2. Push ke branch utama → Vercel otomatis deploy project rosok.
-3. **Tanpa** `vercel-ignore.sh`, tanpa `deploy-all.yml`, tanpa secrets CI
-   (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_*`).
-4. `vercel.json` rosok ber-tipe statis (`buildCommand: null`, `outputDirectory: "."`).
-
-### ⚠️ Aturan yang TIDAK BOLEH dilanggar
-
-Beberapa pernah dilanggar dan membuat production mati total. Detail + troubleshooting
-ada di [`../DEPLOYMENT.md`](../DEPLOYMENT.md).
-
-| # | Aturan | Kalau dilanggar |
-|---|--------|-----------------|
-| 1 | `dexie.min.js` wajib punya negasi `!rosok/dexie.min.js` di root `.gitignore` | `*.min.js` menelannya → `Dexie is not defined` → seluruh app mati di production |
-| 2 | Bump cache `sw.js` (CACHE_VERSION) setiap deploy | klien melihat versi rusak dari cache SW |
-
-Verifikasi setelah deploy — jangan berhenti di "sudah di-push":
-
-```bash
-curl -sI "https://rosok.vercel.app/dexie.min.js" | grep -i content-type
-#   ✅ application/javascript    ❌ text/html = file TIDAK ADA di deployment
-curl -s "https://rosok.vercel.app/sw.js" | grep -oE "CACHE_VERSION = '[^']+'"
-```
+### Overlays
+`sheetTimbang`, `sheetNota`, `sheetKas`, `sheetBukaKas`, `sheetTutupKas`,
+`sheetTutupBuku`, `sheetLunasi`, `sheetKategori`, `sheetLicense`, `sheetAlamat`,
+`sheetCekData` (diagnosa), `sheetPurchase`, `#quotaBanner` (closable),
+`#profileBanner` (modal wajib lengkapi profil — semua layar KECUALI Pengaturan),
+`#mismatchLock` (hard lock profil-tidak-cocok, tanpa tombol tutup),
+`#loadingOverlay`, `#toast`.
 
 ---
 
-## 🔐 License
+## 🚀 Deployment & Rilis (monorepo kasol)
 
-- **Prefix:** `KSR`
-- **Format serial:** `KSR-XXXX-XXXX-XX-XXXXXX`
-- **Trial:** 7 hari, extend max 20x (1 hari per extend)
-- **Device Code:** `simpleHash('DEVICE-' + installId)` → base36 pad 8 char
-- **Kode lengkap:** `js/license.js`
+**Model 2026-09:** dua mirror git lokal, Vercel git-integration per project
+(Root Directory `rosok/`), TANPA GitHub Actions.
+
+| Tujuan | Mirror | GitHub | Memicu |
+|--------|--------|--------|--------|
+| **Beta** | `Documents/GitHub/kasol-beta` | `mcfuryamen/kasol-beta` | Vercel project beta (ctrlbeta/kq5beta dkk) |
+| **Live** | `Documents/GitHub/kasol` | `mcfuryamen/kasol` | Vercel project produksi per app |
+
+- **Skrip resmi:** `../push-beta.ps1` (snapshot SELURUH work tree → `kasol-beta main`) dan
+  `../push-live.ps1` (snapshot dari `refs/beta/main` "beta stabil" → `kasol main`).
+  Keduanya interaktif (`Read-Host y/N`) → non-interaktif: `echo y | powershell ... -File push-beta.ps1`.
+- ⚠️ **Skrip bersifat all-or-nothing.** Bila work tree mengandung WIP app lain yang belum
+  layak rilis (cek `git status`!), lakukan **rilis tertarget manual**: `cp` hanya file
+  app yang berubah ke mirror → commit → `git push origin main` (fast-forward).
+  Contoh nyata 2026-09-04: beta `320b45a` + live `d21bc5c` (admin+supabase saja).
+- **Mirror beta untuk rosok:** `sync-to-mirror.sh` hanya target mirror utama; beta =
+  rebuild folder `rosok/` manual dengan whitelist ITEMS skrip (`rm -rf` + `cp -R`),
+  lalu commit. (Snapshot `3b258a0` dibuat pola ini.)
+- **Verifikasi deploy JANGAN berhenti di "sudah di-push":**
+  ```bash
+  curl -sI "https://rosok.kasirsolo.com/dexie.min.js" | grep -i content-type   # application/javascript!
+  curl -s  "https://rosok.kasirsolo.com/sw.js" | grep -oE "CACHE_VERSION = '[^']+'"
+  ```
+- **Edge functions** (`generate-license`, `activate-license`) TIDAK ikut deploy Vercel —
+  manual: `supabase functions deploy generate-license activate-license`.
+
+---
+
+## 🔐 Lisensi (ringkas — detail DESIGN.md)
+
+- **Tier gratis:** kuota transaksi/bulan (`DEFAULT_TX_QUOTA=100`; cloud override via
+  `products.tx_quota` + `clients.tx_adjust`), rollover bulan kalender, TANPA batas waktu.
+- **Serial V2:** `KSR-<dc1>-<dc2>-<exp>-<sig6>`, sig = `b32(HMAC-SHA256(salt, salt+d1d2+exp),6)`;
+  V1 legacy didukung. Device code = `simpleHash('DEVICE-'+deviceId)` → `XXXX-XXXX`.
+- **Gate:** `checkLicenseGate()` saat boot + interval 60 dtk + setelah transaksi;
+  expired → `#quotaBanner` + blok `saveTransaksi` saja.
+- **Anti-rollback jam:** `clockAnchor` (toleransi 2 hari), dimajukan tiap sync sukses.
 
 ---
 
 ## 🎨 Design
 
-- **Theme color:** `#F5821F` (orange; meta tag & manifest harus sinkron dengan `--brand`)
-- **Font:** Plus Jakarta Sans + Inter + Space Mono
-- **Pattern:** Topbar gradient + Bottom nav 5 tabs + Sheet overlays
+- **Theme:** `#F5821F` oranye (`--brand`; meta tag & manifest sinkron)
+- **Font:** Plus Jakarta Sans (judul) + Inter (body) + Space Mono (angka)
+- **Pola UI:** topbar gradient rounded-bawah, bottom-nav 5 tab, sheet overlay
+  dari bawah, kartu `.card` putih rounded — selera detail pemilik: lihat memori
+  `mcfury-ui-taste` (panel in-flow, tanpa dobel-border fokus, akordeon default tertutup)
 
 ---
 
-*AGENTS.md — Kasir Rosok*
+*AGENTS.md — Kasir Rosok · 2026-09-04*

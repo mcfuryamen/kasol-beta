@@ -131,7 +131,7 @@ setRiwayatRefs({ refreshAll });
 window._ksr_db = db;
 
 // ── Tentang aplikasi (blok footer Pengaturan, pola kaki5) ─────────────────
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.4.0';
 function updateAboutInfo(){
   const v = document.getElementById('appVersionLabel');
   if(v) v.textContent = APP_VERSION;

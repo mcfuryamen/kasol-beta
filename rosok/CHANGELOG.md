@@ -1,5 +1,39 @@
 # Changelog - Kasir Solo Rosok
 
+## [1.4.0] - 2026-09-04 (era sinkron cloud — sw v14 → v54)
+
+Rilisan terbesar sejak refactor modular: model lisensi kuota, sinkronisasi cloud
+dua-arah penuh ala kaki5, dan audit halaman Pengaturan. Ringkasan per area:
+
+### Lisensi & kuota (menggantikan model trial)
+- **Trial 7 hari DIHAPUS** → model **kuota transaksi/bulan** (default 100, `products.tx_quota` dari cloud + `clients.tx_adjust` bonus admin). Kuota habis = banner closable + blok transaksi SAJA; sisanya bebas dieksplor. Chip header "GRATIS · N trx" / "PRO ✓ Aktif".
+- **Onboarding wizard DIHAPUS** — boot langsung ala kaki5; pengganti: modal wajib "Lengkapi Profil" (`#profileBanner`) di semua halaman kecuali Pengaturan.
+- **Cloud = sumber kebenaran mutlak lisensi** (aturan pemilik 2026-09-04): adopsi `license_status:'aktif'` dari cloud, **downgrade zombie** (cloud `'belum'`/`''`/`batal` + lokal active → turun ke trial ber-marker), realtime channel `license:<unitId>` + polling 30s×60 pasca-beli.
+- **Beli lisensi ala kaki5**: sheet QRIS/rekening live dari `settings` + harga dari `products` (filter `visible`), upload bukti ke bucket `bukti` → `clients.status='menunggu_verifikasi'`.
+- **Aktivasi kode manual** = fallback offline: online → serial WAJIB dikenal cloud via RPC `device_assign` (1 serial = 1 unit = 1 profil; `profile-mismatch` → layar kunci penuh `#mismatchLock`); offline → validasi HMAC V1/V2 lokal. Rate limit 5 percobaan/menit.
+- **Garam serial satu sumber**: `products.salt` (UI Produk admin) → env → konstanta; selaras `/api/license` + edge functions `generate-license`/`activate-license` (rilis admin 2026-09-04).
+
+### Sinkron profil (tabel `clients`)
+- **Push** saat "Simpan Identitas": profil penuh (`nama_usaha`, `nama_pemilik`, `no_whatsapp`, wilayah 4 level + `alamat_detail`) + telemetri CRM (`device_code`, `install_id`, `last_seen`, `browser`/`os`/`device_type`/`user_agent`); baris belum ada → insert; seed pipeline `source='app-rosok'`/`status='baru'` hanya saat status kosong; **readback verify**.
+- **Pull** saat boot, buka Pengaturan, dan tiap 5 menit: cloud menimpa lokal (NULL = belum pernah di-push → jangan sentuh). Flag `profileSyncPending` melindungi editan yang belum sampai cloud; retry otomatis saat `online`.
+- **Klaim perangkat** via RPC `device_known` (app_type-aware) sebelum baca/tulis — tahan pindah browser.
+
+### Audit halaman Pengaturan (2026-09-04)
+- 🔴 **"Pulihkan Data" mati** → baris kini memicu `#importFile.click()`.
+- 🔴 **"Cetak Tes" ReferenceError** (`SETTINGS` tak di-import di printer.js) → diperbaiki.
+- 🟡 `cloudCtx` cadangan cloud pakai `getSupabaseClient()` (bukan global mentah).
+- **Cek Data Online → Diagnosa 10 langkah** ala kaki5 (`sync.health.js`): skrip→config→internet→client→identitas→sesi→klaim→baris server→uji sync penuh→riwayat error, kartu ringkasan + tombol "Salin Hasil" untuk admin.
+- **Filter laporan sticky menyelip header**: `top:0` + margin-top negatif + padding-top kompensasi — tanpa celah bocor, layer tetap di bawah topbar.
+- **Blok Tentang Aplikasi**: link situs kini dinamis (`app-link.js`: `products.store_url` → `settings.app_links.rosok` → fallback).
+
+### Skema & lain-lain
+- **Dexie v5**: index `refTransaksiId` di `kas` (fix Hapus/Void selalu SchemaError — audit 2026-09-03).
+- **Pembayaran Transfer**: nominal pas + foto bukti transfer wajib (resize 900px/0.72), tampil di detail riwayat.
+- `esc()` region.js diperbaiki (entity map no-op → asli); dead code dibersihkan (`clearTxQuotaCache` dinamai benar).
+- **Rilis**: work tree commit `d393cf5`; beta `kasol-beta` `320b45a` (+ snapshot rosok `3b258a0`); admin+supabase live `kasol` `d21bc5c` — READY & terverifikasi (smoke `/api/license` 401). Edge functions `supabase functions deploy` masih menunggu.
+
+> **Catatan versi**: konstanta `APP_VERSION` di `js/app.js` (tampil di blok Tentang) diselaraskan ke `1.4.0` pada rilis ini.
+
 ## [1.3.6] - 2026-08-07 (Deploy model: GitHub Actions → Vercel auto-detect)
 
 - **GitHub Actions dihapus sepenuhnya** — semua `.github/workflows/*` dan `vercel-ignore.sh` tidak dipakai lagi. Deploy via **Vercel git integration (auto-detect)**, project `kasir-rosok`, Root Directory `rosok/`.

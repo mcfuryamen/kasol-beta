@@ -47,6 +47,7 @@ ITEMS=(
   "README.md"
   "AGENTS.md"
   "CHANGELOG.md"
+  "DESIGN.md"         # arsitektur + kontrak cloud (referensi teknik)
   "assets"            # logo, icon, favicon, splash
   "js"                # seluruh modul ES6+
 )

@@ -1,147 +1,129 @@
 # Kasir Solo - Rosok
 
-Aplikasi kasir PWA untuk usaha pengepul rosok / barang bekas. Catat pembelian, penjualan, stok, dan kas dengan mudah.
+Aplikasi kasir PWA **offline-first** untuk usaha pengepul rosok / barang bekas.
+Catat pembelian & penjualan timbangan, stok, kas, laporan — dengan lisensi
+berbasis kuota transaksi dan sinkronisasi cloud dua-arah (Supabase) ala kaki5.
 
-## 📦 Installation
+- **Live:** https://rosok.kasirsolo.com (Vercel project `kasir-rosok`, Root Directory `rosok/`)
+- **Beta:** snapshot di repo `mcfuryamen/kasol-beta` (folder `rosok/`)
+- **Versi:** 1.4.0 · **Service Worker:** v54 · **Dexie:** `KasirSoloRosokDB` v5
 
-### Cara Install di HP (PWA):
-1. Buka aplikasi di browser Chrome/Safari
-2. Klik menu → "Add to Home Screen"
-3. Icon akan muncul di home screen dengan logo Kasir Solo
+## 📦 Installation (PWA)
 
-### Cara Install di Desktop:
-1. Buka di Chrome/Edge
-2. Klik icon install di address bar
-3. Atau: Menu → More Tools → Create Shortcut
+### HP (Chrome/Android)
+1. Buka aplikasi di browser
+2. Pengaturan → Perangkat → **📲 Pasang Aplikasi** (muncul saat browser menawarkan install), atau menu → "Add to Home Screen"
+
+### Desktop (Chrome/Edge)
+Klik icon install di address bar, atau Menu → More Tools → Create Shortcut.
 
 ## 🚀 Running Locally
 
 > **PORT RESMI app ini = `8084`** (Port Registry — sumber kebenaran: `kasol/CONTEXT.md`). Jangan ganti-ganti.
 
 ```bash
-# Development server bawaan (MIME type ESM sudah diatur) — default port 8084
+# Development server bawaan repo (MIME + CORS utk ESM) — default port 8084
 node run-local.js
 # Buka: http://localhost:8084
-
-# Alternatif: Python simple HTTP server
-python3 -m http.server 8084
-
-# Atau menggunakan Node.js
-npx serve .
 ```
 
-Lalu buka: `http://localhost:8084`
-
-**Note:** PWA memerlukan HTTPS atau localhost untuk berfungsi penuh (Service Worker & Manifest).
+`file://` TIDAK bisa dipakai (modul ESM ditolak browser). PWA butuh HTTPS/localhost.
 
 ## 📱 Features
 
-### Transaksi
-- ✅ Pembelian rosok dari penjual
-- ✅ Penjualan rosok ke bandar
-- ✅ Sistem timbang (kg, ons, kuintal)
-- ✅ Keranjang belanja dengan wizard 2 langkah
-- ✅ Pembayaran: Tunai, Transfer, Tempo (utang/piutang)
-- ✅ Cetak nota & share via WhatsApp
+### Transaksi (POS wizard 2 langkah)
+- Pembelian dari penjual & penjualan ke bandar, timbang kg/ons/kuintal dengan keypad
+- Keranjang multi-item, preset nominal, kembalian otomatis
+- **Metode bayar** (bisa di-toggle di Pengaturan): **Tunai**, **Transfer** (nominal pas + foto bukti transfer wajib, tampil di riwayat), **Tempo** (uang muka opsional → utang/piutang, pelunasan di Laporan)
+- Nota: cetak browser, share WhatsApp, dan **printer thermal Bluetooth** (BLE chunking ala kaki5, koneksi persist)
 
-### Manajemen
-- ✅ Tracking stok real-time per kategori
-- ✅ 10 kategori default (kardus, besi, aluminium, dll)
-- ✅ Tambah/ubah/hapus kategori
-- ✅ Emoji picker untuk kategori
+### Stok & Kategori
+- 10 kategori default pengepul (kardus, besi, aluminium, tembaga, dll), emoji picker, stok real-time anti-minus
 
 ### Kas
-- ✅ Buka/tutup kas (shift)
-- ✅ Modal awal & perhitungan selisih
-- ✅ Kas masuk/keluar manual
-- ✅ Riwayat kas shift (10 terakhir)
+- Buka/tutup kas (shift + modal awal + selisih), catatan kas masuk/keluar, riwayat shift, tutup buku tahunan
 
-### Laporan
-- ✅ Penjualan & pembelian per periode
-- ✅ Top 5 kategori terlaris
-- ✅ Grafik bar chart 7 hari terakhir
-- ✅ Utang/piutang tempo
-- ✅ Kas saldo & riwayat
+### Laporan + Riwayat (satu halaman mengalir)
+- Filter periode sticky menyelip di bawah header: Harian/Mingguan/Bulanan/Custom + navigasi ‹ › + picker tanggal (akordeon, default tertutup)
+- Statistik omzet/laba/utang/piutang, grafik per jam, Rosok Terlaris ranked, daftar riwayat mengikuti periode laporan
 
-### Lain-lain
-- ✅ Sistem lisensi offline (trial 7 hari)
-- ✅ Backup/restore data (JSON)
-- ✅ Bekerja offline (PWA)
-- ✅ Responsive mobile-first design
+### Lisensi & Kuota (model kaki5)
+- **Gratis = kuota transaksi per bulan** (default 100; angka dari cloud `products.tx_quota` + bonus admin `clients.tx_adjust`), kuota segar tiap awal bulan, TANPA batas waktu
+- Kuota habis → banner bisa ditutup + transaksi terkunci; eksplorasi tetap bebas
+- **Beli Lisensi**: QRIS/rekening live dari Supabase (dikelola aplikasi admin), upload bukti → verifikasi admin → aktif otomatis (realtime + polling)
+- **Kode manual** `KSR-XXXX-XXXX-XX-XXXXXX` (HMAC V1/V2, terikat perangkat) — fallback offline
+- **Cloud = sumber kebenaran mutlak**: adopsi aktivasi admin, downgrade bila cloud mencabut, anti-rollback jam (`clockAnchor`)
 
-## 📝 Update Terbaru (v1.3.5) - 2026-08-03
-- **Fix Deploy Production (4 bug konfigurasi)** - production mati total sementara localhost normal: (1) `dexie.min.js` tak pernah ter-commit karena telan `.gitignore` `*.min.js`; (2) workflow YAML invalid (`run:` plain scalar) → GitHub Actions tak jalan; (3) `.vercelignore` menghapus `.git` → Ignored Build Step gagal → semua app kedeploy; (4) `vercel-ignore.sh` fail-safe
-- **Service Worker** - CACHE_VERSION bump v10 → v12; situs normal, `dexie.min.js` kini ter-serve `application/javascript`
-- **Isolasi deploy terbukti** - push ke `rosok/` saja → hanya rosok yang update; gerobak tidak ikut (ETag identik + Age naik)
-- **Dokumentasi deploy monorepo** - seksi "Aturan Wajib", checklist app baru, troubleshooting di `../DEPLOYMENT.md`
-
-## 📝 Update Terbaru (v1.3.4) - 2026-08-03
-- **Cleanup Filter Laporan** - hapus dropdown bulan kalender (`bulanFilter`) dan tab preset "Setahun"; periode kini hanya `Semua | Hari Ini | 7 Hari | 30 Hari | Custom`
-- **Fix "Fitur Ilang" (Service Worker)** - ubah strategi asset dari cache-first menjadi **Stale-While-Revalidate** (CACHE_VERSION v10); sajikan cache instan lalu revalidate dari server di background, sehingga setiap update kode otomatis tampil setelah reload tanpa perlu bump versi manual
-- **Script Deploy Monorepo** - tambah `sync-to-mirror.sh` (produksi → mirror, whitelist otomatis) + `push-to-github.sh` (commit & push ke GitHub cloud), menggantikan GitHub Desktop
-
-## 📝 Update Terbaru (v1.3.3) - 2026-08-02
-- **Redesign Halaman Pembayaran** - layout compact terpadu (total, metode bayar, nominal, kembalian dalam satu kartu), header step 2 grid 2 kolom, ringkasan keranjang compact, preset nominal +10K/+25K/+50K/+100K dengan auto-fill
-- **Fix Label Tempo/Utang** - perbaiki TypeError saat pilih metode Tempo/Tunai (elemen label hilang); label "Uang Muka"/"Sisa Utang" dan hint tempo kini tampil benar
-- **Fix Styling Pembayaran** - jarak input Catatan ke kartu, chip keranjang step 1, tombol metode bayar di layar ≤360px, koreksi variabel CSS tidak terdefinisi
-- **Fix Dev Server** - module JS gagal load di `run-local.js` karena query string tidak dihapus saat lookup file (MIME type salah)
+### Cloud Sync (Supabase, proyek shared ekosistem kasirsolo)
+- **Profil usaha dua-arah** di tabel `clients`: push penuh saat simpan (nama, pemilik, telepon, wilayah emsifa 4 level + telemetri perangkat), pull saat boot/buka Pengaturan/tiap 5 menit; flag pending melindungi editan offline
+- **Cadangan cloud** (khusus lisensi aktif): bucket `backups`, file `cadangan-latest.json` per unit
+- **Backup lokal**: export/import JSON tandatangani HMAC-device (validasi 3 lapis, restore atomik)
+- **Diagnosa 10 langkah** (Pengaturan → Perangkat → Cek Data Online): rantai sync diperiksa berurutan + hasil bisa disalin ke admin
 
 ## 🏗️ Tech Stack
 
-- **Frontend:** Vanilla HTML5, CSS3, JavaScript (ES6+ Modules)
-- **Database:** Dexie.js (IndexedDB wrapper)
-- **PWA:** Service Worker (v10) + Web App Manifest
-  - Network-first untuk HTML, **Stale-While-Revalidate** untuk assets
-  - CACHE_VERSION: v10
-  - Auto-update dengan skipWaiting dan clientClaim
-- **Build Tools:** Sharp.js (icon generation)
-- **Icons:** 192x192, 512x512, favicon 16/32px
+- **Frontend:** Vanilla HTML5 + CSS3 + JavaScript ES6+ Modules (tanpa framework, tanpa build step)
+- **Database:** Dexie.js (IndexedDB) — `KasirSoloRosokDB`, schema v1→v2→v3→v5
+- **Cloud:** Supabase (PostgREST + Storage + Realtime + Edge Functions) via `supabase.min.js` + `supabase-config.js` (anon key dari Edge Function/`/api/supabase-config`, fallback konstanta)
+- **PWA:** Service Worker **network-first** (HTML & aset) dengan fallback cache offline — CACHE_VERSION v54; auto-update prompt + `controllerchange` reload
+- **Wilayah:** API wilayah Indonesia emsifa (statis JSON, fallback lokal `assets/region/provinces.json`)
 
 ## 📂 Project Structure
 
 ```
 rosok/
-├── index.html          # Entry point (HTML + loader ESM)
-├── style.css           # Seluruh styling aplikasi (design tokens CSS)
-├── js/                 # Modul ES6+ (state, fitur, utilitas)
-│   ├── app.js          # Entry module (wire global handlers)
-│   ├── app-state.js    # State terpusat + setter (read-only binding)
-│   ├── pos.js          # POS: timbang, keranjang, pembayaran, nota
-│   ├── nav.js          # Navigasi screen + sticky bar
-│   ├── dashboard.js    # Beranda & statistik
-│   ├── kategori.js     # Stok & kategori barang
-│   ├── riwayat.js      # Riwayat transaksi
-│   ├── laporan.js      # Laporan & tempo
-│   ├── kas.js          # Buka/tutup kas & kas manual
-│   ├── license.js      # Lisensi (trial/HMAC)
-│   ├── onboard.js      # Onboarding pertama
-│   ├── carousel.js     # Platform carousel
-│   ├── router.js       # Route hashing
-│   └── utils.js        # Utilitas (fmt, toast, escape, overlay)
-├── assets/             # Logo, icon, favicon, splash (satu sumber)
-├── sw.js               # Service Worker (Stale-While-Revalidate)
+├── index.html          # Entry point (HTML + loader ESM, cache-bust ?v=)
+├── style.css           # Seluruh styling (design tokens CSS)
+├── sw.js               # Service Worker (network-first, CACHE_VERSION)
 ├── manifest.json       # PWA manifest
-├── dexie.min.js        # Library Dexie (IndexedDB)
-├── run-local.js        # Development server lokal (node run-local.js)
-├── sync-to-mirror.sh   # Salin produksi -> folder mirror (whitelist otomatis)
-├── vercel.json         # Konfigurasi deploy Vercel
-├── AGENTS.md           # Panduan agen AI (konteks proyek)
-├── CHANGELOG.md        # Riwayat versi
-└── README.md           # File ini
+├── dexie.min.js        # Library Dexie (wajib negasi .gitignore!)
+├── run-local.js        # Dev server lokal (node run-local.js, port 8084)
+├── sync-to-mirror.sh   # Salin produksi -> mirror GitHub kasol (whitelist)
+├── vercel.json / .vercelignore
+├── README.md / AGENTS.md / CHANGELOG.md / DESIGN.md
+├── docs/               # Arsip laporan audit/QA sekali-pakai
+├── assets/             # Logo, icon, favicon, splash, region/provinces.json
+└── js/
+    ├── app.js          # Entry — wire window handlers, boot, profil UI, hook cloud
+    ├── app-state.js    # State terpusat + setter (binding ESM read-only)
+    ├── db.js           # Dexie ONLY (zero import)
+    ├── utils.js        # fmt, toast, overlay, getSetting/setSetting, getDeviceInfo
+    ├── router.js       # pushState SPA + deep link
+    ├── nav.js          # showScreen, sticky bars, hook Pengaturan/diagnosa
+    ├── pos.js          # Timbang, keranjang, pembayaran (tunai/transfer/tempo), nota
+    ├── kategori.js     # Stok & kategori
+    ├── kas.js          # Buka/tutup kas & manual
+    ├── laporan.js      # Laporan + periode jangkar lokal
+    ├── riwayat.js      # Riwayat (satu halaman dgn laporan)
+    ├── dashboard.js    # Beranda & statistik
+    ├── carousel.js     # Platform messages carousel
+    ├── onboard.js      # Emoji picker kategori (wizard onboarding sudah dihapus)
+    ├── license.js      # Kuota + serial HMAC V1/V2 + gate + chip + kartu lisensi
+    ├── license.sync.js # Kontrak Supabase: clients/products/settings, claim, pull/push
+    ├── purchase.js     # Beli lisensi: QRIS/rekening, bukti, polling, realtime
+    ├── settings-x.js   # Toggle metode bayar, PWA install, Diagnosa 10 langkah
+    ├── printer.js      # Printer thermal BLE (chunking + persist)
+    ├── backup.js       # Export/import + cadangan cloud (payload v3, validasi 3 lapis)
+    ├── region.js       # Picker wilayah 4 level (emsifa API)
+    ├── app-link.js     # Link situs aplikasi dari cloud (products/settings)
+    └── supabase-config.js  # URL+anon key (Edge Function / fallback, skip di dev host)
 ```
-
-## 🎨 UI Styling Reference
-
-- **`.kat-stock`** - badge stok di pojok kanan atas kategori (background var(--green-soft), warna var(--green), font-size 11px)
-- **`.btn-extend`** - tombol perpanjangan gradian hijau (background linear-gradient(var(--grad-green)), padding 14px 16px)
-- **`.compact-list`** - styling compact untuk daftar keuangan (font-size 13px, padding 8px 2px, icon 32x32px)
 
 ## 🔐 Security
 
-- XSS prevention dengan `escapeHtml()`
-- Sanitasi semua input user
-- Client-side license validation (HMAC-SHA256)
-- Data tersimpan lokal (IndexedDB)
+- XSS prevention `escapeHtml()` di semua render input user; entity-map di region picker
+- Data transaksi 100% lokal (IndexedDB) — cloud hanya profil, lisensi, kuota, cadangan
+- Validasi lisensi HMAC-SHA256; salt serial hanya server-side (client baca `products.salt` utk verifikasi)
+- Anon key publik by design; akses `clients` per perangkat via RLS hybrid (`user_id` ATAU claim `unit_id` di JWT sesi anon)
+- Backup lokal bertanda tangan HMAC device-bound (anti file ubahan); cadangan cloud tanpa signature (lintas perangkat)
+
+## 🚢 Release & Deploy (ringkas — detail di AGENTS.md)
+
+1. Ubah kode → **WAJIB bump** `sw.js` CACHE_VERSION + token `?v=` di `index.html` (dan `APP_VERSION` bila ada perubahan fitur)
+2. `node run-local.js` → uji manual + `curl` endpoint
+3. Beta: rebuild folder `rosok/` di mirror `kasol-beta` → push `main`
+4. Live: `sync-to-mirror.sh` → mirror `kasol` → push `main` → Vercel auto-deploy `kasir-rosok`
+5. Verifikasi: `curl -sI https://rosok.kasirsolo.com/dexie.min.js` (content-type JS!) + `sw.js` versi
 
 ## 📝 License
 
@@ -154,5 +136,4 @@ Copyright © 2026 PT Mesin Kasir Solo
 
 ---
 
-**Versi:** 1.3.5  
-**Last Updated:** 2026-08-03
+**Versi:** 1.4.0 · **Last Updated:** 2026-09-04
