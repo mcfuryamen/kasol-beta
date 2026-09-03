@@ -15,7 +15,7 @@
 //   • Hanya catatan bermode tunai yang menggeser kas sistem (kas.logic.js).
 //   • QRIS/Transfer tidak masuk laci, tapi TETAP ditampilkan sebagai rincian
 //     "Dompet digital" supaya angka laci yang kecil tidak tampak hilang.
-import { DB } from './db.js';
+import { DB, getSetting } from './db.js';
 import { showToast, formatRp, todayStr, formatDate, formatTime, escapeHtml } from './helpers.js';
 import { openShift, setOpenShift, currentPage } from './app-state.js';
 import { openModal, closeModal } from './modal.js';
@@ -24,6 +24,35 @@ import {
   hitungKasSistem, hitungSelisih, durasiStr, pisahkanCatatan,
   rekapTahun, rinciDompetDigital, isNonLaba
 } from './kas.logic.js';
+
+// ── Saklar fitur (Pengaturan → "⚙️ Aktifkan Fitur") ─────────────────────────
+// v166: pemilik boleh memilih TIDAK memakai buka/tutup kas sama sekali. Bila
+// 'fiturKas' = '0': kartu kas di Beranda hilang, gerbang POS di pos.js dilolos,
+// dan blok "Riwayat Buka/Tutup Kas" di Laporan tidak dirender.
+// Default '1' = perilaku lama (fitur aktif) supaya pengguna lama tidak kaget.
+// Data shift yang sudah ada TIDAK dihapus — saklar hanya menyembunyikan alurnya.
+//
+// Nilai di-cache sekali baca: gerbang POS dievaluasi tiap transaksi, dan
+// settings hanya berubah lewat saveFiturKas() yang memanggil setFiturKasAktif().
+let _fiturKas = null;
+
+export async function fiturKasAktif() {
+  if (_fiturKas === null) {
+    try {
+      _fiturKas = (await getSetting('fiturKas', '1')) !== '0';
+    } catch (e) {
+      console.warn('[KAS] baca fiturKas gagal, anggap aktif:', e?.message || e);
+      _fiturKas = true; // gagal baca ≠ mematikan gerbang — lebih aman memaksa buka kas
+    }
+  }
+  return _fiturKas;
+}
+
+// Dipanggil settings.ui.js SETELAH nilai tersimpan, supaya tampilan langsung
+// berubah tanpa reload.
+export function setFiturKasAktif(v) {
+  _fiturKas = !!v;
+}
 
 // ── Status shift ────────────────────────────────────────────────────────────
 
@@ -97,6 +126,7 @@ export async function refreshKasViews() {
 // ── Buka Kas ────────────────────────────────────────────────────────────────
 
 export async function openBukaKasModal() {
+  if (!(await fiturKasAktif())) { showToast('Fitur buka/tutup kas sedang dimatikan di Pengaturan ⚙️', 'error'); return; }
   const input = document.getElementById('bukaKasModalAwal');
   if (input) input.value = '';
   await refreshShiftCache();
@@ -115,6 +145,14 @@ export function closeBukaKasModal() {
 }
 
 export async function bukaKas() {
+  // Guard LANTASAN (audit v166): modal Buka Kas bisa saja sudah terbuka sebelum
+  // saklar dimatikan, dan `bukaKas` ikut ter-expose ke window lewat _kasWireMap.
+  // Tanpa ini, satu klik "🔓 Buka Kas" tetap menulis shift padahal fitur mati.
+  if (!(await fiturKasAktif())) {
+    showToast('Fitur buka/tutup kas sedang dimatikan di Pengaturan ⚙️', 'error');
+    closeBukaKasModal();
+    return;
+  }
   await refreshShiftCache();
   if (openShift) {
     showToast('Kas masih terbuka — tutup dulu shift yang lama 🔒', 'error', 3500);
@@ -170,6 +208,7 @@ function renderDompetDigital(d) {
 }
 
 export async function openTutupKasModal() {
+  if (!(await fiturKasAktif())) { showToast('Fitur buka/tutup kas sedang dimatikan di Pengaturan ⚙️', 'error'); return; }
   await refreshShiftCache();
   if (!openShift) { showToast('Kas belum dibuka', 'error'); return; }
   const shift = openShift;
@@ -221,6 +260,14 @@ export function perbaruiSelisihUI() {
 }
 
 export async function tutupKas() {
+  // Guard lantarasan yang sama seperti bukaKas (audit v166). Shift yang tertinggal
+  // saat fitur mati TIDAK hilang — ia baru bisa ditutup lagi setelah fitur
+  // dinyalakan, dan angka laci lama tetap terbaca seperti adanya.
+  if (!(await fiturKasAktif())) {
+    showToast('Fitur buka/tutup kas sedang dimatikan di Pengaturan ⚙️', 'error');
+    closeTutupKasModal();
+    return;
+  }
   await refreshShiftCache();
   if (!openShift) { showToast('Kas belum dibuka', 'error'); return; }
   const shift = openShift;
@@ -270,6 +317,14 @@ export async function catatKasDariBeranda(mode = 'keluar') {
 export async function renderKasCard() {
   const box = document.getElementById('kasCard');
   if (!box) return;
+  // Saklar fitur mati → kartu dikosongkan & disembunyikan (bukan dihapus,
+  // supaya menyalakannya lagi cukup dengan render ulang).
+  if (!(await fiturKasAktif())) {
+    box.innerHTML = '';
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = '';
   await refreshShiftCache();
   if (!openShift) {
     box.innerHTML = `
@@ -307,6 +362,9 @@ export async function renderKasCard() {
 
 // Dipanggil laporan.js (lewat dynamic import) supaya tidak ada siklus impor.
 export async function kasReportBlocksHtml() {
+  // Fitur kas mati → tidak ada riwayat shift di Laporan. Kartu "Tutup Buku
+  // Tahunan" TETAP tampil: itu penutup pembukuan tahunan, bukan alur laci.
+  if (!(await fiturKasAktif())) return '';
   const shifts = await DB.kasShift.orderBy('waktuBuka').reverse().limit(10).toArray();
   const openShiftRow = shifts.find(s => s.status === 'buka');
 

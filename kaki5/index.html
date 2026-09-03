@@ -86,7 +86,10 @@
 </div>
 </div>
 
-<div class="card" id="kasCard">
+<!-- display:none dulu: renderKasCard() yang memutuskan tampil atau tidak.
+     Tanpa ini, placeholder "Kas Belum Dibuka" berkedip di Beranda pada setiap
+     load walaupun fitur buka/tutup kas sedang dimatikan (audit v166). -->
+<div class="card" id="kasCard" style="display:none">
 <div class="card-title">🔒 Kas Belum Dibuka</div>
 <div class="hint" style="margin-top:0">Memuat status kas…</div>
 </div>
@@ -211,11 +214,12 @@
 <div class="setting-arrow">›</div>
 </div>
 </div>
-<!-- 💳 Opsi metode pembayaran — saklar aktif/nonaktif (permintaan pemilik
-     2026-08-31: QRIS/Transfer cukup foto bukti bayar, tanpa setting QR/rekening).
-     Jika hanya satu opsi aktif, row pilihan metode disembunyikan di keranjang. -->
+<!-- ⚙️ Saklar fitur — blok "aktifkan/nonaktifkan" (permintaan pemilik
+     2026-08-31: QRIS/Transfer cukup foto bukti bayar, tanpa setting QR/rekening;
+     2026-09-04 v166: blok yang sama menaungi saklar fitur buka/tutup kas).
+     Jika hanya satu opsi pembayaran aktif, row pilihan metode disembunyikan di keranjang. -->
 <div class="card">
-<div class="card-title">💳 Metode Pembayaran</div>
+<div class="card-title">⚙️ Aktifkan Fitur</div>
 <div class="setting-item">
 <div class="setting-icon kbg-green">💵</div>
 <div class="setting-info"><div class="s-title">Tunai</div><div class="s-desc">Uang diterima + kembalian</div></div>
@@ -230,6 +234,11 @@
 <div class="setting-icon kbg-orange">🏦</div>
 <div class="setting-info"><div class="s-title">Transfer</div><div class="s-desc">Pembeli transfer → foto bukti bayar</div></div>
 <label class="toggle-switch" style="margin:0"><input type="checkbox" id="payOptTransfer" data-action="save-pay-options" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="setting-item">
+<div class="setting-icon kbg-green">💰</div>
+<div class="setting-info"><div class="s-title">Buka / Tutup Kas</div><div class="s-desc" id="fiturKasDesc">Laci punya modal awal; transaksi diblok kalau kas belum dibuka</div></div>
+<label class="toggle-switch" style="margin:0"><input type="checkbox" id="fiturKasToggle" data-action="save-fitur-kas" checked><span class="toggle-slider"></span></label>
 </div>
 </div>
 <div class="card">
@@ -987,7 +996,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=165"></script>
+  <script type="module" src="js/app.js?v=166"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

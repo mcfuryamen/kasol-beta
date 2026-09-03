@@ -56,7 +56,7 @@ let _kasModule = null;
 const _posWireMap = { __wired: false, loadPOS: 'loadPOS', renderPOSMenu: 'renderPOSMenu', renderPOSMenuDebounced: 'renderPOSMenuDebounced', addToCart: 'addToCart', changeQty: 'changeQty', setCartQty: 'setCartQty', hitungKembalian: 'hitungKembalian', simpanPenjualan: 'simpanPenjualan', openCartModal: 'openCartModal', closeCartModal: 'closeCartModal', clearCart: 'clearCart', selectPosCat: 'selectPosCat', setNominalBayar: 'setNominalBayar', formatBayarInput: 'formatBayarInput', selectAllBayarInput: 'selectAllBayarInput', pickOjolPlatform: 'pickOjolPlatform', setPaymentMethod: 'setPaymentMethod', capturePayProof: 'capturePayProof', handlePayProofFile: 'handlePayProofFile', removePayProof: 'removePayProof', holdOrder: 'holdOrder', holdOrderWithNote: 'holdOrderWithNote', openHeldListModal: 'openHeldListModal', resumeHeldOrder: 'resumeHeldOrder', deleteHeldOrder: 'deleteHeldOrder', refreshHeldFab: 'refreshHeldFab' };
 const _menuWireMap = { __wired: false, renderMenuList: 'renderMenuList', renderMenuListDebounced: 'renderMenuListDebounced', openMenuForm: 'openMenuForm', closeMenuModal: 'closeMenuModal', saveMenu: 'saveMenu', toggleMenu: 'toggleMenu', confirmDeleteMenu: 'confirmDeleteMenu', addCustomSuplayer: 'addCustomSuplayer', addCustomKategori: 'addCustomKategori', pickKategori: 'pickKategori', pickSuplayer: 'pickSuplayer', syncPakaiStokToggle: 'syncPakaiStokToggle', openReturModal: 'openReturModal', closeReturModal: 'closeReturModal', confirmRetur: 'confirmRetur', openKonsinyasiRetur: 'openKonsinyasiRetur' };
 const _laporanWireMap = { __wired: false, loadReport: 'loadReport', setReportPeriod: 'setReportPeriodUI', setReportPeriodUI: 'setReportPeriodUI', navReportDate: 'navReportDate', toggleExpenseCat: 'toggleExpenseCat', setCustomDate: 'setCustomDate', toggleCustomPicker: 'toggleCustomPicker', pickDate: 'pickDate', pickWeek: 'pickWeek', pickMonth: 'pickMonth', pickCustomDate: 'pickCustomDate' };
-const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaUsaha: 'saveNamaUsaha', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification', savePayOptions: 'savePayOptions' };
+const _settingsWireMap = { __wired: false, loadSettings: 'loadSettings', openNameModal: 'openNameModal', closeNameModal: 'closeNameModal', saveNamaUsaha: 'saveNamaUsaha', openOwnerModal: 'openOwnerModal', closeOwnerModal: 'closeOwnerModal', saveOwner: 'saveOwner', openWaModal: 'openWaModal', closeWaModal: 'closeWaModal', saveWa: 'saveWa', openAlamatModal: 'openAlamatModal', closeAlamatModal: 'closeAlamatModal', saveAlamat: 'saveAlamat', checkProfileNotification: 'checkProfileNotification', savePayOptions: 'savePayOptions', saveFiturKas: 'saveFiturKas' };
 const _bantuanWireMap = { __wired: false, initBantuan: 'initBantuan', toggleTutorial: 'toggleTutorial' };
 const _pengeluaranWireMap = { __wired: false, openExpenseForm: 'openExpenseForm', closeExpenseModal: 'closeExpenseModal', saveExpense: 'saveExpense', openIncomeForm: 'openIncomeForm', switchTxnTab: 'switchTxnTab', saveTxn: 'saveTxn', ubahCatatan: 'ubahCatatan' };
 const _berandaWireMap = { __wired: false, loadBeranda: 'loadBeranda' };
@@ -736,6 +736,12 @@ function handleDataAction(action, el, event) {
     // juga, nilai lama ikut tersimpan & toast-nya menimpa toast guard/error (race).
     case 'save-pay-options':
       if (event?.type === 'change' && window.savePayOptions) window.savePayOptions(el);
+      break;
+
+    // ⚙️ Saklar fitur buka/tutup kas (v166) — sama seperti opsi pembayaran,
+    // hanya event 'change' yang diproses (label meneruskan click sintetis).
+    case 'save-fitur-kas':
+      if (event?.type === 'change' && window.saveFiturKas) window.saveFiturKas(el);
       break;
 
     // Alamat Modal

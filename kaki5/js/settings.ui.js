@@ -18,6 +18,7 @@ import { region } from './settings.logic.js';
 import { getLicenseStatus } from './license.js';
 import { setupRegionPicker } from './region.js';
 import { showToast, formatPhoneDisplay } from './helpers.js';
+import { showConfirm } from './confirm.js';
 import { ensureSynced, isSyncConfigured, pullCloudProfileIfOnline } from './sync.js';
 import { currentPage } from './app-state.js';
 import { openModal, closeModal } from './modal.js';
@@ -59,19 +60,22 @@ export async function loadSettings() {
     console.warn('appSiteLink:', e?.message || e);
   }
 
-  // 💳 Opsi metode pembayaran (saklar Tunai/QRIS/Transfer) — lokal perangkat,
-  // disimpan di tabel `settings` IndexedDB. Bila hanya satu aktif, row pilihan
-  // metode disembunyikan di keranjang (permintaan pemilik 2026-08-31).
+  // ⚙️ Saklar "Aktifkan Fitur": opsi metode pembayaran (Tunai/QRIS/Transfer,
+  // permintaan pemilik 2026-08-31) + fitur buka/tutup kas (v166). Semua lokal
+  // perangkat, disimpan di tabel `settings` IndexedDB.
   try {
     const { getSetting } = await import('./db.js');
-    const [t, q, tr] = await Promise.all([
-      getSetting('payOptTunai', '1'), getSetting('payOptQris', '1'), getSetting('payOptTransfer', '1')
+    const [t, q, tr, kas] = await Promise.all([
+      getSetting('payOptTunai', '1'), getSetting('payOptQris', '1'),
+      getSetting('payOptTransfer', '1'), getSetting('fiturKas', '1')
     ]);
     const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v !== '0'; };
     setChk('payOptTunai', t);
     setChk('payOptQris', q);
     setChk('payOptTransfer', tr);
-  } catch (e) { console.warn('[SETTINGS] muat opsi pembayaran:', e?.message || e); }
+    setChk('fiturKasToggle', kas);
+    setFiturKasDesc(kas !== '0');
+  } catch (e) { console.warn('[SETTINGS] muat saklar fitur:', e?.message || e); }
 
   checkProfileNotification();
 }
@@ -102,6 +106,66 @@ export async function savePayOptions(changedEl) {
     console.error('[SETTINGS] simpan opsi pembayaran:', e);
     showToast('Gagal menyimpan opsi pembayaran.', 'error');
   }
+}
+
+// ⚙️ Saklar fitur buka/tutup kas (v166, satu blok dengan opsi pembayaran).
+// Mematikan fitur = kartu kas hilang dari Beranda, transaksi POS tidak lagi
+// minta buka kas, dan blok "Riwayat Buka/Tutup Kas" tidak dirender di Laporan.
+// Data shift lama TIDAK dihapus — menyalakan lagi mengembalikan semuanya.
+export async function saveFiturKas(changedEl) {
+  const el = changedEl || document.getElementById('fiturKasToggle');
+  if (!el) return;
+  const mau = !!el.checked;
+
+  let terpasang = true;
+  let shiftBuka = null;
+  try {
+    const kas = await import('./kas.js');
+    terpasang = await kas.fiturKasAktif();
+    if (terpasang && !mau) shiftBuka = await kas.getOpenShift();
+  } catch (e) {
+    console.warn('[SETTINGS] baca status fitur kas:', e?.message || e);
+  }
+
+  if (mau === terpasang) return; // tidak ada perubahan (mis. label meneruskan klik)
+
+  if (!mau && shiftBuka) {
+    // Shift masih terbuka → jangan matikan diam-diam. Saklar dikembalikan dulu,
+    // baru dimatikan kalau pemilik benar-benar yakin.
+    el.checked = true;
+    showConfirm('⚠️',
+      'Kas masih tercatat TERBUKA. Menonaktifkan fitur ini menyembunyikan kartu kas dan membuka blokir transaksi, tapi shift yang berjalan TIDAK ditutup dan tetap tersimpan di riwayat. Matikan fitur buka/tutup kas?',
+      'Ya, Matikan Fitur', () => { el.checked = false; simpanFiturKas(false); },
+      'Batal');
+    return;
+  }
+
+  await simpanFiturKas(mau);
+}
+
+async function simpanFiturKas(nyalakan) {
+  try {
+    const { setSetting } = await import('./db.js');
+    await setSetting('fiturKas', nyalakan ? '1' : '0');
+    try {
+      const kas = await import('./kas.js');
+      kas.setFiturKasAktif(nyalakan);
+      await kas.refreshKasViews(); // kartu Beranda + Laporan langsung ikut berubah
+    } catch (_) { /* tampilan tersegar saat halaman dibuka lagi */ }
+    setFiturKasDesc(nyalakan);
+    showToast(nyalakan ? '✅ Fitur buka/tutup kas aktif!' : '✅ Fitur buka/tutup kas dimatikan.');
+  } catch (e) {
+    console.error('[SETTINGS] simpan fitur kas:', e);
+    showToast('Gagal menyimpan pengaturan fitur kas.', 'error');
+  }
+}
+
+function setFiturKasDesc(nyalakan) {
+  const d = document.getElementById('fiturKasDesc');
+  if (!d) return;
+  d.textContent = nyalakan
+    ? 'Laci punya modal awal; transaksi diblok kalau kas belum dibuka'
+    : 'Mati — jualan tanpa buka kas; kartu & riwayat shift disembunyikan';
 }
 
 /** Tampilkan/sembunyikan banner "lengkapi profil".

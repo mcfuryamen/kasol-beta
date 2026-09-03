@@ -1,10 +1,9 @@
 {
-  "version": "1.0.97",
-  "cacheBust": "v165",
+  "version": "1.0.98",
+  "cacheBust": "v166",
   "notes": [
-    "Catatan pengeluaran/pemasukan yang salah kini bisa diperbaiki. Buka rinciannya lalu pilih \"Ubah Catatan\": keterangan, jumlah, metode, dan tanggalnya diedit lewat form yang sama.",
-    "Form Catat punya kolom Tanggal, jadi catatan boleh diisi mundur. Nomor BLJ/MSK dihitung ulang mengikuti tanggal yang dipilih, dan catatan tanggal lama tidak lagi menggeser laci shift hari ini.",
-    "Tahun yang sudah ditutup buku tetap boleh diperbaiki, tapi aplikasi meminta konfirmasi lebih dulu supaya pembukuannya tidak berubah tanpa sadar.",
-    "Label metode disingkat jadi \"Ambil dari?\" dan \"Masuk ke?\", ukuran teks form Catat diperkecil agar proporsional, dan kartu Tutup Buku Tahunan dipindah ke urutan paling bawah di Laporan."
+    "Pengaturan punya saklar baru: \"Buka / Tutup Kas\". Kalau dimatikan, kios bisa jualan tanpa harus buka kas dulu — kartu kas di Beranda dan riwayat shift di Laporan ikut disembunyikan.",
+    "Blok metode pembayaran berganti judul jadi \"Aktifkan Fitur\", karena sekarang menaungi saklar fitur, bukan hanya pilihan cara bayar.",
+    "Kas yang masih terbuka tidak ditutup diam-diam saat fiturnya dimatikan — aplikasi bertanya lebih dulu dan data shift lama tetap tersimpan, jadi menyalakan lagi mengembalikan semuanya seperti semula."
   ]
 }

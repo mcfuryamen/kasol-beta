@@ -5,7 +5,7 @@
 import { DB, getSetting } from './db.js';
 import { showToast } from './helpers.js';
 // Gerbang kas (v161) — kas.js tidak mengimpor pos.js, jadi aman statis.
-import { getOpenShift, openBukaKasModal } from './kas.js';
+import { getOpenShift, openBukaKasModal, fiturKasAktif } from './kas.js';
 import { cart, setCart, setPosCat, posCat, setLastSaleId, orderType, setOrderType, getResumedHeldId, setResumedHeldId } from './app-state.js';
 import {
   addToCartLogic, changeQtyLogic, hitungKembalianLogic, calculateTotal,
@@ -524,10 +524,14 @@ export async function simpanPenjualan(cetakJuga = false) {
   // v161 (adopsi buka/tutup kas dari rosok): uang di laci harus punya titik
   // awal yang jelas. Tanpa shift 'buka', angka saat tutup kas tidak akan pernah
   // cocok, jadi transaksi diblok SEBELUM ada yang ditulis ke DB.
-  if (!(await getOpenShift())) {
-    showToast('Kas belum dibuka — buka kas dulu untuk mulai transaksi 💰', 'error', 4000);
-    openBukaKasModal();
-    return;
+  // v166: gerbang ini HANYA berlaku bila fitur buka/tutup kas diaktifkan di
+  // Pengaturan. Saklar mati = kios boleh jualan tanpa buka kas sama sekali.
+  if (await fiturKasAktif()) {
+    if (!(await getOpenShift())) {
+      showToast('Kas belum dibuka — buka kas dulu untuk mulai transaksi 💰', 'error', 4000);
+      openBukaKasModal();
+      return;
+    }
   }
 
   // Fallback terakhir (2026-08-31): stok bisa berubah SETELAH item masuk

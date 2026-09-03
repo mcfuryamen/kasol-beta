@@ -2,6 +2,15 @@
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
 
+## 2026-09-04 (v166 / 1.0.98: saklar "Buka / Tutup Kas" di Pengaturan)
+- **Blok "💳 Metode Pembayaran" berganti judul jadi "⚙️ Aktifkan Fitur"** dan sekarang menaungi saklar fitur, bukan hanya cara bayar. Tiga saklar lama (Tunai/QRIS/Transfer) tidak berubah perilaku.
+- **Saklar baru "💰 Buka / Tutup Kas"** (`#fiturKasToggle`, setting `fiturKas` = `'1'`/`'0'` di tabel `settings`). Default **aktif** — pengguna lama tidak mengalami perubahan apa pun setelah update.
+- **Saat dimatikan** (satu sumber kebenaran: `kas.js fiturKasAktif()`, di-cache dan disegarkan oleh `setFiturKasAktif()`): kartu kas di Beranda dikosongkan + `display:none` (`renderKasCard`), **gerbang POS di `pos.js simpanPenjualan` dilolos** sehingga transaksi boleh disimpan tanpa shift 'buka', dan blok "🕐 Riwayat Buka/Tutup Kas" tidak dirender (`kasReportBlocksHtml()` mengembalikan `''`).
+- **Kartu "📕 Tutup Buku Tahunan" tetap tampil.** Saklar ini mengatur alur LACI (buka/tutup kas), bukan pembukuan tahunan — rekap laba dan kunci tahun tetap bisa dibuka walau fitur kas mati.
+- **Tidak ada data yang dihapus.** Shift lama tetap ada di `kasShift`; menyalakan saklar mengembalikan kartu, riwayat, dan gerbang POS persis seperti semula.
+- **Perisai salah pencet:** kalau saklar dimatikan padahal masih ada shift berstatus `buka`, `showConfirm` muncul lebih dulu ("Kas masih tercatat TERBUKA … shift yang berjalan TIDAK ditutup"). Saklar dikembalikan ke posisi ON sebelum konfirmasi, jadi membatalkan dialog tidak meninggalkan state bohong. Membuka modal Buka/Tutup Kas lewat jalur lain juga ditolak dengan toast bila fitur mati.
+- **Penyimpanan mengikuti pola saklar pembayaran:** `data-action="save-fitur-kas"` hanya diproses pada event `change` (label meneruskan `click` sintetis — kalau ikut diproses, nilai lama tersimpan dan toast saling menimpa), nilai ditulis via `setSetting` lalu `refreshKasViews()` langsung menyegarkan Beranda/Laporan tanpa reload.
+
 ## 2026-09-03 (v165 / 1.0.97: catatan bisa diedit + kolom Tanggal, plus 7 komentar browser)
 - **Kolom Tanggal di form Catat** (`#expTanggal` / `#incTanggal`, `type=date`, `max` = hari ini). Catatan boleh diisi mundur — ini permintaan lama yang belum ada jalurnya sejak v164. Tanggal di masa depan ditolak, dan kalau tahunnya **sudah ditutup buku** muncul konfirmasi dulu (data tidak dikunci, pemilik cuma diperingatkan).
 - **Nomor & waktu ikut tanggal**: `nomor` BLJ/MSK dihitung ulang dari tanggal yang dipilih (`nextNomor`), dan `waktu` dipindah ke jam 12:00 tanggal itu. Ini bukan kosmetik — `dataShift()` menyaring catatan dengan `waktu` antara jam buka shift dan sekarang, jadi catatan "kemarin" yang dibiarkan ber-`waktu=sekarang` akan **menggeser laci shift hari ini**. Kalau tanggalnya tidak pindah hari, `nomor` dan `waktu` lama dipertahankan supaya urutan harian & keanggotaan shift tidak berubah.
