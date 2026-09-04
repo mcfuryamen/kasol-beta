@@ -71,7 +71,7 @@ export function licenseStatusHtml(st, inputId) {
     </div>
     <div class="license-actions license-actions-row">
       <button class="btn btn-primary" data-action="open-purchase-sheet">💳 Beli Lisensi</button>
-      <button class="btn btn-secondary" data-action="contact-via-wa">💬 Tanya Admin</button>
+      <button class="btn btn-wa" data-action="contact-via-wa">💬 WhatsApp</button>
     </div>
   `;
 }
@@ -154,7 +154,7 @@ function revokedPageHtml(deviceCode) {
     <p style="font-size:13px;color:var(--text2);margin:8px 0 14px;line-height:1.5">Lisensi untuk perangkat ini telah dicabut oleh admin.<br>Beli lisensi baru — aktivasi otomatis oleh admin setelah pembayaran diverifikasi.</p>
     <div class="license-actions license-actions-row">
       <button class="btn btn-primary" data-action="buy-gate">💳 Beli Lisensi</button>
-      <button class="btn btn-secondary" data-action="contact-via-wa">💬 Tanya Admin</button>
+      <button class="btn btn-wa" data-action="contact-via-wa">💬 WhatsApp</button>
     </div>
     <div class="kfs12 ktext3 kmt14" style="line-height:1.7">Versi ${APP_VERSION} · ID Perangkat: <b style="color:var(--text2);user-select:all">${deviceCode || '—'}</b><br>Ada masalah? Hubungi <a href="https://wa.me/628816566935" style="color:var(--green);text-decoration:none">WhatsApp</a> — sertakan ID perangkat</div>
   `;

@@ -193,13 +193,10 @@ export async function bukaKas() {
 // lewat laci — penjualan QRIS/Transfer dan catatan non-tunai — dirinci per
 // metode beserta jumlah transaksinya. Bloknya tetap dirender walau kosong dan
 // bilang "tidak ada", supaya angka laci yang kecil tidak dikira error.
-function renderDompetDigital(d) {
-  const box = document.getElementById('tutupKasDompet');
-  if (!box) return;
+function dompetDigitalHtml(d) {
   const rows = (d && Array.isArray(d.rows)) ? d.rows : [];
   if (!rows.length) {
-    box.innerHTML = '<div class="kas-row"><span>Tidak ada transaksi non-tunai shift ini</span><b>Rp 0</b></div>';
-    return;
+    return '<div class="kas-row"><span>Tidak ada transaksi non-tunai shift ini</span><b>Rp 0</b></div>';
   }
   let html = '';
   for (const r of rows) {
@@ -211,7 +208,13 @@ function renderDompetDigital(d) {
       `<b style="color:${net >= 0 ? 'var(--green)' : 'var(--red)'}">${net >= 0 ? '+' : '−'}${formatRp(Math.abs(net))}</b></div>`;
   }
   html += `<div class="kas-row total"><span>Total di rekening (bukan laci)</span><b>${formatRp(d.net)}</b></div>`;
-  box.innerHTML = html;
+  return html;
+}
+
+function renderDompetDigital(d) {
+  const box = document.getElementById('tutupKasDompet');
+  if (!box) return;
+  box.innerHTML = dompetDigitalHtml(d);
 }
 
 export async function openTutupKasModal() {
@@ -367,6 +370,87 @@ export async function renderKasCard() {
 // paling bawah halaman Laporan — ia aksi penutup pembukuan, bukan bagian dari
 // bacaan harian.
 
+// ── Detail riwayat kas (komentar browser #6) ────────────────────────────────
+// Baris riwayat shift di Laporan dulu hanya tulisan: angka "Modal Rp 0 · Sistem
+// Rp 0 · Fisik Rp 0 · Selisih Rp 0" tidak bisa dibuktikan asalnya dari mana.
+// Modal ini memakai hitungShift() yang SAMA dengan layar Tutup Kas, dengan
+// `sampaiMs` dikunci ke waktu tutup supaya shift lama tidak ikut menelan
+// transaksi yang dicatat setelahnya.
+
+function kasDetailRow(label, value, warna = '') {
+  return `<div class="kas-row"><span>${escapeHtml(label)}</span>` +
+    `<b${warna ? ` style="color:${warna}"` : ''}>${escapeHtml(String(value))}</b></div>`;
+}
+
+// formatDate() minta string 'YYYY-MM-DD', sedangkan `waktuTutup` tersimpan sebagai
+// epoch ms — dipisah lewat helper ini (zona waktu lokal, sama seperti todayStr()).
+// Tanpa ini modal detail melempar "str.split is not a function" dan tidak terbuka.
+function tanggalDariMs(ms) {
+  const d = new Date(Number(ms));
+  if (isNaN(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+export async function showKasShiftDetail(id) {
+  const shift = await DB.kasShift.get(Number(id));
+  if (!shift) { showToast('Data shift tidak ditemukan', 'error'); return; }
+  const masihBuka = shift.status === 'buka';
+  const sampaiMs = masihBuka ? Date.now() : (Number(shift.waktuTutup) || Date.now());
+  const h = await hitungShift(shift, sampaiMs);
+
+  // Angka resmi = yang tersimpan waktu tutup kas. Rinciannya dihitung ulang dari
+  // transaksi; kalau beda dengan angka tersimpan, itu berarti ada data yang
+  // diubah SETELAH tutup kas — jadi keduanya ditampilkan, tidak ditutupi.
+  const sistemResmi = masihBuka ? h.sistem : (shift.kasSistemAkhir ?? h.sistem);
+  const fisikResmi = masihBuka ? null : (shift.kasFisikAkhir ?? null);
+  const selisih = masihBuka ? null
+    : (shift.selisih ?? hitungSelisih(Number(fisikResmi) || 0, sistemResmi));
+
+  let html = `<div class="kcenter kmb16">
+    <div class="kfw800 kfs14">${masihBuka ? '🔓 Shift masih berjalan' : '🔒 Shift ditutup'}</div>
+    <div class="kfs13 ktext3">${escapeHtml(formatDate(shift.tanggalBuka))} · ${escapeHtml(formatTime(shift.waktuBuka))}</div>
+  </div>`;
+
+  html += '<div>';
+  html += kasDetailRow('Mulai jualan', formatDate(shift.tanggalBuka) + ' · ' + formatTime(shift.waktuBuka));
+  html += kasDetailRow('Ditutup', masihBuka ? '— belum ditutup —'
+    : formatDate(tanggalDariMs(shift.waktuTutup)) + ' · ' + formatTime(shift.waktuTutup));
+  html += kasDetailRow('Durasi', durasiStr(h.lamaMs));
+  html += kasDetailRow('Modal awal', formatRp(h.modalAwal));
+  html += kasDetailRow(`Penjualan tunai (${h.jumlahTransaksi} transaksi)`, '+' + formatRp(h.tunai), 'var(--green)');
+  html += kasDetailRow('Pengeluaran tunai', '−' + formatRp(h.keluar), 'var(--red)');
+  html += kasDetailRow('Pemasukan tunai', '+' + formatRp(h.masuk), 'var(--green)');
+  html += kasDetailRow(masihBuka ? 'Kas sistem saat ini' : 'Kas sistem akhir', formatRp(sistemResmi));
+  if (!masihBuka) {
+    html += kasDetailRow('Kas fisik dihitung', fisikResmi == null ? '— tidak diisi —' : formatRp(fisikResmi));
+    html += kasDetailRow('Selisih', (selisih > 0 ? '+' : '') + formatRp(selisih),
+      selisih === 0 ? 'var(--green)' : 'var(--red)');
+    if (Number(shift.kasSistemAkhir) !== Number(h.sistem)) {
+      html += kasDetailRow('Hitung ulang dari transaksi', formatRp(h.sistem), 'var(--orange)');
+    }
+  }
+  html += '</div>';
+
+  html += `<div class="card-title kmt16">📱 Dompet digital</div>`;
+  html += `<div>${dompetDigitalHtml(h.dompet)}</div>`;
+
+  if (shift.catatanTutup) {
+    html += `<div style="margin-top:12px;padding:10px 12px;background:var(--orange-bg);border-radius:12px;font-size:13px">` +
+      `<b>📝 Catatan saat tutup:</b> ${escapeHtml(shift.catatanTutup)}</div>`;
+  }
+  if (masihBuka) {
+    html += `<div class="hint kmt16" style="margin:12px 0 0">Angka masih berjalan — tutup kas untuk menguncinya.</div>`;
+  }
+
+  const box = document.getElementById('kasShiftDetailContent');
+  if (box) box.innerHTML = html;
+  await openModal('kasShiftDetailModal');
+}
+
+export function closeKasShiftDetail() {
+  closeModal('kasShiftDetailModal');
+}
+
 // Dipanggil laporan.js (lewat dynamic import) supaya tidak ada siklus impor.
 export async function kasReportBlocksHtml() {
   // Fitur kas mati → tidak ada riwayat shift di Laporan. Kartu "Tutup Buku
@@ -384,13 +468,13 @@ export async function kasReportBlocksHtml() {
       const selisihTxt = buka || s.selisih === null || s.selisih === undefined
         ? ''
         : ` · Selisih <b style="color:${s.selisih === 0 ? 'var(--green)' : 'var(--red)'}">${s.selisih > 0 ? '+' : s.selisih < 0 ? '−' : ''}${formatRp(Math.abs(s.selisih))}</b>`;
-      html += `<div class="trx-item">
+      html += `<div class="trx-item kas-shift-row" data-action="show-kas-shift-detail" data-shift-id="${s.id}">
 <div class="trx-info kflex-1">
 <div class="trx-title kfs13">${buka ? '🔓' : '🔒'} ${escapeHtml(formatDate(s.tanggalBuka))} ${escapeHtml(formatTime(s.waktuBuka))}</div>
 <div class="trx-sub kfs11">Modal ${formatRp(s.modalAwal || 0)}${buka ? '' : ' · Sistem ' + formatRp(s.kasSistemAkhir || 0) + ' · Fisik ' + formatRp(s.kasFisikAkhir || 0)}${selisihTxt}</div>
 ${s.catatanTutup ? `<div class="trx-sub kfs11" style="font-style:italic">"${escapeHtml(s.catatanTutup)}"</div>` : ''}
 </div>
-<div>${buka ? '<span class="badge green">Berjalan</span>' : '<span class="badge">Tutup</span>'}</div>
+<div class="kas-shift-go">${buka ? '<span class="badge green">Berjalan</span>' : '<span class="badge">Tutup</span>'}<span class="kas-shift-chev">Detail ›</span></div>
 </div>`;
     }
   }

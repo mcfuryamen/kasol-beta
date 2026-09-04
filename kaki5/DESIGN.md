@@ -129,7 +129,7 @@ Nilai `status` yang benar-benar ada di kode (`license.logic.js:380-405`):
 - **Perilaku**: **non-blocking** — bisa ditutup ("✕ Nanti Saja"), muncul lagi di boot
   berikutnya bila belum setuju, dan bisa dibuka ulang dari Bantuan → 📜 Dokumen.
   Setuju → `setSetting('tcAcceptedAt', ISO)` (`app.js:249`).
-- **Isi**: 4 poin, termasuk kuota transaksi per bulan dan cadangan cloud khusus lisensi aktif.
+- **Isi**: 6 poin, termasuk kuota transaksi per bulan dan cadangan cloud khusus lisensi aktif.
 - **Registrasi**: `registerModalSelector('tcModal', …)` (`app.js:40`).
 
 ### 2.6. Bottom Sheet Pembelian (`purchase.js`)
@@ -166,9 +166,9 @@ Nilai `status` yang benar-benar ada di kode (`license.logic.js:380-405`):
 | Tutup banner kuota | banner tersembunyi | bisa muncul lagi di boot berikutnya |
 | Klik 🛒 Lisensi di banner | WhatsApp ke admin | nomor dari cloud `products.store_url` / fallback (`app-link.js:15-38`) |
 | Bantuan → 📜 Dokumen | Modal S&K terbuka | kapan saja |
-| Reconcile cloud (online) | adopsi/push `txUsed` sesuai LWW | anti-reset lewat `txLastPushAt` (`license.sync.js:227,252`) |
+| Reconcile cloud (online) | adopsi/push `txUsed` sesuai LWW | anti-reset lewat `txLastPushAt` (`license.sync.js:367,392`) |
 | Admin reset kuota | `tx_month=null` + `tx_updated_at` baru → reset lokal ke 0 | terdeteksi sebagai "admin reset" |
-| Aktivasi serial di perangkat baru | RPC `device_assign` → reassign atau tolak + lock "hubungi admin" | Opsi 3: 1 serial = 1 `unit_id` = 1 profil (`license.sync.js:394`) |
+| Aktivasi serial di perangkat baru | RPC `device_assign` → reassign atau tolak + lock "hubungi admin" | Opsi 3: 1 serial = 1 `unit_id` = 1 profil (`license.sync.js:541`) |
 
 ---
 

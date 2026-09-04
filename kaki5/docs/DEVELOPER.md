@@ -262,9 +262,9 @@ hilang, dan index tidak menyusut.
 | `fiturKas` | `'1'` (ON) | `kas.js:48` (segar tiap transaksi), `settings.ui.js:40` (tampilan), `settings.ui.js:143` (keputusan saklar) | `settings.ui.js:173` |
 | `payOptTunai` / `payOptQris` / `payOptTransfer` | `'1'` | `pos.js:388-390`, `settings.ui.js:39-40` | `settings.ui.js:107-109` |
 | `tcAcceptedAt` | `null` | `app.js:1189` | `app.js:249` (ISO) |
-| `namaUsaha` | `''` | `beranda.js:15`, `printer.js:358,378`, `settings.logic.js:82`, `sync.js:142`, `license.sync.js:361` | `settings.logic.js:76,87` |
+| `namaUsaha` | `''` | `beranda.js:15`, `printer.js:358,378`, `settings.logic.js:82`, `sync.js:142`, `license.sync.js:508` | `settings.logic.js:76,87` |
 | `namaWarung` *(legacy)* | `'Warung Saya'` | `beranda.js:16`, `printer.js:359,379`, `sync.js:142,233` | — (alias baca saja) |
-| `namaPemilik` / `noWhatsapp` / `alamat` | `''` | `settings.logic.js:92-93,99`, `sync.js:143-148`, `license.sync.js:365-366` | `settings.logic.js:56,60,64` |
+| `namaPemilik` / `noWhatsapp` / `alamat` | `''` | `settings.logic.js:92-93,99`, `sync.js:143-148`, `license.sync.js:511-515` | `settings.logic.js:56,60,64` |
 | `provinsiId`,`provinsi`,`kabkotaId`,`kabkota`,`kecamatanId`,`kecamatan`,`desaId`,`desa` | `''` | `settings.logic.js:19-22,95-98`, `settings.ui.js:281-288`, `sync.js:144-148` | `settings.logic.js:65-72` |
 | `kategoriCustom` / `suplayerCustom` | `[]` | `menu.js:346,355,370,385,500,518,520` | `menu.js:503,522` |
 | `sync` (objek `{status,syncedAt,verifiedAt,recentErrors,lastError,lastStage,lastTryAt}`) | `{status:'none'}` | `sync.js:110`, `settings.logic.js:94` | `sync.js:123,221,308,318` |
@@ -274,8 +274,8 @@ hilang, dan index tidak menyusut.
 | `license` | `null` | `license.logic.js:268` | `license.logic.js:274,296` |
 | `trialConfig` | `null` | `license.logic.js:32` | `license.sync.js:156` |
 | `clockAnchor` | `0` | `license.logic.js:213,220` | `license.logic.js:222` |
-| `txLastPushAt` | `0` | `license.sync.js:227` | `license.sync.js:252` |
-| `licenseSync` | — | — | `license.sync.js:313` (`LICENSE_SYNC_KEY:12`) |
+| `txLastPushAt` | `0` | `license.sync.js:367` | `license.sync.js:392` |
+| `licenseSync` | — | — | `license.sync.js:460` (`LICENSE_SYNC_KEY:12`) |
 | `nomorBackfill:v1` | — | `nomor.js:85` | `nomor.js:87` |
 | 12 kunci profil hasil mapping cloud | — | `sync.js:361-374` | `sync.js:387` |
 
@@ -412,12 +412,12 @@ Identitas: `APP_TYPE='kaki5'` (`sync.js:31`, `license.sync.js:13`, `app-link.js:
 
 | Objek cloud | Operasi | Bukti |
 |---|---|---|
-| tabel `clients` | upsert profil, baca status lisensi | `sync.js:185,263-295,431,439`; `license.sync.js:33,249`; `purchase.js:54,321`; `sync.health.js:98` |
+| tabel `clients` | upsert profil, baca status lisensi | `sync.js:185,263-295,431,439`; `license.sync.js:33,324`; `purchase.js:54,321`; `sync.health.js:98` |
 | tabel `sync_errors` | catat kegagalan sync | `sync.js:129` |
 | tabel `products` | `salt` (`kode_produk='KK5'`), `tx_quota`, `store_url`/`vercel_url`, daftar produk | `license.sync.js:102,147`; `app-link.js:26`; `purchase.js:90` |
-| tabel `settings` (cloud) | `qris_url`, `bank_info`, `app_links` | `purchase.js:88-89`; `app-link.js:43`; `license.sync.js:477` |
-| RPC `device_known` | verifikasi perangkat | `sync.js:255,420`; `license.sync.js:49,453`; `purchase.js:310`; `sync.health.js:82` |
-| RPC `device_assign` | reassign serial antar perangkat (Opsi 3) | `license.sync.js:394` |
+| tabel `settings` (cloud) | `qris_url`, `bank_info`, `app_links` | `purchase.js:88-89`; `app-link.js:43`; `license.sync.js:624` |
+| RPC `device_known` | verifikasi perangkat | `sync.js:255,420`; `license.sync.js:49,600`; `purchase.js:310`; `sync.health.js:82` |
+| RPC `device_assign` | reassign serial antar perangkat (Opsi 3) | `license.sync.js:541` |
 | Storage `backups` | cadangan cloud | `backup.js:304-345` |
 | Storage `bukti` | bukti transfer pembelian | `purchase.js:284,291` |
 | Realtime | channel `license:${unitId}`, `postgres_changes` UPDATE `clients` filter `unit_id=eq.` | `purchase.js:404-407`, dilanggan `app.js:1243` |

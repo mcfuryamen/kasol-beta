@@ -179,14 +179,62 @@ export function clearProductSaltCache() {
  * ke kanonik — SEKALI, idempoten, dan HANYA untuk perangkat tanpa serial
  * aktif (aturan kaki5: unit terikat serial hanya boleh pindah via
  * device_assign di server).
- *   • Baris sendiri ada  → PATCH unit_id+device_code ke kanonik (claim sesi
- *     lama membuat RLS mengizinkan), lalu simpan unitId kanonik + claim baru.
- *   • Duplicate key      → kanonik sudah dipakai browser lain perangkat sama
- *     (adopsi, bila profil kosong/cocok) atau pengguna asing sesama model HP
- *     (TOLAK — pertahankan unit lama; fragmentasi lebih aman daripada merge).
+ *   • Kanonik kosong     → PATCH unit_id+device_code baris sendiri ke kanonik
+ *     (claim sesi lama membuat RLS mengizinkan), simpan unitId + claim baru.
+ *   • Kanonik sudah ada, profil kosong/cocok → ADOPSI: unitId lokal dipindah
+ *     ke kanonik (baris lama ditinggal; pembersihannya keputusan admin).
+ *   • Kanonik sudah ada, profil tidak cocok → TOLAK; unit lama DIPERTAHANKAN
+ *     dan hasil percobaan DIBLOKIR di settings supaya tidak diulang tiap boot.
  *   • Offline/gagal      → diam; dicoba lagi boot berikutnya.
+ *
+ * Dua keputusan desain (audit konsol beta 2026-09-04):
+ *  1) BACA dulu, tulis kemudian. Respons 4xx dicetak DevTools oleh lapisan
+ *     jaringan browser dan tidak bisa dibungkam dari kode — jadi jalur lama
+ *     "PATCH lalu menangkan duplicate key" selalu meninggalkan garis merah
+ *     tiap boot. Satu SELECT membuat kondisi itu terbaca tanpa menulis.
+ *  2) Hasil "profil tidak cocok" disimpan (unitReanchorBlocked) beserta sidik
+ *     profil lokal. Selama profil tidak diubah, percobaan tidak diulang —
+ *     aplikasi berhenti bicara ke endpoint yang pasti menolak. Sidik berubah
+ *     (user menyelaraskan Nama Usaha / No. WA) → blokir gugur, konvergensi
+ *     jalan sendiri. Pengaturan → Cek Data Online memaksa ulang (force).
+ *
+ * CATATAN PESAN: dulu kondisi blokir dilabeli "profil asing". Itu menyesatkan
+ * — guard hanya membuktikan profil TIDAK IDENTIK, bukan pemiliknya orang lain.
+ * Dua instalasi browser di satu PC (profil awal diketik ulang dengan typo)
+ * kena label yang sama. Pesan kini menyebut field yang beda.
  */
-export async function reanchorUnitId() {
+const REANCHOR_BLOCK_KEY = 'unitReanchorBlocked';
+
+// Field profil lokal yang dipakai guard cloudProfileMatchesLocal — jangan
+// menambah field lain ke sini, nanti sidiknya tidak mencerminkan keputusan
+// adopsi (blokir bisa bertahan padahal guard sudah akan bilang "cocok").
+async function localProfileFields() {
+  const norm = async (k) => { try { return String(await getSetting(k, '') || '').trim().toLowerCase(); } catch (_) { return ''; } };
+  const usaha = await norm('namaUsaha') || await norm('namaWarung');
+  const wa = await norm('noWhatsapp');
+  return { usaha, wa, sig: usaha + '|' + wa };
+}
+
+function profileDiff(cloud, local) {
+  const cloudUsaha = String(cloud && cloud.nama_usaha || '').trim().toLowerCase();
+  const cloudWa = String(cloud && cloud.no_whatsapp || '').trim().toLowerCase();
+  const diff = [];
+  if (cloudUsaha !== local.usaha) diff.push('nama usaha');
+  if (cloudWa !== local.wa) diff.push('no. WhatsApp');
+  return diff;
+}
+
+/** Status blokir re-anchor terakhir (null bila tidak ada) — untuk diagnostik. */
+export async function getReanchorBlock() {
+  try { return await getSetting(REANCHOR_BLOCK_KEY, null) || null; } catch (_) { return null; }
+}
+
+/** Paksa konvergensi dicoba lagi pada boot berikutnya. */
+export async function clearReanchorBlock() {
+  try { await setSetting(REANCHOR_BLOCK_KEY, null); return true; } catch (_) { return false; }
+}
+
+export async function reanchorUnitId({ force = false } = {}) {
   const sb = getSupabaseClient();
   if (!sb || !navigator.onLine) return { ok: false, reason: 'offline' };
   let unitId = null, lic = null, identity = null;
@@ -197,9 +245,47 @@ export async function reanchorUnitId() {
   } catch (_) { return { ok: false, reason: 'storage' }; }
   if (!identity || !identity.deviceCode) return { ok: false, reason: 'no-identity' };
   const canonical = 'K5-' + identity.deviceCode;
-  if (unitId === canonical) return { ok: true, reason: 'already' };
+  if (unitId === canonical) { await setSetting(REANCHOR_BLOCK_KEY, null); return { ok: true, reason: 'already' }; }
   if (lic && lic.status === 'active' && lic.serial) return { ok: false, reason: 'serial-bound' };
+  const local = await localProfileFields();
+  if (!force) {
+    const blk = await getSetting(REANCHOR_BLOCK_KEY, null);
+    if (blk && blk.from === unitId && blk.to === canonical && blk.sig === local.sig) {
+      return { ok: false, reason: blk.reason || 'profile-mismatch', blocked: true, memo: blk };
+    }
+  }
   await ensureAuthSession(sb); // sesi anon dengan claim unit lama
+  // (1) Baca dulu — claim dipindah sebentar ke kanonik supaya RLS mengizinkan.
+  let existing = null;
+  try {
+    await sb.auth.updateUser({ data: { unit_id: canonical } });
+    const { data } = await sb.from('clients')
+      .select('unit_id, nama_usaha, no_whatsapp')
+      .eq('unit_id', canonical).eq('app_type', APP_TYPE).maybeSingle();
+    existing = data || null;
+  } catch (_) { existing = null; }
+  if (existing) {
+    let adopt = false;
+    try { adopt = await cloudProfileMatchesLocal(existing); } catch (_) { adopt = false; }
+    if (adopt) {
+      await setSetting('unitId', canonical);
+      await setSetting('unitReanchor', { from: unitId, to: canonical, at: new Date().toISOString(), adopted: true });
+      await setSetting(REANCHOR_BLOCK_KEY, null);
+      console.log('[REANCHOR] baris kanonik cocok — unit_id diadopsi:', canonical);
+      return { ok: true, reason: 'adopted' };
+    }
+    try { await sb.auth.updateUser({ data: { unit_id: unitId } }); } catch (_) {}
+    const diff = profileDiff(existing, local);
+    const memo = { from: unitId, to: canonical, at: new Date().toISOString(), sig: local.sig, reason: 'profile-mismatch', diff };
+    await setSetting(REANCHOR_BLOCK_KEY, memo);
+    console.warn('[REANCHOR] ' + canonical + ' sudah dipakai baris dengan profil TIDAK SAMA (beda: '
+      + (diff.join(', ') || 'tidak terdeteksi') + ') — unit lama DIPERTAHANKAN. Selaraskan Nama Usaha / No. WA lalu jalankan Pengaturan → Cek Data Online.');
+    return { ok: false, reason: 'profile-mismatch', blocked: true, memo };
+  }
+  // Bacaan di atas mengubah claim → kembalikan ke unit lama sebelum PATCH,
+  // supaya RLS tetap mengizinkan tulis baris milik sesi ini.
+  try { await sb.auth.updateUser({ data: { unit_id: unitId } }); } catch (_) {}
+  // (2) Kanonik kosong → migrasi baris sendiri.
   const { error: migErr } = await sb.from('clients')
     .update({ unit_id: canonical, device_code: identity.deviceCode })
     .eq('unit_id', unitId).eq('app_type', APP_TYPE);
@@ -207,27 +293,18 @@ export async function reanchorUnitId() {
     await setSetting('unitId', canonical);
     await setSetting('unitReanchor', { from: unitId, to: canonical, at: new Date().toISOString() });
     try { await sb.auth.updateUser({ data: { unit_id: canonical } }); } catch (_) {}
+    await setSetting(REANCHOR_BLOCK_KEY, null);
     console.log('[REANCHOR] unit_id V3→kanonik:', canonical);
     return { ok: true, reason: 'migrated' };
   }
   if (String(migErr.code || '') === '23505' || /duplicate key/i.test(String(migErr.message || ''))) {
-    let adopt = false;
-    try {
-      await sb.auth.updateUser({ data: { unit_id: canonical } });
-      const { data: row } = await sb.from('clients')
-        .select('unit_id, nama_usaha, no_whatsapp')
-        .eq('unit_id', canonical).eq('app_type', APP_TYPE).maybeSingle();
-      adopt = !!row && await cloudProfileMatchesLocal(row);
-    } catch (_) { adopt = false; }
-    if (adopt) {
-      await setSetting('unitId', canonical);
-      await setSetting('unitReanchor', { from: unitId, to: canonical, at: new Date().toISOString(), adopted: true });
-      console.log('[REANCHOR] baris kanonik cocok — unit_id diadopsi:', canonical);
-      return { ok: true, reason: 'adopted' };
-    }
+    // Balapan dengan browser lain antara baca & tulis. Sama-sama blokir, tapi
+    // alasannya berbeda — jangan ditulis sebagai "profil tidak cocok".
     try { await sb.auth.updateUser({ data: { unit_id: unitId } }); } catch (_) {}
-    console.warn('[REANCHOR] duplicate dgn baris profil asing — unit lama DIPERTAHANKAN (indikasi tabrakan identitas)');
-    return { ok: false, reason: 'collision-foreign' };
+    const memo = { from: unitId, to: canonical, at: new Date().toISOString(), sig: local.sig, reason: 'collision-race', diff: [] };
+    await setSetting(REANCHOR_BLOCK_KEY, memo);
+    console.warn('[REANCHOR] ' + canonical + ' baru saja diklaim browser lain — unit lama DIPERTAHANKAN; coba lagi dari Pengaturan → Cek Data Online.');
+    return { ok: false, reason: 'collision-race', blocked: true, memo };
   }
   console.warn('[REANCHOR] gagal:', migErr.message || migErr);
   return { ok: false, reason: 'write', error: migErr.message };

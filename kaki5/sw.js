@@ -1,9 +1,28 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v168 — ubah angka INI juga setiap swap (harus sama dengan
+// Cache version v169 — ubah angka INI juga setiap swap (harus sama dengan
 // CACHE_NAME di bawah; baris ini tertinggal di v119 selama belasan rilis
 // dan bikin salah baca seolah CACHE_NAME tidak di-bump).
+// v169: gerbang kas pindah ke tab Jualan + modal Detail Riwayat Kas.
+//       (1) Buka 🛒 Jualan saat fitur kas aktif & belum ada shift berjalan ->
+//           modal "🔓 Buka Kas" muncul otomatis: user input modal awal dulu,
+//           baru bisa bertransaksi (guard lama saat Bayar tetap dipertahankan).
+//       (2) Tiap baris "🕐 Riwayat Buka/Tutup Kas" bisa diketuk -> modal
+//           "🕐 Detail Riwayat Kas": mulai/tutup shift, durasi, modal awal,
+//           penjualan tunai, pengeluaran-pemasukan, kas sistem vs fisik,
+//           selisih, dompet digital. Rincian dihitung ulang dengan hitungShift()
+//           yang waktunya dikunci ke shift.waktuTutup; angka resmi shift tutup
+//           tetap yang tersimpan di DB.
+//       (3) Baris transaksi di kartu 🛵 Transaksi Ojol ikut membuka
+//           "📃 Detail Transaksi".
+//       (4) UI jualan: Dine-in jadi default, badge sisa stok di pojok kiri atas
+//           kartu menu, harga satuan di samping nama menu di keranjang, legenda
+//           chart turun ke bawah, tombol 🗑️ pesanan ditahan rasio 1:1,
+//           "💬 Tanya Admin" -> "💬 WhatsApp" hijau.
+//       (5) Fix: riwayat kas melempar TypeError karena formatDate() menerima
+//           epoch ms (helper tanggalDariMs()), dan blok CSS usang 2026-08-31
+//           yang memaksa harga satuan turun ke baris kedua.
 // v168: modul Bantuan (js/bantuan.js) ditulis ulang mengikuti kode nyata: 17 tutorial,
 //       termasuk Buka/Tutup Kas, Tahan Pesanan, harga Ojol/topping, metode bayar
 //       non-tunai + foto bukti, pemasukan, tutup buku tahunan, konsinyasi/retur.
@@ -149,7 +168,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v168';
+const CACHE_NAME = 'kasir-solo-kaki5-v169';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

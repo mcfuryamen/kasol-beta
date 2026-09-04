@@ -602,6 +602,7 @@ export function renderPOSMenuUI(menus) {
     const titipan = (m.suplayer || 'Umum') !== 'Umum'; // 🧾 barang titipan konsinyasi
     return `<div class="menu-item ${qty>0?'selected':''} ${habis?'sold-out':''}" data-action="add-to-cart" data-menu-id="${m.id}">
       ${qty > 0 ? `<div class="item-qty">${qty}</div>` : ''}
+      ${m.pakaiStok ? `<div class="item-stok${habis ? ' habis' : ''}" title="Sisa stok">${m.stok || 0}</div>` : ''}
       <span class="item-emoji">${escapeHtml(catEmoji[m.kategori]||'🍽️')}</span>
       <div class="item-name">${escapeHtml(m.nama)}</div>
       <div class="item-price">${formatRp(displayHarga)}</div>
@@ -683,12 +684,12 @@ export async function openCartModal() {
           (c.menu.suplayer && c.menu.suplayer !== 'Umum' ? '<span class="badge-titipan">Titipan</span>' : '') +
           (c.menu.pakaiStok ? `<span class="badge-stok${(c.menu.stok || 0) <= 0 ? ' badge-stok-habis' : ''}">📦 ${c.menu.stok}</span>` : '') +
           `</span>
+          <span class="cart-name-price" title="Harga satuan">${displayHargaTipe}</span>
           ${toppingTags}
         </div>
         ${(c.catatanItem || '').trim() ? `<div class="cart-item-note">📝 ${escapeHtml((c.catatanItem || '').trim())}</div>` : ''}
       </div>
       <div class="cart-qty-price">
-        <span class="cart-name-price" title="Harga satuan">${displayHargaTipe}</span>
         <div class="qty-control">
           <button class="qty-btn" data-action="change-qty" data-menu-id="${c.menu.id}" data-delta="-1" aria-label="Kurangi jumlah">−</button>
           <input type="number" class="qty-val" data-action="cart-qty-input" data-menu-id="${c.menu.id}" min="1" max="999" value="${c.qty}" inputmode="numeric" aria-label="Jumlah">
@@ -879,7 +880,7 @@ function renderHeldRows() {
   const box = document.getElementById('heldListBody');
   if (!box) return;
   if (_heldRowsCache.length === 0) {
-    box.innerHTML = `<div class="empty-state"><div class="empty-icon">🤚</div><div class="empty-text">Belum ada pesanan yang ditahan.<br>Ketuk "Tahan" di cart bar untuk menyimpan pesanan yang belum dibayar.</div></div>`;
+    box.innerHTML = `<div class="empty-state"><div class="empty-icon">🤚</div><div class="empty-text">Belum ada pesanan yang ditahan.<br>Ketuk 🤚 Tahan di bawah keranjang untuk menyimpan pesanan yang belum dibayar.</div></div>`;
     return;
   }
   const q = String(document.getElementById('heldSearchInput')?.value || '').trim().toLowerCase();

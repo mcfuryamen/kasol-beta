@@ -3,10 +3,10 @@
 // masuk ke server?" Setiap langkah diberi status ✅/⚠️/❌ + pesan asli,
 // jadi kegagalan senyap (silent catch) jadi terbaca. Hasil bisa disalin
 // dan dikirim ke admin via WhatsApp.
-// Dipanggil dari Pengaturan → Data & Cadangan → 🩺 Diagnosa Sinkronisasi.
+// Dipanggil dari Pengaturan → Data & Cadangan → "Cek Data Online".
 
 import { getSyncClientDebug, getSyncState, ensureSynced } from './sync.js';
-import { getSupabaseClient } from './license.sync.js';
+import { getSupabaseClient, reanchorUnitId } from './license.sync.js';
 import { getUnitId, getDeviceCode } from './license.js';
 import { escapeHtml } from './helpers.js';
 import { openModal, closeModal } from './modal.js';
@@ -146,6 +146,44 @@ export async function runSyncDiagnostics() {
   } catch (e) {
     steps.push(step('10. Riwayat kegagalan (lokal)', WARN, 'Tidak terbaca: ' + (e?.message || e),
       'Riwayat masalah tidak bisa dibaca'));
+  }
+
+  // 11. Konsistensi identitas perangkat (re-anchor unit_id).
+  // Dipanggil dengan force: langkah ini adalah satu-satunya jalur "coba lagi"
+  // yang sah, karena boot normal sudah berhenti mengulang kondisi blokir
+  // (lihat license.sync.js). Kalau user baru menyelaraskan Nama Usaha / No. WA
+  // di profil, konvergensi terjadi di sini juga, bukan boot berikutnya.
+  try {
+    const res = await reanchorUnitId({ force: true });
+    if (res.ok && (res.reason === 'migrated' || res.reason === 'adopted')) {
+      steps.push(step('11. Konsistensi identitas perangkat', OK,
+        `ID perangkat diselaraskan ke kanonik (${res.reason === 'migrated' ? 'baris lama dipindah' : 'baris kanonik diadopsi'}).`,
+        'ID perangkat sudah diselaraskan'));
+    } else if (res.ok) {
+      steps.push(step('11. Konsistensi identitas perangkat', OK,
+        `unit_id sudah kanonik (${res.reason || 'ok'}).`,
+        'ID perangkat konsisten'));
+    } else if (res.reason === 'serial-bound') {
+      steps.push(step('11. Konsistensi identitas perangkat', OK,
+        'Lisensi aktif terikat serial — ID perangkat memang tidak boleh pindah sendiri (butuh admin).',
+        'ID perangkat terkunci lisensi (normal)'));
+    } else if (res.reason === 'offline') {
+      steps.push(step('11. Konsistensi identitas perangkat', WARN, 'Dilewati: perangkat offline.',
+        'ID perangkat belum bisa diperiksa — sedang offline'));
+    } else if (res.blocked) {
+      const m = res.memo || {};
+      const diff = Array.isArray(m.diff) && m.diff.length ? m.diff.join(', ') : 'tidak terdeteksi';
+      steps.push(step('11. Konsistensi identitas perangkat', WARN,
+        `Dua ID untuk perangkat ini: lokal ${m.from || '—'} vs kanonik ${m.to || '—'} — baris kanonik sudah dipakai profil dengan ${diff} berbeda. ID lama DIPERTAHANKAN, percobaan otomatis dihentikan sampai profil disamakan (atau admin menghapus salah satu baris).`,
+        `Ada dua ID perangkat untuk usaha ini — data terbagi. Beda: ${diff}. Samakan Nama Usaha & No. WhatsApp di profil, lalu periksa ulang.`));
+    } else {
+      steps.push(step('11. Konsistensi identitas perangkat', WARN,
+        `Pemeriksaan belum tuntas (${res.reason || 'tanpa alasan'}${res.error ? ': ' + res.error : ''}).`,
+        'ID perangkat belum bisa dipastikan'));
+    }
+  } catch (e) {
+    steps.push(step('11. Konsistensi identitas perangkat', WARN, 'Pemeriksaan gagal: ' + (e?.message || e),
+      'ID perangkat belum bisa dipastikan'));
   }
 
   const failed = steps.some(s => s.status === FAIL);

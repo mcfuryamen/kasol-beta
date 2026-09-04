@@ -48,12 +48,13 @@ const TUTORIALS = [
         <p><b>Fungsi Saklar "Buka / Tutup Kas":</b></p>
         <p class="kpl20 kmy8">
           Ada di <b>Pengaturan → kartu ⚙️ Aktifkan Fitur → baris "Buka / Tutup Kas"</b>.
-          Kalau <b>aktif</b>, laci punya modal awal dan <b>transaksi diblok selama kas belum dibuka</b>.
+          Kalau <b>aktif</b>, laci punya modal awal dan <b>kamu wajib mengisi modal sebelum bertransaksi</b>:
+          modal <b>"🔓 Buka Kas"</b> muncul otomatis begitu tab <b>🛒 Jualan</b> dibuka selama belum ada shift berjalan.
           Kalau <b>mati</b>, aplikasi langsung bisa jualan tanpa buka kas.
         </p>
         <p class="kmt16"><b>Memulai Hari (Buka Kas):</b></p>
         <ol class="kpl20 kmy8">
-          <li>Buka <b>🏠 Beranda</b> → kartu <b>"🔒 Kas Belum Dibuka"</b> → tekan <b>"🔓 Buka Kas"</b></li>
+          <li>Buka tab <b>🛒 Jualan</b> → modal <b>"🔓 Buka Kas"</b> muncul otomatis (alternatif: kartu <b>"🔒 Kas Belum Dibuka"</b> di <b>🏠 Beranda</b>)</li>
           <li>Hitung uang tunai di laci, isi di kolom <b>"Modal Awal di Laci (Rp)"</b> (misal 100000)</li>
           <li>Tekan <b>"🔓 Buka Kas"</b> — kartu Beranda berubah jadi status shift: <b>Mulai</b>, <b>Modal Awal</b>, <b>Transaksi</b>, <b>Kas Sistem</b></li>
         </ol>
@@ -79,8 +80,9 @@ const TUTORIALS = [
           <b>"Kas belum dibuka — buka kas dulu untuk mulai transaksi 💰"</b> dan transaksi tidak tersimpan.
         </p>
         <p class="kinfo-card">
-          🕐 Riwayat buka/tutup shift ada di <b>Laporan → blok "🕐 Riwayat Buka/Tutup Kas"</b>, lengkap dengan modal awal,
-          kas sistem, kas fisik, dan selisih tiap shift.
+          🕐 Riwayat buka/tutup shift ada di <b>Laporan → blok "🕐 Riwayat Buka/Tutup Kas"</b>. Tekan salah satu barisnya
+          untuk membuka modal <b>"🕐 Detail Riwayat Kas"</b>: jam mulai &amp; tutup, durasi, modal awal, penjualan tunai
+          beserta jumlah transaksinya, pengeluaran/pemasukan, kas sistem, kas fisik, selisih, dan rincian dompet digital tiap shift.
         </p>
       </div>
     `
@@ -130,7 +132,7 @@ const TUTORIALS = [
         <p><b>📦 Pakai Stok:</b></p>
         <ol class="kpl20 kmy8">
           <li>Di form menu, nyalakan saklar <b>"📦 Pakai Stok"</b> → muncul kolom <b>"Jumlah stok awal"</b></li>
-          <li>Setiap penjualan mengurangi stok; sisa stok terlihat sebagai badge <b>📦 jumlah</b> di daftar menu</li>
+          <li>Setiap penjualan mengurangi stok; sisa stok tampil sebagai badge <b>angka di pojok kiri atas</b> kartu menu pada tab <b>🛒 Jualan</b> (tooltip <b>"Sisa stok"</b>). Badge <b>oranye</b> di pojok kanan atas adalah jumlah item di keranjang — beda hal</li>
           <li>Stok habis → menambah item ke keranjang ditolak dengan pesan <b>"… habis — stok harus diisi dulu di menu kelola 📦"</b></li>
           <li>Barang yang sudah terlanjur di keranjang dan stoknya habis → <b>"… habis — hapus dari keranjang dulu 🛒"</b></li>
         </ol>
@@ -202,8 +204,8 @@ const TUTORIALS = [
       <div class="klh18 kfs14">
         <p><b>Langkah Mencatat Penjualan:</b></p>
         <ol class="kpl20 kmy8">
-          <li>Buka tab <b>🛒 Jualan</b></li>
-          <li>Pilih tipe pesanan di baris paling atas: <b>Dine-in</b> / <b>Take-away</b> / <b>Ojol</b></li>
+          <li>Buka tab <b>🛒 Jualan</b> — kalau fitur kas aktif dan belum ada shift berjalan, modal <b>"🔓 Buka Kas"</b> muncul lebih dulu; isi <b>modal awal</b> untuk bisa lanjut bertransaksi</li>
+          <li>Pilih tipe pesanan di baris paling atas: <b>Dine-in</b> / <b>Take-away</b> / <b>Ojol</b> — <b>Dine-in</b> sudah jadi pilihan bawaan saat halaman dibuka (selama keranjang masih kosong)</li>
           <li>Pilih kategori lewat <b>"📂 Kategori"</b> atau cari di kolom <b>"Cari menu..."</b></li>
           <li>Ketuk menu → kalau menu itu punya <b>topping</b> atau <b>harga ojol</b>, muncul dulu modal <b>"📋 Pilihan Menu"</b> untuk mengatur jumlah, topping, dan catatannya; kalau tidak, langsung masuk keranjang. Ketuk lagi = tambah jumlah</li>
           <li>Bilah hijau <b>🛒</b> di bawah menampilkan <b>"N item"</b> dan totalnya → ketuk untuk membuka <b>"🛒 Keranjang"</b></li>
@@ -211,7 +213,7 @@ const TUTORIALS = [
         </ol>
         <p class="kmt16"><b>Di Dalam Keranjang:</b></p>
         <ul class="kpl20 kmy8">
-          <li>Atur jumlah tiap baris; <b>Total Harga</b> dihitung ulang otomatis</li>
+          <li>Setiap baris menampilkan <b>nama menu + harga satuan</b> di kiri, tombol <b>− jumlah +</b> di tengah, dan <b>total</b> baris itu di kanan; <b>Total Harga</b> dihitung ulang otomatis</li>
           <li>Pilih metode bayar: <b>💵 Tunai</b> / <b>📱 QRIS</b> / <b>🏦 Transfer</b> (tutorial tersendiri)</li>
           <li>Untuk Tunai: kolom <b>"💵 Uang Diterima"</b> sudah otomatis terisi total (uang pas) — ketuk tombol nominal di bawahnya kalau menerima uang lebih, <b>"💰 Kembalian"</b> dihitung otomatis</li>
           <li>Tekan <b>"🤚 Tahan"</b> untuk menyimpan pesanan tanpa bayar, atau <b>"Bayar"</b> untuk menyimpan penjualan</li>
@@ -339,12 +341,12 @@ const TUTORIALS = [
         <ul class="kpl20 kmy8">
           <li>Ringkasan: <b>💰 Omzet</b>, <b>🧮 Modal Bahan</b>, <b>💸 Biaya Usaha</b>, <b>📈 Untung Bersih</b>, <b>🛒 Transaksi</b>, <b>🍽️ Porsi Terjual</b>, <b>💵 Pemasukan Usaha</b>, <b>🛵 Ojol</b></li>
           <li><b>🏧 Non-Usaha (laci)</b> muncul kalau ada setor bank / modal tambahan</li>
-          <li><b>📊 Margin Kotor</b> dan grafik per periode (<b>📊 Grafik Harian · Per Jam</b> untuk harian)</li>
+          <li><b>📊 Margin Kotor</b> dan grafik per periode (<b>📊 Grafik Harian · Per Jam</b> untuk harian) — legenda <b>■ Omzet ■ Pengeluaran</b> tampil di bawah grafik</li>
           <li><b>🏆 Menu Paling Laris</b> beserta jumlah porsinya</li>
           <li><b>💸 Rincian Pengeluaran</b> dan <b>💰 Rincian Pemasukan</b> per kategori (ketuk untuk membuka daftarnya)</li>
           <li><b>🤝 Konsinyasi</b> per suplayer — kalau kamu punya barang titipan</li>
-          <li><b>📝 Riwayat Transaksi</b> — ketuk untuk membuka <b>"📃 Detail Transaksi"</b></li>
-          <li><b>🕐 Riwayat Buka/Tutup Kas</b> dan kartu <b>📕 Tutup Buku Tahunan</b> paling bawah</li>
+          <li><b>📝 Riwayat Transaksi</b> — ketuk untuk membuka <b>"📃 Detail Transaksi"</b>. Baris transaksi di kartu <b>🛵 Transaksi Ojol</b> juga bisa diketuk untuk hal yang sama</li>
+          <li><b>🕐 Riwayat Buka/Tutup Kas</b> — ketuk barisnya untuk membuka <b>"🕐 Detail Riwayat Kas"</b>; lalu kartu <b>📕 Tutup Buku Tahunan</b> paling bawah</li>
         </ul>
         <p class="kinfo-card">
           🔎 <b>Di halaman detail transaksi</b> terlihat: daftar menu (<b>Menu / Jml / Harga</b>), <b>Total</b>,
@@ -600,7 +602,7 @@ const TUTORIALS = [
         </p>
         <p class="kinfo-card">
           💬 <b>Butuh bantuan lain?</b> Hubungi kami di <b>0881-6566-935</b> (WhatsApp), atau tekan
-          <b>"💬 Tanya Admin"</b> di panel lisensi — pesannya otomatis membawa <b>Kode Perangkat</b> kamu.
+          <b>"💬 WhatsApp"</b> (tombol hijau di panel lisensi) — pesannya otomatis membawa <b>Kode Perangkat</b> kamu.
         </p>
       </div>
     `

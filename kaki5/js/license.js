@@ -51,7 +51,9 @@ export {
   verifyAndAssignSerial,    // NEW: Opsi 3 — verifikasi serial + reassign unit_id
   fetchProductSalt,          // NEW: fetch salt from Supabase products table
   fetchTxQuotaConfig,        // NEW: kuota transaksi global dari products.tx_quota
-  getSupabaseClient
+  getSupabaseClient,
+  getReanchorBlock,          // NEW v169: status blokir re-anchor (diagnostik)
+  clearReanchorBlock         // NEW v169: paksa konvergensi dicoba lagi
 } from './license.sync.js';
 
 // Window wiring terpusat di app.js (lihat app.js:114-117).

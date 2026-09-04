@@ -63,7 +63,7 @@ const _berandaWireMap = { __wired: false, loadBeranda: 'loadBeranda' };
 // v161 — modul kas (buka/tutup shift, tutup buku tahunan).
 // v164 — 4 fungsi "catat kas manual" dihapus dari peta ini: pencatatan uang
 // laci kini lewat form Laporan, Beranda hanya memanggil `catatKasDariBeranda`.
-const _kasWireMap = { __wired: false, refreshShiftCache: 'refreshShiftCache', renderKasCard: 'renderKasCard', openBukaKasModal: 'openBukaKasModal', closeBukaKasModal: 'closeBukaKasModal', bukaKas: 'bukaKas', openTutupKasModal: 'openTutupKasModal', closeTutupKasModal: 'closeTutupKasModal', perbaruiSelisihUI: 'perbaruiSelisihUI', tutupKas: 'tutupKas', catatKasDariBeranda: 'catatKasDariBeranda', openTutupBukuModal: 'openTutupBukuModal', closeTutupBukuModal: 'closeTutupBukuModal', simpanTutupBuku: 'simpanTutupBuku' };
+const _kasWireMap = { __wired: false, refreshShiftCache: 'refreshShiftCache', renderKasCard: 'renderKasCard', openBukaKasModal: 'openBukaKasModal', closeBukaKasModal: 'closeBukaKasModal', bukaKas: 'bukaKas', openTutupKasModal: 'openTutupKasModal', closeTutupKasModal: 'closeTutupKasModal', perbaruiSelisihUI: 'perbaruiSelisihUI', tutupKas: 'tutupKas', showKasShiftDetail: 'showKasShiftDetail', closeKasShiftDetail: 'closeKasShiftDetail', catatKasDariBeranda: 'catatKasDariBeranda', openTutupBukuModal: 'openTutupBukuModal', closeTutupBukuModal: 'closeTutupBukuModal', simpanTutupBuku: 'simpanTutupBuku' };
 
 // Pre-wire critical modules immediately (beranda, pos) for snappy first load
 import('./pos.js').then(m => {
@@ -802,6 +802,16 @@ function handleDataAction(action, el, event) {
     case 'save-tutup-kas':
       if (window.tutupKas) window.tutupKas();
       break;
+    case 'show-kas-shift-detail': {
+      // Komentar browser #6: baris riwayat shift di Laporan dulu mati — sekarang
+      // membuka modal detail (angka dihitung ulang dengan hitungShift yang sama).
+      const id = Number(el?.dataset.shiftId);
+      if (Number.isFinite(id) && window.showKasShiftDetail) window.showKasShiftDetail(id);
+      break;
+    }
+    case 'close-kas-shift-detail':
+      if (window.closeKasShiftDetail) window.closeKasShiftDetail();
+      break;
     case 'kas-fisik-input':
       if (window.perbaruiSelisihUI) window.perbaruiSelisihUI();
       break;
@@ -1193,13 +1203,9 @@ async function boot() {
   // Syarat & Ketentuan sekali-jalan (2026-08-29): modal non-blocking bila
   // belum pernah disetujui — bisa ditutup, dibuka ulang dari Bantuan.
   try { if (!(await getSetting('tcAcceptedAt', null))) openModal('tcModal'); } catch (_) { }
-  // Topping/Ojol: pulih tipe order terakhir dari localStorage
-  try {
-    const saved = localStorage.getItem('kasirsolo:order-type');
-    if (saved && ['dine-in','takeaway','ojol'].includes(saved)) {
-      setOrderType(saved);
-    }
-  } catch (_) {}
+  // Tipe order TIDAK dipulihkan lagi dari localStorage (permintaan
+  // 2026-09-04): halaman Jualan selalu dibuka dalam keadaan Dine-in.
+  // loadPOS() yang menjaga nilainya, termasuk saat keranjang kosong.
 
   // ═══════════════════════════════════════════════════════════════════════
   // FASE 3: POST-BOOT (background tasks, UI refresh, retry loop)

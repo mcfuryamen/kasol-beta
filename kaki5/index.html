@@ -869,6 +869,18 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 </div>
 </div>
 
+<!-- KAS SHIFT DETAIL MODAL (komentar browser #6 — riwayat buka/tutup kas bisa dibuka) -->
+<div class="modal-overlay" id="kasShiftDetailModal" role="dialog" aria-modal="true" aria-labelledby="kasShiftDetailTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="kflex-between-mb12">
+<div class="modal-title" id="kasShiftDetailTitle">🕐 Detail Riwayat Kas</div>
+<button class="btn btn-icon btn-ghost kclose-btn" data-action="close-kas-shift-detail" aria-label="Tutup detail riwayat kas">✕</button>
+</div>
+<div id="kasShiftDetailContent"></div>
+</div>
+</div>
+
 <!-- CONFIRM DIALOG -->
 <div class="confirm-overlay" id="confirmDialog" role="dialog" aria-modal="true" aria-labelledby="confirmText">
 <div class="confirm-box">
@@ -949,7 +961,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div style="flex:1;overflow-y:auto;font-size:13.5px;color:var(--text);line-height:1.7;padding-right:4px">
 <p><b>1. Layanan</b> — <b>Kasir Solo Kaki Lima</b> adalah aplikasi kasir (POS) untuk pedagang kaki lima &amp; warung: mencatat transaksi jualan, mengelola menu/produk &amp; stok, rekap laporan &amp; pengeluaran, kas harian, dan cetak nota lewat printer thermal Bluetooth. Dengan menyetujui Syarat &amp; Ketentuan ini, Anda mendapat akses penuh selama masa uji coba maupun lisensi resmi.</p>
 <p><b>2. Kuota Gratis &amp; Lisensi</b> — Versi gratis memberi <b>kuota transaksi setiap bulan</b> (jumlah tertera di aplikasi) tanpa batas waktu; kuota menyegarkan diri di awal bulan. Saat kuota habis, aplikasi tetap bisa dibuka &amp; dieksplor, namun pencatatan transaksi baru terkunci sampai bulan berikutnya — atau buka lebih awal dengan <b>membeli lisensi</b> melalui QRIS; setelah pembayaran diverifikasi, admin mengaktifkan lisensi Anda <b>secara otomatis</b>. Lisensi berlaku <b>per perangkat</b>; menyebarkan atau menggandakan kode lisensi tanpa izin dapat menyebabkan penonaktifan.</p>
-<p><b>3. Data Anda</b> — Seluruh data transaksi &amp; usaha tersimpan <b>lokal di HP Anda</b> (IndexedDB, mode offline penuh) dan tidak dikirim ke server. Gunakan <b>Cadangkan Data</b> (ekspor JSON — gratis) untuk memindahkan/backup; fitur <b>Cadangan Cloud</b> tersedia untuk pengguna lisensi aktif. Menekan <b>Hapus Data Pabrik</b> menghapus semua data secara permanen dan tidak dapat dikembalikan.</p>
+<p><b>3. Data Anda</b> — Seluruh data transaksi &amp; usaha tersimpan <b>lokal di HP Anda</b> (IndexedDB, mode offline penuh) dan tidak dikirim ke server. Gunakan <b>Simpan Cadangan</b> (ekspor JSON — gratis) untuk memindahkan/backup; fitur <b>Cadangan Cloud</b> tersedia untuk pengguna lisensi aktif. Menekan <b>Hapus Semua Data</b> menghapus semua data secara permanen dan tidak dapat dikembalikan.</p>
 <p><b>4. Profil &amp; Sinkronisasi</b> — Nama usaha, pemilik, WhatsApp, dan wilayah akan disinkronkan ke server kami untuk keperluan dukungan, pengelolaan lisensi, dan statistik agregat. Data penjualan/transaksi <b>tidak</b> ikut disinkronkan pada tahap ini.</p>
 <p><b>5. Tanggung Jawab</b> — Anda bertanggung jawab atas penggunaan aplikasi pada perangkat Anda. Kami tidak bertanggung jawab atas kehilangan data akibat tindakan manual (hapus data, reset/pergantian HP) atau kerusakan perangkat.</p>
 <p><b>6. Bantuan &amp; Perubahan</b> — Butuh bantuan? Hubungi kami melalui WhatsApp. Kami dapat memperbarui Syarat &amp; Ketentuan ini sewaktu-waktu; penggunaan berkelanjutan berarti Anda menyetujui versi terbaru.</p>
@@ -987,8 +999,8 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div class="modal-overlay" id="lockOverlay" role="dialog" aria-modal="true" aria-labelledby="lockOverlayTitle">
 <div class="card license-lock-card">
 <div class="license-icon kfs40">🔒</div>
-<div class="license-title" id="lockOverlayTitle" class="kfs20 kmt8">Masa Coba Gratis Habis</div>
-<p class="license-desc" id="lockOverlayDesc" class="kcenter">Silakan perpanjang masa coba dengan membagikan aplikasi ke teman, atau aktivasi lisensi resmi untuk melanjutkan.</p>
+<div class="license-title kfs20 kmt8" id="lockOverlayTitle">Lisensi Diperlukan</div>
+<p class="license-desc kcenter" id="lockOverlayDesc">Pencatatan transaksi dibatasi. Beli lisensi resmi lewat QRIS — aktivasi otomatis setelah pembayaran diverifikasi — atau hubungi admin lewat WhatsApp.</p>
 <div id="lockLicenseStatusArea"></div>
 </div>
 <!-- Mode "Lisensi Dicabut": halaman penuh putih bergaya gate (diisi dinamis
@@ -996,7 +1008,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=168"></script>
+  <script type="module" src="js/app.js?v=169"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

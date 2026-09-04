@@ -243,7 +243,7 @@ export async function loadReport() {
           </div>
         </div>
         <div id="${pid}" class="trx-day-panel" style="display:none;padding-left:8px;border-left:2px solid var(--orange-bg);margin-bottom:8px">
-          ${v.items.map(s => `<div class="trx-item" style="cursor:default">
+          ${v.items.map(s => `<div class="trx-item trx-detail-item" data-id="${s.id}">
             <div class="trx-icon" style="background:var(--orange-bg);color:var(--primary)">🛒</div>
             <div class="trx-info">
               <div class="trx-title">${escapeHtml(formatTime(s.waktu))}${s.orderNote ? ' · ' + escapeHtml(s.orderNote) : ''}</div>
@@ -680,12 +680,14 @@ function renderHourlyChart(sales, expenses, tanggal) {
   return `<div class="card">
     <div class="card-title">📊 Grafik Harian · Per Jam</div>
     <div class="trx-sub kfs11" style="margin:-2px 0 6px">${escapeHtml(formatDate(tanggal))} · jam ${String(lo).padStart(2, '0')}–${String(hi).padStart(2, '0')} · ${sales.length} transaksi${expenses.length ? ' · ' + expenses.length + ' pengeluaran' : ''}</div>
-    <div style="display:flex;gap:12px;margin-bottom:8px;justify-content:center">
-      <div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--green-light)"></div>Omzet</div>
-      <div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--red-light)"></div>Pengeluaran</div>
-    </div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
       <div class="chart-bars" style="min-width:${nCols * 30}px">${barsHtml}</div>
+    </div>
+    <!-- Legenda di bawah batang (komentar browser #3, 2026-09-04): warna dulu
+         dibaca setelah bentuknya, bukan sebelum. -->
+    <div style="display:flex;gap:12px;margin-top:10px;justify-content:center">
+      <div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--green-light)"></div>Omzet</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--red-light)"></div>Pengeluaran</div>
     </div>
   </div>`;
 }

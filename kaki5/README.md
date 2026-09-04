@@ -277,7 +277,7 @@ Cetak dari pembayaran, dari detail transaksi, atau nota terakhir.
 - Anti-rollback jam lewat `clockAnchor` / `getEffectiveNow()`.
 - **1 serial = 1 `unit_id` = 1 profil** ("Opsi 3"): aktivasi di perangkat baru memanggil
   RPC `device_assign`; profil cocok → reassign, tidak cocok → ditolak + lock overlay
-  (`js/license.sync.js:394`, migrasi di `../supabase/migration-device-assign.sql`).
+  (`js/license.sync.js:541`, migrasi di `../supabase/migration-device-assign.sql`).
 - **Kuota habis TIDAK mengunci aplikasi** (keputusan pemilik 2026-08-29): hanya banner
   `#quotaBanner` + blokir transaksi. Yang boleh full-lock **hanya** revoke admin
   (`lockOverlay`).

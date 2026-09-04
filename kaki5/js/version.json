@@ -1,8 +1,11 @@
 {
-  "version": "1.0.100",
-  "cacheBust": "v168",
+  "version": "1.0.101",
+  "cacheBust": "v169",
   "notes": [
-    "Halaman Bantuan ditulis ulang menyeluruh: 11 jadi 17 tutorial, mengikuti aplikasi versi sekarang. Ada panduan baru Buka/Tutup Kas, Tahan Pesanan, harga Ojol & topping, bayar QRIS/Transfer dengan foto bukti, pemasukan, tutup buku tahunan, dan barang titipan/konsinyasi.",
-    "Petunjuk lama yang sudah tidak cocok dengan aplikasi dibuang: layar \"Mulai Masa Percobaan\", tombol \"Tambah 1 Hari Gratis\" lewat berbagi, chip \"TRIAL\", serta nama kategori dan tombol yang sudah berganti.",
-    "Kode perangkat diturunkan dari identitas perangkat keras saja (tidak ikut browser/platform), jadi satu HP yang sama tidak lagi menghasilkan dua identitas berbeda saat pindah browser."]
+    "Kas sekarang dijaga di depan: buka tab 🛒 Jualan dan modal \"🔓 Buka Kas\" langsung muncul selama belum ada shift berjalan — isi modal awal dulu, baru bisa bertransaksi.",
+    "Riwayat kas bisa diklik. Tiap baris di blok \"🕐 Riwayat Buka/Tutup Kas\" membuka modal \"🕐 Detail Riwayat Kas\": jam mulai & tutup, durasi, modal awal, penjualan tunai, pengeluaran/pemasukan, kas sistem vs fisik, selisih, dan rincian dompet digital.",
+    "Baris transaksi di kartu 🛵 Transaksi Ojol ikut bisa diketuk untuk membuka \"📃 Detail Transaksi\", sama seperti riwayat transaksi biasa.",
+    "Rapian UI jualan: Dine-in jadi pilihan bawaan, sisa stok tampil sebagai badge di pojok kiri atas kartu menu, harga satuan pindah ke samping nama menu di keranjang, legenda ■ Omzet ■ Pengeluaran turun ke bawah chart, tombol hapus pesanan ditahan dibuat 1:1, dan tombol admin jadi \"💬 WhatsApp\" berwarna hijau.",
+    "Perbaikan: error tanggal pada daftar riwayat kas, dan perangkat yang unit-nya sudah dipindah tidak lagi memunculkan pesan 409 tiap membuka aplikasi — statusnya dijelaskan jujur di halaman Diagnostik."
+  ]
 }

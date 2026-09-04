@@ -84,9 +84,7 @@ export async function showExpenseDetail(id) {
         </div>
       </div>
 
-      // v165 (poin 6): salah catat tidak perlu dihapus-lalu-tulis-ulang lagi.
-      // Tombol ini membuka form pencatatan yang sama dalam mode edit, lengkap
-      // dengan pemilih tanggal — jadi nomor & jejak aslinya tetap terjaga.
+      <!-- v165 (poin 6): salah catat tidak perlu dihapus-lalu-tulis-ulang; tombol ini membuka form pencatatan yang sama dalam mode edit, lengkap dengan pemilih tanggal. -->
       <div class="btn-row kmt16">
         <button class="btn btn-primary" data-action="edit-expense" data-id="${exp.id}">✏️ Ubah Catatan</button>
       </div>

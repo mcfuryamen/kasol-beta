@@ -357,6 +357,14 @@ function renderPOSError(action) {
 
 export async function loadPOS() {
   await loadCart();
+  // Komentar browser #7 (2026-09-04): setiap halaman Jualan dibuka, tipe
+  // pesanan kembali ke Dine-in — SELAMA keranjang kosong. Keranjang berisi
+  // tidak disentuh karena mengganti tipe akan menulis ulang tipe item yang
+  // sudah ada di dalamnya (lihat migrasi cart di pos.ui.js).
+  if (orderType !== 'dine-in' && Object.keys(cart).length === 0) {
+    setOrderType('dine-in');
+    try { localStorage.setItem('kasirsolo:order-type', 'dine-in'); } catch (_) {}
+  }
   // Ambil menu SEKALI, lalu pakai untuk tab kategori & grid — hindari 2x query DB.
   let menus;
   try {
@@ -392,6 +400,14 @@ export async function loadPOS() {
   } catch (_) { /* DB sibuk → semua opsi default aktif */ }
   // Refresh FAB "Tahan" — tampilkan badge sesuai jumlah held aktif (v148).
   refreshHeldFab();
+  // Gerbang kas dipindah ke sini (permintaan 2026-09-04): modal "Buka Kas"
+  // muncul begitu tab Jualan ditekan, bukan saat "Bayar" — jadi laci sudah
+  // punya modal awal sebelum item apa pun masuk keranjang. Guard di
+  // simpanPenjualan SENGAJA dibiarkan sebagai jaring pengaman (shift bisa
+  // saja ditutup dari perangkat lain sambil halaman ini terbuka).
+  try {
+    if (await fiturKasAktif() && !(await getOpenShift())) openBukaKasModal();
+  } catch (e) { console.warn('[POS] gerbang kas dilewati:', e?.message || e); }
 }
 
 // ---- Category tabs (async: DB query + DOM) ----

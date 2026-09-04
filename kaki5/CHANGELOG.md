@@ -6,11 +6,55 @@ supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
 
 > **Catatan kelengkapan (2026-09-04).** Tidak semua rilis punya entri di sini.
 > Yang **tidak tercatat**: v103, v142, v143, v145, v146, v149, v150, dan v152–v159
-> (disebut di komentar `sw.js:7-147` tetapi tidak punya heading). Rilis-rilis itu tetap
+> (disebut di komentar `sw.js:7-169` tetapi tidak punya heading). Rilis-rilis itu tetap
 > bisa ditelusuri lewat riwayat git — misalnya `743c74e` ("kaki5 v152-v159 / 1.0.84-1.0.91")
 > dan `feb4ed3` ("kaki5 v147-v150 / 1.0.79-1.0.82"). Entri `v120–v132` sengaja digabung
 > jadi satu. Entri tanpa nomor versi dikelompokkan di bagian
 > "catatan tanpa nomor rilis" dekat dasar file.
+
+## 2026-09-05 (v169 / 1.0.101: gerbang kas di tab Jualan + modal Detail Riwayat Kas)
+
+Sepuluh permintaan UI (9 komentar browser + 1 instruksi teks) plus perbaikan
+`reanchorUnitId`. 16 file ter-track, +353/−97.
+
+- **Gerbang Buka Kas pindah ke klik tab 🛒 Jualan** (`pos.js` `loadPOS()`): selama
+  fitur kas aktif dan belum ada shift berjalan, modal **"🔓 Buka Kas"** muncul
+  otomatis — user wajib mengisi modal awal sebelum bertransaksi. Guard lama saat
+  menekan Bayar tetap dipertahankan sebagai jaring pengaman.
+- **Modal "🕐 Detail Riwayat Kas"** (`kas.js` `showKasShiftDetail()` + blok
+  `#kasShiftDetailModal` di `index.html`): tiap baris riwayat jadi bisa diketuk
+  (`data-action="show-kas-shift-detail"` + `data-shift-id`). Isinya: jam mulai &
+  tutup, durasi, modal awal, penjualan tunai + jumlah transaksi, pengeluaran /
+  pemasukan, kas sistem, kas fisik, selisih, blok 📱 Dompet digital, catatan tutup.
+  Angka resmi shift tutup tetap yang tersimpan di DB; rincian dihitung ulang lewat
+  `hitungShift(shift, shift.waktuTutup)` dan kalau menyimpang dari `kasSistemAkhir`
+  ditampilkan sebagai baris tambahan "Hitung ulang dari transaksi".
+- **Baris transaksi di kartu 🛵 Transaksi Ojol** ikut membuka "📃 Detail Transaksi".
+- **Dine-in jadi default** saat halaman Jualan dibuka — hanya kalau keranjang masih
+  kosong, supaya tidak menimpa pilihan transaksi yang sedang berjalan.
+- **Badge sisa stok** (angka, `title="Sisa stok"`) di pojok kiri atas kartu menu,
+  terpisah dari badge oranye jumlah item keranjang di kanan atas.
+- **Harga satuan** pindah ke samping nama menu pada baris keranjang; kolom total
+  dinaikkan ke `min-width:68px`.
+- **Legenda ■ Omzet ■ Pengeluaran** turun ke bawah chart per jam.
+- **Tombol 🗑️ modal Pesanan Ditahan** rasio 1:1 (lingkaran 38×38).
+- **"💬 Tanya Admin" → "💬 WhatsApp"**, tombol hijau gelap (`.btn-wa`).
+- **Bug yang ketahuan saat verifikasi dan diperbaiki:** `formatDate()` menerima epoch
+  ms dari `shift.waktuTutup` → `TypeError: str.split is not a function` (helper baru
+  `tanggalDariMs()`); dan blok CSS usang "permintaan pemilik 2026-08-31" yang memaksa
+  harga satuan turun ke baris kedua sekaligus menimpa ulang `min-width` kolom total.
+- **Poin 4 (kerja sesi sebelumnya, ikut rilis ini):** `reanchorUnitId` tidak lagi
+  409 tiap boot, pesannya jujur, dan statusnya tampil di Diagnostik
+  (`license.sync.js`, `sync.health.js`, `license.js`).
+- **Teks Bantuan** (`bantuan.js`) diselaraskan dengan semua label baru di atas.
+- **Verifikasi:** `node _qa-v169-check.mjs` EXIT=0 (11 file JS lolos parse, 3 id modal
+  unik, guard 3 label usang); `test-css-drift` 0, `test-imports` 45/45;
+  `test-data-actions` dan `test-html-refs` **persis baseline v165** (orphan
+  `pos.ui.js #posCatTabs`, `add-ojol-row`/`remove-ojol-row`, 4 DEAD case) — bukan
+  regresi rilis ini. Semua item dicek jalan di Browser pada `localhost:8086`.
+- **Catatan deploy:** `sw.js` menyajikan HTML **cache-first** sedangkan JS/CSS
+  network-first, jadi markup modal baru hanya bisa sampai ke tab lama lewat bump
+  `CACHE_NAME` di rilis ini.
 
 ## 2026-09-04 (v168 / 1.0.100: modul Bantuan ditulis ulang mengikuti kode nyata)
 
