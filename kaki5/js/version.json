@@ -1,8 +1,8 @@
 {
-  "version": "1.0.99",
-  "cacheBust": "v167",
+  "version": "1.0.100",
+  "cacheBust": "v168",
   "notes": [
-    "Kas sekarang benar-benar wajib dibuka dulu sebelum jualan selama fiturnya aktif. Sebelumnya ada kondisi di mana transaksi tetap lolos tanpa diminta modal awal.",
-    "Halaman Pengaturan kini menampilkan kondisi saklar yang SEBENARNYA, walau koneksi ke server lambat atau tidak terjangkau. Dahulu saklar bisa terlihat AKTIF padahal data tersimpan-nya MATI.",
-    "Menyalakan atau mematikan saklar \"Buka / Tutup Kas\" tidak bisa lagi batal dengan sendirinya, dan status fitur dibaca ulang pada tiap transaksi sehingga tidak tertinggal oleh jendela/tab lain."]
+    "Halaman Bantuan ditulis ulang menyeluruh: 11 jadi 17 tutorial, mengikuti aplikasi versi sekarang. Ada panduan baru Buka/Tutup Kas, Tahan Pesanan, harga Ojol & topping, bayar QRIS/Transfer dengan foto bukti, pemasukan, tutup buku tahunan, dan barang titipan/konsinyasi.",
+    "Petunjuk lama yang sudah tidak cocok dengan aplikasi dibuang: layar \"Mulai Masa Percobaan\", tombol \"Tambah 1 Hari Gratis\" lewat berbagi, chip \"TRIAL\", serta nama kategori dan tombol yang sudah berganti.",
+    "Kode perangkat diturunkan dari identitas perangkat keras saja (tidak ikut browser/platform), jadi satu HP yang sama tidak lagi menghasilkan dua identitas berbeda saat pindah browser."]
 }

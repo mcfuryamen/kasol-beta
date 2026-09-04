@@ -6,11 +6,44 @@ supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
 
 > **Catatan kelengkapan (2026-09-04).** Tidak semua rilis punya entri di sini.
 > Yang **tidak tercatat**: v103, v142, v143, v145, v146, v149, v150, dan v152–v159
-> (disebut di komentar `sw.js:7-142` tetapi tidak punya heading). Rilis-rilis itu tetap
+> (disebut di komentar `sw.js:7-147` tetapi tidak punya heading). Rilis-rilis itu tetap
 > bisa ditelusuri lewat riwayat git — misalnya `743c74e` ("kaki5 v152-v159 / 1.0.84-1.0.91")
 > dan `feb4ed3` ("kaki5 v147-v150 / 1.0.79-1.0.82"). Entri `v120–v132` sengaja digabung
 > jadi satu. Entri tanpa nomor versi dikelompokkan di bagian
 > "catatan tanpa nomor rilis" dekat dasar file.
+
+## 2026-09-04 (v168 / 1.0.100: modul Bantuan ditulis ulang mengikuti kode nyata)
+
+`js/bantuan.js` (+426/−115, jadi 656 baris) — satu-satunya perubahan yang terlihat
+user di rilis ini; **tidak ada perubahan logika aplikasi**.
+
+- **11 → 17 tutorial.** Topik baru: Buka & Tutup Kas (saklar, modal awal, selisih
+  fisik−sistem, dompet digital, "💸 Catat Kas"), Tahan Pesanan, Stok/Topping/Harga
+  Ojol, Metode Pembayaran & Foto Bukti, Catat Pengeluaran **& Pemasukan**, Tutup
+  Buku Tahunan, Menu Titipan (Konsinyasi) & Retur.
+- **Klaim basi dibuang**, bukan disunting: layar onboarding + "🚀 Mulai Masa
+  Percobaan" (gate dihapus `app.js:245`), "✓ Setuju & Lanjut" (nyata "✓ Saya
+  Setuju" / "✕ Nanti Saja"), chip "TRIAL" (nyata `GRATIS`/`LISENSI` dengan
+  `n trx` / `Habis` / `✓ Aktif` / `✕ Dicabut`, `license.ui.js:359-378`), seluruh
+  blok "Tambah 1 Hari Gratis (Berbagi)" (fitur dicabut), "🧾 Kirim Bukti
+  Pembayaran" (nyata "📎 Lampirkan Bukti Pembayaran" → "🚀 Kirim Sekarang").
+- **Label UI dikoreksi ke teks asli:** tab Menu (bukan "Makanan"), kategori
+  `Makanan/Minuman/Snack/Lainnya/Titipan` (tanpa "Jajanan"), tipe pesanan
+  Dine-in/Take-away/Ojol (tanpa "Biasa"), tombol "Bayar" (bukan "✅ Simpan"),
+  8 jenis pengeluaran (bukan 5), "💸 Biaya Usaha" + "📝 Riwayat Transaksi" di
+  Laporan, kartu "📱 Perangkat" (bukan bagian "Printer Bluetooth"), "Pasang
+  Aplikasi" (bukan "Instal"). Typo "Bluettooth" & "Routin-routin" diperbaiki.
+- **Verifikasi:** audit otomatis 471 label yang dikutip tutorial vs
+  `index.html`+`js/*.js` → 464 lolos; 7 sisanya jalur navigasi komposit, dicek
+  manual satu per satu, semuanya ada. Harness render: 17 kartu, akordeon
+  berfungsi, tag `<b>` seimbang 423/423. `test-imports` 45/45,
+  `test-dynamic-imports` 23/23, `test-css-drift`/`test-db-migrations`/`test-shim`
+  hijau; `test-html-refs`/`test-data-actions` tetap merah baseline lama.
+- **Bump 6 slot** ke 1.0.100/v168 (version.js ×2, version.json ×2 + notes,
+  sw.js CACHE_NAME + blok riwayat, index.html `?v=`). Tanpa bump `update.js` bail
+  dan cache SW user tidak pernah menerima teks baru.
+- **Ikut naik ke beta:** `1239e08` (port identitas lintas-browser kaki5 — memang
+  ditulis untuk "menumpang rilis v167+ berikutnya").
 
 ## 2026-09-04 (v167 / 1.0.99: identitas perangkat lintas-browser — port hasil audit rosok)
 

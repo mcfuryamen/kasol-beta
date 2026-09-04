@@ -1,9 +1,14 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v167 — ubah angka INI juga setiap swap (harus sama dengan
+// Cache version v168 — ubah angka INI juga setiap swap (harus sama dengan
 // CACHE_NAME di bawah; baris ini tertinggal di v119 selama belasan rilis
 // dan bikin salah baca seolah CACHE_NAME tidak di-bump).
+// v168: modul Bantuan (js/bantuan.js) ditulis ulang mengikuti kode nyata: 17 tutorial,
+//       termasuk Buka/Tutup Kas, Tahan Pesanan, harga Ojol/topping, metode bayar
+//       non-tunai + foto bukti, pemasukan, tutup buku tahunan, konsinyasi/retur.
+//       Klaim fitur yang sudah dicabut (onboarding gate, tambah-hari-berbagi,
+//       chip "TRIAL") dibuang. Tidak ada perubahan logika aplikasi di rilis ini.
 // v167: gerbang "buka kas dulu" tidak bisa lagi lolos diam-diam.
 //       (1) `fiturKasAktif()` baca DB tiap transaksi, bukan cache seumur hidup
 //           (IndexedDB dipakai bersama antar tab -> cache bisa menyimpang).
@@ -144,7 +149,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v167';
+const CACHE_NAME = 'kasir-solo-kaki5-v168';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
