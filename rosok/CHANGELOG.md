@@ -11,6 +11,10 @@
 - Semua pemakaian (header, blok Tentang, `#mismatchLock`, `#updateOverlay`,
   nota POS, manifest PWA, apple-touch-icon) otomatis ikut karena memakai path
   yang sama — nol perubahan kode.
+- (v61) Border putih di logo header dihapus: `.brand-badge` tidak lagi memakai
+  latar putih + shadow; logo bundar penuh mengisi 38px.
+- (v61) Border putih di logo header dihapus: `.brand-badge` tidak lagi memakai
+  latar putih + shadow; logo bundar penuh mengisi 38px.
 
 ## [1.4.5] - 2026-09-04 (sw v59, `?v=59` — mulai berlaku konvensi bump 4-slot)
 

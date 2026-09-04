@@ -82,8 +82,11 @@ header.topbar{
 }
 .topbar-left{display:flex; align-items:center; gap:10px; flex:1; min-width:0;}
 .topbar-right{display:flex; align-items:center; gap:8px; flex-shrink:0;}
-.brand-badge{width:38px; height:38px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 6px rgba(0,0,0,0.15);}
-.brand-badge img{width:32px; height:32px; border-radius:50%;}
+/* Logo baru sudah bundar penuh (cincin oranye sampai tepi) — lingkaran putih
+   + shadow badge tidak diperlukan lagi (dulu jadi border putih mengelilingi
+   logo); img mengisi penuh 38px. */
+.brand-badge{width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.brand-badge img{width:38px; height:38px; border-radius:50%;}
 .brand-txt{flex:1; min-width:0;}
 .brand-txt .biz{font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; font-size:15.5px; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; flex-shrink:1;}
 .brand-txt .tag{font-size:11px; opacity:0.85; margin-top:1px;}
