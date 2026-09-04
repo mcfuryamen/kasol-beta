@@ -23,7 +23,33 @@ import { ensureSynced, isSyncConfigured, pullCloudProfileIfOnline } from './sync
 import { currentPage } from './app-state.js';
 import { openModal, closeModal } from './modal.js';
 
+// ⚙️ Saklar "Aktifkan Fitur": opsi metode pembayaran (Tunai/QRIS/Transfer,
+// permintaan pemilik 2026-08-31) + fitur buka/tutup kas (v166). Semua lokal
+// perangkat, disimpan di tabel `settings` IndexedDB.
+// v167: WAJIB jalan PALING AWAL di loadSettings(), sebelum panggilan jaringan
+// apa pun. `pullCloudProfileIfOnline()` tidak punya timeout dan `index.html`
+// memberi atribut `checked` hardcoded pada keempat saklar, jadi kalau
+// loadSettings menggantung/throw di awal, saklar tetap terlihat ON padahal DB
+// sudah '0'. Pemilik lalu yakin "fitur kas aktif" sementara gerbang POS sudah
+// dilewati. Sinkronisasi tampilan TIDAK BOLEH bergantung pada cloud.
+async function syncFeatureSwitches() {
+  try {
+    const { getSetting } = await import('./db.js');
+    const [t, q, tr, kas] = await Promise.all([
+      getSetting('payOptTunai', '1'), getSetting('payOptQris', '1'),
+      getSetting('payOptTransfer', '1'), getSetting('fiturKas', '1')
+    ]);
+    const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v !== '0'; };
+    setChk('payOptTunai', t);
+    setChk('payOptQris', q);
+    setChk('payOptTransfer', tr);
+    setChk('fiturKasToggle', kas);
+    setFiturKasDesc(kas !== '0');
+  } catch (e) { console.warn('[SETTINGS] muat saklar fitur:', e?.message || e); }
+}
+
 export async function loadSettings() {
+  await syncFeatureSwitches();
   // Cloud-first (permintaan pemilik 2026-08-29): profil = Supabase. Tiap kali
   // halaman Pengaturan dibuka, tarik profil dari server dulu — supaya tampilan
   // selalu cermin data cloud, bukan cache lokal yang bisa basi.
@@ -60,23 +86,8 @@ export async function loadSettings() {
     console.warn('appSiteLink:', e?.message || e);
   }
 
-  // ⚙️ Saklar "Aktifkan Fitur": opsi metode pembayaran (Tunai/QRIS/Transfer,
-  // permintaan pemilik 2026-08-31) + fitur buka/tutup kas (v166). Semua lokal
-  // perangkat, disimpan di tabel `settings` IndexedDB.
-  try {
-    const { getSetting } = await import('./db.js');
-    const [t, q, tr, kas] = await Promise.all([
-      getSetting('payOptTunai', '1'), getSetting('payOptQris', '1'),
-      getSetting('payOptTransfer', '1'), getSetting('fiturKas', '1')
-    ]);
-    const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v !== '0'; };
-    setChk('payOptTunai', t);
-    setChk('payOptQris', q);
-    setChk('payOptTransfer', tr);
-    setChk('fiturKasToggle', kas);
-    setFiturKasDesc(kas !== '0');
-  } catch (e) { console.warn('[SETTINGS] muat saklar fitur:', e?.message || e); }
-
+  // Saklar fitur sudah disinkronkan di AWAL loadSettings() lewat
+  // syncFeatureSwitches(), supaya tidak tertahan oleh panggilan cloud.
   checkProfileNotification();
 }
 
@@ -117,17 +128,30 @@ export async function saveFiturKas(changedEl) {
   if (!el) return;
   const mau = !!el.checked;
 
-  let terpasang = true;
+  // v167: bandingkan dengan nilai yang BENAR-BENAR TERSIMPAN di DB.
+  // Sebelumnya `terpasang` diambil dari cache modul `fiturKas`, dan cache bisa
+  // menyimpang dari DB (penulis lain di tab/jendela lain). Akibatnya baris
+  // `if (mau === terpasang) return` di bawah menyimpulkan "tidak ada perubahan"
+  // lalu MEMBATALKAN PENULISAN secara diam-diam: saklar terlihat ON, DB tetap
+  // '0', gerbang POS tidak aktif. Kalau baca gagal, `tersimpan` = null dan
+  // early-return dilewati — menulis ulang sesuai tampilan jauh lebih aman
+  // daripada mengabaikan kehendak pemilik.
+  let tersimpan = null;
   let shiftBuka = null;
   try {
-    const kas = await import('./kas.js');
-    terpasang = await kas.fiturKasAktif();
-    if (terpasang && !mau) shiftBuka = await kas.getOpenShift();
+    const { getSetting } = await import('./db.js');
+    tersimpan = (await getSetting('fiturKas', '1')) !== '0';
+    if (tersimpan && !mau) {
+      const kas = await import('./kas.js');
+      shiftBuka = await kas.getOpenShift();
+    }
   } catch (e) {
     console.warn('[SETTINGS] baca status fitur kas:', e?.message || e);
+    tersimpan = null;
+    shiftBuka = null;
   }
 
-  if (mau === terpasang) return; // tidak ada perubahan (mis. label meneruskan klik)
+  if (tersimpan !== null && mau === tersimpan) return; // tidak ada perubahan (mis. label meneruskan klik)
 
   if (!mau && shiftBuka) {
     // Shift masih terbuka → jangan matikan diam-diam. Saklar dikembalikan dulu,

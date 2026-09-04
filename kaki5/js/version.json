@@ -1,9 +1,8 @@
 {
-  "version": "1.0.98",
-  "cacheBust": "v166",
+  "version": "1.0.99",
+  "cacheBust": "v167",
   "notes": [
-    "Pengaturan punya saklar baru: \"Buka / Tutup Kas\". Kalau dimatikan, kios bisa jualan tanpa harus buka kas dulu — kartu kas di Beranda dan riwayat shift di Laporan ikut disembunyikan.",
-    "Blok metode pembayaran berganti judul jadi \"Aktifkan Fitur\", karena sekarang menaungi saklar fitur, bukan hanya pilihan cara bayar.",
-    "Kas yang masih terbuka tidak ditutup diam-diam saat fiturnya dimatikan — aplikasi bertanya lebih dulu dan data shift lama tetap tersimpan, jadi menyalakan lagi mengembalikan semuanya seperti semula."
-  ]
+    "Kas sekarang benar-benar wajib dibuka dulu sebelum jualan selama fiturnya aktif. Sebelumnya ada kondisi di mana transaksi tetap lolos tanpa diminta modal awal.",
+    "Halaman Pengaturan kini menampilkan kondisi saklar yang SEBENARNYA, walau koneksi ke server lambat atau tidak terjangkau. Dahulu saklar bisa terlihat AKTIF padahal data tersimpan-nya MATI.",
+    "Menyalakan atau mematikan saklar \"Buka / Tutup Kas\" tidak bisa lagi batal dengan sendirinya, dan status fitur dibaca ulang pada tiap transaksi sehingga tidak tertinggal oleh jendela/tab lain."]
 }

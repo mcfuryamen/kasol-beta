@@ -37,13 +37,20 @@ import {
 let _fiturKas = null;
 
 export async function fiturKasAktif() {
-  if (_fiturKas === null) {
-    try {
-      _fiturKas = (await getSetting('fiturKas', '1')) !== '0';
-    } catch (e) {
-      console.warn('[KAS] baca fiturKas gagal, anggap aktif:', e?.message || e);
-      _fiturKas = true; // gagal baca ≠ mematikan gerbang — lebih aman memaksa buka kas
-    }
+  // v167: baca SEGAR tiap dipanggil, JANGAN percaya cache modul.
+  // Cache hanya aman kalau satu-satunya penulis ada di tab yang sama — padahal
+  // IndexedDB dipakai bersama seluruh tab/jendela pada origin ini. Gejala nyata
+  // yang diperbaiki: saklar di Pengaturan terlihat AKTIF sementara baris
+  // `fiturKas` di DB sudah '0' dari tab lain, sehingga gerbang POS di
+  // pos.js:529 dilewati dan kios bisa jualan tanpa buka kas.
+  // Biayanya satu primary-key get per transaksi — tak berarti.
+  try {
+    _fiturKas = (await getSetting('fiturKas', '1')) !== '0';
+  } catch (e) {
+    console.warn('[KAS] baca fiturKas gagal, pakai keadaan terakhir:', e?.message || e);
+    // Gagal baca ≠ mematikan gerbang. Kalau belum pernah baca sama sekali,
+    // anggap AKTIF (lebih aman memaksa buka kas daripada kehilangan modal awal).
+    if (_fiturKas === null) _fiturKas = true;
   }
   return _fiturKas;
 }

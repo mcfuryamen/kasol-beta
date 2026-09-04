@@ -571,7 +571,7 @@ Env var per project (mis. `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE
 | Rosok spesifik | `rosok/AGENTS.md` |
 | Gerobak spesifik | `gerobak/AGENTS.md` |
 | Retail spesifik | `retail/AGENTS.md` |
-| Kaki5 spesifik | `kaki5/README.md`, `kaki5/docs/DEVELOPER.md` |
+| Kaki5 spesifik | `kaki5/AGENTS.md`, `kaki5/README.md`, `kaki5/docs/DEVELOPER.md`, `kaki5/docs/REGRESSION-CHECKLIST.md`, `kaki5/DESIGN.md` |
 
 ---
 

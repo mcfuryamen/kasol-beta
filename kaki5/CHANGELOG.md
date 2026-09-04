@@ -1,6 +1,60 @@
 # Changelog — Kasir Solo Kaki Lima (kaki5)
 
 Semua perubahan dicatat per tanggal, versi terbaru di atas.
+Format judul entri: `## <YYYY-MM-DD> (vNNN / 1.0.NN: judul)` — dua nomor wajib ada,
+supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
+
+> **Catatan kelengkapan (2026-09-04).** Tidak semua rilis punya entri di sini.
+> Yang **tidak tercatat**: v103, v142, v143, v145, v146, v149, v150, dan v152–v159
+> (disebut di komentar `sw.js:7-142` tetapi tidak punya heading). Rilis-rilis itu tetap
+> bisa ditelusuri lewat riwayat git — misalnya `743c74e` ("kaki5 v152-v159 / 1.0.84-1.0.91")
+> dan `feb4ed3` ("kaki5 v147-v150 / 1.0.79-1.0.82"). Entri `v120–v132` sengaja digabung
+> jadi satu. Entri tanpa nomor versi dikelompokkan di bagian
+> "catatan tanpa nomor rilis" dekat dasar file.
+
+## 2026-09-04 (v167 / 1.0.99: gerbang "buka kas dulu" tidak bisa lagi lolos diam-diam)
+
+> **Status: di-commit ke mirror beta (`kasol-beta` lokal); BELUM di-push ke GitHub.**
+> Versi sudah dinaikkan ke `1.0.99` / `v167` pada enam slot sinkron.
+
+**Gejala yang dilaporkan pemilik:** status kas tertutup dan Pengaturan menampilkan
+"Buka / Tutup Kas" aktif, tapi kios tetap bisa langsung jualan tanpa diminta modal awal.
+
+**Fakta hasil diagnosa (bukan tebakan):** `settings.fiturKas` di IndexedDB pemilik
+bernilai `"0"` dan `kasShift` hanya berisi satu baris `status:'tutup'`. Gerbang POS di
+`pos.js:529` bekerja **benar** — ia memang dilewati karena saklar membaca `'0'`. Yang
+bohong adalah **tampilan Pengaturan**, bukan gerbangnya. Tiga celah ditutup:
+
+- **`kas.js fiturKasAktif()` sekarang membaca DB tiap dipanggil** (`:48`), tidak lagi
+  "baca sekali lalu cache seumur hidup". Cache apa pun pasti bisa menyimpang karena
+  IndexedDB dipakai bersama seluruh tab/jendela pada satu origin: tab yang cache-nya
+  masih `true` akan meloloskan transaksi walau tab lain sudah menyimpan `'0'`.
+  `_fiturKas` tetap dipakai sebagai fallback bila pembacaan gagal, dan bila belum pernah
+  baca sama sekali hasilnya **AKTIF** (gagal baca tidak pernah membuka gerbang).
+- **Saklar disinkronkan dari DB di AWAL `loadSettings()`** lewat
+  `syncFeatureSwitches()` (`settings.ui.js:35`, dipanggil `:52`), sebelum panggilan cloud
+  mana pun. Sebelumnya blok ini berada di baris 66-78, yaitu **setelah**
+  `pullCloudProfileIfOnline()` yang tidak punya timeout. Karena `index.html:240-241`
+  men-hardcode `checked` **dan** teks "transaksi diblok kalau kas belum dibuka", setiap
+  kali `loadSettings()` menggantung atau melempar sebelum baris 66, halaman Pengaturan
+  mengaku fitur AKTIF padahal DB sudah `'0'` — persis gejala di atas.
+- **`saveFiturKas()` membandingkan dengan nilai tersimpan, bukan cache modul**
+  (`settings.ui.js:143`, early-return di `:154`). Guard `if (mau === terpasang) return`
+  yang lama membandingkan kehendak user dengan cache, sehingga sekali cache menyimpang,
+  klik saklar **membatalkan penulisannya sendiri secara diam-diam**: saklar terlihat ON,
+  DB tetap `'0'`. Sekarang pembacaan yang gagal menghasilkan `null` dan early-return
+  dilewati — menulis ulang sesuai tampilan lebih aman daripada mengabaikan kehendak
+  pemilik.
+- **Dokumen ikut diselaraskan**: `docs/DEVELOPER.md` §7 (tabel baris `kas.js` bergeser
+  +7, daftar gerbang jadi 7 titik, tabel kunci `settings`) dan `AGENTS.md` aturan #10
+  kini memuat larangan eksplisit untuk mengembalikan cache "baca sekali".
+- **Verifikasi:** harness `test-imports` / `test-dynamic-imports` / `test-css-drift` /
+  `test-db-migrations` / `test-shim` hijau; `test-html-refs` / `test-data-actions` /
+  `test-modules` tetap pada kegagalan baseline lama (tidak ada kegagalan baru).
+  Diuji lewat harness baca-saja `_qa-kasgate.html`: sebelum perbaikan gerbang
+  melaporkan "JUALAN DILULUSKAN", sesudah `fiturKas='1'` + `getOpenShift()=null`
+  melaporkan **"JUALAN HARUSNYA DIBLOKIR"**. Tidak ada satu baris data user yang ditulis
+  selama diagnosa.
 
 ## 2026-09-04 (v166 / 1.0.98: saklar "Buka / Tutup Kas" di Pengaturan)
 - **Blok "💳 Metode Pembayaran" berganti judul jadi "⚙️ Aktifkan Fitur"** dan sekarang menaungi saklar fitur, bukan hanya cara bayar. Tiga saklar lama (Tunai/QRIS/Transfer) tidak berubah perilaku.
@@ -227,14 +281,14 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 - Validasi: `test-modules.js` 38/38 + lint DOM 0 orphan, `test-imports.js` 38/38,
   `test_validate` 14/14 — semua exit 0.
 
-## 2026-08-11 (P6: Perkuat lisensi â€” harden core logic + obfuscate salt)
+## 2026-08-11 (P6: Perkuat lisensi — harden core logic + obfuscate salt)
 - **Enforce MAX_EXTENSIONS di core logic** (`grantExtensionLogic`): function kini
   return `{ granted:false, reason:'max' }` saat jatah habis, bukan sekadar increment
-  (sebelumnya cap cuma di UI layer â€” bisa di-bypass via console). UI `grantExtension`
+  (sebelumnya cap cuma di UI layer — bisa di-bypass via console). UI `grantExtension`
   menangani `granted:false` dengan toast error.
 - **Sanitize counter**: `grantExtensionLogic` & `trialEndDate` kini menolak nilai
   `extensionsUsed` negatif/NaN yang bisa dipakai memanipulasi masa trial (trial abadi).
-- **Obfuscate salt**: `PRODUCT_SALT` tidak lagi konstanta plain yang greppable â€”
+- **Obfuscate salt**: `PRODUCT_SALT` tidak lagi konstanta plain yang greppable —
   di-derive runtime via `buildProductSalt()`. Â± defense-in-depth (security-through-
   obscurity), bukan pengganti validasi server. Trade-off offline PWA didokumentasikan.
 - **Tidak ada bump versi/**cache-version (logika internal saja, tanpa public-facing
@@ -266,6 +320,13 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 - **Docs**: `DEVELOPER.md` §6 & §10 memakai `test-modules.js` & `test-imports.js` sebagai validasi utama; `AUDIT-REPORT.md` mencatat §9 (temuan K1–K8) & §10 (perbaikan P1–P3).
 - **Cache-bust index.html `?v=47`** (bump setelah perubahan app.js/README).
 
+## 2026-08-11 (Audit jalur data → Supabase + leads dari profil)
+
+- **Fix `sync.js` getClient() → isPlaceholderKey()**: filter `'******'` & placeholder umum (sebelumnya cuma blokir `'PASTE...'` & `'...'`). Konfigurasi anon key di `supabase-config.js` sudah terisi asli sejak audit sebelumnya — view tool sempat ngeredact jadi `'******'`.
+- **Jalur profil → `leads`**: `sync.js` `ensureSynced()` sekarang upsert ke tabel `leads` (ON CONFLICT unit_id) setelah upsert `clients`. Gagal leads tidak memutus sync clients (graceful catch). **Prasyarat:** jalankan `migration-leads-unitid.sql` di Supabase SQL editor.
+- **`purchase.js` client mandiri**: `getSupabaseClient()` sendiri (tidak bergantung `sync.js` getClient()). Guard `isPlaceholderKey()` + createClient sendiri. Semua fungsi purchase pakai `sb = getSupabaseClient()` bukan `window._ksrSupabaseClient` langsung.
+- **Migrasi:** `supabase/migration-leads-unitid.sql` — tambah `unit_id` + `user_id` + unique index + RLS anon own-rows di `leads` + backfill dari `clients`.
+
 ## 2026-08-10 (Fix Sync Profil + Region Picker 4-Level + Logo Baru)
 
 - **Fix `sync.js` skip-on-already-synced**: `ensureSynced()` dulunya return early bila `state.status === 'synced'` (tanpa force). Kini semua save function di `settings.js` memanggil `ensureSynced({ force: true })` agar perubahan profil (alamat, pemilik, WA, nama warung) selalu di-push ke Supabase.
@@ -274,13 +335,6 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 - **Logo aplikasi diperbarui**: `assets/icon.png` diganti logo baru (orange gradient, 1254x1254 PNG). PWA icons (`icon-192.png`, `icon-512.png`) diregenerasi dari logo baru. Logo lama (`icon-old.png`) dipertahankan di kartu versi halaman Pengaturan.
 - **Hapus console.log debug** dari `sync.js`, `settings.js`, `region.js` pasca-verifikasi.
 - **SW cache v30 → v31** (perubahan sync.js, region.js, settings.js, assets/icon*).
-
-## 2026-08-11 (Audit jalur data → Supabase + leads dari profil)
-
-- **Fix `sync.js` getClient() → isPlaceholderKey()**: filter `'******'` & placeholder umum (sebelumnya cuma blokir `'PASTE...'` & `'...'`). Konfigurasi anon key di `supabase-config.js` sudah terisi asli sejak audit sebelumnya — view tool sempat ngeredact jadi `'******'`.
-- **Jalur profil → `leads`**: `sync.js` `ensureSynced()` sekarang upsert ke tabel `leads` (ON CONFLICT unit_id) setelah upsert `clients`. Gagal leads tidak memutus sync clients (graceful catch). **Prasyarat:** jalankan `migration-leads-unitid.sql` di Supabase SQL editor.
-- **`purchase.js` client mandiri**: `getSupabaseClient()` sendiri (tidak bergantung `sync.js` getClient()). Guard `isPlaceholderKey()` + createClient sendiri. Semua fungsi purchase pakai `sb = getSupabaseClient()` bukan `window._ksrSupabaseClient` langsung.
-- **Migrasi:** `supabase/migration-leads-unitid.sql` — tambah `unit_id` + `user_id` + unique index + RLS anon own-rows di `leads` + backfill dari `clients`.
 
 ## 2026-08-07 (PWA Install Detection + API Wilayah Desa + Custom Period Laporan)
 
@@ -544,7 +598,7 @@ jadi modal tidak terlihat sama sekali.
 ### ⚙️ UI
 - Kartu **☁️ Sinkronisasi Profil** + tombol **Sinkron Sekarang** di halaman Pengaturan.
 
-## [Unreleased] — 2026-08
+## 2026-08 (catatan tanpa nomor rilis — arsip sebelum v87)
 
 ### ✨ UI / Navigasi
 - **Pengeluaran** dipindahkan ke modul **Laporan** (rincian pengeluaran tampil di ringkasan laporan).
@@ -556,7 +610,7 @@ jadi modal tidak terlihat sama sekali.
 - `dexie.min.js` diberi pengecualian di root `.gitignore` (`!kaki5/dexie.min.js`) — kalau tidak, file tidak ter-deploy dan app mati (`Dexie is not defined`).
 
 ### 🚀 Deploy
-- **GitHub Actions tidak dipakai lagi** (semua `.github/workflows/*` dihapus). Deploy via **Vercel git integration (auto-detect)** — project `kasir-kaki5`, Root Directory `kaki5/`.
+- **Deploy utama tidak lagi mengandalkan GitHub Actions** — memakai **Vercel git integration (auto-detect)** — project `kasir-kaki5`, Root Directory `kaki5/`. (Koreksi 2026-09-04: bukan berarti semua workflow dihapus — `.github/workflows/deploy-preview.yml` masih ada dan dipakai untuk preview.)
 
 ---
 
