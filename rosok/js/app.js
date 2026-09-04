@@ -131,7 +131,10 @@ setRiwayatRefs({ refreshAll });
 window._ksr_db = db;
 
 // ── Tentang aplikasi (blok footer Pengaturan, pola kaki5) ─────────────────
-const APP_VERSION = '1.4.4';
+// APP_VERSION kini sumber tunggal di js/version.js (port kaki5) — jangan
+// hardcode di sini lagi; update.js memakai CACHE_BUST-nya utk overlay rilis.
+import { APP_VERSION } from './version.js';
+import { startUpdateWatcher } from './update.js';
 function updateAboutInfo(){
   const v = document.getElementById('appVersionLabel');
   if(v) v.textContent = APP_VERSION;
@@ -305,6 +308,9 @@ async function initApp() {
   // pemulihan (deferred 4 dtk, tidak pernah memblokir/ganggu boot).
   setTimeout(() => { try { import('./backup.js').then(m => m.maybeOfferCloudRestore()).catch(() => {}); } catch(_) {} }, 4000);
   markReady();
+  // Penjaga konvergensi rilis (port kaki5 update.js): cek version.json saat
+  // settle, kembali ke foreground, dan online → overlay paksa OKE+refresh.
+  try { startUpdateWatcher(); } catch(_) {}
 }
 
 // ── Global exports — EXACT function names matching onclick handlers in HTML ─────────────────

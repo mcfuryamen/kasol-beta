@@ -1,0 +1,9 @@
+{
+  "version": "1.4.5",
+  "cacheBust": "v59",
+  "notes": [
+    "Aplikasi kini mengingatkan saat ada versi baru dan meminta kamu menekan OKE untuk memperbarui — setelah itu data profil & lisensi langsung ditarik ulang dari server.",
+    "Profil usaha di server kini terlindungi: browser baru yang datanya masih kosong tidak bisa lagi menimpa/menghapus profil yang sudah tersimpan.",
+    "Perbaikan kecil lainnya agar aplikasi makin lancar dipakai setiap hari."
+  ]
+}

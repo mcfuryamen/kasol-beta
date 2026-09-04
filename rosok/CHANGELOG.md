@@ -1,5 +1,28 @@
 # Changelog - Kasir Solo Rosok
 
+## [1.4.5] - 2026-09-04 (sw v59, `?v=59` — mulai berlaku konvensi bump 4-slot)
+
+### Overlay update aplikasi + versi sumber tunggal (port kaki5 update.js)
+- **Masalah yang dipecahkan:** tab yang menganggur tidak pernah memeriksa
+  rilis baru (insiden beta 2026-09-04 — tab lama menjalankan kode pra-reanchor
+  berjam-jam dan tidak pernah konvergen).
+- **`js/version.js`** baru: `APP_VERSION` + `CACHE_BUST` jadi sumber kebenaran
+  versi tunggal (app.js tidak lagi hardcode). **`js/version.json`**: cerminan
+  server + `notes` bahasa user per rilis.
+- **`js/update.js`** baru (port kaki5): cek event-driven — 3 dtk setelah boot,
+  tiap kembali ke foreground, tiap online — bandingkan `cacheBust` server vs
+  build lokal. Bila beda: overlay full-screen `#updateOverlay` (pola
+  `.lock-overlay`, tidak bisa Escape/backdrop) berisi versi + catatan rilis +
+  tombol **OKE** yang memaksa: SW baru activate → cache lama dihapus → reload
+  → boot penuh (re-anchor, pull profil, push pending, sync lisensi). Ack
+  per-versi di localStorage, guard anti-loop reload di sessionStorage.
+  Perbaikan dari kaki5: tombol OKE di-assign ulang tiap panggilan (kaki5
+  closure basi saat versi berganti cepat).
+- **sw.js**: `version.json` dibypass dari cache (sinyal rilis harus
+  network-murni); `version.js` + `update.js` di-precache.
+- **Konvensi bump naik dari 3 titik ke 4-slot** (version.js, version.json,
+  sw.js, index.html — angka sama) — didokumentasikan di AGENTS.md §3.
+
 ## [1.4.4] - 2026-09-04 (sw v58, `?v=PROF-GUARD`)
 
 ### Guard anti-wipe profil cloud (insiden beta, pola kaki5 `no-profile`)

@@ -67,13 +67,17 @@ HTML memakai `onclick="namaFungsi()"` global. Setiap handler baru WAJIB diekspos
 `window.namaFungsi = namaFungsi` di modul pemiliknya (pola di akhir tiap file).
 Verifikasi: sweep `grep -oE 'on(click|change)="([a-zA-Z_]+)' index.html` vs definisi window.
 
-### 3. Rilis = bump 3 titik (insiden cache kaki5/rosok)
-Perubahan kode APAPUN (terutama `index.html`) wajib menaikkan:
-1. `sw.js` → `CACHE_VERSION` (v54 → v55, ...)
-2. `index.html` → token `?v=` di `style.css` dan `js/app.js` (satu kata per rilis, mis `?v=SALT-SRC`)
-3. entri precache `CORE_ASSETS` di `sw.js` bila URL-nya berkueri / ada file baru
-`APP_VERSION` di `js/app.js` (tampil di blok Tentang) naik bila ada perubahan fitur,
-sinkron dengan entri `CHANGELOG.md`. SW network-first, jadi bump = kebersihan cache.
+### 3. Rilis = bump 4 slot (konvensi kaki5, sejak v1.4.5 — insiden v100)
+Satu rilis WAJIB menyentuh 4 tempat sekaligus, angka SAMA (mis. `v59` / `?v=59`):
+1. `js/version.js` → `CACHE_BUST` (+ `APP_VERSION` naik bila ada perubahan fitur — sumber tunggal, TIDAK lagi hardcode di app.js)
+2. `js/version.json` → `cacheBust` + `version` + `notes` (bahasa user — bahan overlay update)
+3. `sw.js` → `CACHE_VERSION` (+ entri `CORE_ASSETS` bila ada file/URL baru)
+4. `index.html` → `?v=` pada `style.css` dan `js/app.js`
+Kalau slot 1–2 tidak sinkron, overlay update (`js/update.js`) tidak pernah muncul
+atau muncul palsu — pelajaran insiden v100 kaki5 & drift v167/v168. `version.json`
+TIDAK boleh masuk `CORE_ASSETS` (sw.js mem-bypass-nya dari cache — sinyal rilis
+harus selalu network-murni). Verifikasi cepat pasca-rilis: keempat angka sama,
+dan `curl <url>/js/version.json` menampilkan cacheBust terbaru.
 
 ### 4. `.gitignore` monorepo — TRAP vendor `.min.js`
 Root `.gitignore` punya `*.min.js` global + negasi eksplisit per file vendor.

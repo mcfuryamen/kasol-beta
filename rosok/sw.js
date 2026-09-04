@@ -2,12 +2,13 @@
    KASIR SOLO - ROSOK
    Service Worker — SPA fallback + network-first untuk semua aset
    ========================================================================= */
-const CACHE_VERSION = 'v58';
+const CACHE_VERSION = 'v59';
 const CACHE_NAME = `kasir-solo-rosok-${CACHE_VERSION}`;
 const CORE_ASSETS = [
-  "./", "./index.html", "./style.css?v=PROF-GUARD", "./dexie.min.js",
+  "./", "./index.html", "./style.css?v=59", "./dexie.min.js",
   "./js/supabase.min.js", "./js/supabase-config.js",
-  "./js/app.js?v=PROF-GUARD", "./js/db.js", "./js/app-state.js", "./js/utils.js",
+  "./js/app.js?v=59", "./js/db.js", "./js/app-state.js", "./js/utils.js",
+  "./js/version.js", "./js/update.js",
   "./js/router.js", "./js/nav.js", "./js/pos.js", "./js/kategori.js",
   "./js/riwayat.js", "./js/laporan.js", "./js/kas.js",
   "./js/carousel.js", "./js/license.js", "./js/license.sync.js", "./js/onboard.js",
@@ -42,6 +43,15 @@ function isHTML(req) {
 self.addEventListener("fetch", e => {
   if(e.request.method !== "GET") return;
   if(!new URL(e.request.url).origin.includes(self.location.origin)) return;
+
+  // version.json TIDAK PERNAH di-cache: file ini adalah sinyal rilis —
+  // menyajikan versi basi dari cache membuat overlay update tidak pernah
+  // muncul (atau muncul palsu). Network murni; offline → reject → update.js
+  // menelan diam (cek berikutnya saat online/foreground).
+  if(new URL(e.request.url).pathname.endsWith("/js/version.json")){
+    e.respondWith(fetch(e.request));
+    return;
+  }
 
   if(isHTML(e.request)){
     e.respondWith(

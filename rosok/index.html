@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=PROF-GUARD">
+<link rel="stylesheet" href="style.css?v=59">
 <script src="dexie.min.js"></script>
 <script src="js/supabase.min.js"></script>
 <script src="js/supabase-config.js"></script>
@@ -723,6 +723,21 @@
   </div>
 </div>
 
+<!-- ====== OVERLAY UPDATE APLIKASI (port kaki5 update.js — full-screen, hanya bisa OKE) ======
+     Muncul saat js/version.json (server) cacheBust ≠ CACHE_BUST build ini.
+     Pola .lock-overlay + classList langsung → Escape/backdrop tidak menutup.
+     OKE = performForceUpdate(): SW baru activate → cache lama dihapus → reload
+     → boot penuh (re-anchor, pull profil, push pending, sync lisensi). -->
+<div class="lock-overlay" id="updateOverlay" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
+  <div class="lock-card">
+    <img src="assets/logo.png" alt="Logo">
+    <div class="lock-title" id="updateTitle">Ada Versi Baru! 🔄</div>
+    <div id="updateVersionLabel" style="font-weight:700;color:var(--brand);margin:2px 0 10px">Versi —</div>
+    <ul id="updateNotesList" style="text-align:left;font-size:13px;color:var(--ink-soft);line-height:1.6;margin:0 0 14px;padding-left:18px"></ul>
+    <button class="btn btn-primary" id="updateOkBtn">OKE, Perbarui Sekarang</button>
+  </div>
+</div>
+
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-spinner">
@@ -735,6 +750,6 @@
 
 
 <!-- Load modules in order -->
-<script type="module" src="js/app.js?v=PROF-GUARD"></script>
+<script type="module" src="js/app.js?v=59"></script>
 </body>
 </html>
