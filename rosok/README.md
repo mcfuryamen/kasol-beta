@@ -4,8 +4,8 @@ Aplikasi kasir PWA **offline-first** untuk usaha pengepul rosok / barang bekas.
 Catat pembelian & penjualan timbangan, stok, kas, laporan — dengan lisensi
 berbasis kuota transaksi dan sinkronisasi cloud dua-arah (Supabase) ala kaki5.
 
-- **Live:** https://rosok.kasirsolo.com (Vercel project `kasir-rosok`, Root Directory `rosok/`)
-- **Beta:** snapshot di repo `mcfuryamen/kasol-beta` (folder `rosok/`)
+- **Live:** https://rosok.vercel.app (Vercel project `rosok`, repo `mcfuryamen/kasol`, Root Directory `rosok/`)
+- **Beta:** https://rosok-beta.vercel.app (Vercel project `rosok-beta`, repo `mcfuryamen/kasol-beta`)
 - **Versi:** 1.4.0 · **Service Worker:** v54 · **Dexie:** `KasirSoloRosokDB` v5
 
 ## 📦 Installation (PWA)
@@ -123,7 +123,8 @@ rosok/
 2. `node run-local.js` → uji manual + `curl` endpoint
 3. Beta: rebuild folder `rosok/` di mirror `kasol-beta` → push `main`
 4. Live: `sync-to-mirror.sh` → mirror `kasol` → push `main` → Vercel auto-deploy `kasir-rosok`
-5. Verifikasi: `curl -sI https://rosok.kasirsolo.com/dexie.min.js` (content-type JS!) + `sw.js` versi
+5. Verifikasi: `curl -sI https://rosok.vercel.app/dexie.min.js` (content-type JS!) + `sw.js` versi —
+   dan `curl -sI https://rosok.vercel.app/js/supabase.min.js` (vendor Supabase, jangan sampai HTML)
 
 ## 📝 License
 

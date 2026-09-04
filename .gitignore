@@ -68,6 +68,7 @@ temp/
 !kaki5/dexie.min.js
 !kaki5/js/supabase.min.js
 !rosok/dexie.min.js
+!rosok/js/supabase.min.js
 !admin/dexie.min.js
 !retail/dexie.min.js
 # Pengecualian eksplisit: ikon backup lama yang sengaja di-track
