@@ -1,5 +1,17 @@
 # Changelog - Kasir Solo Rosok
 
+## [1.4.6] - 2026-09-05 (sw v60, `?v=60`)
+
+### Logo baru aplikasi
+- Sumber resmi baru: `logo-rosok.png` (root folder, di luar whitelist deploy —
+  hanya untuk regenerasi aset). Seluruh aset digenerate ulang darinya dengan
+  potongan melingkar + sudut transparan (mask elips, kuantisasi 256 warna
+  octree + dither): `logo.png` 512, `icon-192/512.png`, `favicon-16/32.png`,
+  `splash-1028.png`.
+- Semua pemakaian (header, blok Tentang, `#mismatchLock`, `#updateOverlay`,
+  nota POS, manifest PWA, apple-touch-icon) otomatis ikut karena memakai path
+  yang sama — nol perubahan kode.
+
 ## [1.4.5] - 2026-09-04 (sw v59, `?v=59` — mulai berlaku konvensi bump 4-slot)
 
 ### Overlay update aplikasi + versi sumber tunggal (port kaki5 update.js)
