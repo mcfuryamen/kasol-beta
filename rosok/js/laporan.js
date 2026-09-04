@@ -5,6 +5,7 @@
 import { db } from './db.js';
 import { laporanPeriode, laporanAnchor, laporanDateFrom, laporanDateTo, setLaporanPeriode as setLaporanPeriodeState, setLaporanDateFrom, setLaporanDateTo, setLaporanAnchor } from './app-state.js';
 import { fmtRupiah, fmtKg, fmtDate, escapeHtml, openOverlay, closeSheet, toast, unformatRupiah } from './utils.js';
+import { fiturKasAktif } from './kas.js';
 
 let _lunasiId = null;
 
@@ -500,6 +501,11 @@ export async function renderLaporan(){
       ${s.status==='tutup' ? `<div class="row-amt ${s.selisih===0?'green':'red'}">${s.selisih>0?'+':''}${fmtRupiah(s.selisih)}</div>` : ''}
     </div>
   `).join('') || '<div class="hint">Belum ada riwayat buka/tutup kas</div>';
+
+  // Fitur kas/shift mati (⚙️ Fitur Aplikasi) → kartu riwayat tidak dirender
+  // (pola kaki5 v166). Data shift lama tetap ada di DB, hanya tersembunyi.
+  const shiftCard = document.getElementById('kasShiftCard');
+  if(shiftCard) shiftCard.style.display = (await fiturKasAktif()) ? '' : 'none';
 
   await renderTutupBuku();
 }

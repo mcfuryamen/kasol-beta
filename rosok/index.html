@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=DOCS-140">
+<link rel="stylesheet" href="style.css?v=FITUR-KAS">
 <script src="dexie.min.js"></script>
 <script src="js/supabase.min.js"></script>
 <script src="js/supabase-config.js"></script>
@@ -296,7 +296,7 @@
         <div class="flex-between"><h3 class="mb0">Buku Kas</h3><span class="badge green" id="kasSaldoBadge">Rp 0</span></div>
         <div id="kasList" class="mt10 compact-list"></div>
       </div>
-      <div class="card">
+      <div class="card" id="kasShiftCard">
         <h3 class="mb0">Riwayat Buka/Tutup Kas</h3>
         <div id="kasShiftHistoryList" class="mt10 compact-list"></div>
       </div>
@@ -353,7 +353,7 @@
       </div>
 
       <div class="card mt12">
-        <div class="card-title">💳 Metode Pembayaran</div>
+        <div class="card-title">⚙️ Fitur Aplikasi</div>
         <div class="setting-row">
           <span class="setting-ic ic-green">💵</span>
           <div class="setting-txt"><div class="s-title">Tunai</div><div class="s-desc">Uang diterima + kembalian</div></div>
@@ -368,6 +368,11 @@
           <span class="setting-ic ic-orange">📝</span>
           <div class="setting-txt"><div class="s-title">Tempo</div><div class="s-desc">Bayar sebagian, sisanya dicatat utang/piutang</div></div>
           <label class="toggle-switch"><input type="checkbox" id="payOptTempo" checked onchange="savePayOptions()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <span class="setting-ic ic-blue">🧾</span>
+          <div class="setting-txt"><div class="s-title">Kas &amp; Shift Harian</div><div class="s-desc">Buka/tutup kas dengan modal awal; matikan bila tidak dipakai — transaksi tetap bisa tanpa buka kas</div></div>
+          <label class="toggle-switch"><input type="checkbox" id="fiturKasToggle" checked onchange="saveFiturKas()"><span class="toggle-slider"></span></label>
         </div>
       </div>
 
@@ -703,6 +708,21 @@
   </div>
 </div>
 
+<!-- ====== PENAWARAN PULIH DARI CLOUD (browser baru, perangkat berlisensi — audit multi-browser 2026-09-04) ======
+     Ditampilkan deferred oleh backup.maybeOfferCloudRestore() saat DB lokal kosong
+     & ada cadangan cloud utk unit ini. Bisa ditolak; maksimal ditawari 1x/hari. -->
+<div class="overlay center-overlay" id="sheetRestoreOffer" role="dialog" aria-modal="true" aria-labelledby="restoreOfferTitle">
+  <div class="prof-card">
+    <div class="prof-emoji">☁️</div>
+    <div class="prof-title" id="restoreOfferTitle">Ada Cadangan di Cloud</div>
+    <div class="prof-sub">Browser ini belum punya data transaksi, tapi perangkatmu punya cadangan tersimpan di server. Pulihkan sekarang?</div>
+    <div class="btn-block-row mt12">
+      <button class="btn btn-outline" onclick="window._ksr_declineRestoreOffer()">Nanti saja</button>
+      <button class="btn btn-primary" onclick="window._ksr_acceptRestoreOffer()">☁️ Pulihkan</button>
+    </div>
+  </div>
+</div>
+
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-spinner">
@@ -715,6 +735,6 @@
 
 
 <!-- Load modules in order -->
-<script type="module" src="js/app.js?v=DOCS-140"></script>
+<script type="module" src="js/app.js?v=FITUR-KAS"></script>
 </body>
 </html>

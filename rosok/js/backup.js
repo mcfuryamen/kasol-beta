@@ -14,7 +14,7 @@
    - Cloud khusus lisensi aktif (🔒, keputusan pemilik model kuota).
    ========================================================================= */
 import { db } from './db.js';
-import { toast, showLoading, hideLoading, getSetting, setSetting } from './utils.js';
+import { toast, showLoading, hideLoading, getSetting, setSetting, openOverlay, closeSheet } from './utils.js';
 import { SETTINGS } from './app-state.js';
 import { hmacSignature, isLicensed, ensureUnitId } from './license.js';
 import { refreshAll } from './dashboard.js';
@@ -68,7 +68,18 @@ async function generateBackupSignature(data){
 }
 async function verifyBackupSignature(data, expectedSig){
   const actual = await generateBackupSignature(data);
-  return actual === expectedSig;
+  if (actual === expectedSig) return true;
+  // Post-re-anchor (audit multi-browser 2026-09-04): file lama ditandatangani
+  // dengan unit_id SEBELUM migrasi — coba ulang dengan unit_id asal yang
+  // tercatat di settings.unitReanchor.from, jangan tolak cadangan sah.
+  try {
+    const ra = await getSetting('unitReanchor', null);
+    if (ra && ra.from) {
+      const old = await hmacSignature(ra.from + JSON.stringify(data));
+      if (old === expectedSig) return true;
+    }
+  } catch (_) { /* verifikasi tambahan bersifat opsional */ }
+  return false;
 }
 
 // ── Validasi 3 lapis (pola T6 kaki5, disesuaikan skema rosok) ─────────────
@@ -289,6 +300,37 @@ function cloudErr(kind){
   toast(msg);
 }
 
+// ── Penawaran pulih otomatis utk browser baru (audit multi-browser 2026-09-04) ─
+// Data transaksi tetap per-browser (hukum sandbox IndexedDB — kaki5 sama), tapi
+// browser baru di perangkat BERLISENSI yang punya cadangan cloud kini DITAWARI
+// pemulihan sekali sehari (bukan restore diam-diam). Dipanggil deferred dari
+// initApp; semua kegagalan ditelan diam — penawaran tidak boleh mengganggu boot.
+export async function maybeOfferCloudRestore(){
+  try {
+    if (!navigator.onLine) return;
+    if (!(await isLicensed())) return;
+    if (await db.transaksi.count() > 0) return;            // sudah ada data lokal
+    const last = Number(await getSetting('restoreOfferAt', 0)) || 0;
+    if (Date.now() - last < 24 * 3600 * 1000) return;      // sudah ditawari hari ini
+    const ctx = await cloudCtx();
+    if (ctx.err) return;
+    const { data: blob, error } = await ctx.sb.storage.from(CLOUD_BUCKET)
+      .download(`${ctx.unitId}/cadangan-latest.json`);
+    if (error || !blob) return;                            // belum ada cadangan
+    await setSetting('restoreOfferAt', Date.now());
+    if (!document.getElementById('sheetRestoreOffer')) return;
+    openOverlay('sheetRestoreOffer');
+  } catch (_) { /* nice-to-have — jangan pernah ganggu boot */ }
+}
+
+export function acceptRestoreOffer(){
+  closeSheet('sheetRestoreOffer');
+  cloudRestoreLatest();
+}
+export function declineRestoreOffer(){
+  closeSheet('sheetRestoreOffer');
+}
+
 // ── Hapus semua data (pola kaki5: lisensi SENGAJA dipertahankan) ──────────
 export async function confirmClearAll(){
   if (!confirm('⚠️ SEMUA data usaha (kategori, transaksi, kas, tutup buku) akan dihapus dan tidak bisa dikembalikan! Status lisensi perangkat tetap tersimpan. Yakin?')) return;
@@ -321,3 +363,5 @@ window.importData = importData;
 window.cloudSaveBackup = cloudSaveBackup;
 window.cloudRestoreLatest = cloudRestoreLatest;
 window.confirmClearAll = confirmClearAll;
+window._ksr_acceptRestoreOffer = acceptRestoreOffer;
+window._ksr_declineRestoreOffer = declineRestoreOffer;

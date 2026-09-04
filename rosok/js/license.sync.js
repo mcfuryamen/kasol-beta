@@ -137,10 +137,33 @@ export async function getCloudLicenseStatus(unitId) {
   const s = await ensureSession(sb, unitId).catch(() => null);
   if (!s) return null;
   const { data, error } = await sb.from('clients')
-    .select('license_status, license_serial, license_expires_at, status, bukti_url')
+    .select('license_status, license_serial, license_expires_at, status, bukti_url, nama_usaha, no_whatsapp')
     .eq('unit_id', unitId).eq('app_type', APP_TYPE).maybeSingle();
   if (error) { console.warn('getCloudLicenseStatus:', error.message || error); return null; }
   return data || null;
+}
+
+// ── Guard tabrakan identitas (audit multi-browser 2026-09-04) ─────────────
+// Fingerprint hardware TIDAK unik antar perangkat: dua pengguna dengan TIPE HP
+// sama menghasilkan deviceCode & unit_id identik → baris cloud yang sama.
+// Kebijakan RLS hybrid (claim unit_id di JWT) membuat pengguna kedua bisa
+// membaca baris milik yang pertama — tanpa guard ini, lisensi aktif & profil
+// usaha bisa "teradopsi" silang antar pengguna asing. Aturan: adopsi lisensi
+// cloud hanya bila baris belum diprofilkan (kosong) ATAU profil cloud cocok
+// dengan profil lokal (nama usaha / no. WA, case-insensitive). Penutupan
+// penuh butuh perubahan policy server (keputusan terpisah) — ini lapisan
+// klien yang menghentikan kebocoran terburuk (lisensi & data profil).
+async function cloudProfileMatchesLocal(cloud) {
+  const g = async (k) => { try { return String(await getSetting(k, '') || '').trim().toLowerCase(); } catch (_) { return ''; } };
+  const cloudUsaha = String(cloud.nama_usaha || '').trim().toLowerCase();
+  const cloudWa = String(cloud.no_whatsapp || '').trim().toLowerCase();
+  if (!cloudUsaha && !cloudWa) return true; // baris belum diprofilkan → aman
+  const localUsaha = await g('bizName');
+  const localWa = await g('bizPhone');
+  // Lokal kosong (browser baru / install ulang) BUKAN tabrakan — adopsi sah.
+  if (!localUsaha && !localWa) return true;
+  return (!!cloudUsaha && !!localUsaha && cloudUsaha === localUsaha)
+      || (!!cloudWa && !!localWa && cloudWa === localWa);
 }
 
 // ── Adopsi lisensi cloud → lokal (dipakai realtime/polling purchase.js) ───
@@ -149,6 +172,10 @@ export async function persistCloudLicense(cloud) {
       && String(cloud.license_status || '').toLowerCase() !== 'active') return false;
   const local = await getSetting('license', null) || {};
   if (local.status === 'active') return true; // sudah aktif
+  if (!(await cloudProfileMatchesLocal(cloud))) {
+    console.warn('[LICENSE] adopsi cloud DITOLAK — profil tidak cocok (indikasi tabrakan identitas sesama model perangkat)');
+    return false;
+  }
   const serial = (cloud.license_serial || '').trim().toUpperCase();
   const m = serial.match(/-([A-Z0-9]{2})-[A-Z0-9]{6}$/);
   const lic = {
@@ -244,6 +271,77 @@ export async function ensureSession(sb, unitId) {
   }
 }
 
+// ── RE-ANCHOR unit_id utk instalasi pra-fingerprint (audit multi-browser
+//    2026-09-04) ─────────────────────────────────────────────────────────────
+// Instalasi lama menyimpan unit_id turunan identitas LAMA (deviceId acak
+// per-browser, atau fingerprint V3 sebelum sinyal platform dibuang). Selama
+// unit_id begitu, browser lama & browser baru di SATU perangkat fisik menunjuk
+// dua baris cloud berbeda: lisensi tidak ikut pindah, profil fragmentasi,
+// kuota dobel-spend, path cadangan beda. Aturan kaki5 melarang unit_id berubah
+// SEKALI terikat serial berbayar (reassign hanya via device_assign) — jadi
+// konvergensi ke kanonik 'KSR-'+deviceCode-fingerprint hanya dilakukan untuk
+// perangkat TANPA serial aktif. Idempoten: setelah sukses unitId === kanonik
+// dan fungsi ini jadi no-op.
+//   • Baris milik sendiri ada  → PATCH unit_id+device_code ke kanonik (RLS
+//     user_id mengizinkan), lalu simpan unitId kanonik lokal.
+//   • Duplicate key (browser lain di perangkat sama sudah lebih dulu) → adopsi
+//     unit kanonik secara lokal; claim sesi membuat cabang hybrid RLS tetap
+//     mengizinkan akses ke baris kanonik tsb.
+//   • Offline/gagal jaringan → diam; dicoba lagi boot berikutnya.
+export async function reanchorUnitId() {
+  const sb = getSupabaseClient();
+  if (!sb || !navigator.onLine) return { ok: false, reason: 'offline' };
+  let identity = null, unitId = null, lic = null;
+  try {
+    identity = await getSetting('deviceIdentity', null);
+    unitId = await getSetting('unitId', null);
+    lic = await getSetting('license', null) || {};
+  } catch (_) { return { ok: false, reason: 'storage' }; }
+  if (!identity || !identity.deviceCode || !unitId) return { ok: false, reason: 'no-identity' };
+  const canonical = 'KSR-' + identity.deviceCode;
+  if (unitId === canonical) return { ok: true, reason: 'already' };
+  if (lic.status === 'active' && lic.serial) return { ok: false, reason: 'serial-bound' };
+  let s = null;
+  try { s = await ensureSession(sb, unitId); } catch (_) {}
+  if (!s) return { ok: false, reason: 'session' };
+  const { error: migErr } = await sb.from('clients')
+    .update({ unit_id: canonical, device_code: identity.deviceCode })
+    .eq('unit_id', unitId).eq('app_type', APP_TYPE);
+  if (!migErr) {
+    await setSetting('unitId', canonical);
+    await setSetting('unitReanchor', { from: unitId, to: canonical, at: new Date().toISOString() });
+    await ensureSession(sb, canonical).catch(() => {});
+    console.log('[REANCHOR] unit_id dimigrasikan ke kanonik:', canonical);
+    return { ok: true, reason: 'migrated' };
+  }
+  if (String(migErr.code || '') === '23505' || /duplicate key/i.test(String(migErr.message || ''))) {
+    // Kanonik sudah dipakai browser lain DI PERANGKAT SAMA (normal) — atau
+    // pengguna LAIN sesama model HP (tabrakan fingerprint). Bedakan lewat
+    // profil: adopsi hanya bila baris kanonik kosong profilnya ATAU cocok
+    // dengan lokal; kalau bukan, PERTAHANKAN unit lama — fragmentasi jauh
+    // lebih aman daripada merge dengan baris milik orang asing.
+    let adopt = false;
+    try {
+      await ensureSession(sb, canonical);
+      const { data: row } = await sb.from('clients')
+        .select('unit_id, nama_usaha, no_whatsapp')
+        .eq('unit_id', canonical).eq('app_type', APP_TYPE).maybeSingle();
+      adopt = !!row && await cloudProfileMatchesLocal(row);
+    } catch (_) { adopt = false; }
+    if (adopt) {
+      await setSetting('unitId', canonical);
+      await setSetting('unitReanchor', { from: unitId, to: canonical, at: new Date().toISOString(), adopted: true });
+      console.log('[REANCHOR] baris kanonik cocok — unit_id diadopsi:', canonical);
+      return { ok: true, reason: 'adopted' };
+    }
+    await ensureSession(sb, unitId).catch(() => {}); // kembalikan claim ke unit lama
+    console.warn('[REANCHOR] duplicate dgn baris profil asing — unit lama DIPERTAHANKAN (indikasi tabrakan identitas)');
+    return { ok: false, reason: 'collision-foreign' };
+  }
+  console.warn('[REANCHOR] gagal:', migErr.message || migErr);
+  return { ok: false, reason: 'write', error: migErr.message };
+}
+
 // Baca baris clients milik perangkat ini (termasuk kolom profil & wilayah).
 async function readClientRow(sb, unitId) {
   const { data, error } = await sb
@@ -282,6 +380,12 @@ async function applyCloudProfile(cloud) {
   let pending = false;
   try { pending = !!(await getSetting('profileSyncPending', false)); } catch (_) {}
   if (pending) { console.log('[PROFILE] pull dilewati — ada perubahan lokal belum terkirim'); return 0; }
+  // Guard tabrakan identitas: baris cloud terisi profil usaha LAIN (sesama
+  // model HP) → pull DILEWATI, jangan sampai profil tetangga menimpa lokal.
+  if (!(await cloudProfileMatchesLocal(cloud))) {
+    console.warn('[PROFILE] pull DILEWATI — baris cloud terisi profil asing (indikasi tabrakan identitas)');
+    return 0;
+  }
   let changed = 0;
   for (const [col, key] of Object.entries(PROFILE_FIELD_MAP)) {
     const val = cloud[col];
@@ -435,6 +539,34 @@ export async function syncLicenseStatus(unitId, licenseApi) {
   let result;
   try { result = await readClientRow(sessionSb, unitId); }
   catch (e) { return { ok: false, reason: 'network', error: e?.message || e }; }
+  // Fallback adopsi (port kaki5 sync.js C2v2): baris bisa jadi tersimpan di
+  // unit_id lain (browser lain di perangkat sama sudah re-anchor, atau admin
+  // menugaskan via device_assign) tapi device_code fingerprint-nya sama →
+  // ADOPSI unit_id cloud, jangan self-insert baris kembar.
+  if (result.kind === 'not-found') {
+    const fpCode = licenseApi.getDeviceCode();
+    if (fpCode) {
+      try {
+        const { data: byDev } = await sessionSb.from('clients')
+          .select('unit_id').eq('device_code', fpCode).eq('app_type', APP_TYPE).maybeSingle();
+        if (byDev && byDev.unit_id && byDev.unit_id !== unitId) {
+          // Sama seperti reanchor: adopsi hanya bila baris kosong profilnya
+          // atau cocok lokal — jangan merge ke baris pengguna asing sesama model.
+          const { data: full } = await sessionSb.from('clients')
+            .select('nama_usaha, no_whatsapp').eq('unit_id', byDev.unit_id).maybeSingle();
+          if (full && !(await cloudProfileMatchesLocal(full))) {
+            console.warn('[SYNC] adopsi unit via device_code DITOLAK — profil asing (tabrakan identitas)');
+          } else {
+            console.log('[SYNC] unit_id diadopsi dari cloud (match device_code):', byDev.unit_id);
+            await setSetting('unitId', byDev.unit_id);
+            unitId = byDev.unit_id;
+            await ensureSession(sessionSb, unitId).catch(() => {});
+            result = await readClientRow(sessionSb, unitId);
+          }
+        }
+      } catch (_) { /* network — cabang self-insert di bawah yang bicara */ }
+    }
+  }
   if (result.kind === 'not-found') {
     // Perangkat belum dikenal cloud → daftarkan baris baru (self-insert).
     // user_id = auth.uid() sesi anon ini (policy storage & policy kaki5 mengikat lewat ini).
@@ -462,6 +594,11 @@ export async function syncLicenseStatus(unitId, licenseApi) {
       || String(cloud.license_status || '').toLowerCase() === 'active';
     const local = await licenseApi.getLicense();
     if (cloudActive && local.status !== 'active') {
+      // Guard tabrakan identitas: jangan adopsi lisensi baris milik pengguna
+      // lain sesama model perangkat (lihat cloudProfileMatchesLocal).
+      if (!(await cloudProfileMatchesLocal(cloud))) {
+        console.warn('[LICENSE] adopsi cloud DITOLAK — profil tidak cocok (indikasi tabrakan identitas)');
+      } else {
       const expCode = (cloud.license_serial || '').trim().toUpperCase().match(/-([A-Z0-9]{2})-[A-Z0-9]{6}$/);
       await licenseApi.saveLicense({
         status: 'active',
@@ -473,6 +610,7 @@ export async function syncLicenseStatus(unitId, licenseApi) {
         expiryDate: cloud.license_expires_at || null,
         source: 'cloud'
       });
+      }
     }
   } catch (e) { console.warn('adopsi lisensi cloud:', e?.message || e); }
 

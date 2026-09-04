@@ -4,13 +4,12 @@
    ========================================================================= */
 import { activeTransTipe, cart, currentWizardStep, bayarMetode, openShiftCache, setCart, setActiveTransTipe, setCurrentWizardStep, setBayarMetode } from './app-state.js';
 import { toast } from './utils.js';
-import { refreshShiftCache } from './kas.js';
+import { refreshShiftCache, openBukaKasSheet, fiturKasAktif } from './kas.js';
 import { renderWizardBar, switchTransTab } from './pos.js';
 import { renderStok } from './kategori.js';
 import { renderRiwayat } from './riwayat.js';
 import { renderLaporan, closePicker } from './laporan.js';
 import { refreshAll } from './dashboard.js';
-import { openBukaKasSheet } from './kas.js';
 
 // Screen → route mapping
 const SCREEN_TO_ROUTE = {
@@ -72,13 +71,17 @@ export function showScreen(name){
 
 // ── Open transaksi (with route push) ──────────────────────────────────────
 export async function openTransaksi(tipe){
-  await refreshShiftCache();
-  if(!openShiftCache){
-    toast('Buka kas dulu sebelum mulai transaksi');
-    // remember intent: after buka kas completes, return to transaksi of requested type
-    window._ksr_shouldOpenTransaksiAfterBuka = tipe;
-    openBukaKasSheet();
-    return;
+  // Gerbang "buka kas dulu" hanya berlaku bila fitur kas/shift aktif
+  // (Pengaturan → ⚙️ Fitur Aplikasi; port kaki5 v166).
+  if(await fiturKasAktif()){
+    await refreshShiftCache();
+    if(!openShiftCache){
+      toast('Buka kas dulu sebelum mulai transaksi');
+      // remember intent: after buka kas completes, return to transaksi of requested type
+      window._ksr_shouldOpenTransaksiAfterBuka = tipe;
+      openBukaKasSheet();
+      return;
+    }
   }
   setCart([]); setActiveTransTipe(tipe); setCurrentWizardStep(1); setBayarMetode('tunai');
   switchTransTab(tipe);

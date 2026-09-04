@@ -4,9 +4,9 @@
    ========================================================================= */
 import { db } from './db.js';
 import { SETTINGS, loadSettingsIntoState, seedKategoriIfEmpty, seedPlatformMessagesIfEmpty, loadKategori } from './app-state.js';
-import { fmtRupiah, fmtKg, fmtDate, todayStr, showLoading, hideLoading, escapeHtml, formatInputRupiah, unformatRupiah, toast, getSetting, setSetting, generateDeviceId, openOverlay, closeSheet } from './utils.js';
+import { fmtRupiah, fmtKg, fmtDate, todayStr, showLoading, hideLoading, escapeHtml, formatInputRupiah, unformatRupiah, toast, getSetting, setSetting, openOverlay, closeSheet } from './utils.js';
 import { refreshAll } from './dashboard.js';
-import { refreshShiftCache, openBukaKasSheet, bukaKas, openTutupKasSheet, hitungSelisihTutupKas, tutupKas, openKasForm, setKasTipe, saveKasManual } from './kas.js';
+import { refreshShiftCache, openBukaKasSheet, bukaKas, openTutupKasSheet, hitungSelisihTutupKas, tutupKas, openKasForm, setKasTipe, saveKasManual, fiturKasAktif } from './kas.js';
 import { openShiftCache } from './app-state.js';
 import { renderStok, openKategoriForm, saveKategori, deleteKategoriConfirm } from './kategori.js';
 import { renderRiwayat, loadRiwayatPage, viewTransaksiDetail, deleteTransaksi, voidTransaksi, closeNotaSheet } from './riwayat.js';
@@ -131,12 +131,12 @@ setRiwayatRefs({ refreshAll });
 window._ksr_db = db;
 
 // ── Tentang aplikasi (blok footer Pengaturan, pola kaki5) ─────────────────
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.3';
 function updateAboutInfo(){
   const v = document.getElementById('appVersionLabel');
   if(v) v.textContent = APP_VERSION;
   const d = document.getElementById('aboutDeviceCode');
-  if(d) d.textContent = SETTINGS.deviceCode || getDeviceCode(SETTINGS.deviceId || '') || '—';
+  if(d) d.textContent = SETTINGS.deviceCode || '—';
   // Link situs dari cloud (port app-link kaki5): products.store_url →
   // settings.app_links.rosok → fallback hardcoded. Non-blocking.
   import('./app-link.js').then(({ getAppLink }) => getAppLink().then(url => {
@@ -234,10 +234,17 @@ window._ksr_dismissProfileBanner = dismissProfileBanner;
 // ksr-kas-changed di bawah bisa memanggilnya (dulu selalu undefined).
 async function updateKasBarButtons(){
   try{
-    const shift = await refreshShiftCache();
     const btnToggle = document.getElementById('btnToggleKas');
     const btnManual = document.getElementById('btnOpenKasManual');
     if(!btnToggle || !btnManual) return;
+    // Fitur kas/shift mati (Pengaturan → ⚙️ Fitur Aplikasi): tombol
+    // Buka/Tutup Kas disembunyikan; "Catat Kas" tetap tersedia (pola kaki5 v166).
+    if(!(await fiturKasAktif())){
+      btnToggle.style.display = 'none';
+      return;
+    }
+    btnToggle.style.display = '';
+    const shift = await refreshShiftCache();
     if(shift){
       btnToggle.className = 'btn btn-primary';
       btnToggle.textContent = '🔒 Tutup Kas';
@@ -251,7 +258,7 @@ async function updateKasBarButtons(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
-import { getDeviceCode } from './license.js';
+import { getDeviceCode, getDeviceIdentity } from './license.js';
 
 // Wire refs lisensi supaya checkLicenseGate() bisa memanggil updateTrialChip,
 // renderLicenseInfoCard, dan alur extend/grant (tanpa circular import).
@@ -261,9 +268,16 @@ async function initApp() {
   // initApp started
   cacheDomElements();
   try {
-    let deviceId = await getSetting('deviceId', null);
-    if (!deviceId) { deviceId = generateDeviceId(); await setSetting('deviceId', deviceId); }
-    await setSetting('deviceCode', getDeviceCode(deviceId));
+    // Identitas PALING AWAL (port kaki5 V3/T14): deviceCode diturunkan dari
+    // fingerprint perangkat keras → SAMA di semua browser pada perangkat fisik
+    // yang sama (lisensi/profil/klaim cloud ikut pindah browser). deviceId lama
+    // dipertahankan sebagai installId (penanda instalasi, tracking saja).
+    const identity = await getDeviceIdentity();
+    await setSetting('deviceCode', identity.deviceCode);
+    // Konvergensi identitas lintas-browser (audit multi-browser 2026-09-04):
+    // instalasi pra-fingerprint dimigrasikan ke unit_id kanonik SEBELUM apa pun
+    // yang bergantung padanya (subscribe realtime, sync, path cadangan).
+    try { const { reanchorUnitId } = await import('./license.sync.js'); await reanchorUnitId(); } catch(_) {}
     await loadSettingsIntoState();
     updateAboutInfo();
     initRegionPicker();
@@ -287,6 +301,9 @@ async function initApp() {
     await refreshAll();
     checkLicenseGate();
   } catch (error) { console.error('Init error:', error); toast('Gagal memuat aplikasi: ' + error.message); }
+  // Browser baru di perangkat berlisensi dengan cadangan cloud → tawarkan
+  // pemulihan (deferred 4 dtk, tidak pernah memblokir/ganggu boot).
+  setTimeout(() => { try { import('./backup.js').then(m => m.maybeOfferCloudRestore()).catch(() => {}); } catch(_) {} }, 4000);
   markReady();
 }
 

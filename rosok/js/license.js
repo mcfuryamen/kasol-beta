@@ -58,6 +58,77 @@ export function getDeviceCode(installId) {
   return b36.slice(0, 4) + '-' + b36.slice(4, 8);
 }
 
+// ── IDENTITAS PERANGKAT LINTAS-BROWSER (port kaki5 V3/T14, disempurnakan V4
+//    saat audit multi-browser rosok 2026-09-04) ─────────────────────────────
+// "Perangkat" = perangkat FISIK, bukan instalasi browser. deviceCode diturunkan
+// DETERMINISTIK dari fingerprint perangkat keras yang identik di SEMUA engine
+// (Chrome/Firefox/Samsung Internet/WebView) → semua browser di HP yang sama
+// menghasilkan deviceCode & unit_id yang SAMA: lisensi, profil cloud, klaim
+// device_known, dan cadangan cloud ikut pindah browser, bukan terfragmentasi
+// jadi "perangkat baru" tiap ganti browser (model lama rosok: deviceId acak
+// per browser = satu perangkat per browser — isu yang diperbaiki sini).
+// Sinyal: OS platform, core CPU, RAM, touch points, resolusi layar.
+// SENGJA tanpa canvas/WebGL (rendering beda antar engine) dan tanpa
+// timezone/devicePixelRatio (diubah OS saat bepergian/zoom — pelajaran T14
+// kaki5: sempat mengusir user valid dengan "Kode ini bukan untuk perangkat ini").
+function fnv1a(joined) {
+  const bytes = new TextEncoder().encode(joined);
+  let h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (let i = 0; i < bytes.length; i++) {
+    h1 = (h1 ^ bytes[i]) >>> 0; h2 = (h2 * 0x01000193) >>> 0;
+    h1 = (h1 * 0x01000193) >>> 0; h2 = (h2 ^ bytes[i]) >>> 0;
+  }
+  return new Uint8Array([
+    (h1 >>> 24) & 0xff, (h1 >>> 16) & 0xff, (h1 >>> 8) & 0xff, h1 & 0xff,
+    (h2 >>> 24) & 0xff, (h2 >>> 16) & 0xff, (h2 >>> 8) & 0xff, h2 & 0xff
+  ]);
+}
+
+export async function getDeviceFingerprint() {
+  const parts = [];
+  const nav = (typeof navigator !== 'undefined') ? navigator : {};
+  // V4 (audit multi-browser 2026-09-04): `platform` DIBUANG — satu-satunya
+  // sinyal yang bocor antar engine (Chrome/Samsung/WebView = 'Linux armv8l',
+  // Firefox Android = 'Android', hardware sama), sementara sumbangan entropinya
+  // nol (model HP sama = platform sama juga). Sisa sinyal tetap membedakan
+  // antar model perangkat.
+  parts.push(String(nav.hardwareConcurrency || ''));
+  parts.push(String(nav.deviceMemory || ''));
+  parts.push(String(nav.maxTouchPoints || 0));
+  try { parts.push(String(screen.width) + 'x' + String(screen.height)); }
+  catch (e) { parts.push('sc:na'); }
+  const joined = 'KSR-FP-V4|' + parts.join('|');
+  let digest;
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(joined)));
+  } else {
+    digest = fnv1a(joined); // non-secure context fallback
+  }
+  return b32Encode(digest, 12);
+}
+
+// deviceCode SELALU dari fingerprint. installId (dulu bernama deviceId) tetap
+// disimpan sebagai penanda INSTALASI untuk tracking — TIDAK pernah jadi dasar
+// deviceCode. legacyDeviceCode dikunci saat migrasi pertama: kode lama turunan
+// deviceId acak, dipakai hanya sebagai masa tenggang validasi serial yang
+// terbit sebelum switch (lihat validateLicenseKeyV2).
+export async function getDeviceIdentity() {
+  const fingerprint = await getDeviceFingerprint();
+  const deviceCode = getDeviceCode(fingerprint);
+  const stored = await getSetting('deviceIdentity', null) || {};
+  let installId = stored.installId || await getSetting('deviceId', null);
+  if (!installId) {
+    installId = 'DEV-' + Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).toUpperCase().padStart(2, '0')).join('');
+  }
+  const identity = {
+    installId, deviceCode, fingerprint,
+    legacyDeviceCode: stored.legacyDeviceCode || (await getSetting('deviceCode', '')) || ''
+  };
+  await setSetting('deviceId', installId);
+  await setSetting('deviceIdentity', identity);
+  return identity;
+}
+
 export function checkExpired(expCode, activationDate, nowMs = Date.now()) {
   if (expCode === '99') return false;
   if (expCode.endsWith('D')) {
@@ -182,7 +253,15 @@ export async function validateLicenseKeyV2(rawKey, myDeviceCode, activationDate)
   const re = /^KSR-([A-Z0-9]{4})-([A-Z0-9]{4})-([A-Z0-9]{2})-([A-Z0-9]{6})$/;
   if (!re.test(clean)) return null;
   const [, d1, d2, exp, sig] = clean.match(re);
-  if (d1 + '-' + d2 !== myDeviceCode) return { valid: false, reason: 'device' };
+  if (d1 + '-' + d2 !== myDeviceCode) {
+    // Masa tenggang migrasi identitas (switch deviceId-acak → fingerprint):
+    // serial yang TERBIT sebelum migrasi terikat legacyDeviceCode browser ini.
+    // Diterima diam-diam supaya perangkat lama tidak terkunci; browser baru
+    // tidak punya legacy (tidak bisa diturunkan dari hardware) → tetap perlu
+    // serial baru berbasis fingerprint dari admin.
+    const legacy = ((await getSetting('deviceIdentity', null)) || {}).legacyDeviceCode || '';
+    if (!legacy || d1 + '-' + d2 !== legacy) return { valid: false, reason: 'device' };
+  }
   // Salt dari cloud (products.salt KSR/rosok — admin bisa rotasi), fallback
   // konstanta build. Port fetchProductSalt kaki5 (2026-08-30).
   const { salt } = await fetchProductSalt();
@@ -233,7 +312,11 @@ export async function validateLicenseKey(rawKey, deviceId) {
 }
 
 export function getDeviceIdForLicense() {
-  return getDeviceCode(SETTINGS.deviceId || SETTINGS.installId || 'UNKNOWN');
+  // Sumber = deviceCode fingerprint yang sudah dihitung boot (settings.deviceCode
+  // + settings.deviceIdentity). Fallback 'UNKNOWN' hanya utk pembacaan pra-boot
+  // yang seharusnya tidak terjadi (initApp menghitung identitas di langkah 1).
+  const di = SETTINGS.deviceIdentity || {};
+  return SETTINGS.deviceCode || getDeviceCode(di.fingerprint || 'UNKNOWN');
 }
 
 // API state lisensi utk license.sync.js (dioper sebagai parameter — tanpa

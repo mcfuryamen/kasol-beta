@@ -4,7 +4,24 @@
    ========================================================================= */
 import { db } from './db.js';
 import { openShiftCache, kasFormTipe, setOpenShiftCache, setKasFormTipe } from './app-state.js';
-import { fmtRupiah, unformatRupiah, toast, openOverlay, closeSheet } from './utils.js';
+import { fmtRupiah, unformatRupiah, toast, openOverlay, closeSheet, getSetting } from './utils.js';
+
+// ── Saklar fitur kas/shift (Pengaturan → ⚙️ Fitur Aplikasi; port kaki5 v166/v167) ─
+// 'fiturKas' = '0': gerbang POS di nav.js dilolos, tombol Buka/Tutup Kas
+// disembunyikan, blok "Riwayat Buka/Tutup Kas" di Laporan tidak dirender, dan
+// aksi buka/tutup kas ditolak dengan toast. Data shift lama TIDAK dihapus —
+// saklar hanya menyembunyikan alurnya. Default '1' = perilaku lama.
+// Pelajaran v167 kaki5: baca SEGAR tiap panggilan — IndexedDB dipakai bersama
+// antar tab, cache modul bisa basi dan meloloskan gerbang POS. Gagal baca ≠
+// mematikan gerbang: anggap AKTIF — lebih aman memaksa buka kas daripada kehilangan modal awal).
+export async function fiturKasAktif() {
+  try {
+    return (await getSetting('fiturKas', '1')) !== '0';
+  } catch (e) {
+    console.warn('[KAS] baca fiturKas gagal, anggap AKTIF:', e?.message || e);
+    return true; // gagal baca ≠ mematikan gerbang — lebih aman memaksa buka kas
+  }
+}
 
 export async function refreshShiftCache(){
   setOpenShiftCache(await db.kasShift.where('status').equals('buka').first() || null);
@@ -45,12 +62,14 @@ export async function hitungRingkasanShift(waktuMulai, sampai){
   return { masuk, keluar, saldoSistem: masuk - keluar, jumlahTransaksi };
 }
 
-export function openBukaKasSheet(){
+export async function openBukaKasSheet(){
+  if(!(await fiturKasAktif())){ toast('Fitur buka/tutup kas sedang dimatikan di Pengaturan ⚙️'); return; }
   document.getElementById('bukaKasModal').value = '';
   openOverlay('sheetBukaKas');
 }
 
 export async function bukaKas(){
+  if(!(await fiturKasAktif())){ toast('Fitur buka/tutup kas sedang dimatikan di Pengaturan ⚙️'); return; }
   const modal = unformatRupiah(document.getElementById('bukaKasModal').value) || 0;
   if(modal < 0){ toast('Modal awal tidak boleh minus'); return; }
   const now = new Date().toISOString();
@@ -78,6 +97,7 @@ export async function bukaKas(){
 }
 
 export async function openTutupKasSheet(){
+  if(!(await fiturKasAktif())){ toast('Fitur buka/tutup kas sedang dimatikan di Pengaturan ⚙️'); return; }
   const shift = openShiftCache;
   if(!shift){ toast('Kas belum dibuka'); return; }
   const kasSistemSebenarnya = await hitungKasSistemSejak(shift.waktuBuka);
@@ -113,7 +133,8 @@ export function hitungSelisihTutupKas(){
   el.style.color = selisih === 0 ? 'var(--green)' : 'var(--red)';
 }
 
-export function tutupKas(){
+export async function tutupKas(){
+  if(!(await fiturKasAktif())){ toast('Fitur buka/tutup kas sedang dimatikan di Pengaturan ⚙️'); return; }
   const shift = openShiftCache;
   if(!shift){ toast('Kas belum dibuka'); return; }
   const sistem = parseFloat(document.getElementById('tutupSelisihVal').dataset.sistem) || 0;

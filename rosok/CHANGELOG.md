@@ -1,5 +1,85 @@
 # Changelog - Kasir Solo Rosok
 
+## [1.4.3] - 2026-09-04 (sw v57, `?v=FITUR-KAS`)
+
+### ⚙️ "Fitur Aplikasi" + saklar Kas & Shift Harian (permintaan pemilik; port kaki5 v166/v167)
+- Blok Pengaturan **"💳 Metode Pembayaran" diganti judulnya jadi "⚙️ Fitur
+  Aplikasi"** — tiga saklar metode bayar tetap, ditambah saklar baru
+  **"🧾 Kas & Shift Harian"** (`settings.fiturKas`, default aktif).
+- **Saat dimatikan:** gerbang "buka kas dulu" di POS dilolos (transaksi bisa
+  langsung jalan tanpa modal awal), tombol **Buka/Tutup Kas** di kas-bar
+  disembunyikan ("➕ Catat Kas" tetap ada — buku kas manual tidak terikat
+  shift), blok **"Riwayat Buka/Tutup Kas"** di Laporan tidak dirender, dan aksi
+  buka/tutup kas menolak dengan toast jelas. **Data shift lama tidak dihapus**
+  — saklar hanya menyembunyikan alurnya; nyalakan lagi → riwayat muncul.
+- `fiturKasAktif()` (kas.js) membaca **segar tiap panggilan** — pelajaran
+  v167 kaki5: IndexedDB dipakai bersama antar tab, cache modul bisa membuat
+  saklar terlihat aktif padahal DB sudah '0' (gerbang POS lolos diam-diam).
+  Gagal baca = anggap AKTIF (lebih aman memaksa buka kas).
+- Berlaku langsung tanpa reload: `saveFiturKas()` menyegarkan kas-bar &
+  render Laporan; boot & `loadPayOptions()` menyinkronkan checkbox.
+
+## [1.4.2] - 2026-09-04 (audit ulang multi-browser — sw v56, `?v=MULTI-BR`)
+
+Perbaikan menyeluruh hasil audit "1 perangkat 1 database multi browser" —
+fix 1.4.1 baru menyatukan identitas untuk instalasi BARU; empat lapis sisanya
+dirapikan di sini:
+
+1. **Re-anchor unit_id instalasi lama** (`reanchorUnitId`, dipanggil boot
+   sebelum realtime/sync): perangkat TANPA serial aktif mengonvergensikan
+   `unit_id` lamanya (turunan deviceId acak / fingerprint V3) ke kanonik
+   `KSR-<fingerprint>` — baris milik sendiri di-PATCH, bila duplicate
+   (browser lain sudah lebih dulu) unit kanonik DIADOPSI (claim sesi membuat
+   cabang hybrid RLS tetap memberi akses). Ditambah fallback adopsi ala kaki5
+   di `syncLicenseStatus`: baris tak ketemu via unit_id tapi ketemu via
+   `device_code` → adopsi unit cloud, bukan self-insert baris kembar.
+   Menghilangkan fragmentasi: lisensi ikut pindah browser, profil satu baris,
+   kuota tidak dobel-spend, path cadangan & channel realtime sama.
+2. **Fingerprint V4 — sinyal `platform` dibuang.** Ia satu-satunya sinyal yang
+   bocor antar engine (Chrome/Samsung/WebView `Linux armv8l` vs Firefox
+   `Android` pada hardware sama) sementara entropinya nol. Kini Chrome ↔
+   Firefox di satu HP menyatu. (V3 hanya berumur sehari di beta; re-anchor #1
+   menyerap pergeseran identitasnya.)
+3. **Guard tabrakan identitas sesama model HP.** Dua pengguna tipe HP sama →
+   fingerprint sama → unit_id sama → RLS hybrid mengizinkan saling baca.
+   Adopsi lisensi cloud (jalur sync `persistCloudLicense` dan blok (A)) kini
+   WAJIB lolos `cloudProfileMatchesLocal`: baris kosong profil → boleh; kalau
+   terisi → `nama_usaha`/`no_whatsapp` harus cocok dengan lokal. `getCloudLicenseStatus`
+   ikut menyeleksi kedua kolom. (Penutupan penuh butuh perubahan policy
+   server — tercatat sebagai keputusan terpisah.)
+4. **Penawaran pulih cloud utk browser baru** (`maybeOfferCloudRestore`,
+   deferred 4 dtk dari initApp): DB transaksi kosong + lisensi aktif + ada
+   `cadangan-latest.json` → sheet `#sheetRestoreOffer` (Pulihkan / Nanti saja,
+   maks 1×/hari). Data transaksi tetap per-browser (hukum IndexedDB — kaki5
+   sama); ini jembatan resminya, kini otomatis ditawarkan, bukan manual buta.
+5. **Signature backup tahan-re-anchor**: verifikasi gagal dgn unit_id sekarang
+   dicoba ulang dgn `unitReanchor.from` — file cadangan lama tidak jadi yatim.
+
+## [1.4.1] - 2026-09-04 (sw v55, `?v=FP-DEVICE`)
+
+### Identitas perangkat lintas-browser (port kaki5 V3/T14)
+- **Masalah lama:** `deviceId` = UUID acak PER BROWSER → `deviceCode` & `unit_id`
+  berbeda tiap browser → satu HP terasa sebagai beberapa "perangkat" oleh cloud:
+  lisensi harus diaktivasi ulang per browser, profil & klaim & cadangan cloud
+  terfragmentasi.
+- **Fix:** `deviceCode` kini diturunkan deterministik dari **fingerprint perangkat
+  keras** (`getDeviceFingerprint`: platform OS, core CPU, RAM, touch points,
+  resolusi layar → SHA-256 → base32; fallback FNV-1a utk non-secure-context).
+  Sengaja TANPA canvas/WebGL (beda antar engine) dan TANPA timezone/DPR
+  (diubah OS — pelajaran T14 kaki5: sempat mengusir user valid). Semua browser
+  di perangkat fisik yang sama → deviceCode & unit_id SAMA → lisensi, profil
+  cloud, klaim `device_known`, dan cadangan cloud ikut pindah browser.
+- `deviceId` lama dipertahankan sebagai **installId** (penanda instalasi,
+  tracking saja — tidak pernah jadi dasar deviceCode). Struktur baru
+  `settings.deviceIdentity = {installId, deviceCode, fingerprint, legacyDeviceCode}`.
+- **Masa tenggang migrasi:** serial V2 yang terbit SEBELUM switch (terikat
+  deviceCode acak lama) tetap diterima di browser asalnya via
+  `legacyDeviceCode`; browser baru butuh serial baru berbasis fingerprint dari
+  admin. `unitId` tetap immutable (perangkat lama tidak pindah baris cloud).
+- Transaksi TETAP per-browser (offline-first, sama seperti kaki5 — tidak ada
+  auto-restore); jembatan data lintas browser = Cadangan/Pulihkan Cloud
+  (lisensi aktif) yang kini otomatis menunjuk baris/unit yang sama.
+
 ## [1.4.0] - 2026-09-04 (era sinkron cloud — sw v14 → v54)
 
 Rilisan terbesar sejak refactor modular: model lisensi kuota, sinkronisasi cloud

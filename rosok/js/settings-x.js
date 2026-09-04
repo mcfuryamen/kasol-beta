@@ -1,10 +1,12 @@
 /* =========================================================================
    KASIR SOLO - ROSOK
    settings-x.js — Fitur pengaturan adopsi kaki5 (mekanisme, visual rosok):
-   1. Toggle 💳 Metode Pembayaran (Tunai/Transfer/Tempo) → memfilter tombol
-      metode di layar transaksi (jaring pengaman: minimal satu aktif).
+   1. Toggle 💳/⚙️ Fitur Aplikasi — metode bayar (Tunai/Transfer/Tempo) memfilter
+      tombol metode di layar transaksi (jaring pengaman: minimal satu aktif);
+      saklar "Kas & Shift Harian" (fiturKas) melepas gerbang buka-kas POS,
+      menyembunyikan tombol Buka/Tutup Kas & kartu riwayat shift (pola v166).
    2. 📲 Pasang Aplikasi (PWA beforeinstallprompt, ala kaki5).
-   3. 🩺 Cek Data Online — diagnosa koneksi, Supabase, & kuota di-cache.
+   3. 🩺 Cek Data Online — diagnosa rantai sync 10 langkah (port sync.health.js).
    ========================================================================= */
 import { db } from './db.js';
 import { SETTINGS } from './app-state.js';
@@ -22,7 +24,24 @@ export async function loadPayOptions(){
     if(el) el.checked = !!opts[key];
   }
   applyPayOptions(opts);
+  // Saklar "Kas & Shift Harian" (⚙️ Fitur Aplikasi) — default aktif ('1').
+  try {
+    const kEl = document.getElementById('fiturKasToggle');
+    if(kEl) kEl.checked = (await getSetting('fiturKas', '1')) !== '0';
+  } catch(_) { /* storage gagal — biarkan checkbox pada keadaan default */ }
   return opts;
+}
+
+// Simpan saklar fitur kas/shift (pola kaki5 v166 saveFiturKas). Nilai dibaca
+// SEGAR oleh kas.js.fiturKasAktif() di tiap gerbang — di sini kita hanya
+// menyegarkan tampilan (tombol kas-bar & kartu riwayat shift) tanpa reload.
+export async function saveFiturKas(){
+  const el = document.getElementById('fiturKasToggle');
+  const on = !!(el && el.checked);
+  await setSetting('fiturKas', on ? '1' : '0');
+  toast(on ? 'Fitur kas & shift aktif' : 'Fitur kas & shift dimatikan');
+  try { if(typeof window.updateKasBarButtons === 'function') window.updateKasBarButtons(); } catch(_){}
+  try { if(typeof window._ksr_renderLaporan === 'function') window._ksr_renderLaporan(); } catch(_){}
 }
 
 function readToggles(){
@@ -242,6 +261,7 @@ export function copyDiag(){
 
 // Global exports utk onclick di HTML
 window.savePayOptions = savePayOptions;
+window.saveFiturKas = saveFiturKas;
 window.installPwa = installPwa;
 window.openCekDataSheet = openCekDataSheet;
 window._ksr_copyDiag = copyDiag;

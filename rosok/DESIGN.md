@@ -76,6 +76,46 @@ Gagal di langkah mana pun = try/catch sendiri, boot lanjut (pola kaki5).
 txAdjust, deviceCode}` atau `{status:'active', startedAt, serial, expCode|expiryDate,
 expiryLabel, source:'cloud'?}`. Migrasi sekali dari skema trial-waktu lama.
 
+### 2.1 Identitas perangkat lintas-browser (v1.4.1→v1.4.2, port kaki5 V3/T14 + penyempurnaan V4)
+
+```
+fingerprint = b32(SHA256('KSR-FP-V4|cores|ram|touch|WxH'), 12)   # getDeviceFingerprint
+deviceCode  = XXXX-XXXX dari simpleHash('DEVICE-' + fingerprint)  # SAMA lintas browser satu perangkat
+installId   = 'DEV-<random>' — penanda instalasi (tracking), BUKAN dasar deviceCode
+unitId      = 'KSR-' + deviceCode — kanonik; instalasi lama di-RE-ANCHOR ke nilai ini
+settings.deviceIdentity = { installId, deviceCode, fingerprint, legacyDeviceCode }
+settings.unitReanchor   = { from, to, at, adopted? }              # jejak migrasi
+```
+
+- **V4 membuang `platform`** (pelajaran audit 2026-09-04): sinyal itu satu-satunya
+  yang bocor antar engine — Chrome/Samsung/WebView `Linux armv8l` vs Firefox
+  `Android` pada hardware identik — sementara sumbangan entropinya nol. Canvas/
+  WebGL/timezone/DPR tetap diexclude (alasan historis V3/T14 kaki5).
+- **Batas jujur:** unifikasi berlaku antar engine yang mengekspos sinyal sama
+  (Chrome-family & WebView Android; iOS Safari↔CriOS). deviceMemory tidak ada di
+  beberapa engine → '' (konsisten dalam satu engine, beda antar engine bisa
+  terjadi). Dan fingerprint TIDAK unik antar perangkat: sesama tipe HP dengan
+  RAM/core/layar identik → deviceCode identik (risiko tabrakan — lihat guard).
+- **Re-anchor unit_id** (`reanchorUnitId`, boot, sebelum subscribe realtime &
+  sync): instalasi lama (unit turunan deviceId acak / V3) dikonvergensikan ke
+  kanonik — PATCH baris milik sendiri; duplicate → adopsi lokal (hybrid RLS
+  claim memberi akses). DILAKUKAN HANYA bila tidak terikat serial aktif
+  (aturan kaki5: unit terikat serial hanya boleh pindah via `device_assign`).
+  Fallback adopsi di `syncLicenseStatus`: not-found by unit → query by
+  device_code → adopt unit cloud (jangan pernah self-insert baris kembar).
+- **Guard tabrakan identitas:** adopsi lisensi cloud (blok (A) &
+  `persistCloudLicense`) mensyaratkan `cloudProfileMatchesLocal` — baris kosong
+  profil boleh diadopsi; baris terisi harus cocok `nama_usaha`/`no_whatsapp`.
+- **Data transaksi TETAP per-browser** (hukum sandbox IndexedDB; kaki5 sama —
+  tidak ada auto-restore diam-diam). Jembatan = cadangan cloud, kini dengan
+  **penawaran otomatis**: boot DB kosong + lisensi aktif + ada cadangan →
+  `#sheetRestoreOffer` (maks 1×/hari, `settings.restoreOfferAt`).
+- **Signature backup** terikat unitId; pasca-re-anchor verifikasi mencoba ulang
+  dengan `unitReanchor.from` agar file lama tidak yatim.
+- Boot: `initApp` langkah 1 = `getDeviceIdentity()` → `reanchorUnitId()` →
+  `setSetting('deviceCode')` — semua pembaca sinkron (`getDeviceIdForLicense`,
+  About block, purchase, path cadangan) melihat hasil final.
+
 ---
 
 ## 3. Kontrak Cloud (Supabase `hhywrvedlwljawgxzpkq`, shared lintas app via `app_type='rosok'`)
