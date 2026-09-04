@@ -172,9 +172,9 @@ async function runSyncDiagnostics(){
     if (navigator.onLine) {
       try {
         const res = await pushProfile(); // user-intent dari diagnosa (setara force kaki5)
-        steps.push(res.ok
-          ? dstep(D_OK, '9. Uji sinkron penuh', 'Profil terkirim & terbaca kembali; cloud → lokal disegarkan.', 'Tes kirim & terima data: berhasil')
-          : dstep(D_FAIL, '9. Uji sinkron penuh', `Gagal (${res.reason || '?'}): ${res.error || ''}`, 'Tes kirim & terima data: gagal'));
+        if (res.ok) steps.push(dstep(D_OK, '9. Uji sinkron penuh', 'Profil terkirim & terbaca kembali; cloud → lokal disegarkan.', 'Tes kirim & terima data: berhasil'));
+        else if (res.reason === 'no-profile') steps.push(dstep(D_WARN, '9. Uji sinkron penuh', 'Dilewati: profil lokal masih kosong — isi Nama Usaha dulu (guard anti-hapus-cloud).', 'Belum bisa dites — isi profil dulu'));
+        else steps.push(dstep(D_FAIL, '9. Uji sinkron penuh', `Gagal (${res.reason || '?'}): ${res.error || ''}`, 'Tes kirim & terima data: gagal'));
       } catch (e) {
         steps.push(dstep(D_FAIL, '9. Uji sinkron penuh', 'Exception: ' + (e?.message || e), 'Tes kirim & terima data: gagal'));
       }

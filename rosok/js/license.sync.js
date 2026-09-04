@@ -447,6 +447,15 @@ export async function pushProfile() {
   await claimDevice(sb, unitId, deviceCode);
   const payload = {};
   for (const [col, key] of Object.entries(PROFILE_FIELD_MAP)) payload[col] = await g(key);
+  // Guard "jangan push profil kosong" (pola kaki5 ensureSynced reason:'no-profile',
+  // insiden beta 2026-09-04): origin baru dengan IndexedDB kosong pernah
+  // menimpa baris cloud berisi dengan string kosong saat push — kebenaran
+  // cloud terhapus. Selama SEMUA field profil lokal kosong, push ditolak dan
+  // flag pending dilepas (tidak ada yang perlu dikirim).
+  if (!Object.keys(PROFILE_FIELD_MAP).some((col) => String(payload[col] || '').trim())) {
+    try { await setSetting('profileSyncPending', false); } catch (_) {}
+    return { ok: false, reason: 'no-profile' };
+  }
   // Identitas & telemetri perangkat (kolom CRM clients — port buildPayload kaki5):
   // device_code, install_id, last_seen, browser/os/device_type/user_agent.
   payload.device_code = deviceCode;

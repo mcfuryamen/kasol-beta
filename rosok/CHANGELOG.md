@@ -1,5 +1,19 @@
 # Changelog - Kasir Solo Rosok
 
+## [1.4.4] - 2026-09-04 (sw v58, `?v=PROF-GUARD`)
+
+### Guard anti-wipe profil cloud (insiden beta, pola kaki5 `no-profile`)
+- **Gejala:** profil di baris cloud kanonik sempat terhapus (terisi string
+  kosong) oleh push dari origin browser yang lokalnya masih kosong, sambil
+  baris legacy daftarkan diri ulang — dua baris saling ping-pong.
+- **Fix:** `pushProfile()` menolak kirim bila SEMUA field profil lokal kosong
+  (`reason:'no-profile'`, flag pending dilepas) — persis guard
+  `ensureSynced` kaki5 "jangan push kalau profil belum diisi". Origin baru tak
+  bisa lagi menghapus kebenaran cloud; data repair dilakukan server-side
+  (profil dipulihkan ke baris kanonik, baris legacy kosong dihapus).
+- Diagnosa langkah 9 kini menampilkan ⚠️ "isi profil dulu" untuk kasus ini,
+  bukan ❌ gagal.
+
 ## [1.4.3] - 2026-09-04 (sw v57, `?v=FITUR-KAS`)
 
 ### ⚙️ "Fitur Aplikasi" + saklar Kas & Shift Harian (permintaan pemilik; port kaki5 v166/v167)
