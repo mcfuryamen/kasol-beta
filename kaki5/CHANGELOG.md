@@ -12,6 +12,42 @@ supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
 > jadi satu. Entri tanpa nomor versi dikelompokkan di bagian
 > "catatan tanpa nomor rilis" dekat dasar file.
 
+## 2026-09-04 (v167 / 1.0.99: identitas perangkat lintas-browser — port hasil audit rosok)
+
+Perbaikan "1 perangkat, banyak browser" yang dirosok dikerjakan lebih dulu
+(lihat rosok/CHANGELOG 1.4.1–1.4.2). Enam file: `license.logic.js`,
+`license.js` (shim), `license.sync.js`, `sync.js`, `backup.js`, `app.js`.
+
+- **Fingerprint V4 — sinyal `platform` dibuang.** V3 masih memakainya, padahal
+  ia justru MEMECAH identitas antar engine di hardware yang sama (Chrome/
+  Samsung/WebView = 'Linux armv8l' vs Firefox = 'Android') sementara
+  sumbangan entropinya nol. Kini Chrome ↔ Firefox satu HP menghasilkan
+  deviceCode sama. `getDeviceFingerprint()` jadi pembungkus
+  `fingerprintFromSignals(includePlatform)`.
+- **Masa tenggang V3 di `validateSerial`:** serial terbitan era V3 (digits
+  deviceCode V3) tetap sah — V3 deterministik, dihitung ulang via
+  `getLegacyV3DeviceCode()` yang baru diekspor. Tidak ada pengguna yang
+  terkunci oleh pergantian ini.
+- **`reanchorUnitId()` (baru, license.sync.js)** dipanggil boot FASE 1 sebelum
+  sync/pull/push/realtime: instalasi era V3 mengonvergensikan `unit_id`
+  simpanan ke kanonik `K5-<kodeV4>` — PATCH baris sendiri; duplicate key →
+  adopsi HANYA bila baris kanonik kosong profilnya atau cocok dgn lokal
+  (kalau bukan = pengguna asing sesama model HP → unit lama dipertahankan).
+  Dilewati untuk perangkat terikat serial aktif (aturan lama: pindah unit
+  hanya via `device_assign`). Idempoten; jejak di `settings.unitReanchor`.
+- **Guard tabrakan identitas (`cloudProfileMatchesLocal`):** dua pengguna tipe
+  HP identik menghasilkan fingerprint identik → unit_id sama → RLS hybrid
+  membuat mereka saling bisa baca baris. Kini TIGA jalur dilindungi: adopsi
+  lisensi blok (A) `syncLicenseStatus`, `persistCloudLicense` (realtime/
+  polling), dan `pullCloudProfileTo` (pull profil tidak lagi menimpa lokal
+  dengan profil asing). Lokal kosong (browser baru) tetap boleh mengadopsi.
+- **Signature backup V3→V4:** `verifyBackupSignature` mencoba ulang dengan
+  deviceCode V3 — file cadangan lama tidak jadi yatim.
+- **`maybeOfferCloudRestore()` (baru, backup.js)** — deferred 5 dtk dari init:
+  browser baru + lisensi aktif + `DB.penjualan` kosong + ada cadangan cloud →
+  showConfirm penawaran pemulihan (maks 1×/hari, `settings.restoreOfferAt`).
+  Data transaksi tetap per-browser (hukum IndexedDB); ini jembatan resminya.
+
 ## 2026-09-04 (v167 / 1.0.99: gerbang "buka kas dulu" tidak bisa lagi lolos diam-diam)
 
 > **Status: di-commit ke mirror beta (`kasol-beta` lokal); BELUM di-push ke GitHub.**

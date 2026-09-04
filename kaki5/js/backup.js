@@ -1,13 +1,13 @@
 // ==================== BACKUP & RESTORE (ESM) ====================
 // HMAC-SHA256 signature for backup integrity verification
 // Prevents tampering with backup files (transaksi, harga modal, etc.)
-import { DB } from './db.js';
+import { DB, getSetting, setSetting } from './db.js';
 import { todayStr, showToast } from './helpers.js';
 import { setCart } from './app-state.js';
 import { showConfirm } from './confirm.js';
 import { clearCartStorage } from './pos.js';
 import { navigateTo } from './navigation.js';
-import { getDeviceIdentity, getUnitId } from './license.logic.js';
+import { getDeviceIdentity, getUnitId, getLicense, getLegacyV3DeviceCode } from './license.logic.js';
 import { hmacSignature, b32Encode } from './license.logic.js';
 import { getSupabaseClient } from './license.sync.js';
 
@@ -46,7 +46,17 @@ export async function generateBackupSignature(data) {
  */
 export async function verifyBackupSignature(data, expectedSig) {
   const actualSig = await generateBackupSignature(data);
-  return actualSig === expectedSig;
+  if (actualSig === expectedSig) return true;
+  // Masa tenggang fingerprint V3→V4 (port rosok 2026-09-04): file lama
+  // ditandatangani dengan deviceCode V3 — deterministik, hitung ulang & coba.
+  try {
+    const legacy = await getLegacyV3DeviceCode();
+    if (legacy) {
+      const oldSig = await hmacSignature(legacy + JSON.stringify(data));
+      if (oldSig === expectedSig) return true;
+    }
+  } catch (_) { /* verifikasi tambahan opsional */ }
+  return false;
 }
 
 // Payload cadangan bersama (file lokal & cloud): PRODUK & TRANSAKSI saja
@@ -363,6 +373,46 @@ export async function cloudRestoreLatest() {
     console.error('[BACKUP] cloud restore gagal:', e);
     showToast('Gagal ambil dari cloud: ' + String(e?.message || e).slice(0, 100), 'error', { duration: 6000 });
   }
+}
+
+// ── Penawaran pulih otomatis utk browser baru (port rosok 2026-09-04) ──────
+// Data transaksi tetap per-browser (hukum sandbox IndexedDB), tapi browser
+// baru di perangkat BERLISENSI yang punya cadangan cloud DITAWARI pemulihan
+// (bukan restore diam-diam). Maks 1×/hari; semua kegagalan ditelan diam —
+// penawaran tidak boleh mengganggu boot. Dipanggil deferred dari app.js init().
+export async function maybeOfferCloudRestore(){
+  try {
+    if (!navigator.onLine) return;
+    const lic = await getLicense();
+    if (!lic || lic.status !== 'active') return;          // cadangan cloud = lisensi aktif
+    if (await DB.penjualan.count() > 0) return;           // sudah ada data lokal
+    const last = Number(await getSetting('restoreOfferAt', 0)) || 0;
+    if (Date.now() - last < 24 * 3600 * 1000) return;     // sudah ditawari hari ini
+    const ctx = await cloudCtx();
+    if (!ctx) return;
+    const { sb, unitId } = ctx;
+    const { data: files } = await sb.storage.from(CLOUD_BUCKET).list(unitId, { sortBy: { column: 'created_at', order: 'desc' } });
+    const latest = (files || []).find(f => f.name.endsWith('.json'));
+    if (!latest) return;                                   // belum ada cadangan
+    await setSetting('restoreOfferAt', Date.now());
+    const { data: blob, error: dlErr } = await sb.storage.from(CLOUD_BUCKET).download(`${unitId}/${latest.name}`);
+    if (dlErr || !blob) return;
+    const data = JSON.parse(await blob.text());
+    const err = await validateBackup(data);
+    if (err) return;
+    const tanggal = latest.name.replace('cadangan-', '').replace('.json', '').slice(0, 16).replace('T', ' ');
+    showConfirm('☁️', `Browser ini belum punya data, tapi perangkatmu punya cadangan cloud (${tanggal}). Pulihkan sekarang? Produk, transaksi, dan data kas akan diisi dari cadangan.`, 'Ya, Pulihkan', async () => {
+      try {
+        await applyBackupData(data);
+        showToast('✅ Data dipulihkan dari cloud!');
+        navigateTo('beranda');
+        import('./sync.js').then(m => m.pullCloudProfileIfOnline()).catch(() => {});
+      } catch (e) {
+        console.error('[RestoreOffer] gagal:', e);
+        showToast('Pemulihan gagal — data tetap seperti semula.', 'error', { duration: 6000 });
+      }
+    });
+  } catch (_) { /* nice-to-have — jangan pernah ganggu boot */ }
 }
 
 export function confirmClearAll() {

@@ -21,6 +21,7 @@ export {
   DEFAULT_TX_QUOTA, currentTxMonth, getTxQuota, incrementTxCount,
   simpleHash, b32Encode, checkExpired, decodeExpiryLabel,
   getDeviceIdentity, getDeviceCode, getInstallId, getDeviceFingerprint,
+  getLegacyV3DeviceCode, cloudProfileMatchesLocal, // V3-grace & guard tabrakan identitas (2026-09-04)
   hmacSignature, validateSerial,
   startTrial, activateSerial, getLicenseStatus,
   getUnitId, ensureUnitId,
@@ -44,6 +45,7 @@ export {
 // Re-export sync functions
 export {
   syncLicenseStatus,
+  reanchorUnitId,            // NEW 2026-09-04: konvergensi unit_id V3→V4
   fetchLicenseStatusFromCloud,
   isDeviceKnownOnCloud,
   verifyAndAssignSerial,    // NEW: Opsi 3 — verifikasi serial + reassign unit_id

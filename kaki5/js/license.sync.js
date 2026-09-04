@@ -4,9 +4,9 @@
 // `activate-license` (PATCH clients.license_*) + Supabase Realtime push.
 // User TIDAK perlu request serial manual — cukup beli (QRIS) & tunggu
 // verifikasi admin. Input serial manual hanya fallback offline.
-import { ensureSynced, pullCloudProfileTo } from './sync.js';
-import { getUnitId, getDeviceCode, getInstallId, getLicense, saveLicense, markLicenseRevoked, bumpClockAnchor, currentTxMonth } from './license.logic.js';
-import { setSetting } from './db.js';
+import { ensureSynced, pullCloudProfileTo, ensureAuthSession } from './sync.js';
+import { getUnitId, getDeviceCode, getInstallId, getLicense, saveLicense, markLicenseRevoked, bumpClockAnchor, currentTxMonth, cloudProfileMatchesLocal } from './license.logic.js';
+import { setSetting, getSetting } from './db.js';
 import { rateLimiters } from './helpers.pure.js';
 
 const LICENSE_SYNC_KEY = 'licenseSync';
@@ -170,6 +170,69 @@ export function clearProductSaltCache() {
   _productSaltCache = null;
 }
 
+/**
+ * RE-ANCHOR unit_id (port rosok 2026-09-04). Pergantian fingerprint V3→V4
+ * (sinyal `platform` dibuang) menggeser deviceCode → unit_id kanonik ikut
+ * bergeser. Instalasi era V3 menyimpan 'K5-'+kodeV3 sementara browser baru
+ * menghitung 'K5-'+kodeV4 → satu perangkat fisik dua baris cloud (lisensi
+ * tidak ikut pindah, profil fragmentasi, kuota dobel-spend). Konvergensikan
+ * ke kanonik — SEKALI, idempoten, dan HANYA untuk perangkat tanpa serial
+ * aktif (aturan kaki5: unit terikat serial hanya boleh pindah via
+ * device_assign di server).
+ *   • Baris sendiri ada  → PATCH unit_id+device_code ke kanonik (claim sesi
+ *     lama membuat RLS mengizinkan), lalu simpan unitId kanonik + claim baru.
+ *   • Duplicate key      → kanonik sudah dipakai browser lain perangkat sama
+ *     (adopsi, bila profil kosong/cocok) atau pengguna asing sesama model HP
+ *     (TOLAK — pertahankan unit lama; fragmentasi lebih aman daripada merge).
+ *   • Offline/gagal      → diam; dicoba lagi boot berikutnya.
+ */
+export async function reanchorUnitId() {
+  const sb = getSupabaseClient();
+  if (!sb || !navigator.onLine) return { ok: false, reason: 'offline' };
+  let unitId = null, lic = null, identity = null;
+  try {
+    unitId = await getUnitId();
+    lic = await getLicense();
+    identity = await getSetting('deviceIdentity', null);
+  } catch (_) { return { ok: false, reason: 'storage' }; }
+  if (!identity || !identity.deviceCode) return { ok: false, reason: 'no-identity' };
+  const canonical = 'K5-' + identity.deviceCode;
+  if (unitId === canonical) return { ok: true, reason: 'already' };
+  if (lic && lic.status === 'active' && lic.serial) return { ok: false, reason: 'serial-bound' };
+  await ensureAuthSession(sb); // sesi anon dengan claim unit lama
+  const { error: migErr } = await sb.from('clients')
+    .update({ unit_id: canonical, device_code: identity.deviceCode })
+    .eq('unit_id', unitId).eq('app_type', APP_TYPE);
+  if (!migErr) {
+    await setSetting('unitId', canonical);
+    await setSetting('unitReanchor', { from: unitId, to: canonical, at: new Date().toISOString() });
+    try { await sb.auth.updateUser({ data: { unit_id: canonical } }); } catch (_) {}
+    console.log('[REANCHOR] unit_id V3→kanonik:', canonical);
+    return { ok: true, reason: 'migrated' };
+  }
+  if (String(migErr.code || '') === '23505' || /duplicate key/i.test(String(migErr.message || ''))) {
+    let adopt = false;
+    try {
+      await sb.auth.updateUser({ data: { unit_id: canonical } });
+      const { data: row } = await sb.from('clients')
+        .select('unit_id, nama_usaha, no_whatsapp')
+        .eq('unit_id', canonical).eq('app_type', APP_TYPE).maybeSingle();
+      adopt = !!row && await cloudProfileMatchesLocal(row);
+    } catch (_) { adopt = false; }
+    if (adopt) {
+      await setSetting('unitId', canonical);
+      await setSetting('unitReanchor', { from: unitId, to: canonical, at: new Date().toISOString(), adopted: true });
+      console.log('[REANCHOR] baris kanonik cocok — unit_id diadopsi:', canonical);
+      return { ok: true, reason: 'adopted' };
+    }
+    try { await sb.auth.updateUser({ data: { unit_id: unitId } }); } catch (_) {}
+    console.warn('[REANCHOR] duplicate dgn baris profil asing — unit lama DIPERTAHANKAN (indikasi tabrakan identitas)');
+    return { ok: false, reason: 'collision-foreign' };
+  }
+  console.warn('[REANCHOR] gagal:', migErr.message || migErr);
+  return { ok: false, reason: 'write', error: migErr.message };
+}
+
 /** Sync local license state to Supabase and apply only authoritative results. */
 export async function syncLicenseStatus() {
   // Rate limit: 30 calls per minute
@@ -300,6 +363,12 @@ export async function syncLicenseStatus() {
   }
   if (status === 'aktif' && cloud.license_serial) {
     const local = await getLicense();
+    // Guard tabrakan identitas (port rosok 2026-09-04): sesama model HP bisa
+    // menghasilkan unit_id identik — jangan adopsi lisensi baris milik orang
+    // lain. Baris kosong profil → boleh (perangkat baru); terisi → harus cocok.
+    if (!(await cloudProfileMatchesLocal(cloud))) {
+      console.warn('[LICENSE] adopsi cloud (blok A) DITOLAK — profil tidak cocok (indikasi tabrakan identitas)');
+    } else {
     if (local.status !== 'active' || local.serial !== cloud.license_serial) {
       const { activateSerial } = await import('./license.logic.js');
       await activateSerial(cloud.license_serial);
@@ -309,6 +378,7 @@ export async function syncLicenseStatus() {
     await pullCloudProfileTo(cloud);
     // Refresh UI agar profil yang baru di-pull langsung tampil (tanpa perlu navigasi ke Pengaturan)
     await refreshSettingsUI();
+    }
   }
   await setSetting(LICENSE_SYNC_KEY, { lastSuccessfulSync: new Date().toISOString() });
   await bumpClockAnchor(); // T13: sync sukses = bukti app hidup di momen ini

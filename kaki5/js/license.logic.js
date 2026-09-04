@@ -86,22 +86,23 @@ function fnv1a(joined) {
 // display), bukan karena ganti perangkat, dan sempat mengusir user valid dengan
 // "Kode ini bukan untuk perangkat ini". Diperbolehkan karena belum ada serial
 // berbayar yang terbit (semua clients.license_status masih 'belum').
-export async function getDeviceFingerprint() {
+// V4 (port rosok 2026-09-04, audit multi-browser): sinyal `platform` DIBUANG —
+// satu-satunya yang bocor antar engine (Chrome/Samsung/WebView = 'Linux
+// armv8l', Firefox Android = 'Android' pada hardware identik) sementara
+// sumbangan entropinya nol (model HP sama = platform sama juga). deviceCode
+// lama V3 TETAK diterima sebagai masa tenggang (getLegacyV3DeviceCode) —
+// serial terbitan era V3 tidak mengunci perangkat; lihat validateSerial.
+async function fingerprintFromSignals(includePlatform) {
   const parts = [];
   const nav = (typeof navigator !== 'undefined') ? navigator : {};
-
-  // Sinyal OS & perangkat keras (stabil di semua engine browser)
-  parts.push(nav.platform || '');
+  if (includePlatform) parts.push(nav.platform || '');
   parts.push(String(nav.hardwareConcurrency || ''));   // jumlah core CPU
   parts.push(String(nav.deviceMemory || ''));          // RAM (GiB)
   parts.push(String(nav.maxTouchPoints || 0));         // perangkat touchscreen?
-
-  // Layar (hardware display) — stabil lintas browser
   try {
     parts.push(String(screen.width) + 'x' + String(screen.height));
   } catch (e) { parts.push('sc:na'); }
-
-  const joined = 'KK5-FP-V3|' + parts.join('|');
+  const joined = (includePlatform ? 'KK5-FP-V3|' : 'KK5-FP-V4|') + parts.join('|');
   let digest;
   if (crypto && crypto.subtle) {
     digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(joined)));
@@ -109,6 +110,20 @@ export async function getDeviceFingerprint() {
     digest = fnv1a(joined);
   }
   return b32Encode(digest, 12);
+}
+
+export async function getDeviceFingerprint() {
+  return fingerprintFromSignals(false);
+}
+
+// deviceCode era V3 (masih terikat di serial lama & baris cloud lama).
+// Deterministik → bisa dihitung ulang kapan pun, tidak perlu disimpan.
+export async function getLegacyV3DeviceCode() {
+  try {
+    return deriveDeviceCode(await fingerprintFromSignals(true));
+  } catch (_) {
+    return '';
+  }
 }
 
 function deriveDeviceCode(seed) {
@@ -237,7 +252,12 @@ export async function validateSerial(rawSerial, myDeviceCode, activationDate) {
   const m = clean.match(re);
   if (!m) return null;
   const [, d1, d2, exp, sig] = m;
-  if ((d1 + '-' + d2) !== myDeviceCode) return { valid: false, reason: 'device' };
+  if ((d1 + '-' + d2) !== myDeviceCode) {
+    // Masa tenggang V3→V4: serial terbitan era fingerprint V3 (terikat kode
+    // V3) tetap sah — V3 deterministik, bisa dihitung ulang di browser mana pun.
+    const legacyV3 = await getLegacyV3DeviceCode();
+    if (!legacyV3 || (d1 + '-' + d2) !== legacyV3) return { valid: false, reason: 'device' };
+  }
   const expected = await hmacSignature(d1 + d2 + exp);
   if (sig !== expected) return { valid: false, reason: 'Signature HMAC tidak cocok' };
   if (checkExpired(exp, activationDate || new Date().toISOString())) return { valid: false, reason: 'expired' };
@@ -345,6 +365,25 @@ export async function activateSerial(rawSerial) {
   return { valid: true, message: '✅ Lisensi aktif! Masa berlaku: ' + result.expiryLabel };
 }
 
+// Guard tabrakan identitas (port rosok 2026-09-04): fingerprint hardware TIDAK
+// unik antar perangkat — dua pengguna tipe HP sama menghasilkan deviceCode &
+// unit_id sama, dan RLS hybrid (claim unit_id di JWT) membuat mereka saling
+// bisa membaca baris. Adopsi lisensi cloud hanya boleh bila baris belum
+// diprofilkan ATAU profilnya cocok dengan lokal (nama usaha / no. WA).
+// Diekspor — dipakai juga license.sync.js (blok A) & sync.js (pull profil).
+export async function cloudProfileMatchesLocal(cloud) {
+  const g = async (k) => { try { return String(await getSetting(k, '') || '').trim().toLowerCase(); } catch (_) { return ''; } };
+  const cloudUsaha = String(cloud.nama_usaha || '').trim().toLowerCase();
+  const cloudWa = String(cloud.no_whatsapp || '').trim().toLowerCase();
+  if (!cloudUsaha && !cloudWa) return true; // baris belum diprofilkan → aman
+  const localUsaha = await g('namaUsaha') || await g('namaWarung');
+  const localWa = await g('noWhatsapp');
+  // Lokal kosong (browser baru / install ulang) BUKAN tabrakan — adopsi sah.
+  if (!localUsaha && !localWa) return true;
+  return (!!cloudUsaha && !!localUsaha && cloudUsaha === localUsaha)
+      || (!!cloudWa && !!localWa && cloudWa === localWa);
+}
+
 // Persist status aktif dari cloud (tabel `clients`). Sumber kebenaran = server
 // (pembayaran sudah diverifikasi admin), jadi TIDAK memvalidasi ulang HMAC /
 // binding deviceCode seperti activateSerial() — serial di cloud bisa dibuat
@@ -355,6 +394,10 @@ export async function persistCloudLicense(cloud) {
   if (!cloud || cloud.license_status !== 'aktif') return { valid: false, message: 'Status cloud bukan aktif' };
   const local = await getLicense();
   if (local.status === 'active') return { valid: true, already: true };
+  if (!(await cloudProfileMatchesLocal(cloud))) {
+    console.warn('[LICENSE] adopsi cloud DITOLAK — profil tidak cocok (indikasi tabrakan identitas sesama model perangkat)');
+    return { valid: false, message: 'Baris lisensi ini terikat profil usaha lain — hubungi admin' };
+  }
   const serial = (cloud.license_serial || '').trim().toUpperCase();
   const m = serial.match(/-([A-Z0-9]{2})-[A-Z0-9]{6}$/);
   const expCode = m ? m[1] : '99';

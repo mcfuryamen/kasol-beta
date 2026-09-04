@@ -21,7 +21,7 @@
 
 import { getSetting, setSetting } from './db.js';
 import { showToast, getDeviceInfo } from './helpers.js';
-import { getUnitId, getDeviceCode, getInstallId } from './license.js';
+import { getUnitId, getDeviceCode, getInstallId, cloudProfileMatchesLocal } from './license.js';
 
 // Dev detection helper
 function isDev() {
@@ -357,6 +357,14 @@ export function startSyncRetryLoop() {
 // ============================================================================
 export async function pullCloudProfileTo(cloudClient) {
   if (!cloudClient || typeof cloudClient !== 'object') return;
+  // Guard tabrakan identitas (port rosok 2026-09-04): sesama model HP bisa
+  // berbagi unit_id — bila baris cloud sudah diprofilkan oleh usaha LAIN
+  // (tidak cocok dgn lokal), pull DILEWATI. Tanpa ini, profil usaha tetangga
+  // menimpa profil lokal kita setiap boot.
+  if (!(await cloudProfileMatchesLocal(cloudClient))) {
+    console.warn('[C2] pull profil DILEWATI — baris cloud terisi profil asing (indikasi tabrakan identitas)');
+    return;
+  }
   // Mapping kolom clients (snake_case) → key settings (camelCase)
   const mapping = {
     nama_usaha:    'namaUsaha',

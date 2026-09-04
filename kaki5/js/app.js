@@ -1141,6 +1141,12 @@ async function boot() {
   // Baru setelah itu render UI. Supaya data yang ditampilkan SELALU fresh.
   // ═══════════════════════════════════════════════════════════════════════
 
+  // 1a-awal) RE-ANCHOR unit_id V3→V4 (port rosok 2026-09-04): konvergensi
+  // identitas lintas-browser SEBELUM operasi cloud apa pun (sync, pull, push,
+  // subscribe realtime) supaya semuanya menunjuk baris kanonik yang sama.
+  try { const { reanchorUnitId } = await import('./license.sync.js'); await reanchorUnitId(); }
+  catch (e) { console.warn('[BOOT] reanchor unit_id gagal:', e?.message || e); }
+
   // 1a) Sync lisensi dari cloud → lokal (termasuk pull profil jika license aktif)
   try { await runLicenseSync(); } catch (e) { console.warn('[BOOT] license sync gagal:', e?.message || e); }
 
@@ -1210,6 +1216,9 @@ async function boot() {
   }
 
   startSyncRetryLoop();
+  // Penawaran pulih cloud utk browser baru (port rosok 2026-09-04) — deferred,
+  // tidak pernah memblokir/ganggu boot; semua syarat dicek oleh fungsinya.
+  setTimeout(() => { try { import('./backup.js').then(m => m.maybeOfferCloudRestore()).catch(() => {}); } catch (_) {} }, 5000);
   // T19 (audit 2026-08-17/M9): settings module wajib ke-wire untuk banner
   // profil, tapi boot TIDAK BOLEH menggantung selamanya kalau modul itu gagal
   // dimuat (jaringan buruk sebelum SW aktif). Race dengan timeout 8 detik.
