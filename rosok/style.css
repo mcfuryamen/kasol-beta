@@ -668,18 +668,21 @@ nav.bottomnav{
 .empty-state .t2{font-size:13px; margin-top:var(--sp-8);}
 
 /* Bar chart */
-.barchart{display:flex; align-items:flex-end; gap:var(--sp-4); height:132px; margin-top:var(--sp-8); overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; padding-bottom:var(--sp-4);}
-.barchart .bwrap{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:var(--sp-4);}
+/* Proporsi grafik mengikuti kaki5 .chart-bars: bar 120px (HP) / 160px
+   (≥768px via --chart-h), gap 6px, radius 6px, label 10px/600, nilai 9px/700. */
+.barchart{--chart-h:120px; display:flex; align-items:flex-end; gap:6px; height:calc(var(--chart-h) + 36px); margin-top:var(--sp-8); overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; padding-bottom:var(--sp-4);}
+.barchart .bwrap{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:4px;}
 /* Kolom scroll lebih lega (kaki5: min 30px/kolom) agar label & bar kebaca */
 .barchart.scrollable .bwrap{flex:1 0 30px;}
-.barchart .bar{width:100%; border-radius:var(--radius-xs) var(--radius-xs) 0 0; background:var(--brand-light); position:relative;}
+.barchart .bar{width:100%; border-radius:6px 6px 0 0; background:var(--brand-light); position:relative;}
 .barchart .bar.jual{background:var(--green);}
-.barchart .blbl{font-size:9.5px; color:var(--ink-soft); white-space:nowrap;}
+.barchart .blbl{font-size:10px; font-weight:600; color:var(--ink-soft); white-space:nowrap;}
 /* Pelengkap grafik ala kaki5 renderHourlyChart: subtitle konteks, label nilai
    'k' di atas kolom, dan keadaan kosong (dulu: 24 stub 3px rata tanpa makna). */
 .chart-sub{font-size:11px; color:var(--ink-soft); margin:-2px 0 2px;}
-.chart-val{font-size:9px; color:var(--ink-soft); height:12px; line-height:12px; text-align:center; width:100%;}
+.chart-val{font-size:9px; font-weight:700; color:var(--ink-soft); height:12px; line-height:12px; text-align:center; width:100%;}
 .chart-empty{flex:1; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--ink-soft); font-size:12.5px; padding:24px 8px; height:100%;}
+@media (min-width:768px){ .barchart{--chart-h:160px} }
 .legend-row{display:flex; gap:var(--sp-20); font-size:11.5px; margin-top:var(--sp-8); color:var(--ink-soft);}
 .legend-dot{width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:var(--sp-4);}
 

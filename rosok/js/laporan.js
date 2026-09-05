@@ -242,6 +242,7 @@ export function reportRange(){
 // Bucket grafik mengikuti periode jangkar (pola kaki5):
 // harian = per jam; mingguan/bulanan/custom = per hari; semua = per bulan.
 function chartBuckets(){
+  const dayMs = 24*3600*1000;
   const [ay, am] = laporanAnchor.split('-').map(Number);
   if(laporanPeriode === 'harian'){
     const buckets = [];
@@ -249,37 +250,52 @@ function chartBuckets(){
     return buckets;
   }
   if(laporanPeriode === 'bulanan'){
+    // kaki5 renderChart: bulan dipetakan ke MINGGU kalender (M1..M5), bukan
+    // 31 kolom harian yang sempit — tiap kolom = 7 hari (potongan terakhir pendek).
     const last = new Date(ay, am, 0).getDate();
+    const pre = laporanAnchor.slice(0,7);
     const buckets = [];
-    for(let d=1; d<=last; d++){
-      const iso = `${laporanAnchor.slice(0,7)}-${String(d).padStart(2,'0')}`;
-      buckets.push({ key: iso, label: String(d), beli:0, jual:0 });
+    for(let s=1; s<=last; s+=7){
+      const e = Math.min(s+6, last);
+      const isoS = pre+'-'+String(s).padStart(2,'0');
+      const isoE = pre+'-'+String(e).padStart(2,'0');
+      buckets.push({ key:'M'+(buckets.length+1), label:'M'+(buckets.length+1), from:isoS, to:isoE, beli:0, jual:0 });
     }
     return buckets;
   }
   if(laporanPeriode === 'custom'){
-    // Rentang tanggal custom → bucket per hari (abil hingga 45 hari terakhir rentang)
+    // Rentang tanggal custom (dibatasi 45 hari). >14 hari → grouping mingguan
+    // ala kaki5 (M1..Mn); pendek → tetap per hari agar detail tidak hilang.
     const now = new Date();
     const start = laporanDateFrom ? new Date(laporanDateFrom + 'T00:00:00') : null;
     const end = laporanDateTo ? new Date(laporanDateTo + 'T23:59:59.999') : now;
-    const dayMs = 24*3600*1000;
     const totalDays = start ? Math.min(45, Math.max(1, Math.round((end - start)/dayMs) + 1)) : 31;
     const buckets = [];
-    for(let i=totalDays-1; i>=0; i--){
-      const d = new Date(end.getFullYear(), end.getMonth(), end.getDate() - i);
-      const iso = toLocalISO(d);
-      buckets.push({ key: iso, label: String(d.getDate()), beli:0, jual:0 });
+    const endD = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    if(totalDays > 14){
+      const startDate = new Date(endD.getTime() - (totalDays-1)*dayMs);
+      for(let s=0; s<totalDays; s+=7){
+        const ws = new Date(startDate.getTime() + s*dayMs);
+        const we = new Date(Math.min(ws.getTime() + 6*dayMs, endD.getTime()));
+        buckets.push({ key:'M'+(buckets.length+1), label:'M'+(buckets.length+1), from:toLocalISO(ws), to:toLocalISO(we), beli:0, jual:0 });
+      }
+    } else {
+      for(let i=totalDays-1; i>=0; i--){
+        const d = new Date(endD.getTime() - i*dayMs);
+        const iso = toLocalISO(d);
+        buckets.push({ key: iso, label: String(d.getDate()), from:iso, to:iso, beli:0, jual:0 });
+      }
     }
     return buckets;
   }
-  // mingguan: minggu kalender jangkar (Senin–Minggu)
+  // mingguan: minggu kalender jangkar (Senin–Minggu) — per hari, label nama hari
   const [wy, wm, wd] = weekStart(laporanAnchor).split('-').map(Number);
   const buckets = [];
   for(let i=0; i<7; i++){
     const d = new Date(wy, wm-1, wd + i);
     const iso = toLocalISO(d);
     const label = d.toLocaleDateString('id-ID',{weekday:'short'});
-    buckets.push({ key: iso, label, beli:0, jual:0 });
+    buckets.push({ key: iso, label, from:iso, to:iso, beli:0, jual:0 });
   }
   return buckets;
 }
@@ -296,6 +312,16 @@ export function pickDate(ds){ setLaporanAnchor(ds); _pickerOpen = false; renderD
 export function pickWeek(ds){ setLaporanAnchor(ds); _pickerOpen = false; renderDateNav(); renderLaporan(); renderRiwayat(); }
 export function pickMonth(ds){ setLaporanAnchor(ds); _pickerOpen = false; renderDateNav(); renderLaporan(); renderRiwayat(); }
 export function toggleCustomPicker(){ _pickerOpen = !_pickerOpen; renderDateNav(); }
+// Auto-close picker (permintaan pemilik 2026-09-05): picker terbuka lalu user
+// mengklik di luar kartu filter laporan (area header sticky — tab periode,
+// date-nav, dan kalender berada di dalamnya) → picker tertutup sendiri.
+// Klik DI DALAM kartu tidak diutak-atik; handler internal (pickDate/pickWeek/
+// pickMonth) sudah menutup picker sendiri sebelum listener ini melihat flag.
+document.addEventListener('click', (e) => {
+  if(!_pickerOpen) return;
+  const filter = document.getElementById('screenLaporanFilter');
+  if(filter && !filter.contains(e.target)){ _pickerOpen = false; renderDateNav(); }
+});
 // Tutup akordeon + picker sekaligus (dipakai nav.js saat pindah halaman/tab).
 export function closePicker(){ _pickerOpen = false; _navOpen = false; }
 // Navigasi bulan pada kalender custom (kiri/kanan independen).
@@ -379,9 +405,14 @@ export async function renderLaporan(){
       if((t.sisa||0) > 0){ if(isBeli) stats.utang += t.sisa; else stats.piutang += t.sisa; }
     }
     const localDateStr = toLocalISO(new Date(t.tanggal));
-    const dk = laporanPeriode==='harian' ? 'h' + new Date(t.tanggal).getHours().toString().padStart(2,'0')
-      : localDateStr;
-    const b = bucketMap[dk];
+    // Harian: bucket per jam. Lainnya: bucket menampung RENTANG tanggal
+    // (1 hari utk mingguan/custom-pendek; 7 hari utk M1..Mn bulanan/custom-panjang).
+    let b;
+    if(laporanPeriode === 'harian'){
+      b = bucketMap['h' + new Date(t.tanggal).getHours().toString().padStart(2,'0')];
+    } else {
+      b = buckets.find(x => localDateStr >= x.from && localDateStr <= x.to);
+    }
     if(b){ if(isBeli) b.beli += t.total||0; else b.jual += t.total||0; }
   }
 
@@ -449,12 +480,12 @@ export async function renderLaporan(){
       if(hintEl) hintEl.style.display = long ? 'block' : 'none';
       barChart.className = 'barchart' + (long ? ' scrollable' : '');
       barChart.innerHTML = view.map(b => {
-        const beliH = b.beli > 0 ? Math.max(Math.round((b.beli / maxVal) * 90), 4) : 0;
-        const jualH = b.jual > 0 ? Math.max(Math.round((b.jual / maxVal) * 90), 4) : 0;
+        const beliH = b.beli > 0 ? Math.max(Math.round((b.beli / maxVal) * 120), 4) : 0;
+        const jualH = b.jual > 0 ? Math.max(Math.round((b.jual / maxVal) * 120), 4) : 0;
         const valLbl = b.jual > 0 ? Math.round(b.jual / 1000) + 'k' : (b.beli > 0 ? Math.round(b.beli / 1000) + 'k' : '');
         return `<div class="bwrap" title="${b.label} · Beli ${fmtRupiah(b.beli)} · Jual ${fmtRupiah(b.jual)}">
           <div class="chart-val">${valLbl}</div>
-          <div style="display:flex; gap:2px; align-items:flex-end; height:90px; width:100%;">
+          <div style="display:flex; gap:3px; align-items:flex-end; height:var(--chart-h,120px); width:100%;">
             <div class="bar" style="height:${beliH}px;"></div>
             <div class="bar jual" style="height:${jualH}px;"></div>
           </div>
