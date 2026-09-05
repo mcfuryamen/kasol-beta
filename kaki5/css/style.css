@@ -5,6 +5,20 @@
 --red:#C62828;--red-light:#EF5350;--red-bg:#FFEBEE;
 --blue:#1565C0;--blue-bg:#E3F2FD;
 --orange-bg:#FFF3E0;
+/* v170 — Adopsi pola gradasi aplikasi rosok (rosok/style.css:3-8 + :142-166).
+   Yang diadopsi POLA-nya (arah 135°, permukaan terisi = gradien, teks putih),
+   bukan hue-nya: kaki5 tetap oranye khas, Pengeluaran tetap merah, Laba tetap biru.
+   Urutan stop dibalik jadi gelap→terang dibanding rosok (yang menaruh stop terang di
+   0%) supaya label/teks putih di kiri-atas lolos kontras — putih di atas #5CB6CC
+   cuma ~2.3:1, di atas #1565C0 ~6.4:1. --primary TETAP #D6501C (identik dengan
+   --brand-dark rosok) sehingga 67 pemakaian warna teks/border aksen tidak berubah.
+   Pengecualian: .btn-wa tetap hijau gelap solid (permintaan eksplisit user 2026-09-04). */
+--grad:linear-gradient(135deg,#F5821F 0%,#D6501C 55%,#B04018 100%);
+--grad-green:linear-gradient(135deg,#1B5E20 0%,#2E7D32 55%,#43A047 100%);
+--grad-red:linear-gradient(135deg,#B71C1C 0%,#C62828 55%,#EF5350 100%);
+--grad-blue:linear-gradient(135deg,#0D47A1 0%,#1565C0 55%,#2563EB 100%);
+--grad-kpi-orange:linear-gradient(135deg,#D6501C 0%,#F5821F 100%);
+--shadow-brand:0 6px 16px rgba(214,80,28,.3);
 --bg:#FFFAF5;--card:#FFFFFF;--paper:#FFF8F0;--text:#1A1A1A;--text2:#555;--text3:#888;
 --border:#E0E0E0;--shadow:0 2px 8px rgba(0,0,0,.1);
 --radius:16px;--radius-sm:12px;
@@ -14,7 +28,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 body{display:flex;flex-direction:column}
 
 /* HEADER */
-.app-header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;display:flex;align-items:center;padding:0 16px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.app-header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--grad);color:#fff;display:flex;align-items:center;padding:0 16px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .app-header .header-logo{width:36px;height:36px;border-radius:50%;margin-right:10px;object-fit:contain}
 .app-header h1{font-size:17px;font-weight:700;flex:1;line-height:1.2}
 .app-header .header-btn{background:#fff;border:2px solid rgba(255,255,255,.9);color:var(--primary);box-shadow:0 2px 6px rgba(0,0,0,.25);width:42px;height:42px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-left:8px;transition:transform .12s ease,box-shadow .12s ease}.app-header .header-btn:active{transform:scale(.9)}
@@ -31,7 +45,7 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:color .2s,background-color .2s;border:none;background:none;color:var(--text3);font-size:11px;font-weight:600;gap:2px;padding:4px 0;position:relative}
 .nav-item.active{color:var(--primary)}
 .nav-item .nav-icon{font-size:26px;line-height:1}
-.nav-item.active::before{content:'';position:absolute;top:-2px;left:20%;right:20%;height:3px;background:var(--primary);border-radius:0 0 4px 4px}
+.nav-item.active::before{content:'';position:absolute;top:-2px;left:20%;right:20%;height:3px;background:var(--grad);border-radius:0 0 4px 4px}
 .nav-badge{position:absolute;top:4px;right:50%;transform:translateX(18px);background:var(--red);color:#fff;font-size:10px;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;padding:0 4px}
 
 /* PAGES */
@@ -41,6 +55,13 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 /* CARDS */
 .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border)}
 .card-title{font-size:15px;font-weight:700;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+/* v170 (komentar browser 2026-09-05 #5): kartu hero jadi gradasi biru ala rosok.
+   Kelas ditambahkan SETELAH `.card` (spesifisitas sama, urutan menang) dan hanya
+   mengubah latar/teks — padding & radius tetap ikut `.card` per breakpoint.
+   .card-title dan .ktext2 perlu ditimpa eksplisit supaya tidak tetap gelap. */
+.card-hero-blue{background:var(--grad-blue);color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(37,99,235,.26)}
+.card-hero-blue .card-title{color:#fff}
+.card-hero-blue .ktext2{color:rgba(255,255,255,.93)}
 
 /* STAT CARDS */
 .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
@@ -58,21 +79,21 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:var(--radius-sm);font-size:16px;font-weight:700;border:none;cursor:pointer;transition:background-color .15s,color .15s,transform .15s,box-shadow .15s;min-height:52px;width:100%;text-align:center}
 /* Tombol disabled: abu-abu, tidak bisa di-hover (pointer-events:none) */
 .btn:disabled,.btn[disabled]{background:#d9d9d9;color:#9c9c9c;cursor:not-allowed;box-shadow:none;transform:none;pointer-events:none;opacity:1}
-.btn-primary{background:var(--primary);color:#fff}
-.btn-primary:active{background:var(--primary-dark);transform:scale(.97)}
-.btn-green{background:var(--green);color:#fff}
+.btn-primary{background:var(--grad);color:#fff;box-shadow:var(--shadow-brand)}
+.btn-primary:active{filter:brightness(.92);transform:scale(.97)}
+.btn-green{background:var(--grad-green);color:#fff}
 .btn-secondary{border:2px solid var(--primary);color:var(--primary);background:transparent}
 /* v154: varian oranye (senada FAB held) — dipakai tombol "Kembali" daftar held */
-.btn-orange{background:var(--orange,#ff8a3d);color:#fff}
+.btn-orange{background:var(--grad);color:#fff}
 .btn-orange:active{filter:brightness(.92);transform:scale(.97)}
-.btn-green:active{background:#1B5E20;transform:scale(.97)}
-.btn-red{background:var(--red);color:#fff}
+.btn-green:active{filter:brightness(.92);transform:scale(.97)}
+.btn-red{background:var(--grad-red);color:#fff}
 /* Tombol WhatsApp — hijau gelap solid (komentar browser #2, 2026-09-04).
    Kelas sendiri, bukan .btn-secondary, supaya tidak ikut oranye transparan. */
 .btn-wa{background:var(--green);color:#fff;border:none}
 .btn-wa:hover,.btn-wa:focus-visible{background:#1B5E20;color:#fff;outline:none}
 .btn-wa:active{transform:scale(.98)}
-.btn-red:active{background:#8E0000;transform:scale(.97)}
+.btn-red:active{filter:brightness(.92);transform:scale(.97)}
 .btn-outline{background:#fff;color:var(--primary);border:2px solid var(--primary)}
 .btn-outline:active{background:var(--orange-bg)}
 /* Komentar browser #4+#5 (v146): tombol "＋ Tambah baris" & "＋ Tambah Topping"
@@ -112,7 +133,7 @@ body.gate-active .main-content{margin-top:0;margin-bottom:0}
 #cartModal .btn-row [data-action="save-sale-print"]{flex:1 1 0;width:auto}
 
 /* FAB */
-.fab{position:fixed;bottom:calc(var(--nav-h) + 16px);right:16px;width:64px;height:64px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:32px;cursor:pointer;box-shadow:0 4px 16px rgba(230,81,0,.4);z-index:50;display:flex;align-items:center;justify-content:center;transition:transform .2s,background-color .2s,box-shadow .2s}
+.fab{position:fixed;bottom:calc(var(--nav-h) + 16px);right:16px;width:64px;height:64px;border-radius:50%;background:var(--grad);color:#fff;border:none;font-size:32px;cursor:pointer;box-shadow:var(--shadow-brand);z-index:50;display:flex;align-items:center;justify-content:center;transition:transform .2s,background-color .2s,box-shadow .2s}
 .fab:active{transform:scale(.9)}
 
 /* FORMS */
@@ -154,7 +175,7 @@ select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://w
 .cat-tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .cat-tabs::-webkit-scrollbar{display:none}
 .cat-tab{flex:0 0 auto;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:700;border:2px solid var(--border);background:#fff;color:var(--text2);cursor:pointer;white-space:nowrap;transition:background-color .15s,color .15s,border-color .15s}
-.cat-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.cat-tab.active{background:var(--grad);color:#fff;border-color:var(--primary-dark)}
 
 /* Focus-visible catch-all (paritas base.css, konsolidasi P2 2026-08-22) */
 
@@ -218,7 +239,7 @@ button[data-action="topping-qty"]{width:30px;height:30px;min-width:30px;min-heig
 #profileBanner{position:fixed;inset:0;z-index:520;display:none;align-items:center;justify-content:center;padding:24px;margin:0}
 #profileBanner.show{display:flex}
 .prof-banner-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px)}
-.prof-banner-card{position:relative;width:100%;max-width:420px;background:linear-gradient(165deg,var(--primary),#F57C00);color:#fff;border-radius:28px;padding:34px 22px 22px;box-shadow:0 24px 60px rgba(0,0,0,.45);text-align:center;animation:profPop .35s cubic-bezier(.22,1,.36,1);max-height:88vh;overflow-y:auto}
+.prof-banner-card{position:relative;width:100%;max-width:420px;background:var(--grad);color:#fff;border-radius:28px;padding:34px 22px 22px;box-shadow:0 24px 60px rgba(0,0,0,.45);text-align:center;animation:profPop .35s cubic-bezier(.22,1,.36,1);max-height:88vh;overflow-y:auto}
 @keyframes profPop{from{transform:translateY(30px) scale(.95);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
 .prof-emoji{font-size:58px;margin-bottom:8px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.25))}
 .prof-banner-title{font-size:21px;font-weight:800;letter-spacing:.3px;margin-bottom:10px;color:#fff}
@@ -240,6 +261,19 @@ button[data-action="topping-qty"]{width:30px;height:30px;min-width:30px;min-heig
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-handle{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px}
 .modal-title{font-size:20px;font-weight:800;margin-bottom:16px;text-align:center}
+
+/* ── v170 (komentar browser 2026-09-05): modal GERBANG di tengah, tinggi ikut isi ─
+   Kelas dipasang pada OVERLAY, bukan pada .modal, supaya spesifikasinya (0,3,0)
+   mengalahkan dua aturan yang bikin bottom-sheet melebar/memanjang:
+     • `.modal:has(> .btn-row){min-height:90vh}` (baris 97) → modal setinggi layar
+     • `.modal{border-radius:20px 20px 0 0; padding-bottom:nav-h+20}` (baris 239)
+   Media query (baris 441/485/577) menulis ulang padding .modal dengan spesifikasi
+   (0,1,0) — tetap kalah oleh aturan di bawah, jadi tidak perlu duplikasi per-breakpoint.
+   Hanya dipakai oleh modal yang memang gerbang (saat ini #bukaKasModal); modal lain
+   tetap bottom-sheet seperti semula. */
+.modal-overlay.modal-center{align-items:center;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
+.modal-overlay.modal-center .modal{border-radius:20px;min-height:0;max-height:85vh;padding:22px 18px;animation:popIn .2s ease}
+.modal-overlay.modal-center .modal .btn-row{position:static;margin-top:18px;padding:0;border-top:none}
 
 /* CONFIRM DIALOG */
 .confirm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:610;display:none;align-items:center;justify-content:center;padding:20px}
@@ -389,20 +423,20 @@ button[data-action="topping-qty"]{width:30px;height:30px;min-width:30px;min-heig
 .date-nav .cal-cell{height:clamp(30px,7vw,38px);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--text);background:#f7f7f7;border-radius:8px;cursor:pointer;user-select:none}
 .date-nav .cal-cell.empty{visibility:hidden}
 .date-nav .cal-cell.today{border:2px solid var(--primary)}
-.date-nav .cal-cell.sel{background:var(--primary);color:#fff}
+.date-nav .cal-cell.sel{background:var(--grad);color:#fff}
 .date-nav .cal-cell.inrange{background:rgba(230,81,0,.14);box-shadow:inset 0 0 0 1px rgba(230,81,0,.35)}
 .date-nav .cal-cell:active{opacity:.6}
 .date-nav .week-opt{display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 12px;margin-bottom:5px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:13px;cursor:pointer;color:var(--text)}
 .date-nav .week-opt b{font-weight:800}
 .date-nav .week-opt span{font-size:12px;color:var(--text3);font-weight:600}
-.date-nav .week-opt.sel{border-color:var(--primary);background:var(--primary);color:#fff}
+.date-nav .week-opt.sel{border-color:var(--primary-dark);background:var(--grad);color:#fff}
 .date-nav .week-opt.sel span{color:rgba(255,255,255,.85)}
 .date-nav .week-opt:active{opacity:.7}
 .date-nav .month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .date-nav .month-opt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:10px 4px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:13px;cursor:pointer;color:var(--text)}
 .date-nav .month-opt b{font-weight:800}
 .date-nav .month-opt span{font-size:10px;color:var(--text3);font-weight:600}
-.date-nav .month-opt.sel{border-color:var(--primary);background:var(--primary);color:#fff}
+.date-nav .month-opt.sel{border-color:var(--primary-dark);background:var(--grad);color:#fff}
 .date-nav .month-opt.sel span{color:rgba(255,255,255,.85)}
 .date-nav .month-opt:active{opacity:.7}
 
@@ -705,7 +739,7 @@ button,[role="button"]{touch-action:manipulation}
 .license-extend-section .license-usage{margin-top:8px}
 .license-usage{text-align:center;font-size:12px;color:var(--text3)}
 .license-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
-.btn-extend{background:linear-gradient(135deg,var(--green),var(--green-light));color:#fff;border:none;padding:14px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;width:100%}
+.btn-extend{background:var(--grad-green);color:#fff;border:none;padding:14px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;width:100%}
 .btn-extend:active{transform:scale(.98)}
 .btn-buy-wa{background:#fff;border:1.5px solid var(--primary-dark);color:var(--primary-dark);padding:14px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .btn-buy-wa:active{transform:scale(.98)}
@@ -776,11 +810,11 @@ body.modal-open .main-content{overflow:hidden}
    JS toggle display:flex/none (renderCartBar). */
 #cartBar{display:none;position:fixed;bottom:calc(var(--nav-h) + 8px);left:8px;right:8px;max-width:90%;margin:0 auto;background:transparent;color:#fff;border-radius:0;padding:0;z-index:50;align-items:stretch;gap:10px}
 /* Kontainer hijau keranjang (dulu #cartBar) — tetap tombol buka modal cart. */
-.cart-bar-inner{flex:1 1 auto;min-width:0;background:var(--green);color:#fff;border-radius:16px;padding:14px 20px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.cart-bar-inner{flex:1 1 auto;min-width:0;background:var(--grad-green);color:#fff;border-radius:16px;padding:14px 20px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3)}
 /* FAB "Tahan" (v148): pojok kanan bawah di atas cart. Default hidden (display:none)
    sampai class `.show` ditambah oleh updateHeldFab(). Badge counter di pojok
    kanan-atas (lingkaran merah kecil seperti FAB Material). */
-.held-fab{display:none;position:fixed;right:14px;bottom:calc(var(--nav-h) + 76px);width:56px;height:56px;border-radius:50%;background:var(--orange,#ff8a3d);color:#fff;border:none;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:pointer;z-index:55;align-items:center;justify-content:center;transition:transform .15s ease, box-shadow .15s ease}
+.held-fab{display:none;position:fixed;right:14px;bottom:calc(var(--nav-h) + 76px);width:56px;height:56px;border-radius:50%;background:var(--grad);color:#fff;border:none;box-shadow:var(--shadow-brand);cursor:pointer;z-index:55;align-items:center;justify-content:center;transition:transform .15s ease, box-shadow .15s ease}
 .held-fab.show{display:flex}
 .held-fab:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.32)}
 .held-fab:active{transform:translateY(0)}
@@ -793,7 +827,7 @@ body.modal-open .main-content{overflow:hidden}
 .held-row-main{flex:1;min-width:0}
 .held-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
 .held-row-title{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.held-name-badge{background:var(--orange,#ff8a3d);color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800}
+.held-name-badge{background:var(--grad);color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800}
 .held-row-type{font-size:12px;color:var(--text2,#555);font-weight:600}
 .held-row-total{font-weight:800;color:var(--primary,#2563eb);font-size:15px}
 .held-row-meta{font-size:12px;color:var(--text2,#555);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -849,6 +883,16 @@ body.modal-open .main-content{overflow:hidden}
 /* Backgrounds */
 .kbg-green{background:var(--green-bg)}.kbg-red{background:var(--red-bg)}.kbg-orange{background:var(--orange-bg)}.kbg-blue{background:var(--blue-bg)}
 .kbg-green-b{background:var(--green-bg);border-color:#A5D6A7}.kbg-red-b{background:var(--red-bg);border-color:#EF9A9A}.kbg-blue-b{background:var(--blue-bg);border-color:#90CAF9}.kbg-orange-b{background:var(--orange-bg);border-color:#FFCC80}
+/* v170: kartu statistik Beranda ikut pola gradasi rosok (KPI card, rosok/style.css:142-166).
+   Selector digabung .stat-card.kbg-* — kelas kbg-* yang sama dipakai 18 .setting-icon di
+   halaman Pengaturan, dan tile ikon itu harus TETAP pastel. Spesifisitas (0,3,0) di bawah
+   ini mengalahkan .stat-value.green (0,2,0), jadi angka ikut jadi putih. */
+.stat-card.kbg-green-b{background:var(--grad-green);border-color:transparent}
+.stat-card.kbg-red-b{background:var(--grad-red);border-color:transparent}
+.stat-card.kbg-blue-b{background:var(--grad-blue);border-color:transparent}
+.stat-card.kbg-orange-b{background:var(--grad-kpi-orange);border-color:transparent}
+.stat-card.kbg-green-b .stat-label,.stat-card.kbg-red-b .stat-label,.stat-card.kbg-blue-b .stat-label,.stat-card.kbg-orange-b .stat-label{color:rgba(255,255,255,.9)}
+.stat-card.kbg-green-b .stat-value,.stat-card.kbg-red-b .stat-value,.stat-card.kbg-blue-b .stat-value,.stat-card.kbg-orange-b .stat-value{color:#fff}
 /* Card-like containers */
 .kinfo-card{background:var(--green-bg);padding:12px;border-radius:8px;margin-top:12px}
 .kwarn-card{background:var(--orange-bg);padding:12px;border-radius:8px;margin-top:12px}
@@ -1083,7 +1127,7 @@ body.modal-open .main-content{overflow:hidden}
 .pos-cat-accordion-inner .btn{font-size:13px;min-height:36px;padding:8px 14px;width:auto;flex:0 0 auto}
 
 /* Konsinyasi badges */
-.badge-titipan{display:inline-block;background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle}
+.badge-titipan{display:inline-block;background:var(--grad);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle}
 .badge-stok{display:inline-block;background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle}
 .badge-stok-habis{background:#ffebee;color:#c62828}
 
@@ -1092,7 +1136,7 @@ body.modal-open .main-content{overflow:hidden}
 .toggle-switch input{opacity:0;width:0;height:0}
 .toggle-slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.2s}
 .toggle-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
-.toggle-switch input:checked+.toggle-slider{background:var(--primary)}
+.toggle-switch input:checked+.toggle-slider{background:var(--grad)}
 .toggle-switch input:checked+.toggle-slider::before{transform:translateX(20px)}
 
 /* ===== Fokus global (permintaan pemilik 2026-08-29) =====

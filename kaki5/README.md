@@ -20,7 +20,8 @@ dikirim ke server** (`../CONTEXT.md:77`).
 | Aspek | Nilai | Bukti |
 |---|---|---|
 | **Nama aplikasi** | Kasir Solo - Kaki Lima (`short_name: KasirKaki5`) | `manifest.json` |
-| **Versi** | `APP_VERSION 1.0.99` · `CACHE_BUST v167` | `js/version.js:7,18` |
+| **Versi** | `APP_VERSION 1.0.102` · `CACHE_BUST v170` | `js/version.js:7,18` |
+| **Tema** | Gradasi 135° pada permukaan terisi (pola diadopsi dari aplikasi rosok, stop gelap→terang demi kontras); aksen teks/border tetap oranye `#D6501C` | `css/style.css:16-20` |
 | **Arsitektur** | SPA vanilla ESM, modular-atomic 3-layer, PWA offline | `docs/DEVELOPER.md` §1 |
 | **Penyimpanan data** | IndexedDB via **Dexie 3.2.4**, skema **v8**, 9 object store | `js/db.js:6,137` |
 | **Keranjang (cart)** | `localStorage['kaki5-cart']` (persist lintas buka-tutup) | `js/pos.sync.js:9` |
@@ -49,7 +50,7 @@ kaki5/
 ├── assets/                 ← 8 ukuran ikon + region/provinces.json
 ├── docs/                   ← DEVELOPER.md · REGRESSION-CHECKLIST.md
 └── js/
-    ├── app.js              ← ENTRY (1290 baris): wire window, dispatcher data-action, boot()
+    ├── app.js              ← ENTRY (1310 baris): wire window, dispatcher data-action, boot()
     ├── app-state.js        ← state terpusat (binding read-only + setter)
     ├── db.js               ← Dexie v1..v8 + getSetting/setSetting
     ├── navigation.js       ← router hash + lifecycle halaman
@@ -160,7 +161,10 @@ Migrasi bersifat **aditif — tidak ada tabel/kolom yang pernah di-drop**.
 ### 1. 🏠 Beranda (Dashboard)
 - **Carousel banner/promosi** dari tabel `platformMessages` (`js/carousel.js`).
 - Ringkasan hari ini: omzet, pengeluaran, keuntungan bersih, jumlah transaksi, porsi terjual.
-- **Kartu Kas** (`renderKasCard`, `js/kas.js:324`) — status laci + tombol Buka/Tutup Kas,
+  Keenam kartunya bergradasi (v170) dengan teks putih; kelas `.kbg-*` yang sama **tidak**
+  membuat tile ikon Pengaturan ikut bergradasi karena aturannya memakai selector gabungan
+  `.stat-card.kbg-*` (`css/style.css:886-895`).
+- **Kartu Kas** (`renderKasCard`, `js/kas.js:337`) — status laci + tombol Buka/Tutup Kas,
   Catat, dan Tutup Buku Tahunan.
 - Daftar transaksi terakhir.
 
@@ -169,6 +173,11 @@ Migrasi bersifat **aditif — tidak ada tabel/kolom yang pernah di-drop**.
   harga modal, harga Ojol, topping.
 - **Suplayer** untuk menu titipan (konsinyasi) → muncul sebagai kategori khusus di Laporan
   dengan aksi **Retur** dan **Setor** (`js/laporan.js:492-493`, modal `#returModal`).
+- **Tiga saklar fitur per menu** — "Pakai Stok", "Harga Ojol", "Topping". Sejak v170,
+  mematikan saklar **menghapus nilainya** (input stok dikosongkan, baris grid ojol/topping
+  dibersihkan dari DOM) **dan** menolkan nilai itu saat disimpan (`js/menu.js:550-562`,
+  `js/menu.js:581-597`, `js/menu.js:614-625`). Bukan sekadar `display:none` — angka sisa
+  tidak bisa lagi "nyangkut" di data.
 - Pencarian (debounce 300ms), FAB Tambah Menu.
 
 ### 3. 🛒 Jualan (POS)
@@ -184,15 +193,18 @@ Migrasi bersifat **aditif — tidak ada tabel/kolom yang pernah di-drop**.
   `#heldFab`, modal daftar pesanan ditahan (`#heldListModal`) untuk buka/bayar/hapus.
 - **Metode pembayaran**: Tunai / QRIS / Transfer (bisa dihidupkan-matikan di Pengaturan);
   non-tunai bisa dilampiri **foto bukti bayar**.
-- **Gerbang kas**: transaksi ditolak bila laci belum dibuka — **hanya** kalau saklar
-  fitur kas aktif (`js/pos.js:529`).
+- **Gerbang kas**: selama saklar fitur kas aktif dan belum ada shift berjalan, membuka tab
+  🛒 Jualan **langsung memunculkan** modal "🔓 Buka Kas" (`js/pos.js:409`); guard lama saat
+  menekan Bayar tetap ada sebagai jaring (`js/pos.js:545-548`). Sejak v170 modal itu adalah
+  **hard gate**: tampil di tengah, tanpa tombol "Batal", dan tidak bisa ditutup lewat Escape,
+  klik backdrop, klik navbar, maupun navigasi — lihat §5.
 - **Nomor transaksi** otomatis: `TRX-YYYYMMDD-NNN` (`js/nomor.js`).
 
 ### 4. 📊 Laporan (+ Pengeluaran)
 - Satu halaman: laporan + catatan pengeluaran/pemasukan.
 - Empat periode: **Harian / Mingguan / Bulanan / Custom** (`index.html:185`).
 - Kartu statistik (omzet, pengeluaran, untung bersih) + grafik batang & grafik harian per jam.
-- **Blok Kas** (`kasReportBlocksHtml`, `js/kas.js:371`): rekap sistem vs fisik per shift,
+- **Blok Kas** (`kasReportBlocksHtml`, `js/kas.js:465`): rekap sistem vs fisik per shift,
   rincian dompet digital, selisih — plus blok rekap tahunan Tutup Buku.
 - Navigasi periode dengan aritmatika bulan sungguhan (termasuk Des → Jan).
 - Catatan punya **kolom Tanggal** dan bisa diedit; nomor `MSK`/`BLJ` dihitung ulang hanya
@@ -200,11 +212,21 @@ Migrasi bersifat **aditif — tidak ada tabel/kolom yang pernah di-drop**.
 
 ### 5. 💰 Kas & Tutup Buku Tahunan
 - **Buka Kas** (`js/kas.js:154`) mencatat modal awal laci → baris `kasShift` `status:'buka'`.
-- **Tutup Kas** (`js/kas.js:269`) menghitung kas sistem vs kas fisik, selisih, durasi shift,
+  Modalnya adalah **gerbang** (v170): tidak ada tombol "Batal", dan `bukaKas()` menolak submit
+  selama input masih kosong — **kosong ≠ 0**, laci nol harus diketik sadar
+  (`js/kas.js:168-179`). Semua jalur tutup overlay diarahkan ke satu daftar
+  `HARD_GATE_OVERLAYS` (`js/modal.js:35-47`) yang juga dipakai `lockOverlay` dan
+  `updateOverlay`, jadi tidak ada lagi jalur yang punya daftarnya sendiri.
+- **Riwayat Buka/Tutup Kas bisa diklik** (`showKasShiftDetail`, `js/kas.js:404`): modal
+  "🕐 Detail Riwayat Kas" menampilkan mulai/tutup, durasi, modal awal, penjualan tunai,
+  pengeluaran/pemasukan, kas sistem vs fisik, selisih, dan dompet digital. Rinciannya
+  dihitung ulang dengan `hitungShift(shift, shift.waktuTutup)` — angka resmi shift tutup
+  tetap yang tersimpan di DB.
+- **Tutup Kas** (`js/kas.js:282`) menghitung kas sistem vs kas fisik, selisih, durasi shift,
   lalu menutup baris shift.
-- **Tutup Buku Tahunan** (`js/kas.js:473`) membekukan rekap satu tahun
+- **Tutup Buku Tahunan** (`js/kas.js:567`) membekukan rekap satu tahun
   (validasi 2000–2100, tolak tahun duplikat, `showConfirm`); tahun yang sudah tertutup
-  diperingatkan saat menambah/mengubah catatan (`tahunTertutup`, `js/kas.js:515`).
+  diperingatkan saat menambah/mengubah catatan (`tahunTertutup`, `js/kas.js:609`).
 - **Saklar "Buka / Tutup Kas"** di Pengaturan (v166): kalau dimatikan, kios boleh jualan
   tanpa buka kas; kartu kas di Beranda dan blok kas di Laporan ikut disembunyikan.
   Shift yang masih terbuka **tidak pernah** ditutup/dihapus diam-diam.
@@ -238,7 +260,8 @@ Fitur lain:
 
 ### 7. ❓ Bantuan
 Panduan + tutorial per fitur, dirender dari `js/bantuan.js`; akses lewat tombol ❓ di
-header (`index.html:43`) — **bukan** tab bottom-nav.
+header (`index.html:43`) — **bukan** tab bottom-nav. Kartu judulnya memakai kelas
+`card-hero-blue` (gradasi biru, v170) supaya konsisten dengan permukaan terisi lainnya.
 
 ### 8. 📲 PWA & Offline
 - `sw.js` dengan **tiga strategi**: API Supabase network-only (`:232`), **HTML cache-first**
@@ -321,7 +344,7 @@ Cetak dari pembayaran, dari detail transaksi, atau nota terakhir.
 ```
 [index.html] → <script src="dexie.min.js"> (global)
              → <script src="js/dev-unregister-sw.js">
-             → <script type="module" src="js/app.js?v=166">
+             → <script type="module" src="js/app.js?v=170">
    ↓
 app.js dimuat → wire 8 modul via _*WireMap (eager) + wiring langsung window._ksr_*
    ↓
@@ -361,6 +384,7 @@ Bottom nav memuat **5** tab (Bantuan lewat tombol header). Lifecycle `initPage` 
 | Komponen | Teknologi | Keterangan |
 |---|---|---|
 | UI | HTML + CSS murni | tanpa framework, mobile-first |
+| Tema | CSS custom properties | satu file `css/style.css`; permukaan terisi memakai token gradien 135° (`css/style.css:16-20`) yang polanya diadopsi dari aplikasi rosok, dengan stop **gelap→terang** supaya teks putih lolos kontras. Aksen teks/border tetap `--primary #D6501C`. Pengecualian: `.btn-wa` hijau gelap solid, tile `.setting-icon` tetap pastel |
 | State & rendering | Vanilla ESM | state terpusat di `app-state.js`, mutasi lewat setter |
 | Database lokal | Dexie 3.2.4 / IndexedDB | skema v8, 9 object store |
 | Persist sementara | `localStorage` | cart, catatan pesanan, tipe order, metode bayar, status instal |
@@ -435,5 +459,5 @@ Sebagian harness memakai `process.cwd()`, jadi **CWD wajib `kaki5`**.
 
 ---
 
-*Dokumen ini mencerminkan kondisi kode **v167 / 1.0.99 (2026-09-04)**. Setiap klaim diberi
+*Dokumen ini mencerminkan kondisi kode **v170 / 1.0.102 (2026-09-05)**. Setiap klaim diberi
 rujukan `file:baris` supaya bisa diverifikasi ulang terhadap kode.*

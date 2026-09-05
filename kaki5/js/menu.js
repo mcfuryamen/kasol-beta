@@ -550,7 +550,15 @@ export function syncStokVisibility() {
   const cb = document.getElementById('menuPakaiStok');
   const wrap = document.getElementById('menuStokWrap');
   if (!cb || !wrap) return;
-  wrap.style.display = cb.checked ? 'block' : 'none';
+  const on = cb.checked;
+  wrap.style.display = on ? 'block' : 'none';
+  // v170 (komentar browser 2026-09-05 #2): saklar mati ⇒ NILAINYA JADI NOL, bukan
+  // cuma tersembunyi. Angka yang tertinggal di input bikin status "stok" terasa
+  // masih ada padahal fiturnya dimatikan. saveMenu() juga memaksa 0 (jaring dua).
+  if (!on) {
+    const el = document.getElementById('menuStok');
+    if (el) el.value = '';
+  }
 }
 
 // Tandai bahwa user pernah meng-toggle Pakai Stok secara manual.
@@ -567,18 +575,25 @@ export function bindPakaiStokUserOverride() {
 }
 
 // ── Toggle Harga Ojol & Topping (pola sama dgn Pakai Stok) ──────────────────
+// v170 (komentar browser 2026-09-05 #3 #4): sama seperti Pakai Stok — saklar mati
+// membuat NILAINYA HILANG (baris grid dibersihkan), bukan hanya disembunyikan.
+// Tanpa ini baris lama tetap tertinggal di DOM dan ikut tersimpan saat "Simpan".
 export function syncOjolVisibility() {
   const cb = document.getElementById('menuOjolToggle');
   const wrap = document.getElementById('menuOjolWrap');
   if (!cb || !wrap) return;
-  wrap.style.display = cb.checked ? 'block' : 'none';
+  const on = cb.checked;
+  wrap.style.display = on ? 'block' : 'none';
+  if (!on) renderOjolRows([]);
 }
 
 export function syncToppingVisibility() {
   const cb = document.getElementById('menuToppingToggle');
   const wrap = document.getElementById('menuToppingWrap');
   if (!cb || !wrap) return;
-  wrap.style.display = cb.checked ? 'block' : 'none';
+  const on = cb.checked;
+  wrap.style.display = on ? 'block' : 'none';
+  if (!on) renderToppingRows([]);
 }
 
 export function bindOjolToppingToggles() {
@@ -596,12 +611,18 @@ export async function saveMenu() {
   let kategori = document.getElementById('menuKategori').value;
   const hargaJual = parseInt(document.getElementById('menuHargaJual').value) || 0;
   const hargaModal = parseInt(document.getElementById('menuHargaModal').value) || 0;
+  // v170 (komentar browser 2026-09-05 #2 #3 #4): ketiga saklar jadi sumber kebenaran
+  // di JALUR TULIS — kalau mati, nilainya nol/kosong apa pun yang tertinggal di DOM.
+  // syncStokVisibility()/syncOjolVisibility()/syncToppingVisibility() sudah
+  // membersihkan tampilannya saat saklar dimatikan; ini jaring pengaman keduanya.
+  const pakaiOjol = document.getElementById('menuOjolToggle')?.checked ? 1 : 0;
+  const pakaiTopping = document.getElementById('menuToppingToggle')?.checked ? 1 : 0;
   // Harga Ojol per-app: kumpulkan baris grid → JSON ojolPrices.
   // hargaOjol (field lama) = harga baris pertama — kompatibilitas laporan/nota lama.
-  const ojolRows = collectOjolGrid();
+  const ojolRows = pakaiOjol ? collectOjolGrid() : [];
   const ojolPrices = JSON.stringify(ojolRows);
   const hargaOjol = ojolRows.length > 0 ? ojolRows[0].harga : 0;
-  const toppingList = buildToppingListString(collectToppingGrid());
+  const toppingList = pakaiTopping ? buildToppingListString(collectToppingGrid()) : '';
   const suplayer = document.getElementById('menuSuplayerSelect').value || 'Umum';
   const pakaiStok = document.getElementById('menuPakaiStok').checked ? 1 : 0;
   const stok = pakaiStok ? Math.max(0, parseInt(document.getElementById('menuStok').value) || 0) : 0;

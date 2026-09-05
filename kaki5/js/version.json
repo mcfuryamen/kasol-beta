@@ -1,11 +1,11 @@
 {
-  "version": "1.0.101",
-  "cacheBust": "v169",
+  "version": "1.0.102",
+  "cacheBust": "v170",
   "notes": [
-    "Kas sekarang dijaga di depan: buka tab 🛒 Jualan dan modal \"🔓 Buka Kas\" langsung muncul selama belum ada shift berjalan — isi modal awal dulu, baru bisa bertransaksi.",
-    "Riwayat kas bisa diklik. Tiap baris di blok \"🕐 Riwayat Buka/Tutup Kas\" membuka modal \"🕐 Detail Riwayat Kas\": jam mulai & tutup, durasi, modal awal, penjualan tunai, pengeluaran/pemasukan, kas sistem vs fisik, selisih, dan rincian dompet digital.",
-    "Baris transaksi di kartu 🛵 Transaksi Ojol ikut bisa diketuk untuk membuka \"📃 Detail Transaksi\", sama seperti riwayat transaksi biasa.",
-    "Rapian UI jualan: Dine-in jadi pilihan bawaan, sisa stok tampil sebagai badge di pojok kiri atas kartu menu, harga satuan pindah ke samping nama menu di keranjang, legenda ■ Omzet ■ Pengeluaran turun ke bawah chart, tombol hapus pesanan ditahan dibuat 1:1, dan tombol admin jadi \"💬 WhatsApp\" berwarna hijau.",
-    "Perbaikan: error tanggal pada daftar riwayat kas, dan perangkat yang unit-nya sudah dipindah tidak lagi memunculkan pesan 409 tiap membuka aplikasi — statusnya dijelaskan jujur di halaman Diagnostik."
+    "Modal \"🔓 Buka Kas\" sekarang benar-benar mengunci aplikasi: tampil di tengah dengan tinggi mengikuti isi, tombol \"Batal\" dihapus, dan Escape / klik latar / pindah tab tidak bisa menutupnya. Satu-satunya jalan keluar adalah memasukkan modal awal lalu menekan \"🔓 Buka Kas\" — ketik 0 kalau laci memang kosong.",
+    "Saklar di form menu kini jujur mematikan nilainya. Kalau \"Pakai Stok\", \"Harga Ojol\", atau \"Topping\" dimatikan, angkanya ikut hilang (bukan cuma tersembunyi) dan tersimpan sebagai nol — jadi tidak ada lagi stok, harga ojol, atau topping bayangan yang nyangkut di data.",
+    "Seluruh aplikasi mengadopsi tema gradasi ala Kasir Solo Rosok: header, tombol utama/hijau/merah, tombol +, tab kategori, pemilih tanggal, banner profil, tombol pesanan ditahan, bar keranjang, saklar, badge titipan, dan keenam kartu statistik Beranda kini bergradien 135°.",
+    "Kartu \"❓ Bantuan\" jadi gradasi biru, dan warna gradasi disusun gelap→terang supaya teks putih di atasnya tetap terbaca (sebelumnya kontrasnya cuma ~2,3:1).",
+    "Tombol \"💬 WhatsApp\" tetap hijau gelap solid sesuai permintaan — tidak ikut digradasi."
   ]
 }

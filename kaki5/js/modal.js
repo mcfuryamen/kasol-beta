@@ -32,10 +32,19 @@ export function getModalSelector(overlayId) {
 // Registry of active modal cleanups
 const activeModals = new Map();
 
-// Overlay yang TIDAK boleh ditutup dengan Escape: lockOverlay = hard gate
-// lisensi (paritas dengan proteksi klik backdrop di app.js), updateOverlay =
-// force update (user wajib tekan OKE → reload).
-const NO_ESCAPE_CLOSE = new Set(['lockOverlay', 'updateOverlay']);
+// Overlay HARD GATE: tidak boleh ditutup dari UI lewat jalur apa pun — Escape
+// (di bawah), klik backdrop + klik navbar (app.js), dan navigasi (navigation.js)
+// semuanya menyapu daftar yang sama ini. Satu sumber kebenaran supaya jalur
+// tutup tidak bisa saling bertentangan.
+//   • lockOverlay   = gate lisensi (hard gate lama)
+//   • updateOverlay = force update, user wajib tekan OKE lalu reload
+//   • bukaKasModal  = gerbang kas (komentar browser 2026-09-05): modal awal harus
+//     dimasukkan dulu sebelum dashboard bisa dipakai, jadi tombol "Batal" dihapus
+//     dan semua jalur tutup lain diblokir.
+// CATATAN: ini hanya melarang penutupan DARI LUAR. `closeModal()` sendiri tetap
+// bebas dipanggil modul, dan itu jalur yang dipakai `bukaKas()` setelah shift
+// tersimpan — kalau tidak, kas yang sudah terbuka tidak bisa menutup modalnya.
+export const HARD_GATE_OVERLAYS = new Set(['lockOverlay', 'updateOverlay', 'bukaKasModal']);
 
 let _escListenerInstalled = false;
 function ensureEscapeListener() {
@@ -44,7 +53,7 @@ function ensureEscapeListener() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     // Tutup overlay ter-atas yang boleh ditutup (urutan insert = urutan buka).
-    const closable = [...activeModals.keys()].filter(id => !NO_ESCAPE_CLOSE.has(id));
+    const closable = [...activeModals.keys()].filter(id => !HARD_GATE_OVERLAYS.has(id));
     if (closable.length === 0) return;
     closeModal(closable[closable.length - 1]);
   });
@@ -145,13 +154,14 @@ export function closeModal(overlayId) {
  * activeModals — karena overlay tanpa konten yang cocok selector tidak pernah
  * masuk registry dan dulu ikut tertinggal terbuka.
  * @param {Object} options
- * @param {string[]} options.except - Overlay ID yang tidak boleh ditutup
- *   (mis. 'lockOverlay' = hard gate lisensi).
+ * @param {string[]} options.except - Overlay ID tambahan yang tidak boleh ditutup
+ *   (mis. saat pindah halaman). HARD_GATE_OVERLAYS selalu dikecualikan sendiri,
+ *   jadi pemanggil tidak perlu mengingat daftar gate-nya satu per satu.
  * @returns {void}
  */
 export function closeAllModals(options = {}) {
   const { except = [] } = options;
-  const skip = new Set(except);
+  const skip = new Set([...HARD_GATE_OVERLAYS, ...except]);
 
   const ids = new Set(activeModals.keys());
   document

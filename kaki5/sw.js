@@ -1,9 +1,24 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v169 — ubah angka INI juga setiap swap (harus sama dengan
+// Cache version v170 — ubah angka INI juga setiap swap (harus sama dengan
 // CACHE_NAME di bawah; baris ini tertinggal di v119 selama belasan rilis
 // dan bikin salah baca seolah CACHE_NAME tidak di-bump).
+// v170: gerbang Buka Kas dikunci rapat + tema gradasi diadopsi dari rosok.
+//       (1) Modal "🔓 Buka Kas" jadi .modal-center (tengah, tinggi ikut isi),
+//           tombol "Batal" DIHAPUS, dan Escape / klik backdrop / klik navbar /
+//           navigasi tidak bisa menutupnya — daftar gate tunggal
+//           HARD_GATE_OVERLAYS di modal.js dipakai semua jalur tutup.
+//           `bukaKas()` menolak submit saat input kosong (kosong ≠ 0).
+//       (2) Saklar "Pakai Stok" / "Harga Ojol" / "Topping" di form menu: mati =
+//           nilainya HILANG dari DOM (input dikosongkan, grid dibersihkan) DAN
+//           dinolkan di jalur tulis saveMenu() — bukan cuma disembunyikan.
+//       (3) Tema gradasi rosok dipasang di permukaan terisi: header, .btn-primary
+//           /-green/-red/-orange, FAB, tab kategori, pemilih tanggal, banner
+//           profil, held-FAB + badge, bar keranjang, saklar, badge titipan,
+//           keenam kartu statistik Beranda, banner install PWA. Stop disusun
+//           gelap->terang supaya teks putih lolos kontras. Kartu Bantuan jadi
+//           gradasi biru. .btn-wa TETAP hijau gelap solid (permintaan user).
 // v169: gerbang kas pindah ke tab Jualan + modal Detail Riwayat Kas.
 //       (1) Buka 🛒 Jualan saat fitur kas aktif & belum ada shift berjalan ->
 //           modal "🔓 Buka Kas" muncul otomatis: user input modal awal dulu,
@@ -168,7 +183,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v169';
+const CACHE_NAME = 'kasir-solo-kaki5-v170';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

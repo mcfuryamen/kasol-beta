@@ -63,9 +63,10 @@ export async function navigateTo(page) {
   }
 
   // Pindah halaman / klik navbar -> tutup semua modal yang terbuka.
-  // (lockOverlay = hard lock gate; dijaga supaya gak bisa ditutup via navigasi.)
+  // Hard gate (lockOverlay, updateOverlay, bukaKasModal v170) sudah dikecualikan
+  // di dalam closeAllModals() lewat HARD_GATE_OVERLAYS — tidak perlu daftar lagi.
   // Lewat closeAllModals() supaya focus trap tiap modal ikut dibersihkan.
-  closeAllModals({ except: ['lockOverlay'] });
+  closeAllModals();
 
   const prev = currentPage;
   setCurrentPage(page);

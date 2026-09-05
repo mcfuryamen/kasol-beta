@@ -165,7 +165,17 @@ export async function bukaKas() {
     showToast('Kas masih terbuka — tutup dulu shift yang lama 🔒', 'error', 3500);
     return;
   }
-  const raw = (document.getElementById('bukaKasModalAwal')?.value || '').replace(/\D/g, '');
+  const el = document.getElementById('bukaKasModalAwal');
+  // v170 (komentar browser 2026-09-05): modal ini gerbang TANPA tombol Batal, jadi
+  // "Buka Kas" hanya boleh jalan kalau modal awal benar-benar diketik. Kosong ≠ 0:
+  // laci nol harus diketik sadar, bukan hasil menekan tombol sambil meninggalkan
+  // input kosong. Tanpa ini, "kunci dashboard" bisa dilewati dalam satu klik.
+  if (!(el?.value || '').trim()) {
+    showToast('Masukkan modal awal dulu — ketik 0 kalau laci memang kosong', 'error', 3500);
+    if (el) el.focus();
+    return;
+  }
+  const raw = (el.value || '').replace(/\D/g, '');
   const modalAwal = raw ? parseInt(raw, 10) : 0;
   if (modalAwal < 0) { showToast('Modal awal tidak boleh minus', 'error'); return; }
 

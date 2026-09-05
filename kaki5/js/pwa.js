@@ -88,7 +88,7 @@ export function showInstallBanner() {
   if (document.getElementById('installBanner')) return;
   const banner = document.createElement('div');
   banner.id = 'installBanner';
-  banner.style.cssText = 'position:fixed;top:calc(var(--header-h) + 8px);left:8px;right:8px;max-width:90%;margin:0 auto;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;border-radius:16px;padding:14px 16px;z-index:150;box-shadow:0 4px 16px rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;animation:slideDown .3s ease';
+  banner.style.cssText = 'position:fixed;top:calc(var(--header-h) + 8px);left:8px;right:8px;max-width:90%;margin:0 auto;background:var(--grad);color:#fff;border-radius:16px;padding:14px 16px;z-index:150;box-shadow:0 4px 16px rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;animation:slideDown .3s ease';
   banner.innerHTML = '<div class="kfs32">📲</div><div class="kflex-1"><div class="kfw700 kfs14">Pasang di HP</div><div style="font-size:12px;opacity:.85">Biar gampang dibuka kayak app biasa</div></div><button data-action="install-pwa" style="background:#fff;color:var(--primary);border:none;padding:8px 16px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">Pasang</button><button data-action="close-install-banner" style="background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px">✕</button>';
   document.body.appendChild(banner);
 
@@ -168,7 +168,7 @@ export function showManualInstallGuide() {
       <div style="font-size:40px;margin-bottom:12px">${isIOS ? '🍎' : '📲'}</div>
       <div style="font-size:16px;font-weight:700;margin-bottom:12px;color:#1a1a1a">Pasang Aplikasi</div>
       <div style="font-size:13px;color:#555;line-height:1.7;text-align:left;margin-bottom:20px">${msg}</div>
-      <button data-action="close-install-guide" style="background:var(--primary);color:#fff;border:none;padding:10px 24px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer">Tutup</button>
+      <button data-action="close-install-guide" style="background:var(--grad);color:#fff;border:none;padding:10px 24px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer">Tutup</button>
     </div>`;
   document.body.appendChild(overlay);
 }

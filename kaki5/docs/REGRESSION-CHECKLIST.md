@@ -2,7 +2,7 @@
 
 Guardrail manual + otomatis supaya kelas bug lama tidak kembali.
 Dibuat 2026-08-11 (bagian dari rencana perbaikan P1–P7); **diselaraskan ulang dengan kode
-v167 / 1.0.99 pada 2026-09-04.**
+v170 / 1.0.102 pada 2026-09-05.**
 
 Acuan: [`../AGENTS.md`](../AGENTS.md) · [`DEVELOPER.md`](DEVELOPER.md) ·
 [`../../CONTEXT.md`](../../CONTEXT.md) · [`../../DEPLOYMENT.md`](../../DEPLOYMENT.md)
@@ -11,7 +11,7 @@ Acuan: [`../AGENTS.md`](../AGENTS.md) · [`DEVELOPER.md`](DEVELOPER.md) ·
 
 ## 1. Kelas bug yang dijaga
 
-Aplikasi ini punya **tiga** kelas regresi berulang yang semuanya **senyap** — tidak
+Aplikasi ini punya **lima** kelas regresi berulang; empat di antaranya **senyap** — tidak
 melempar error, tidak muncul di konsol:
 
 1. **Null-guard DOM menelan elemen hilang.** `render*()` memanggil
@@ -23,6 +23,14 @@ melempar error, tidak muncul di konsol:
    `if (m[modKey] !== undefined)`. Nama yang tidak diekspor modul target **dilewati tanpa
    error** → `window.fn` `undefined` → fitur mati total. Ini penyebab bug saklar kas v166
    (lihat `DEVELOPER.md` §4) dan **kelas bug paling aktif** di kaki5.
+4. **Kontrol disembunyikan tapi nilainya tetap tersimpan** (komentar browser 2026-09-05,
+   diperbaiki v170). Saklar "Pakai Stok" / "Harga Ojol" / "Topping" dulu cuma
+   `display:none`, sehingga angka lama tidak terlihat **tapi tetap ikut tersimpan**.
+   Aturan: kalau saklar mati, bersihkan tampilannya **dan** nolkan di jalur tulis.
+5. **Gerbang yang masih punya jalan keluar dari UI** (diperbaiki v170). Modal "🔓 Buka Kas"
+   mengaku mengunci dashboard padahal tombol "Batal", Escape, klik backdrop, dan pindah tab
+   semuanya menutupnya. Aturan: satu daftar `HARD_GATE_OVERLAYS`, tanpa aksi tutup dari UI,
+   dan tolak submit kosong (kosong ≠ 0).
 
 Contoh historis kelas 1: `#licenseInfoCard` (kartu lisensi di Pengaturan berhenti
 dirender).
@@ -51,11 +59,12 @@ mereferensikannya, atau null-guard aksesnya secara sadar.
 | `#buktiInput`, `#buktiPreview`, `#submitPurchaseBtn` | `purchase.js` (disuntik) | pembelian lisensi + bukti transfer |
 | `#kasCard` | `kas.js` / `index.html:92` | kartu kas di Beranda (**punya `style="display:none"` anti-FOUC**) |
 | `#fiturKasToggle` | `settings.ui.js` | saklar fitur Buka/Tutup Kas (v166) |
-| `#bukaKasModal`, `#tutupKasModal`, `#tutupBukuModal` | `kas.js` | modal kas & tutup buku |
+| `#bukaKasModal` (`index.html:713`), `#tutupKasModal` (`:727`), `#tutupBukuModal` (`:766`), `#kasShiftDetailModal` (`:876`) | `kas.js` | modal kas, tutup buku, dan detail riwayat shift (v169). **`#bukaKasModal` = HARD GATE sejak v170**: `.modal-center`, tanpa tombol "Batal", tidak bisa ditutup Escape/backdrop/navbar/navigasi |
 | `#heldFab`, `#heldListModal` | `pos.ui.js` | pesanan ditahan |
 | `#cartModal`, `#menuSelectorModal`, `#returModal` | `pos.ui.js` / `laporan.js` | keranjang, selector menu, retur konsinyasi |
 | `#quotaBanner` | `app.js:260-276` | banner kuota habis (tidak mengunci app) |
 | `#lockOverlay` | `license.ui.js:178` | full-lock **hanya** untuk revoke admin |
+| `HARD_GATE_OVERLAYS` | `js/modal.js:47` | satu daftar gate yang dipakai Escape, `closeAllModals()`, klik backdrop/navbar, dan `navigation.js`: `lockOverlay` + `updateOverlay` + `bukaKasModal`. Menambah jalur tutup dengan `except:` sendiri = regresi v170 |
 | `#tcModal` | `app.js:245-253` | S&K sekali-jalan non-blocking |
 | `#updateOverlay` | `update.js` | modal "Versi Baru Tersedia" |
 | `#syncDiagModal` (+ `#syncDiagTitle`, `#syncDiagContent`) | `sync.health.js` | diagnosa sync 10 langkah |
@@ -82,12 +91,12 @@ Satu saja tertinggal → overlay update tidak muncul (`update.js:79` bail bila
 
 | # | Slot | Contoh nilai kini |
 |---|---|---|
-| 1 | `js/version.js` → `APP_VERSION` (`:7`) | `1.0.99` |
-| 2 | `js/version.js` → `CACHE_BUST` (`:18`) | `v167` |
-| 3 | `js/version.json` → `"version"` (`:2`) | `1.0.99` |
-| 4 | `js/version.json` → `"cacheBust"` (`:3`) | `v167` |
-| 5 | `sw.js` → `CACHE_NAME` (`:147`) **dan** komentar "Cache version vNNN" (`:4-6`) | `kasir-solo-kaki5-v167` |
-| 6 | `index.html` → `js/app.js?v=` (`:999`) | `?v=167` |
+| 1 | `js/version.js` → `APP_VERSION` (`:7`) | `1.0.102` |
+| 2 | `js/version.js` → `CACHE_BUST` (`:18`) | `v170` |
+| 3 | `js/version.json` → `"version"` (`:2`) | `1.0.102` |
+| 4 | `js/version.json` → `"cacheBust"` (`:3`) | `v170` |
+| 5 | `sw.js` → `CACHE_NAME` (`:186`) **dan** komentar "Cache version vNNN" (`:4`) + blok catatan rilis (`:7-184`) | `kasir-solo-kaki5-v170` |
+| 6 | `index.html` → `js/app.js?v=` (`:1014`) | `?v=170` |
 
 `version.json.notes[]` juga diisi — itu isi overlay "Yang Baru" untuk user.
 
@@ -190,10 +199,22 @@ lewat `pos.logic.js` / `kas.logic.js`.
       boleh mengaku posisi "aktif" lewat atribut `checked`/teks default yang salah.
 - [ ] Kalau ada `await` panggilan cloud di jalur render: pastikan ada timeout atau
       sudah didahului render lokal, supaya jaringan lambat tidak membekukan tampilan.
+- [ ] Kalau **saklar menyembunyikan blok input**: nilainya ikut dibersihkan di tampilan
+      (`el.value=''` / render grid kosong) **dan** dinolkan di jalur tulis `save*()`.
+      `display:none` saja = angka lama tetap tersimpan tanpa terlihat (kelas 4, v170).
+- [ ] Kalau menambah **modal gerbang**: daftarkan id-nya ke `HARD_GATE_OVERLAYS`
+      (`js/modal.js:47`), hapus aksi tutup dari UI (tidak ada `data-action="close-..."`),
+      dan tolak submit saat input wajib masih kosong. Semua jalur tutup harus menyapu
+      daftar yang sama (kelas 5, v170).
+- [ ] Kalau mengubah **tema/warna permukaan**: cek kontras teks di atasnya, dan pastikan
+      kelas warna yang dipakai ganda (mis. `.kbg-*` untuk kartu statistik **dan** tile ikon
+      pengaturan) tidak ikut berubah — pakai selector gabungan
+      (`.stat-card.kbg-*`, `css/style.css:886-895`). `.btn-wa` tetap hijau gelap solid
+      (permintaan pemilik 2026-09-04).
 - [ ] Migrasi DB aditif — tidak ada tabel/kolom yang di-drop.
 - [ ] Rilis **hanya atas perintah eksplisit pemilik**.
 
-### Bukti rilis = 4 jalur independen (bukan output git)
+### Bukti rilis = 5 jalur independen (bukan output git)
 
 1. `git ls-remote origin refs/heads/main`
 2. `git fetch` + `git rev-parse FETCH_HEAD`
@@ -201,6 +222,13 @@ lewat `pos.logic.js` / `kas.logic.js`.
    (`gh api` rusak di mesin ini)
 4. **Isi file** di `raw.githubusercontent.com/.../kaki5/js/version.js` — SHA benar tapi isi
    salah tetap lolos di tiga jalur pertama.
+5. **Konten yang benar-benar terhidang** di domain-nya: `kq5beta.vercel.app` untuk BETA dan
+   `kaki5.kasirsolo.com` untuk LIVE. Cek `/js/version.json`, `/sw.js` (`CACHE_NAME`), dan
+   `/` (untuk `app.js?v=`). Jangan fetch `/index.html` — ia **308** ke `/`.
+   > **Jangan pakai field `homepage` repo GitHub** sebagai acuan URL. Untuk `kasol-beta`
+   > field itu menunjuk `kaki5beta.vercel.app` yang **404 semua path**; project Vercel-nya
+   > bernama `kaki5beta` tapi domainnya `kq5beta.vercel.app`. Cara murah dan benar:
+   > `vercel project ls`.
 
 ---
 
@@ -217,6 +245,6 @@ lewat `pos.logic.js` / `kas.logic.js`.
 
 ---
 
-*Sinkron dengan kode v167 / 1.0.99 (2026-09-04). Dokumen lama menyebut `APP_VERSION
+*Sinkron dengan kode v170 / 1.0.102 (2026-09-05). Dokumen lama menyebut `APP_VERSION
 '1.0.18'`, `CACHE_BUST 'v85'`, "42/42 module imports", dan `test_validate.js`/`test_pos.js`
 — semuanya sudah tidak berlaku.*

@@ -34,7 +34,7 @@ import { selectTopping, applySelectedTopping, toggleOrderType, openMenuSelector,
 import { APP_VERSION, APP_VERSION_LABEL } from './version.js';
 import { startUpdateWatcher, checkForUpdate } from './update.js';
 import { setReportPeriod, setReportDate, setCustomStart, setCustomEnd, setPosCat, setCurrentPage, setCart, setSelectedTrxId, setLastSaleId, setPlatCurrentSlide, setPlatAutoTimer, orderType, setOrderType } from './app-state.js';
-import { openModal, closeModal, closeAllModals, isModalOpen, toggleModal, registerModalSelector } from './modal.js';
+import { openModal, closeModal, closeAllModals, isModalOpen, toggleModal, registerModalSelector, HARD_GATE_OVERLAYS } from './modal.js';
 
 // Register custom selector for tcModal (custom inline-styled structure)
 registerModalSelector('tcModal', '.modal-overlay > div[style*="border-radius:20px"]');
@@ -63,7 +63,10 @@ const _berandaWireMap = { __wired: false, loadBeranda: 'loadBeranda' };
 // v161 — modul kas (buka/tutup shift, tutup buku tahunan).
 // v164 — 4 fungsi "catat kas manual" dihapus dari peta ini: pencatatan uang
 // laci kini lewat form Laporan, Beranda hanya memanggil `catatKasDariBeranda`.
-const _kasWireMap = { __wired: false, refreshShiftCache: 'refreshShiftCache', renderKasCard: 'renderKasCard', openBukaKasModal: 'openBukaKasModal', closeBukaKasModal: 'closeBukaKasModal', bukaKas: 'bukaKas', openTutupKasModal: 'openTutupKasModal', closeTutupKasModal: 'closeTutupKasModal', perbaruiSelisihUI: 'perbaruiSelisihUI', tutupKas: 'tutupKas', showKasShiftDetail: 'showKasShiftDetail', closeKasShiftDetail: 'closeKasShiftDetail', catatKasDariBeranda: 'catatKasDariBeranda', openTutupBukuModal: 'openTutupBukuModal', closeTutupBukuModal: 'closeTutupBukuModal', simpanTutupBuku: 'simpanTutupBuku' };
+const _kasWireMap = { __wired: false, refreshShiftCache: 'refreshShiftCache', renderKasCard: 'renderKasCard', openBukaKasModal: 'openBukaKasModal', bukaKas: 'bukaKas', openTutupKasModal: 'openTutupKasModal', closeTutupKasModal: 'closeTutupKasModal', perbaruiSelisihUI: 'perbaruiSelisihUI', tutupKas: 'tutupKas', showKasShiftDetail: 'showKasShiftDetail', closeKasShiftDetail: 'closeKasShiftDetail', catatKasDariBeranda: 'catatKasDariBeranda', openTutupBukuModal: 'openTutupBukuModal', closeTutupBukuModal: 'closeTutupBukuModal', simpanTutupBuku: 'simpanTutupBuku' };
+// v170: `closeBukaKasModal` sengaja TIDAK di-wire ke window lagi — modal Buka Kas
+// jadi gerbang tanpa jalan keluar dari UI. Fungsi aslinya tetap diekspor kas.js
+// dan dipakai internal setelah shift berhasil dibuat.
 
 // Pre-wire critical modules immediately (beranda, pos) for snappy first load
 import('./pos.js').then(m => {
@@ -787,9 +790,10 @@ function handleDataAction(action, el, event) {
     case 'open-buka-kas':
       if (window.openBukaKasModal) window.openBukaKasModal();
       break;
-    case 'close-buka-kas':
-      if (window.closeBukaKasModal) window.closeBukaKasModal();
-      break;
+    // v170: case 'close-buka-kas' DIHAPUS (komentar browser 2026-09-05) — modal
+    // Buka Kas adalah gerbang, tidak ada lagi tombol "Batal". Jalan keluarnya
+    // cuma `save-buka-kas` yang sukses; kas.js menutup modalnya sendiri lewat
+    // closeModal() langsung, jadi tidak butuh aksi tutup dari UI.
     case 'save-buka-kas':
       if (window.bukaKas) window.bukaKas();
       break;
@@ -962,15 +966,16 @@ async function init() {
   // dibuat/dirender dinamis setelah init (bukan hanya yang ada saat load).
   document.addEventListener('click', (e) => {
     const t = e.target;
-    // lockOverlay = hard lock gate (trial habis / lisensi invalid), TIDAK boleh
-    // ditutup lewat klik backdrop atau navbar supaya gate-nya gak bisa dilewati.
+    // HARD_GATE_OVERLAYS (lockOverlay = gate lisensi, updateOverlay = force
+    // update, bukaKasModal = gerbang kas v170) TIDAK boleh ditutup lewat klik
+    // backdrop maupun navbar, supaya gate-nya gak bisa dilewati.
     // Pakai closeAllModals()/closeModal() supaya focus trap ikut dibersihkan
     // (dulu cuma remove class 'show' → keydown listener trap tetap nempel).
-    const closeOverlays = () => closeAllModals({ except: ['lockOverlay'] });
+    const closeOverlays = () => closeAllModals();
     // 1) Klik langsung pada backdrop `.modal-overlay` -> tutup modal tsb.
     //    (Konten modal adalah child, jadi klik konten tidak tertutup.)
     if (t instanceof Element && t.classList?.contains('modal-overlay') && t.classList.contains('show')) {
-      if (t.id !== 'lockOverlay') closeModal(t.id);
+      if (!HARD_GATE_OVERLAYS.has(t.id)) closeModal(t.id);
       return;
     }
     // 2) Klik menu navigasi (navbar bawah) -> tutup semua modal.

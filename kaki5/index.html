@@ -70,7 +70,7 @@
 <div class="stat-card kbg-blue-b">
 <div class="stat-label">📈 Laba Hari Ini</div>
 <div class="stat-value blue" id="todayProfit">Rp 0</div>
-<div id="todayIncomeHint" style="display:none;font-size:10px;color:var(--text3);margin-top:2px"></div>
+<div id="todayIncomeHint" style="display:none;font-size:10px;color:rgba(255,255,255,.92);margin-top:2px"></div>
 </div>
 <div class="stat-card kbg-orange-b">
 <div class="stat-label">🛒 Jumlah Transaksi</div>
@@ -322,7 +322,7 @@
 
 <!-- ====== HALAMAN BANTUAN ====== -->
 <div class="page" id="page-bantuan">
-<div class="card">
+<div class="card card-hero-blue">
 <div class="card-title">❓ Bantuan</div>
 <div class="kfs14 ktext2 klh16">
 Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
@@ -706,16 +706,19 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 
 <!-- ====== MODAL KAS (v161, adopsi buka/tutup kas + tutup buku dari rosok) ====== -->
 <!-- BUKA KAS -->
-<div class="modal-overlay" id="bukaKasModal" role="dialog" aria-modal="true" aria-labelledby="bukaKasModalTitle"><div class="modal">
-<div class="modal-handle"></div>
+<!-- v170 (komentar browser 2026-09-05): `.modal-center` = tampil di tengah dengan
+     tinggi mengikuti isi (bukan bottom-sheet 90vh). Tombol "Batal" DAN .modal-handle
+     DIHAPUS: modal ini gerbang — satu-satunya jalan keluar adalah mengisi modal awal
+     lalu "🔓 Buka Kas". Backdrop/Escape/navigasi juga diblokir (HARD_GATE_OVERLAYS). -->
+<div class="modal-overlay modal-center" id="bukaKasModal" role="dialog" aria-modal="true" aria-labelledby="bukaKasModalTitle"><div class="modal">
 <div class="modal-title" id="bukaKasModalTitle">🔓 Buka Kas</div>
 <div class="form-group">
 <label class="form-label">Modal Awal di Laci (Rp)</label>
 <input type="number" class="form-input" id="bukaKasModalAwal" placeholder="Contoh: 100000" inputmode="numeric">
 <div class="hint" id="bukaKasInfo" style="margin-top:8px">Hitung uang tunai yang ada di laci sekarang, lalu masukkan sebagai modal awal sebelum mulai jualan.</div>
+<div class="hint" style="margin-top:6px">Layar lain terkunci sampai modal awal dimasukkan — ketik <b>0</b> kalau laci memang kosong.</div>
 </div>
 <div class="btn-row">
-<button class="btn btn-secondary" type="button" data-action="close-buka-kas">Batal</button>
 <button class="btn btn-primary" type="button" data-action="save-buka-kas">🔓 Buka Kas</button>
 </div>
 </div></div>
@@ -1008,7 +1011,7 @@ Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
 <div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
 </div>
 
-  <script type="module" src="js/app.js?v=169"></script>
+  <script type="module" src="js/app.js?v=170"></script>
 <script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="js/supabase-config.js"></script>
 </body>

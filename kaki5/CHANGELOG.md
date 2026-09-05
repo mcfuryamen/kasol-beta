@@ -6,11 +6,76 @@ supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
 
 > **Catatan kelengkapan (2026-09-04).** Tidak semua rilis punya entri di sini.
 > Yang **tidak tercatat**: v103, v142, v143, v145, v146, v149, v150, dan v152–v159
-> (disebut di komentar `sw.js:7-169` tetapi tidak punya heading). Rilis-rilis itu tetap
+> (disebut di komentar `sw.js:7-184` tetapi tidak punya heading). Rilis-rilis itu tetap
 > bisa ditelusuri lewat riwayat git — misalnya `743c74e` ("kaki5 v152-v159 / 1.0.84-1.0.91")
 > dan `feb4ed3` ("kaki5 v147-v150 / 1.0.79-1.0.82"). Entri `v120–v132` sengaja digabung
 > jadi satu. Entri tanpa nomor versi dikelompokkan di bagian
 > "catatan tanpa nomor rilis" dekat dasar file.
+
+## 2026-09-05 (v170 / 1.0.102: modal Buka Kas jadi gerbang sejati + tema gradasi rosok di seluruh aplikasi)
+
+Lima komentar browser (2026-09-05) + satu instruksi teks: *"adopsi warna tema gradasi dari
+aplikasi rosok"*. 8 file ter-track.
+
+- **Modal "🔓 Buka Kas" jadi hard gate** (`index.html:709-728`, `js/modal.js`, `js/app.js`,
+  `js/navigation.js`, `js/kas.js`): overlay diberi kelas `.modal-center` sehingga tampil di
+  tengah dengan tinggi mengikuti isi (bukan bottom-sheet 90vh), tombol **"Batal"** dan
+  `.modal-handle` dihapus, `case 'close-buka-kas'` dicabut dari dispatcher `app.js`, dan
+  `closeBukaKasModal` tidak lagi di-wire ke `window`.
+- **Satu registry gate, bukan tiga daftar berbeda.** `HARD_GATE_OVERLAYS`
+  (`js/modal.js:35-47`, sekarang diekspor) dipakai oleh listener Escape, `closeAllModals()`,
+  klik backdrop + klik navbar di `app.js`, dan `navigation.js`. Sebelumnya masing-masing
+  jalur menulis `except: ['lockOverlay']` sendiri — `bukaKasModal` tidak masuk salah satunya
+  pun, jadi gerbangnya bisa dilewati lewat Escape. `closeModal()` internal tetap bebas
+  dipanggil, dan itu jalur yang dipakai `bukaKas()` setelah shift tersimpan.
+- **"Kosong" tidak dianggap 0** (`js/kas.js:168-179`): tanpa tombol Batal, satu klik "Buka
+  Kas" dengan input kosong dulu bisa membuka shift bermodal nol tanpa sadar. Sekarang submit
+  ditolak + toast "Masukkan modal awal dulu — ketik 0 kalau laci memang kosong", dan
+  penjelasannya ikut ditulis di dalam modal.
+- **Saklar form menu menghapus nilai, bukan cuma menyembunyikan** (`js/menu.js`):
+  `syncStokVisibility()` mengosongkan `#menuStok`, `syncOjolVisibility()` dan
+  `syncToppingVisibility()` memanggil `renderOjolRows([])` / `renderToppingRows([])` sehingga
+  barisnya benar-benar hilang dari DOM. Jaring kedua di jalur tulis `saveMenu()`
+  (`js/menu.js:614-625`): `pakaiOjol` / `pakaiTopping` dibaca ulang dari saklar, jadi baris
+  sisa tidak bisa ikut tersimpan meski tampilannya sempat tertinggal.
+- **Tema gradasi rosok diadopsi ke seluruh permukaan terisi** (`css/style.css:16-20`):
+  token baru `--grad`, `--grad-green`, `--grad-red`, `--grad-kpi-orange`, `--shadow-brand`,
+  dan `--grad-blue` yang ditulis ulang. Dipasang pada `.app-header`, `.btn-primary` (+
+  shadow brand, `:active` jadi `filter:brightness`), `.btn-green`, `.btn-red`, `.btn-orange`,
+  `.fab`, `.cat-tab.active`, `.nav-item.active::before`, tiga pemilih tanggal
+  (`.cal-cell.sel`/`.week-opt.sel`/`.month-opt.sel`), `.prof-banner-card`, `.btn-extend`,
+  `.cart-bar-inner`, `.held-fab` + `.held-name-badge`, `.badge-titipan`,
+  `.toggle-slider:checked`, keenam kartu `.stat-card.kbg-*-b`, plus banner install PWA dan
+  tombol panduan-nya (`js/pwa.js:91`, `js/pwa.js:171`).
+- **Kartu "❓ Bantuan" jadi gradasi biru** (`index.html:325` kelas `card-hero-blue`) sesuai
+  komentar browser #5.
+- **Dua keputusan sadar saat memindahkan pola rosok.** (1) Yang diambil *polanya*
+  (135°, permukaan terisi = gradien, teks putih), bukan *hue*-nya — kaki5 tetap oranye,
+  Pengeluaran tetap merah, Laba tetap biru. (2) Urutan stop dibalik jadi **gelap→terang**:
+  rosok menaruh stop terang di `0%` sehingga teks putih di kiri-atas cuma ~2,1–2,3:1;
+  kaki5 membaliknya supaya label 11–12px lolos kontras. `--primary` tetap `#D6501C`
+  (identik dengan `--brand-dark` rosok) sehingga 67 pemakaian warna teks/border aksen tidak
+  ikut berubah.
+- **Yang sengaja tidak digradasi:** `.btn-wa` tetap hijau gelap solid (permintaan eksplisit
+  user 2026-09-04); 18 `.setting-icon` di Pengaturan tetap pastel karena aturan KPI memakai
+  selector gabungan `.stat-card.kbg-*`, bukan mendefinisikan ulang `.kbg-*`; kartu carousel
+  "Selamat Datang" sudah bergradien sendiri; chip kecil (`.item-qty`, `.nav-badge`,
+  `.topping-rm-btn`, `.license-step-dot`) dan seluruh warna teks/pastel tetap solid.
+  `#todayIncomeHint` (`index.html:73`) kehilangan `color:var(--text3)` inline-nya karena
+  deklarasi inline mengalahkan stylesheet dan jadi tak terbaca di atas kartu biru.
+- **Verifikasi.** Harness statis (CWD `kaki5`): `test-css-drift` PASSED — **839 rule**
+  (naik 6 dari 833, persis blok KPI baru), 1 link, 1 file, SW cache sinkron;
+  `test-imports` / `test-dynamic-imports` / `test-db-migrations` / `test-shim` hijau;
+  `test-data-actions` dan `test-html-refs` gagal **persis baseline** (orphan
+  `pos.ui.js:527 #posCatTabs`, MISSING `add-ojol-row`/`remove-ojol-row`, 4 DEAD case) —
+  bukan regresi rilis ini. QA Browser di `localhost:8086`: ketiga saklar menu diuji
+  end-to-end lewat UI (item "UJI SAKLAR" dibuat lalu dihapus lagi) — input stok dan baris
+  ojol/topping hilang dari DOM, hasil simpan bersih, **0 error console**; gradasi terlihat
+  di Beranda/Menu/Jualan/Bantuan/Pengaturan dan tile ikon Pengaturan tetap pastel.
+- **Bump 6 slot** ke 1.0.102 / v170 (`js/version.js:7,18`, `js/version.json:2-3` + notes,
+  `sw.js:4` + blok `sw.js:7-184` + `CACHE_NAME` `sw.js:186`, `index.html:1014`). Bump ini
+  wajib: `sw.js` menyajikan HTML **cache-first**, jadi tanpa invalidasi cache tab lama
+  tetap melihat bottom-sheet "Batal" yang sudah dihapus.
 
 ## 2026-09-05 (v169 / 1.0.101: gerbang kas di tab Jualan + modal Detail Riwayat Kas)
 

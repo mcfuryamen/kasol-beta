@@ -1,7 +1,7 @@
 # Developer Guide — kaki5 (Kasir Solo Kaki Lima)
 
 Panduan mendalam untuk yang **mengubah kode** `kaki5`.
-Versi acuan: **v167 / 1.0.99 (2026-09-04)**. Setiap klaim disertai `file:baris`.
+Versi acuan: **v170 / 1.0.102 (2026-09-05)**. Setiap klaim disertai `file:baris`.
 
 Baca juga: [`../AGENTS.md`](../AGENTS.md) (aturan singkat untuk agen AI),
 [`../README.md`](../README.md) (fitur & cara menjalankan),
@@ -20,16 +20,16 @@ SPA vanilla ES modules, tanpa framework, tanpa build step. `index.html` hanya me
 <meta http-equiv="Content-Security-Policy" ...>   <!-- index.html:16, script-src 'self' -->
 <script src="dexie.min.js"></script>              <!-- :32  global Dexie -->
 <script src="js/dev-unregister-sw.js"></script>   <!-- :34  lepas SW saat dev -->
-<script type="module" src="js/app.js?v=166"></script>  <!-- :999 entry -->
-<script src="js/supabase.min.js"></script>        <!-- :1000 vendor -->
-<script src="js/supabase-config.js"></script>     <!-- :1001 global config -->
+<script type="module" src="js/app.js?v=170"></script>  <!-- :1014 entry -->
+<script src="js/supabase.min.js"></script>        <!-- :1015 vendor -->
+<script src="js/supabase-config.js"></script>     <!-- :1016 global config -->
 ```
 
 Konsekuensi: **`db.js` memakai global `Dexie`**, bukan impor npm. Harness QA berdiri
 sendiri yang lupa `<script src="dexie.min.js">` akan gagal dengan
 `Dexie is not defined` dan gejalanya menipu (`kas.refreshShiftCache is not a function`).
 
-### Urutan boot nyata — `js/app.js:1135-1246`
+### Urutan boot nyata — `js/app.js:1150-1267`
 
 ```
 boot()
@@ -82,13 +82,18 @@ Empat listener delegasi di `document`:
 
 | Event | Listener | Panggil dispatcher | Alasan ada |
 |---|---|---|---|
-| `click` | `app.js:953` | `:974` | utama; sekalian menutup backdrop/modal (`:962-969`) |
-| `keydown` Enter/Space | `app.js:982` | `:992` | aksesibilitas; elemen native dilewati (`:990`) |
-| `input` | `app.js:1004` | `:1002` | `data-action` pada `<input>` tidak pernah memicu `click` |
-| `change` | `app.js:1005` | `:1002` | `<select>`, `<input type=file>`, dan **saklar** |
+| `click` | `app.js:967` | `:992` | utama; sekalian menutup backdrop/modal (`:977-983`) |
+| `keydown` Enter/Space | `app.js:997` | `:1008` | aksesibilitas; elemen native dilewati (`:1005`) |
+| `input` | `app.js:1019` | `:1014` | `data-action` pada `<input>` tidak pernah memicu `click` |
+| `change` | `app.js:1020` | `:1014` | `<select>`, `<input type=file>`, dan **saklar** |
 
-`#lockOverlay` dikecualikan dari perilaku tutup-klik (`app.js:959,963`) karena revoke
-admin harus tetap terkunci.
+Overlay **hard gate** dikecualikan dari semua perilaku tutup: `lockOverlay` (revoke admin),
+`updateOverlay` (force update), dan sejak v170 `bukaKasModal` (gerbang kas). Satu sumber
+daftarnya `HARD_GATE_OVERLAYS` (`js/modal.js:35-47`, diekspor) — dipakai listener Escape
+(`modal.js:50-60`), `closeAllModals()` (`modal.js:162-164`), klik backdrop/navbar
+(`app.js:974,978`), dan `navigation.js:69`. **Jangan** menambah jalur tutup dengan daftar
+`except:` sendiri; itu persis celah yang membuat gerbang bisa dilewati lewat Escape
+sebelum v170.
 
 **Menambah aksi baru = dua tempat wajib:** atribut `data-action` di HTML/render JS, dan
 `case '...'` di `handleDataAction`. `test-data-actions.js` menjaga pasangan ini
@@ -123,9 +128,9 @@ admin harus tetap terkunci.
 |---|---|
 | `db.js` (189 baris) | Dexie v1..v8, `db.on('blocked'):14-23`, `getSetting:178`, `setSetting:183`, `export const DB = db:189` |
 | `app-state.js` | state terpusat + setter |
-| `modal.js` | `openModal`/`closeModal`/focus trap + `registerModalSelector` (`app.js:40` memuat `tcModal`) |
+| `modal.js` | `openModal`/`closeModal`/focus trap + `registerModalSelector` (`app.js:40` memuat `tcModal`) + **`HARD_GATE_OVERLAYS:47`** — satu daftar overlay yang tidak boleh ditutup dari UI (v170) |
 | `confirm.js` | `showConfirm` / `closeConfirm` |
-| `navigation.js` | router hash, `initRouter` / `navigateTo` |
+| `navigation.js` | router hash, `initRouter` / `navigateTo`; `navigateTo:69` memanggil `closeAllModals()` **tanpa** `except:` karena hard gate sudah dikecualikan di dalam `modal.js` |
 | `nomor.js` | `NOMOR_PREFIX:11` = `{penjualan:'TRX', pemasukan:'MSK', pengeluaran:'BLJ'}`, `nextNomor:29`, `backfillNomor:48`, `ensureNomorBackfill:82`; format `PREFIX-YYYYMMDD-NNN` |
 
 ### Domain 3-layer + facade
@@ -175,16 +180,16 @@ lewat **wire-map per domain**:
 
 | Konstanta | Baris | Modul yang di-`import()` | Baris import | Guard |
 |---|---|---|---|---|
-| `_posWireMap` | 56 | `pos.js` | 69 | 72 |
-| `_berandaWireMap` | 62 | `beranda.js` | 78 | 81 |
-| `_kasWireMap` | 66 | `kas.js` | 88 | 91 |
-| `_menuWireMap` | 57 | `menu.js` | 98 | 101 |
-| `_laporanWireMap` | 58 | `laporan.js` | 108 | 111 |
-| `_settingsWireMap` | 59 | **`settings.js` (facade)** | 118 | **121** |
-| `_bantuanWireMap` | 60 | `bantuan.js` | 129 | 132 |
-| `_pengeluaranWireMap` | 61 | `pengeluaran.js` | 139 | 142 |
+| `_posWireMap` | 56 | `pos.js` | 72 | 74 |
+| `_berandaWireMap` | 62 | `beranda.js` | 81 | 83 |
+| `_kasWireMap` | 66 | `kas.js` | 91 | 93 |
+| `_menuWireMap` | 57 | `menu.js` | 101 | 103 |
+| `_laporanWireMap` | 58 | `laporan.js` | 111 | 113 |
+| `_settingsWireMap` | 59 | **`settings.js` (facade)** | 121 | **123** |
+| `_bantuanWireMap` | 60 | `bantuan.js` | 132 | 134 |
+| `_pengeluaranWireMap` | 61 | `pengeluaran.js` | 142 | 144 |
 
-Total **92 nama global** di-wire lewat peta ini. Pola bakunya identik di 8 blok:
+Total **93 nama global** di-wire lewat peta ini (26+16+11+16+2+7+1+14). Pola bakunya identik di 8 blok:
 
 ```js
 for (const [key, modKey] of Object.entries(_xWireMap))
@@ -213,8 +218,10 @@ Saklar "Buka / Tutup Kas" tidak berfungsi sama sekali, tanpa satu pun pesan erro
 yang benar-benar di-import `app.js` — termasuk yang hanya lewat re-export facade.
 Pengecualian sah: `_laporanWireMap` memetakan dua kunci ke satu export
 (`setReportPeriod: 'setReportPeriodUI'` dan `setReportPeriodUI: 'setReportPeriodUI'`) agar
-tab laporan dini tetap jalan (`app.js:184-190`). `_kasWireMap` sengaja **tidak** memuat 4
-fungsi "catat kas manual" lama karena fiturnya dihapus di v164 (`app.js:63-65`).
+tab laporan dini tetap jalan (`app.js:187-193`). `_kasWireMap` sengaja **tidak** memuat 4
+fungsi "catat kas manual" lama karena fiturnya dihapus di v164 (`app.js:63-65`), dan sejak
+v170 juga **tidak** memuat `closeBukaKasModal` — modal Buka Kas jadi gerbang, jadi tidak ada
+lagi aksi tutup dari UI (`app.js:66-69`, `case 'close-buka-kas'` dihapus dari dispatcher).
 
 Semua modul di-*import* **eager** saat `app.js` dimuat — komentar "Lazy-loaded" di
 `app.js:42` sudah tidak sesuai perilaku.
@@ -325,7 +332,7 @@ Model lama "trial 7 hari + perpanjangan" **sudah dihapus**. Yang ada sekarang:
 
 ---
 
-## 7. Kas & Tutup Buku — `kas.js` (535 baris) + `kas.logic.js` (290 baris)
+## 7. Kas & Tutup Buku — `kas.js` (629 baris) + `kas.logic.js` (290 baris)
 
 | Fungsi | Baris | Peran |
 |---|---|---|
@@ -336,32 +343,39 @@ Model lama "trial 7 hari + perpanjangan" **sudah dihapus**. Yang ada sekarang:
 | `dataShift` (privat) | 95 | agregasi satu shift |
 | `hitungShift` | 107 | kas sistem vs fisik |
 | `refreshKasViews` | 123 | render ulang; `import('./laporan.js')` `:127` |
-| `openBukaKasModal` / `closeBukaKasModal` / `bukaKas` | 135 / 150 / 154 | modal `#bukaKasModal` (`index.html:709`) |
-| `renderDompetDigital` (privat) | 196 | rincian QRIS/transfer per metode |
-| `openTutupKasModal` / `closeTutupKasModal` / `perbaruiSelisihUI` / `tutupKas` | 217 / 248 / 253 / 269 | modal `#tutupKasModal` (`index.html:724`) |
-| `catatKasDariBeranda` | 312 | redirect ke form Laporan (`import('./pengeluaran.js')` `:314`) |
-| `renderKasCard` | 324 | kartu Beranda; tombol `open-buka-kas:341`, `kas-catat:357`/`open-tutup-kas:358`, `open-tutup-buku:427` |
-| `kasReportBlocksHtml` | 371 | blok Laporan |
-| `kasTutupBukuBlockHtml` | 407 | blok rekap tahunan |
-| `openTutupBukuModal` / `closeTutupBukuModal` / `simpanTutupBuku` | 433 / 469 / 473 | modal `#tutupBukuModal` (`index.html:763`) |
-| `tahunTertutup` / `peringatanTahunTertutup` | 515 / 528 | gerbang tahun; dipakai `trxdetail.js:10`, `expensedetail.js:16` |
+| `openBukaKasModal` / `closeBukaKasModal` / `bukaKas` | 135 / 150 / 154 | modal `#bukaKasModal` (`index.html:713`, `.modal-center` sejak v170). **`closeBukaKasModal` TIDAK lagi di-wire ke `window`** — modal ini gerbang tanpa jalan keluar dari UI; fungsinya tetap diekspor dan dipanggil internal `bukaKas()` setelah shift tersimpan |
+| `dompetDigitalHtml` / `renderDompetDigital` (privat) | 206 / 224 | rincian QRIS/transfer per metode |
+| `openTutupKasModal` / `closeTutupKasModal` / `perbaruiSelisihUI` / `tutupKas` | 230 / 261 / 266 / 282 | modal `#tutupKasModal` (`index.html:727`) |
+| `catatKasDariBeranda` | 325 | redirect ke form Laporan (`import('./pengeluaran.js')` `:327`) |
+| `renderKasCard` | 337 | kartu Beranda |
+| `kasDetailRow` / `tanggalDariMs` (privat) | 390 / 398 | baris detail; `tanggalDariMs` lahir di v169 karena `formatDate()` melempar `TypeError` saat menerima epoch ms |
+| `showKasShiftDetail` / `closeKasShiftDetail` | 404 / 460 | modal `#kasShiftDetailModal` (`index.html:876`), satu baris per riwayat shift (v169) |
+| `kasReportBlocksHtml` | 465 | blok Laporan |
+| `kasTutupBukuBlockHtml` | 501 | blok rekap tahunan |
+| `openTutupBukuModal` / `closeTutupBukuModal` / `simpanTutupBuku` | 527 / 563 / 567 | modal `#tutupBukuModal` (`index.html:766`) |
+| `tahunTertutup` / `peringatanTahunTertutup` | 609 / 622 | gerbang tahun; dipakai `trxdetail.js:10`, `expensedetail.js:16` |
 
-**Gerbang `fiturKasAktif()` — 7 titik:** `kas.js:136, 158, 218, 273, 329, 374` +
-`pos.js:529` (di `simpanPenjualan`).
-Dua di antaranya (`kas.js:158` di `bukaKas`, `kas.js:273` di `tutupKas`) adalah **guard
-penulis `DB.kasShift`** yang ditambahkan di v166.
+**Gerbang `fiturKasAktif()` — 8 titik:** `kas.js:136, 158, 231, 286, 342, 468` +
+`pos.js:409` (buka tab 🛒 Jualan → munculkan modal Buka Kas, v169) + `pos.js:545`
+(guard `simpanPenjualan`). Dua di antaranya (`kas.js:158` di `bukaKas`, `kas.js:286` di
+`tutupKas`) adalah **guard penulis `DB.kasShift`** yang ditambahkan di v166.
 Sejak v167 saklar Pengaturan TIDAK lagi lewat `fiturKasAktif()` — ia membaca
 `getSetting('fiturKas','1')` langsung (`settings.ui.js:143`, di dalam `saveFiturKas`
 `:126`), supaya keputusan
 "ada perubahan / tidak" dibandingkan dengan DB, bukan dengan cache.
+
+**v170 — `bukaKas()` menolak input kosong** (`kas.js:168-179`). Setelah tombol "Batal"
+dihapus, membiarkan submit dengan field kosong berarti satu klik bisa membuka shift
+bermodal nol tanpa niat. Aturan yang harus dipertahankan: **kosong ≠ 0**; laci nol harus
+diketik.
 
 **⚠️ Jangan pernah mengembalikan cache "baca sekali" di `fiturKasAktif()`.** IndexedDB
 dipakai bersama semua tab/jendela pada satu origin, jadi cache apa pun pasti bisa
 menyimpang dari DB. Gejala nyatanya (bug 2026-09-04): gerbang POS dilewati diam-diam
 sehingga kios bisa jualan tanpa buka kas, padahal Pengaturan menampilkan "aktif".
 
-**Tutup Buku** (`kas.js:473-507`): validasi tahun 2000–2100 (`:476`), tolak tahun duplikat
-(`:480`), `showConfirm` (`:490`), lalu `DB.tutupBuku.add({tahun, tanggalTutup, waktuTutup,
+**Tutup Buku** (`kas.js:567-606`): validasi tahun 2000–2100 (`:570`), tolak tahun duplikat
+(`:574`), `showConfirm` (`:584`), lalu `DB.tutupBuku.add({tahun, tanggalTutup, waktuTutup,
 jumlahTransaksi, omzet, totalModal, totalExpense, totalIncome, laba, kasAkhir,
 nonLabaKeluar, nonLabaMasuk, nonTunai})`.
 
@@ -469,10 +483,10 @@ regresi baru. Penyebabnya spesifik:
      (`js/menu.js:303`) tidak punya `case` di `app.js`; keduanya ditangani **listener
      `window.click` kedua di `js/menu.js:318-335`**, sedangkan `DELEGATED_OK`
      (`test-data-actions.js:66-69`) hanya memuat `add-topping-row` & `remove-topping-row`.
-   - *DEAD case*: `navigate-pengaturan` (`app.js:336`), `select-topping` (`:608`),
-     `remove-topping` (`:627`), `save-expense` (`:668`); `DEAD_OK` hanya mengizinkan
+   - *DEAD case*: `navigate-pengaturan` (`app.js:339`), `select-topping` (`:611`),
+     `remove-topping` (`:630`), `save-expense` (`:671`); `DEAD_OK` hanya mengizinkan
      `open-income-form` (`test-data-actions.js:59`). Catatan: `retry-pos` **tidak** mati —
-     terdeteksi dinamis dari `renderPOSError('retry-pos')` (`pos.js:366,420`). Komentar
+     terdeteksi dinamis dari `renderPOSError('retry-pos')` (`pos.js:374,436`). Komentar
      `pengeluaran.js:313` ("masih dipanggil lewat case 'save-expense'") sudah tidak benar;
      tombol kini memakai `save-txn` (`index.html:702`).
 
@@ -480,6 +494,12 @@ regresi baru. Penyebabnya spesifik:
 dengan blob `HEAD` (`git show HEAD:kaki5/<path>`). Kalau string pemicunya sama di HEAD,
 itu baseline. **Jangan blokir rilis** karena tiga harness ini, dan **jangan tambah korban
 baru**.
+
+> Dikonfirmasi ulang pada **v170 / 1.0.102** (2026-09-05): setelah perubahan modal Buka Kas,
+> tiga saklar form menu, dan tema gradasi, ketiga harness melaporkan kegagalan yang sama
+> persis — 1 orphan `#posCatTabs`, 2 MISSING `*-ojol-row`, 4 DEAD case. `test-css-drift`
+> naik dari 833 → **839 rule** (bertambah 6 = blok `.stat-card.kbg-*` v170) dan tetap
+> **hijau**, termasuk pemeriksaan "SW cache sinkron".
 
 Harness yang **hijau**: `test-css-drift.js`, `test-db-migrations.js`,
 `test-dynamic-imports.js`, `test-imports.js`, `test-shim.js`.
@@ -526,7 +546,7 @@ setelah itu adalah jalur normal, bukan kegagalan.
                     │  index.html  (CSP script-src 'self')     │
                     │  6 .page · 17 modal/sheet · 91 data-action│
                     └───────────────┬──────────────────────────┘
-                                    │ dexie.min.js (global) → app.js?v=166 (ESM)
+                                    │ dexie.min.js (global) → app.js?v=170 (ESM)
                     ┌───────────────▼──────────────────────────┐
                     │  app.js  — entry                          │
                     │  • 8 _*WireMap → window (guard silent-skip)│
@@ -558,6 +578,6 @@ setelah itu adalah jalur normal, bukan kegagalan.
 
 ---
 
-*Terakhir diselaraskan dengan kode: **v167 / 1.0.99, 2026-09-04**.*
+*Terakhir diselaraskan dengan kode: **v170 / 1.0.102, 2026-09-05**.*
 *Sebelumnya dokumen ini merujuk `js/onboarding.js`, port 8123, trial 7 hari + perpanjangan,
 dan `rosok.zip` — semuanya sudah tidak ada di kode.*

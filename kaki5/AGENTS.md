@@ -16,8 +16,8 @@ dokumen ini bawahan. Untuk detail teknis mendalam: [`docs/DEVELOPER.md`](docs/DE
 |------|-------|-------|
 | **Folder** | `kaki5/` | — |
 | **Port dev server (RESMI, jangan diubah)** | **8086** (bind `127.0.0.1` saja) | `../CONTEXT.md:51`, `server.cjs:9,46` |
-| **`APP_VERSION`** | `1.0.99` | `js/version.js:7` |
-| **`CACHE_BUST` / SW** | `v167` | `js/version.js:18`, `sw.js:147` |
+| **`APP_VERSION`** | `1.0.102` | `js/version.js:7` |
+| **`CACHE_BUST` / SW** | `v170` | `js/version.js:18`, `sw.js:186` |
 | **Prefix produk** | `KK5` | `js/license.sync.js:14` |
 | **Salt (fallback lokal)** | `KASIRSOLO-KAKI5-HMAC-V2` — salt asli dari cloud `products.salt` | `js/license.logic.js:157`, `js/license.sync.js:102` |
 | **`APP_TYPE`** (cloud) | `kaki5` | `js/sync.js:31` |
@@ -33,7 +33,7 @@ dokumen ini bawahan. Untuk detail teknis mendalam: [`docs/DEVELOPER.md`](docs/DE
 
 ```
 kaki5/
-├── index.html              # 1002 baris: 6 halaman .page + 17 modal/sheet + CSP meta (:16)
+├── index.html              # 1018 baris: 6 halaman .page + 21 overlay `.modal-overlay` + CSP meta (:16)
 ├── css/style.css           # SATU-SATUNYA stylesheet (dijaga test-css-drift.js)
 ├── js/                     # 45 file .js — lihat peta modul di docs/DEVELOPER.md §3
 │   ├── app.js              # entry: wire window + dispatcher data-action + boot()
@@ -63,12 +63,21 @@ kaki5/
 1. **DILARANG inline handler.** CSP `script-src 'self'` (`index.html:16`) menolak
    `<script>` inline, dan `index.html` sekarang **0** atribut `onclick`/`onchange`.
    Semua interaksi lewat atribut `data-action="nama-aksi"` + `case 'nama-aksi'` di
-   `handleDataAction()` (`js/app.js:330`). Dispatcher dipanggil 4 listener delegasi:
-   `click` (`:953`), `keydown` Enter/Space (`:982`), `input` (`:1004`), `change` (`:1005`).
+   `handleDataAction()` (`js/app.js:333`). Dispatcher dipanggil 4 listener delegasi:
+   `click` (`:967`), `keydown` Enter/Space (`:997`), `input` (`:1019`), `change` (`:1020`).
    `input`/`change` wajib karena `data-action` di `<input>`/`<select>` tak pernah
    memicu `click`.
 
-2. **JEBAKAN FACADE + WIRE-MAP (akar bug v166).** `app.js` mengisi `window[key]` dari
+2. **Modal gerbang = satu daftar gate.** Overlay yang tidak boleh ditutup dari UI
+   didaftarkan SEKALI di `HARD_GATE_OVERLAYS` (`js/modal.js:47`): `lockOverlay` (revoke
+   admin), `updateOverlay` (force update), `bukaKasModal` (gerbang kas, v170). Listener
+   Escape, `closeAllModals()`, klik backdrop/navbar (`app.js:974,978`), dan
+   `navigation.js:69` semuanya menyapu daftar yang sama. Menambah jalur tutup dengan
+   `except:` sendiri = gerbang bisa dilewati diam-diam (persis bug yang diperbaiki v170).
+   Modal gerbang juga berarti: **tidak ada tombol batal**, dan **input wajib kosong ditolak**
+   (kosong ≠ 0).
+
+3. **JEBAKAN FACADE + WIRE-MAP (akar bug v166).** `app.js` mengisi `window[key]` dari
    modul yang **ia import sendiri**, dengan guard:
    ```js
    if (modKey !== '__wired' && m[modKey] !== undefined) window[key] = m[modKey];
@@ -80,40 +89,41 @@ kaki5/
    `settings.js` = facade, `settings.ui.js` = implementasi. Harness QA yang mengimpor
    `settings.ui.js` langsung **tidak akan** menangkap lubang ini.
 
-3. **`escapeHtml` / `buildSafeHtml` untuk SEMUA nilai dinamis** yang masuk HTML.
+4. **`escapeHtml` / `buildSafeHtml` untuk SEMUA nilai dinamis** yang masuk HTML.
    Nilai dari user (nama menu, catatan, nama usaha) tidak pernah boleh ditempel mentah.
 
-4. **Rilis = bump 6 slot sinkron** (lihat `docs/REGRESSION-CHECKLIST.md` §3):
+5. **Rilis = bump 6 slot sinkron** (lihat `docs/REGRESSION-CHECKLIST.md` §3):
    `APP_VERSION`, `CACHE_BUST`, `version.json.version`, `version.json.cacheBust`,
    `sw.js CACHE_NAME`, `index.html ?v=`. Salah satu tertinggal → overlay update tidak
    muncul (`js/update.js:79` bail bila `remote.cacheBust === CACHE_BUST`) dan cache SW
-   tidak invalid. Insiden tercatat: `CHANGELOG.md:95`.
+   tidak invalid. Insiden tercatat: `CHANGELOG.md:327`.
 
-5. **`app-state.js` read-only.** Mutasi state hanya lewat setter yang diekspor modul itu;
+6. **`app-state.js` read-only.** Mutasi state hanya lewat setter yang diekspor modul itu;
    jangan menulis properti binding state langsung dari modul fitur.
 
-6. **Migrasi DB bersifat aditif — DILARANG drop tabel/kolom.** `db.version(N)` hanya boleh
+7. **Migrasi DB bersifat aditif — DILARANG drop tabel/kolom.** `db.version(N)` hanya boleh
    menambah store/index. Tabel `kas` lama sengaja **tidak** di-drop walau isinya sudah
    dimigrasi ke `pengeluaran` oleh `db.version(8).upgrade()` (`js/db.js:124-127,147-174`).
    Tabel `pengaturan` juga legacy dan tidak dibaca kode lagi, tapi tetap dipertahankan.
 
-7. **SW punya 3 strategi, bukan satu.** `/supabase.co` → network-only (`sw.js:242`);
-   HTML → **cache-first** supaya bisa navigasi offline (`sw.js:253`); aset statis →
-   network-first dengan fallback cache (`sw.js:273`). Jangan tulis "network-first" saja
+8. **SW punya 3 strategi, bukan satu.** `/supabase.co` → network-only (`sw.js:281`);
+   HTML → **cache-first** supaya bisa navigasi offline (`sw.js:292`); aset statis →
+   network-first dengan fallback cache (`sw.js:312`). Jangan tulis "network-first" saja
    di dokumen — itu salah dan sudah sempat menyesatkan.
 
-8. **Cloud = sumber kebenaran untuk lisensi & profil** (`../CONTEXT.md:87-101`), tapi
+9. **Cloud = sumber kebenaran untuk lisensi & profil** (`../CONTEXT.md:87-101`), tapi
    **offline-first**: gagal jaringan tidak boleh mengubah/menghapus state lokal.
    `ensureSynced()` push otomatis bersifat **backfill-only**; menimpa cloud hanya lewat
    `force` (form profil / tombol sinkron / retry pending).
 
-9. **Keputusan pemilik soal gerbang lisensi (2026-08-29):** kuota transaksi habis
+10. **Keputusan pemilik soal gerbang lisensi (2026-08-29):** kuota transaksi habis
    **TIDAK** mengunci aplikasi — hanya banner `#quotaBanner` + blokir transaksi
-   (`js/app.js:260-276`, `js/pos.js:552-557`). Yang boleh full-lock **hanya** revoke
+   (`js/app.js:260-276`, `js/pos.js:566-573`). Yang boleh full-lock **hanya** revoke
    admin, lewat `lockOverlay` (`js/license.ui.js:178`). Jangan "memperbaiki" ini.
 
-10. **Fitur kas bisa dimatikan user.** Gerbang `fiturKasAktif()` ada di `js/kas.js:136,
-    158, 218, 273, 329, 374` dan `js/pos.js:529`. Saat mati, kios boleh jualan tanpa
+11. **Fitur kas bisa dimatikan user.** Gerbang `fiturKasAktif()` ada di `js/kas.js:136,
+    158, 231, 286, 342, 468`, `js/pos.js:409` (buka tab Jualan → munculkan modal Buka Kas,
+    v169), dan `js/pos.js:545` (guard `simpanPenjualan`). Saat mati, kios boleh jualan tanpa
     buka kas. **Jangan pernah menghapus baris `kasShift` user** saat mematikan fitur;
     shift yang masih terbuka harus bisa ditutup setelah fitur nyala lagi.
     Dua aturan yang menjaga gerbang ini tetap jujur (bug 2026-09-04: kios bisa jualan
@@ -135,7 +145,7 @@ Jalankan dari CWD `kaki5` (`test-html-refs.js` memakai `process.cwd()`):
 | Harness | Status baseline |
 |---|---|
 | `test-css-drift.js`, `test-db-migrations.js`, `test-dynamic-imports.js`, `test-imports.js`, `test-shim.js` | ✅ hijau |
-| `test-data-actions.js`, `test-html-refs.js`, `test-modules.js` | ❌ **merah sejak rilis 1.0.97** — bukan regresi baru |
+| `test-data-actions.js`, `test-html-refs.js`, `test-modules.js` | ❌ **merah sejak rilis 1.0.97** — bukan regresi baru (dikonfirmasi ulang di v170: sinyal identik) |
 
 Penyebab merah & daftar `DELEGATED_OK`/`DEAD_OK` dijelaskan di
 `docs/REGRESSION-CHECKLIST.md` §5. **Jangan memblokir rilis karena tiga harness itu**,
@@ -157,9 +167,13 @@ Catatan operasional yang terbukti di mesin ini:
   `git -C <mirror> -c http.postBuffer=524288000 -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 push origin main --force-with-lease=main:<SHA_REMOTE_LAMA>`
   (SHA lama diambil dari `git ls-remote` **sebelum** push — lease polos tidak andal
   karena skrip menghapus branch `main` lokal).
-- **Bukti rilis = 4 jalur independen**, bukan output git: `ls-remote`, `fetch` +
-  `FETCH_HEAD`, API `curl.exe`, dan **isi file di `raw.githubusercontent.com`**.
+- **Bukti rilis = 5 jalur independen**, bukan output git: `ls-remote`, `fetch` +
+  `FETCH_HEAD`, API `curl.exe`, **isi file di `raw.githubusercontent.com`**, dan **konten
+  yang benar-benar terhidang** di domain-nya (`/js/version.json`, `/sw.js`, `/`).
   `gh api` rusak di mesin ini — pakai `curl.exe -s --noproxy '*'`.
+- **URL BETA bukan dari field `homepage` repo.** `homepage` `kasol-beta` menunjuk
+  `kaki5beta.vercel.app` yang 404 semua path; yang benar `https://kq5beta.vercel.app`
+  (cek `vercel project ls`). Jangan fetch `/index.html` di Vercel — ia 308 ke `/`.
 - **`git add -A` DILARANG.** Stage file tracked saja: `git add -u kaki5`. Artefak
   `_qa-*` dan `rosok/*` jangan sampai ikut.
 - **Commit/push hanya atas perintah eksplisit pemilik.**

@@ -1,11 +1,18 @@
 # DESAIN UI/UX MODUL LISENSI KAKI5
 
-> **Status**: diselaraskan dengan kode **v167 / 1.0.99 (2026-09-04)**.
+> **Status**: diselaraskan dengan kode **v170 / 1.0.102 (2026-09-05)**.
 > Mencerminkan model **kuota transaksi per bulan kalender** (pengganti trial berbasis waktu).
 > Cakupan dokumen ini khusus **lisensi & kuota**; desain modul lain ada di
 > [`README.md`](README.md) dan [`docs/DEVELOPER.md`](docs/DEVELOPER.md).
 > Saklar fitur kas v166 (`#fiturKasToggle`) bukan bagian sistem lisensi — lihat
 > `docs/DEVELOPER.md` §7.
+>
+> **Catatan v170 — gerbang kas bukan gerbang lisensi.** Mulai v170 ada overlay hard-gate
+> KEDUA selain `lockOverlay`: `bukaKasModal` (modal "🔓 Buka Kas" yang tidak bisa ditutup
+> dari UI). Ia **tidak** mengunci karena lisensi, tapi karena shift belum dibuka, dan
+> hilang begitu modal awal dimasukkan. Keduanya didaftarkan di satu tempat yang sama,
+> `HARD_GATE_OVERLAYS` (`js/modal.js:35-47`) — jangan menambah jalur tutup baru yang
+> menyaring overlay dengan daftar sendiri-sendiri.
 
 ---
 
@@ -32,7 +39,8 @@
         |                         Cadangan cloud terkunci (hanya export file)
         |
         +---> [status 'revoked'] → full-lock overlay (#lockOverlay)
-        |                         Tidak bisa ditutup user — satu-satunya kondisi lock penuh
+        |                         Tidak bisa ditutup user — satu-satunya lock karena lisensi
+        |                         (sejak v170 ada hard gate non-lisensi juga: #bukaKasModal)
         |
         +---> [status 'none']    → dianggap tier gratis, chip "GRATIS · —"
 ```
@@ -77,8 +85,9 @@ Nilai `status` yang benar-benar ada di kode (`license.logic.js:380-405`):
 - **Isi**:
   - Header: ikon ✅ (lisensi aktif) atau ⏳ (gratis).
   - **Progress bar** `.license-progress span`
-    (`css/style.css:735-736`): `background: linear-gradient(90deg, var(--green-light), var(--green))`,
-    lebar = pemakaian. Nilai lama `#388e3c` **tidak ada** di proyek ini.
+    (`css/style.css:780`): `background: linear-gradient(90deg, var(--green-light), var(--green))`,
+    lebar = pemakaian. Nilai lama `#388e3c` **tidak ada** di proyek ini. Baris ini sengaja
+    TIDAK ikut tema gradasi v170 — ia sudah gradien, dan arahnya 90° untuk animasi bolak-balik.
   - **Badge kuota** (`license.ui.js:67`): teks **"Sisa N transaksi"**, atau
     **"Habis bulan ini"** saat habis. Kelas warna: `red` (habis) → `orange`
     (sisa ≤ 10) → `green`.
@@ -215,7 +224,7 @@ Nilai `status` yang benar-benar ada di kode (`license.logic.js:380-405`):
 
 ```
 kaki5/js/
-├── license.js            ← FACADE (56 baris): re-export logic + ui + sync
+├── license.js            ← FACADE (60 baris): re-export logic + ui + sync
 ├── license.logic.js      ← kuota, HMAC, getLicenseStatus(), clockAnchor
 ├── license.ui.js         ← render chip, kartu kuota, banner, lockOverlay, sheet
 ├── license.sync.js       ← cloud: aktivasi, verifyAndAssignSerial, reconcile LWW
@@ -252,7 +261,10 @@ kaki5/js/
 | 2026-08 (Opsi 3) | — | 1 serial = 1 `unit_id` = 1 profil; penegakan lewat RPC `device_assign` di server. |
 | 2026-09-04 | v166 / 1.0.98 | Saklar fitur "Buka / Tutup Kas" di Pengaturan (di luar sistem lisensi, tapi memakai mekanisme `data-action` + wire-map yang sama — sumber bug facade). |
 | 2026-09-04 | v167 / 1.0.99 | Gerbang saklar kas diperketat: `fiturKasAktif()` baca DB tiap transaksi, saklar disinkronkan sebelum panggilan cloud, dan `saveFiturKas()` membandingkan dengan nilai tersimpan. Tidak mengubah model lisensi/kuota. |
+| 2026-09-05 | v169 / 1.0.101 | Gerbang "buka kas dulu" pindah ke **klik tab 🛒 Jualan** (`loadPOS()`), plus modal "🕐 Detail Riwayat Kas". Pada titik ini modal Buka Kas masih punya tombol "Batal" dan masih bisa ditutup Escape. |
+| 2026-09-05 | v170 / 1.0.102 | **Modal Buka Kas jadi gerbang penuh**: tombol "Batal" dihapus, `.modal-center` (tengah, tinggi ikut isi), dan satu registry `HARD_GATE_OVERLAYS` (`modal.js:35-47`) dipakai bersama oleh Escape, klik backdrop, klik navbar, dan `closeAllModals()`. Alasannya: selama masih ada jalan keluar, "dashboard terkunci sampai modal awal dimasukkan" hanya formalitas. `bukaKas()` juga menolak input kosong (kosong ≠ 0). Tidak mengubah model lisensi/kuota. |
+| 2026-09-05 | v170 / 1.0.102 | **Tema gradasi diadopsi dari rosok** untuk permukaan terisi saja (header, tombol, FAB, tab, pemilih tanggal, banner, kartu statistik, bar keranjang, saklar, badge). Konsekuensi desain: stop gradien disusun **gelap→terang** (rosok memakai terang→gelap) supaya teks putih lolos kontras, dan `--primary` tetap `#D6501C` agar 67 pemakaian warna teks/border tidak ikut berubah. `.btn-wa` dikecualikan atas permintaan user. |
 
 ---
 
-**Terakhir diperbarui**: 2026-09-04 (v167 / 1.0.99)
+**Terakhir diperbarui**: 2026-09-05 (v170 / 1.0.102)
