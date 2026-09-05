@@ -285,10 +285,9 @@ function chartBuckets(){
 }
 
 function chartTitle(){
-  if(laporanPeriode === 'custom') return 'Omzet Periode Kustom (per Hari)';
-  if(laporanPeriode === 'custom') return 'Omzet Periode Kustom (per Hari)';
   if(laporanPeriode === 'harian') return 'Omzet Harian (per Jam)';
   if(laporanPeriode === 'mingguan') return 'Omzet 7 Hari Terakhir (per Hari)';
+  if(laporanPeriode === 'custom') return 'Omzet Periode Kustom (per Hari)';
   return 'Omzet Bulan Ini (per Hari)';
 }
 
@@ -427,21 +426,47 @@ export async function renderLaporan(){
   if(barChart){
     const titleEl = document.getElementById('lapChartTitle');
     if(titleEl) titleEl.textContent = chartTitle();
-    let maxVal = 1;
-    buckets.forEach(b => { maxVal = Math.max(maxVal, b.beli, b.jual); });
-    const long = buckets.length > 14;
+    const subEl = document.getElementById('chartSub');
     const hintEl = document.getElementById('chartSwipeHint');
-    if(hintEl) hintEl.style.display = long ? 'block' : 'none';
-    barChart.className = 'barchart' + (long ? ' scrollable' : '');
-    barChart.innerHTML = buckets.map(b => `
-      <div class="bwrap" title="${b.label}">
-        <div style="display:flex; gap:2px; align-items:flex-end; height:90px; width:100%;">
-          <div class="bar" style="height:${Math.max(3,(b.beli/maxVal)*90)}px;"></div>
-          <div class="bar jual" style="height:${Math.max(3,(b.jual/maxVal)*90)}px;"></div>
-        </div>
-        <div class="blbl">${b.label}</div>
-      </div>
-    `).join('');
+    // ── Render ala kaki5 renderHourlyChart (v160) — teknik presentasinya,
+    // seri tetap Beli/Jual khas rosok: (1) sumbu dipangkas dari bucket aktif
+    // pertama s/d terakhir + 1 longgar tiap ujung; (2) bar NOL tanpa stub 3px;
+    // (3) tinggi dibulatkan (dulu 8.731914893617022px); (4) label nilai 'k'
+    // di atas kolom; (5) tanpa data → pesan kosong, bukan grafik rata 24 kolom.
+    let lo = -1, hi = -1;
+    buckets.forEach((b, i) => { if(b.beli > 0 || b.jual > 0){ if(lo < 0) lo = i; hi = i; } });
+    if(lo < 0){
+      barChart.className = 'barchart';
+      if(hintEl) hintEl.style.display = 'none';
+      barChart.innerHTML = '<div class="chart-empty">Belum ada transaksi pada rentang ini — geser periode di filter atas.</div>';
+      if(subEl) subEl.textContent = '';
+    } else {
+      lo = Math.max(0, lo - 1);
+      hi = Math.min(buckets.length - 1, hi + 1);
+      const view = buckets.slice(lo, hi + 1);
+      const maxVal = view.reduce((m, b) => Math.max(m, b.beli, b.jual), 1);
+      const long = view.length > 14;
+      if(hintEl) hintEl.style.display = long ? 'block' : 'none';
+      barChart.className = 'barchart' + (long ? ' scrollable' : '');
+      barChart.innerHTML = view.map(b => {
+        const beliH = b.beli > 0 ? Math.max(Math.round((b.beli / maxVal) * 90), 4) : 0;
+        const jualH = b.jual > 0 ? Math.max(Math.round((b.jual / maxVal) * 90), 4) : 0;
+        const valLbl = b.jual > 0 ? Math.round(b.jual / 1000) + 'k' : (b.beli > 0 ? Math.round(b.beli / 1000) + 'k' : '');
+        return `<div class="bwrap" title="${b.label} · Beli ${fmtRupiah(b.beli)} · Jual ${fmtRupiah(b.jual)}">
+          <div class="chart-val">${valLbl}</div>
+          <div style="display:flex; gap:2px; align-items:flex-end; height:90px; width:100%;">
+            <div class="bar" style="height:${beliH}px;"></div>
+            <div class="bar jual" style="height:${jualH}px;"></div>
+          </div>
+          <div class="blbl">${b.label}</div>
+        </div>`;
+      }).join('');
+      if(subEl){
+        subEl.textContent = laporanPeriode === 'harian'
+          ? `${laporanAnchor} · jam ${buckets[lo].label}–${buckets[hi].label} · ${stats.nTrans} transaksi`
+          : `${view.length} kolom aktif dari ${buckets.length} · ${stats.nTrans} transaksi`;
+      }
+    }
   }
 
   const items = await db.transaksiItem.toArray();
