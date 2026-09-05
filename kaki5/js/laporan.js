@@ -900,6 +900,21 @@ export function setCustomDate(w, value) {
   loadReport();
 }
 
+// v177: seluruh akordeon Laporan auto-close — membuka satu panel menutup SEMUA
+// panel lain (permintaan pemilik; pola kartu menu/konsinyasi). Konvensi akordeon:
+// panel `#id` + arrow `#id-arrow`, apapun prefixnya (ojolp-, expCat-, incCat-,
+// tgl riwayat, konsp-). Scope ke #reportContent agar halaman lain tak tersentuh.
+function closeAllAccordions(exceptId) {
+  document.querySelectorAll('#reportContent [id$="-arrow"]').forEach(a => {
+    const pid = a.id.slice(0, -'-arrow'.length);
+    if (pid === exceptId) return;
+    const panel = document.getElementById(pid);
+    if (!panel || panel.style.display === 'none') return;
+    panel.style.display = 'none';
+    a.style.transform = 'rotate(0deg)';
+  });
+}
+
 // Toggle expense category accordion (expand/collapse transaction list)
 export function toggleExpenseCat(catId) {
   const panel = document.getElementById(catId);
@@ -907,6 +922,7 @@ export function toggleExpenseCat(catId) {
   if (!panel || !arrow) return;
 
   const isOpen = panel.style.display !== 'none';
+  if (!isOpen) closeAllAccordions(catId);
   panel.style.display = isOpen ? 'none' : 'block';
   arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
 }
@@ -919,23 +935,19 @@ export function toggleTrxDay(tglId) {
   if (!panel || !arrow) return;
 
   const isOpen = panel.style.display !== 'none';
+  if (!isOpen) closeAllAccordions(tglId);
   panel.style.display = isOpen ? 'none' : 'block';
   arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
 }
 
-// Toggle akordeon Konsinyasi per suplayer — auto-close: membuka satu
-// menutup suplayer lain (pola kartu menu akordeon).
+// Toggle akordeon Konsinyasi per suplayer — auto-close (v177: lewat helper global,
+// membuka konsinyasi ikut menutup akordeon Laporan lain, bukan hanya sesama suplayer).
 export function toggleKonsp(id) {
   const panel = document.getElementById(id);
   const arrow = document.getElementById(`${id}-arrow`);
   if (!panel || !arrow) return;
   const isOpen = panel.style.display !== 'none';
-  document.querySelectorAll('[id^="konsp-"]').forEach(p => {
-    if (p.id === id) return;
-    p.style.display = 'none';
-    const a = document.getElementById(`${p.id}-arrow`);
-    if (a) a.style.transform = 'rotate(0deg)';
-  });
+  closeAllAccordions(id);
   panel.style.display = isOpen ? 'none' : 'block';
   arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
 }

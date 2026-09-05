@@ -4,6 +4,14 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 Format judul entri: `## <YYYY-MM-DD> (vNNN / 1.0.NN: judul)` — dua nomor wajib ada,
 supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
 
+## 2026-09-06 (v177 / 1.0.103: akordeon Laporan auto-close)
+- Seluruh akordeon di Laporan (Transaksi Ojol per platform, Rincian Pengeluaran &
+  Pemasukan per kategori, Riwayat per tanggal, Konsinyasi per suplayer) kini
+  **auto-close**: membuka satu panel menutup semua panel lain — tidak ada lagi
+  beberapa daftar terbuka bersamaan. Helper `closeAllAccordions()` (scope
+  `#reportContent`, konvensi panel `#id` + `#id-arrow`); `toggleKonsp` memakai
+  helper yang sama (dulu hanya auto-close sesama suplayer).
+
 ## 2026-09-06 (v176 / 1.0.103: cap 99 di menu selector + bypass tombol +)
 - **Akar laporan "9999 jadi 99":** menu dengan topping/hargaOjol membuka modal
   Menu Selector yang qty-nya terpisah dan masih tercap `max="99"` +
