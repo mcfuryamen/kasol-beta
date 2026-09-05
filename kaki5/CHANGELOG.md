@@ -4,6 +4,18 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 Format judul entri: `## <YYYY-MM-DD> (vNNN / 1.0.NN: judul)` — dua nomor wajib ada,
 supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
 
+## 2026-09-06 (v176 / 1.0.103: cap 99 di menu selector + bypass tombol +)
+- **Akar laporan "9999 jadi 99":** menu dengan topping/hargaOjol membuka modal
+  Menu Selector yang qty-nya terpisah dan masih tercap `max="99"` +
+  `Math.min(99,…)` (input `#menuSelectorQty`, `changeMenuSelectorQty`,
+  `confirmMenuSelector` di `pos.ui.js`) — 9999 yang diketik di situ dijepit jadi
+  99 lalu masuk keranjang sebagai 99 (nominal ikut 99×harga). Cap dinaikkan ke
+  **9.999** selaras dengan keranjang (v174).
+- Tombol ± keranjang (`changeQty`) kini di-clamp 9.999 juga — dulu + dari 9999
+  bisa jadi 10.000 (bypass); di batas muncul toast "Maksimal 9.999 per menu".
+- `.qty-val` diperlebar 36/40/44px → 56/60px agar nominal 4-5 digit tampil utuh
+  (dulu "9999" terbaca "999"/"99" karena input terlalu sempit).
+
 ## 2026-09-06 (v175 / 1.0.103: toast guard stok)
 - Penolakan qty karena stok kini diberi tahu: tombol ± dan input manual di keranjang
   menampilkan toast error "Qty melebihi stok (N) — perbarui stok menu dulu"

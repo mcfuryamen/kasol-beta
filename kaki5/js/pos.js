@@ -488,6 +488,13 @@ export async function addToCart(menuId) {
 
 export function changeQty(menuId, delta) {
   const cur = cart[menuId];
+  // v176: jalur ± di-clamp sama dengan input manual (9999) — dulu tombol + dari
+  // 9999 bisa menembus jadi 10.000 karena clamp hanya ada di setCartQty.
+  if (cur && delta > 0 && cur.qty >= 9999) {
+    showToast('Maksimal 9.999 per menu — sisa pesanan pecah ke transaksi lain ya', 'error');
+    return;
+  }
+  if (cur && delta > 0) delta = Math.min(delta, 9999 - cur.qty);
   const next = changeQtyLogic(cart, menuId, delta);
   if (cur && next === cart) {
     // v175: tombol ± ditolak guard stok (qty > stok pada menu pakaiStok) —

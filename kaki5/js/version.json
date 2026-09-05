@@ -1,7 +1,8 @@
 {
   "version": "1.0.103",
-  "cacheBust": "v175",
+  "cacheBust": "v176",
   "notes": [
-    "Kalau jumlah barang melebihi stok yang tercatat, sekarang muncul pemberitahuan jelas \"Qty melebihi stok — perbarui stok menu dulu\" — sebelumnya angkanya cuma balik sendiri tanpa penjelasan."
+    "Perbaikan penting: jumlah di layar pilihan menu (mis. menu yang punya harga ojol) kini ikut sampai 9.999 — sebelumnya diam-diam mentok 99, jadi pesanan 1.000-an pcs tercatat cuma 99.",
+    "Tombol + di keranjang tidak bisa lagi menembus batas 9.999, dan kotak jumlah diperlebar supaya angka terlihat utuh."
   ]
 }

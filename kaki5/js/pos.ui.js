@@ -40,7 +40,7 @@ export function openMenuSelector(menu, onConfirm) {
         <div style="display:flex;align-items:center;gap:8px">
           <div class="ms-harga" id="menuSelectorHarga">${formatRp(hargaUnitBase())}</div>
           <button type="button" class="btn btn-sm btn-ghost" data-action="menu-selector-qty" data-delta="-1" aria-label="Kurangi jumlah">−</button>
-          <input type="number" id="menuSelectorQty" class="ms-qty-input" min="1" max="99" value="1" inputmode="numeric" aria-label="Jumlah">
+          <input type="number" id="menuSelectorQty" class="ms-qty-input" min="1" max="9999" value="1" inputmode="numeric" aria-label="Jumlah">
           <button type="button" class="btn btn-sm btn-ghost" data-action="menu-selector-qty" data-delta="1" aria-label="Tambah jumlah">＋</button>
         </div>
       </div>
@@ -136,7 +136,7 @@ export function changeMenuSelectorQty(delta) {
   const el = document.getElementById('menuSelectorQty');
   const domVal = parseInt(el?.value, 10);
   const base = Number.isNaN(domVal) ? _menuSelectorQty : domVal;
-  _menuSelectorQty = Math.min(99, Math.max(1, base + (parseInt(delta, 10) || 0)));
+  _menuSelectorQty = Math.min(9999, Math.max(1, base + (parseInt(delta, 10) || 0)));
   if (el) el.value = _menuSelectorQty;
 }
 
@@ -158,7 +158,7 @@ export function confirmMenuSelector() {
   // Baca jumlah menu dari input manual
   const qtyEl = document.getElementById('menuSelectorQty');
   const typed = parseInt(qtyEl?.value, 10);
-  if (!Number.isNaN(typed)) _menuSelectorQty = Math.min(99, Math.max(1, typed));
+  if (!Number.isNaN(typed)) _menuSelectorQty = Math.min(9999, Math.max(1, typed));
 
   // Kumpulkan topping dipilih + qty masing-masing
   const cbs = document.querySelectorAll('#menuSelectorToppings input[type="checkbox"]');
