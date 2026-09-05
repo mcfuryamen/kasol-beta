@@ -4,6 +4,12 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 Format judul entri: `## <YYYY-MM-DD> (vNNN / 1.0.NN: judul)` — dua nomor wajib ada,
 supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
 
+## 2026-09-06 (v175 / 1.0.103: toast guard stok)
+- Penolakan qty karena stok kini diberi tahu: tombol ± dan input manual di keranjang
+  menampilkan toast error "Qty melebihi stok (N) — perbarui stok menu dulu"
+  (`pos.js` `changeQty`/`setCartQty`; deteksi `changeQtyLogic` menolak = referensi
+  cart tak berubah). Sebelumnya angka balik sendiri tanpa penjelasan.
+
 ## 2026-09-06 (v174 / 1.0.103: qty keranjang sampai 9.999)
 - Batas qty per menu di keranjang naik 999 → **9.999** (`pos.js` clamp + `max` input
   di `pos.ui.js`) — transaksi grosir >1.000 pcs per menu kini bisa diinput.

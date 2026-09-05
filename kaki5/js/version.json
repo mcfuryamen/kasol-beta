@@ -1,7 +1,7 @@
 {
   "version": "1.0.103",
-  "cacheBust": "v174",
+  "cacheBust": "v175",
   "notes": [
-    "Jumlah (qty) per menu di keranjang kini bisa sampai 9.999 — sebelumnya mentok 999, jadi transaksi grosir lebih dari 1.000 pcs sudah bisa diinput. Untuk menu yang memakai stok, jumlah tetap tidak boleh melebihi stok yang tercatat."
+    "Kalau jumlah barang melebihi stok yang tercatat, sekarang muncul pemberitahuan jelas \"Qty melebihi stok — perbarui stok menu dulu\" — sebelumnya angkanya cuma balik sendiri tanpa penjelasan."
   ]
 }

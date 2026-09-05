@@ -487,7 +487,13 @@ export async function addToCart(menuId) {
 }
 
 export function changeQty(menuId, delta) {
+  const cur = cart[menuId];
   const next = changeQtyLogic(cart, menuId, delta);
+  if (cur && next === cart) {
+    // v175: tombol ± ditolak guard stok (qty > stok pada menu pakaiStok) —
+    // kasir harus tahu kenapa angkanya tidak jalan, jangan diam saja.
+    showToast(`Qty melebihi stok (${cur.menu.stok || 0}) — perbarui stok menu dulu`, 'error');
+  }
   setCart(next);
   saveCart();
   renderCartBar();
@@ -510,10 +516,15 @@ export function setCartQty(menuId, qty, rerender = true) {
   target = Math.min(9999, Math.max(1, target));
   if (target !== cur.qty) {
     const next = changeQtyLogic(cart, menuId, target - cur.qty);
-    setCart(next);
-    saveCart();
-    renderCartBar();
-    renderPOSMenu(); // badge qty kartu menu (grid di belakang modal — tidak ganggu fokus)
+    if (next === cart) {
+      // v175: input manual ditolak guard stok — kasir harus tahu kenapa angkanya balik.
+      showToast(`Qty melebihi stok (${cur.menu.stok || 0}) — perbarui stok menu dulu`, 'error');
+    } else {
+      setCart(next);
+      saveCart();
+      renderCartBar();
+      renderPOSMenu(); // badge qty kartu menu (grid di belakang modal — tidak ganggu fokus)
+    }
   }
   if (rerender) openCartModal(); // sinkron penuh saat blur/change
   else refreshCartModalTotals(); // ringan saat event input (tiap ketikan)
