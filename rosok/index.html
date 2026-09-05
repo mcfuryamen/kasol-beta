@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=64">
+<link rel="stylesheet" href="style.css?v=65">
 <script src="dexie.min.js"></script>
 <script src="js/supabase.min.js"></script>
 <script src="js/supabase-config.js"></script>
@@ -739,6 +739,18 @@
   </div>
 </div>
 
+<!-- ====== CONFIRM DIALOG in-app (port kaki5 confirm.js — native confirm() tak andal di webview tertanam) ====== -->
+<div class="overlay center-overlay" id="confirmModal" role="alertdialog" aria-modal="true" aria-labelledby="confirmText">
+  <div class="prof-card">
+    <div class="prof-emoji" id="confirmIcon">⚠️</div>
+    <div class="prof-sub" id="confirmText"></div>
+    <div class="btn-block-row mt12">
+      <button class="btn btn-outline" id="confirmCancelBtn">Batal</button>
+      <button class="btn btn-primary" id="confirmOkBtn">Ya</button>
+    </div>
+  </div>
+</div>
+
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-spinner">
@@ -751,6 +763,6 @@
 
 
 <!-- Load modules in order -->
-<script type="module" src="js/app.js?v=64"></script>
+<script type="module" src="js/app.js?v=65"></script>
 </body>
 </html>

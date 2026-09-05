@@ -17,6 +17,7 @@ import { showScreen, openTransaksi, navigateScreen } from './nav.js';
 import { markReady, getRoute } from './router.js';
 import { setupRegionPicker } from './region.js';
 import { loadPayOptions, initPwaInstall } from './settings-x.js';
+import { showConfirm } from './confirm.js';
 import { connectBTPrinter, disconnectBTPrinter, testPrint, restorePrinterStatus } from './printer.js';
 
 // ── Alamat: satu kotak ringkas, modal bertingkat saat diklik (pola emsifa) ─
@@ -169,7 +170,9 @@ if ("serviceWorker" in navigator && window.location.protocol !== 'file:') {
         const nw = reg.installing;
         nw.addEventListener("statechange", function () {
           if (nw.state === "activated") {
-            if (confirm('Update tersedia. Reload sekarang?')) window.location.reload();
+            // Modal in-app, bukan confirm() native (tak andal di webview — lihat confirm.js)
+            showConfirm({ icon:'🔄', text:'Update tersedia. Reload sekarang?', okLabel:'Reload Sekarang' })
+              .then(ok => { if(ok) window.location.reload(); });
           }
         });
       });

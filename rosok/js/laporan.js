@@ -6,6 +6,7 @@ import { db } from './db.js';
 import { laporanPeriode, laporanAnchor, laporanDateFrom, laporanDateTo, setLaporanPeriode as setLaporanPeriodeState, setLaporanDateFrom, setLaporanDateTo, setLaporanAnchor } from './app-state.js';
 import { fmtRupiah, fmtKg, fmtDate, escapeHtml, openOverlay, closeSheet, toast, unformatRupiah } from './utils.js';
 import { fiturKasAktif } from './kas.js';
+import { showConfirm } from './confirm.js';
 
 let _lunasiId = null;
 
@@ -632,7 +633,7 @@ export async function tutupBuku(){
   if(!tahun || tahun < 2000 || tahun > 2100){ toast('Tahun tidak valid'); return; }
   const existing = await db.tutupBuku.where('tahun').equals(tahun).first();
   if(existing){ toast('Tahun ' + tahun + ' sudah ditutup buku'); return; }
-  if(!confirm('Yakin menutup buku tahun ' + tahun + '? Rekap tahunan akan dikunci permanen.')) return;
+  if(!(await showConfirm({ icon:'🔒', text:'Yakin menutup buku tahun ' + tahun + '? Rekap tahunan akan dikunci permanen.', okLabel:'Tutup Buku' }))) return;
   const s = await tutupBukuSummary(tahun);
   await db.tutupBuku.add({ tahun, tanggalTutup: new Date().toISOString(), totalBeli: s.beli, totalJual: s.jual, laba: s.laba, saldoKas: s.saldoKas, jumlahTrans: s.jumlahTrans });
   closeSheet('sheetTutupBuku');

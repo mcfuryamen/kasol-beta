@@ -15,6 +15,7 @@
    ========================================================================= */
 import { db } from './db.js';
 import { toast, showLoading, hideLoading, getSetting, setSetting, openOverlay, closeSheet } from './utils.js';
+import { showConfirm } from './confirm.js';
 import { SETTINGS } from './app-state.js';
 import { hmacSignature, isLicensed, ensureUnitId } from './license.js';
 import { refreshAll } from './dashboard.js';
@@ -191,7 +192,7 @@ export async function importData(event){
     const err = await validateBackup(data);
     hideLoading();
     if (err) { toast(err); event.target.value = ''; return; }
-    if (!confirm('📂 Semua data (kategori, transaksi, kas, tutup buku) akan diganti dengan isi file cadangan. Profil usaha tidak berubah. Lanjutkan?')) { event.target.value = ''; return; }
+    if (!(await showConfirm({ icon:'📂', text:'Semua data (kategori, transaksi, kas, tutup buku) akan diganti dengan isi file cadangan. Profil usaha tidak berubah. Lanjutkan?', okLabel:'Ya, Pulihkan' }))) { event.target.value = ''; return; }
     showLoading('Memulihkan data...');
     try {
       await applyBackupData(data);
@@ -270,7 +271,7 @@ export async function cloudRestoreLatest(){
     const err = await validateBackup(data);
     hideLoading();
     if (err) { toast(err); return; }
-    if (!confirm('☁️ Pulihkan cadangan cloud? Semua data saat ini akan diganti dengan isi cadangan. Lanjutkan?')) return;
+    if (!(await showConfirm({ icon:'☁️', text:'Pulihkan cadangan cloud? Semua data saat ini akan diganti dengan isi cadangan. Lanjutkan?', okLabel:'Ya, Pulihkan' }))) return;
     showLoading('Memulihkan data...');
     try {
       await applyBackupData(data);
@@ -333,8 +334,8 @@ export function declineRestoreOffer(){
 
 // ── Hapus semua data (pola kaki5: lisensi SENGAJA dipertahankan) ──────────
 export async function confirmClearAll(){
-  if (!confirm('⚠️ SEMUA data usaha (kategori, transaksi, kas, tutup buku) akan dihapus dan tidak bisa dikembalikan! Status lisensi perangkat tetap tersimpan. Yakin?')) return;
-  if (!confirm('Konfirmasi terakhir: hapus SEMUA data sekarang?')) return;
+  if (!(await showConfirm({ icon:'🗑️', text:'SEMUA data usaha (kategori, transaksi, kas, tutup buku) akan dihapus dan tidak bisa dikembalikan! Status lisensi perangkat tetap tersimpan. Yakin?', okLabel:'Ya, Hapus' }))) return;
+  if (!(await showConfirm({ icon:'🗑️', text:'Konfirmasi terakhir: hapus SEMUA data sekarang?', okLabel:'Hapus Sekarang' }))) return;
   showLoading('Menghapus data...');
   try {
     await db.transaction('rw', db.kategori, db.transaksi, db.transaksiItem, db.kas, db.kasShift, db.tutupBuku, async () => {

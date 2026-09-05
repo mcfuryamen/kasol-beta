@@ -5,6 +5,7 @@
    (reportRange dari laporan.js — Harian/Mingguan/Bulanan/Custom + jangkar).
    ========================================================================= */
 import { db } from './db.js';
+import { showConfirm } from './confirm.js';
 import { riwayatPage, RIWAYAT_PER_PAGE, lastNotaData, setRiwayatPage, setLastNotaData } from './app-state.js';
 import { fmtRupiah, fmtDate, escapeHtml, openOverlay, closeSheet, toast, showLoading, hideLoading } from './utils.js';
 import { renderNota } from './pos.js';
@@ -84,7 +85,7 @@ export async function viewTransaksiDetail(id){
 export function closeNotaSheet(){ closeSheet('sheetNota'); }
 
 export async function deleteTransaksi(id){
-  if(!confirm('Hapus transaksi ini? Stok dan kas akan disesuaikan kembali.')) return;
+  if(!(await showConfirm({ icon:'🗑️', text:'Hapus transaksi ini? Stok dan kas akan disesuaikan kembali.', okLabel:'Ya, Hapus' }))) return;
   try {
     await db.transaction('rw', db.transaksi, db.transaksiItem, db.kategori, db.kas, async () => {
       const t = await db.transaksi.get(id);
@@ -113,8 +114,7 @@ export async function deleteTransaksi(id){
 }
 
 export async function voidTransaksi(id){
-  if(!confirm('Yakin membatalkan transaksi ini?')) return;
-  if(!confirm('Konfirmasi: Transaksi akan dibatalkan (void).')) return;
+  if(!(await showConfirm({ icon:'✖️', text:'Yakin membatalkan transaksi ini? Stok dan kas akan disesuaikan kembali.', okLabel:'Batalkan Transaksi' }))) return;
   try {
     await db.transaction('rw', db.transaksi, db.transaksiItem, db.kategori, db.kas, async () => {
       showLoading('Membatalkan transaksi...');
