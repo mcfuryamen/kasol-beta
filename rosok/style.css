@@ -137,31 +137,37 @@ main{flex:1; padding:16px 16px 100px 16px;}
 .stat-card .val{flex-basis:100%; font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:16px; line-height:1.2; word-break:break-all; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.35);}
 .stat-card.wide{grid-column:1/3;}
 
-/* KPI Beranda — warna solid vibrant */
-.stat-card.stat-kas{background:#FF8C42;}
+/* KPI — gradasi 135° terang→gelap, palet diambil dari kartu dashboard admin
+   (admin/style.css .summary-card.brand/.green/.red/.teal/.purple/.blue). */
+.stat-card.stat-kas{background:linear-gradient(135deg,#EA5129 0%,#F39A39 100%);}
 .stat-card.stat-kas .lbl, .stat-card.stat-kas .val{color:#fff;}
 
-.stat-card.stat-stok{background:#4ECDC4;}
+.stat-card.stat-stok{background:linear-gradient(135deg,#5CB6CC 0%,#0D9488 100%);}
 .stat-card.stat-stok .lbl, .stat-card.stat-stok .val{color:#fff;}
 
-.stat-card.stat-beli{background:#FF6B6B;}
+.stat-card.stat-beli{background:linear-gradient(135deg,#F17B65 0%,#DC2626 100%);}
 .stat-card.stat-beli .lbl, .stat-card.stat-beli .val{color:#fff;}
 
-.stat-card.stat-jual{background:#51CF66;}
+.stat-card.stat-jual{background:linear-gradient(135deg,#4CC583 0%,#16A34A 100%);}
 .stat-card.stat-jual .lbl, .stat-card.stat-jual .val{color:#fff;}
 
-/* KPI Laporan — warna solid */
-.stat-card.stat-laba{background:#FFD93D;}
-.stat-card.stat-laba .lbl, .stat-card.stat-laba .val{color:#7A5C00;}
-.stat-card.stat-laba .val{border-top-color:rgba(122,92,0,0.3);}
+/* Laba = metrik hero → varian brand (sama dgn Kas), teks putih. */
+.stat-card.stat-laba{background:linear-gradient(135deg,#EA5129 0%,#F39A39 100%);}
+.stat-card.stat-laba .lbl, .stat-card.stat-laba .val{color:#fff;}
 
-.stat-card.stat-utang,
-.stat-card.stat-pengeluaran{background:#FF6B6B;}
-.stat-card.stat-utang .lbl, .stat-card.stat-utang .val,
+/* Utang = red (uang keluar/kewajiban); Pengeluaran = purple (dulu kembar merah). */
+.stat-card.stat-utang{background:linear-gradient(135deg,#F17B65 0%,#DC2626 100%);}
+.stat-card.stat-utang .lbl, .stat-card.stat-utang .val{color:#fff;}
+.stat-card.stat-pengeluaran{background:linear-gradient(135deg,#9B59B6 0%,#8B5CF6 100%);}
 .stat-card.stat-pengeluaran .lbl, .stat-card.stat-pengeluaran .val{color:#fff;}
 
-.stat-card.stat-piutang{background:#51CF66;}
+/* Piutang = uang masuk tertunda → blue. */
+.stat-card.stat-piutang{background:linear-gradient(135deg,#5CB6CC 0%,#2563EB 100%);}
 .stat-card.stat-piutang .lbl, .stat-card.stat-piutang .val{color:#fff;}
+
+/* Kartu berwarna: border garis pucat jadi halo putih di atas gradasi —
+   buang (admin .summary-card juga tanpa border). */
+.stat-card[class*="stat-"]{border-color:transparent;}
 
 /* Buttons */
 .btn{border:none; border-radius:14px; padding:var(--sp-16) var(--sp-16); font-weight:700; font-size:15px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:var(--sp-8); width:100%;}
