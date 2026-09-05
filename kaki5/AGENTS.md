@@ -156,6 +156,12 @@ menyimpulkan regresi.
 
 ## 🚀 Rilis
 
+### 🚦 ATURAN RILIS — SELURUH EKOSISTEM KASOL (WAJIB, aturan pemilik 2026-09-06)
+1. **Default = commit + rilis BETA saja** (mirror `kasol-beta`). Fix disetujui → beta boleh langsung.
+2. **Rilis LIVE (mirror `kasol` → produksi) WAJIB perintah EKSPLISIT pemilik, PER RILIS.** Approval "gas" atas fix BUKAN izin rilis live.
+3. **Jangan improve sendiri di luar permintaan** — temuan lain = SARAN, menunggu dipilih.
+4. Teks lengkap: `../CONTEXT.md` → "🎯 Keputusan Strategis" → "🚦 Aturan Rilis".
+
 Alur 2-mirror (`../DEPLOYMENT.md:127-181`): folder kerja → `push-beta.ps1` → mirror
 `kasol-beta` → GitHub BETA → `<app>.vercel.app`. Stabil → `push-live.ps1` → mirror
 `kasol` → `kaki5.kasirsolo.com`.
@@ -176,7 +182,7 @@ Catatan operasional yang terbukti di mesin ini:
   (cek `vercel project ls`). Jangan fetch `/index.html` di Vercel — ia 308 ke `/`.
 - **`git add -A` DILARANG.** Stage file tracked saja: `git add -u kaki5`. Artefak
   `_qa-*` dan `rosok/*` jangan sampai ikut.
-- **Commit/push hanya atas perintah eksplisit pemilik.**
+- **Commit/push LIVE hanya atas perintah eksplisit pemilik** (beta = default setelah fix disetujui — lihat "🚦 ATURAN RILIS" di atas).
 
 ---
 

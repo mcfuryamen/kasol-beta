@@ -63,6 +63,21 @@ Sebelum jalanin preview/dev server, SELALU pakai port dari tabel ini. **Jangan n
 > Keputusan strategis pemilik projekt. Agent **harus** baca & patuhi sebelum kerja.
 > Ini SUMBER KEBENARAN untuk scope kerja (per 2026-08-10).
 
+### 🚦 Aturan Rilis — Seluruh Ekosistem Kasol (WAJIB, untuk SEMUA agent)
+**Aturan pemilik; sudah lama berlaku secara lisan, ditulis eksplisit 2026-09-06
+agar memaksa kepatuhan agent mana pun (ZCode maupun di luar ZCode).**
+
+1. **Default = commit + rilis BETA saja** (mirror `GitHub/kasol-beta` → domain
+   beta `*.vercel.app`). Fix yang sudah disetujui pemilik → beta boleh langsung.
+2. **Rilis LIVE (mirror `GitHub/kasol` → domain produksi: `kasirsolo.com`,
+   `kaki5.kasirsolo.com`, `rosok.kasirsolo.com`, dll.) WAJIB perintah EKSPLISIT
+   pemilik, PER RILIS.** Approval "gas"/"gaskeun" atas permintaan fix BUKAN izin
+   rilis live — hanya perintah eksplisit semacam "rilis live"/"push live" yang sah.
+3. **Jangan improve sendiri di luar permintaan.** Eksekusi persis yang diminta;
+   temuan lain = SARAN tertulis untuk dipilih pemilik — jangan sekalian dikerjakan.
+4. Pelanggaran tercatat 2026-09-06: diminta naikkan batas qty → agent ikut rilis
+   live tanpa diminta. Jangan diulang.
+
 ### Fokus kerja (Prioritas)
 Hanya **3 aplikasi** yang dikerjakan & diaudit dulu sampai robust:
 `landing/`, `admin/`, `kaki5/`. **Semua app klien lain (rosok, gerobak, retail, dst)

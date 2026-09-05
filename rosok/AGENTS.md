@@ -165,6 +165,12 @@ index, Dexie `SchemaError` dan transaksi rollback (bug kritis audit 2026-09-03).
 | **Beta** | `Documents/GitHub/kasol-beta` | `mcfuryamen/kasol-beta` | Vercel project beta (ctrlbeta/kq5beta dkk) |
 | **Live** | `Documents/GitHub/kasol` | `mcfuryamen/kasol` | Vercel project produksi per app |
 
+### 🚦 ATURAN RILIS — SELURUH EKOSISTEM KASOL (WAJIB, aturan pemilik 2026-09-06)
+1. **Default = commit + rilis BETA saja** (mirror `kasol-beta`). Fix disetujui → beta boleh langsung.
+2. **Rilis LIVE (mirror `kasol` → produksi) WAJIB perintah EKSPLISIT pemilik, PER RILIS.** Approval "gas" atas fix BUKAN izin rilis live.
+3. **Jangan improve sendiri di luar permintaan** — temuan lain = SARAN, menunggu dipilih.
+4. Teks lengkap: `../CONTEXT.md` → "🎯 Keputusan Strategis" → "🚦 Aturan Rilis".
+
 - **Skrip resmi:** `../push-beta.ps1` (snapshot SELURUH work tree → `kasol-beta main`) dan
   `../push-live.ps1` (snapshot dari `refs/beta/main` "beta stabil" → `kasol main`).
   Keduanya interaktif (`Read-Host y/N`) → non-interaktif: `echo y | powershell ... -File push-beta.ps1`.

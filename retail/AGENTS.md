@@ -60,6 +60,15 @@ retail/
 
 ---
 
+## 🚦 Aturan Rilis (SELURUH EKOSISTEM KASOL — WAJIB, aturan pemilik 2026-09-06)
+
+1. **Default = commit + rilis BETA saja** (mirror `kasol-beta`). Fix disetujui → beta boleh langsung.
+2. **Rilis LIVE (mirror `kasol` → produksi) WAJIB perintah EKSPLISIT pemilik, PER RILIS.** Approval "gas" atas fix BUKAN izin rilis live.
+3. **Jangan improve sendiri di luar permintaan** — temuan lain = SARAN, menunggu dipilih.
+4. Teks lengkap: [`../CONTEXT.md`](../CONTEXT.md) → "🎯 Keputusan Strategis" → "🚦 Aturan Rilis".
+
+---
+
 ## 🎨 Design
 
 - **Theme:** Orange-brown (sesuai brand KASIRSOLO)
