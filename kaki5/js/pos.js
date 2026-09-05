@@ -498,7 +498,8 @@ export function changeQty(menuId, delta) {
   renderPOSMenu();
 }
 
-// Set qty langsung dari input manual (batas 1–999).
+// Set qty langsung dari input manual (batas 1–9999 — v174: naik dari 999
+// agar transaksi grosir >1000 pcs per menu bisa diinput).
 // rerender=false → update ringan (state + cartBar + badge grid + total modal)
 // TANPA rebuild daftar cart, agar fokus ketikan di input qty tidak hilang.
 export function setCartQty(menuId, qty, rerender = true) {
@@ -506,7 +507,7 @@ export function setCartQty(menuId, qty, rerender = true) {
   if (!cur) return;
   let target = parseInt(qty, 10);
   if (Number.isNaN(target)) target = cur.qty; // kotak kosong saat mengetik → pertahankan nilai lama
-  target = Math.min(999, Math.max(1, target));
+  target = Math.min(9999, Math.max(1, target));
   if (target !== cur.qty) {
     const next = changeQtyLogic(cart, menuId, target - cur.qty);
     setCart(next);

@@ -692,7 +692,7 @@ export async function openCartModal() {
       <div class="cart-qty-price">
         <div class="qty-control">
           <button class="qty-btn" data-action="change-qty" data-menu-id="${c.menu.id}" data-delta="-1" aria-label="Kurangi jumlah">−</button>
-          <input type="number" class="qty-val" data-action="cart-qty-input" data-menu-id="${c.menu.id}" min="1" max="999" value="${c.qty}" inputmode="numeric" aria-label="Jumlah">
+          <input type="number" class="qty-val" data-action="cart-qty-input" data-menu-id="${c.menu.id}" min="1" max="9999" value="${c.qty}" inputmode="numeric" aria-label="Jumlah">
           <button class="qty-btn" data-action="change-qty" data-menu-id="${c.menu.id}" data-delta="1" aria-label="Tambah jumlah">+</button>
         </div>
         <div class="cart-price">${formatRp(totalLine)}</div>

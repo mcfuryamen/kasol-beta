@@ -4,6 +4,12 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 Format judul entri: `## <YYYY-MM-DD> (vNNN / 1.0.NN: judul)` — dua nomor wajib ada,
 supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
 
+## 2026-09-06 (v174 / 1.0.103: qty keranjang sampai 9.999)
+- Batas qty per menu di keranjang naik 999 → **9.999** (`pos.js` clamp + `max` input
+  di `pos.ui.js`) — transaksi grosir >1.000 pcs per menu kini bisa diinput.
+- Guard stok tidak berubah: menu dengan "Pakai Stok" tetap dibatasi stok tercatat
+  (`changeQtyLogic`, pos.logic.js:162) — naikkan stok di form menu bila perlu.
+
 ## 2026-09-06 (v173 / 1.0.103: nominal KPI muat ratusan juta)
 - Kartu statistik Beranda (6) & Laporan (9) kini mengecilkan font nominal otomatis:
   jutaan+ → 18px (`stat-sm`), miliar → 15px (`stat-xs`), plus `white-space:nowrap`
