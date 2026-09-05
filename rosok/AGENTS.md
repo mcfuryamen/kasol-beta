@@ -18,7 +18,7 @@ untuk standar ekosistem, dan [`DESIGN.md`](DESIGN.md) untuk arsitektur & kontrak
 | **Vercel (live)** | project `rosok` (`prj_Z6lAYUJvVbdMS8aTToYLRXJoLnHI`), repo `mcfuryamen/kasol`, Root Directory `rosok/`, domain `rosok.vercel.app` |
 | **Vercel (beta)** | project `rosok-beta`, repo `mcfuryamen/kasol-beta`, domain `rosok-beta.vercel.app` |
 | **Dev server** | `node run-local.js` → **port 8084** (WAJIB; registry di `../CONTEXT.md`) |
-| **Versi** | 1.4.0 · SW v54 |
+| **Versi** | 1.4.7 · SW v65 |
 
 ---
 
@@ -49,6 +49,10 @@ rosok/
     ├── backup.js           # export/import payload v3 + cadangan cloud (lisensi aktif)
     ├── region.js           # picker wilayah 4 level (API emsifa)
     ├── app-link.js         # link situs dari cloud (products.store_url → app_links)
+    ├── version.js          # SUMBER VERSI TUNGGAL (APP_VERSION + CACHE_BUST)
+    ├── version.json        # sinyal rilis di server (cacheBust + notes) — di-bypass dari cache SW
+    ├── update.js           # overlay update paksa + refresh (port kaki5)
+    ├── confirm.js          # showConfirm() modal in-app — PENGANTI confirm() native (dilarang)
     └── supabase-config.js  # URL+anon key runtime (skip fetch di dev host)
 ```
 
@@ -104,6 +108,10 @@ cabang ada di `DESIGN.md §Kontrak Cloud`. Ringkas:
 - `SETTINGS` yang dipakai modul WAJIB di-import dari `app-state.js` (bug `testPrint` ReferenceError).
 - Baris `setting-row` yang memicu file input butuh `onclick` eksplisit (bug "Pulihkan Data" mati).
 - Cloud 'diam' tanpa error = cek `getSupabaseClient()` null dulu, jangan tuduh RLS.
+- **DILARANG `confirm()/alert()/prompt()` native** — tidak andal di webview tertanam
+  (insiden preload `embeddedBrowserJavaScriptDialog` ZCode 2026-09-05: dialog bisa
+  mengembalikan nilai bohong → alur destruktif batal diam-diam). Gunakan
+  `showConfirm()` dari `js/confirm.js` (Promise-based, berantrean).
 
 ---
 
@@ -140,6 +148,9 @@ index, Dexie `SchemaError` dan transaksi rollback (bug kritis audit 2026-09-03).
 `sheetCekData` (diagnosa), `sheetPurchase`, `#quotaBanner` (closable),
 `#profileBanner` (modal wajib lengkapi profil — semua layar KECUALI Pengaturan),
 `#mismatchLock` (hard lock profil-tidak-cocok, tanpa tombol tutup),
+`#updateOverlay` (rilis baru — hanya bisa OKE, dari update.js),
+`#sheetRestoreOffer` (tawaran pulih cloud utk browser baru, maks 1×/hari),
+`#confirmModal` (showConfirm — semua konfirmasi destruktif),
 `#loadingOverlay`, `#toast`.
 
 ---

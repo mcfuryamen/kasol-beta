@@ -2,7 +2,7 @@
 
 Arsitektur, model data, dan kontrak sinkronisasi cloud. Dokumen referensi
 teknik; untuk konvensi kerja agen lihat `AGENTS.md`, riwayat perubahan lihat
-`CHANGELOG.md`. (2026-09-04, selaras v1.4.0 / sw v54.)
+`CHANGELOG.md`. (2026-09-05, selaras v1.4.7 / sw v65.)
 
 ---
 
@@ -201,6 +201,21 @@ lalu deploy ulang ketiganya; selama kolom kosong, semua jatuh ke nilai identik.
 - **Diagnosa 10 langkah** (`settings-x.js`): skrip→config→internet→client→identitas→
   sesi→klaim→baris server→uji sync penuh (push+readback)→riwayat error; kartu
   ringkasan ok/warn/fail + "Salin Hasil" (kirim ke admin).
+- **Grafik laporan ala kaki5** (`laporan.js`): harian = kolom per jam DIPANGKAS ke
+  rentang aktif ±1 (tanpa data → empty state, bukan 24 stub); bulanan & custom
+  >14 hari = pengelompokan minggu kalender M1..Mn (bucket `from/to`); bar
+  `--chart-h` 120px HP / 160px desktop, tinggi integer, bar nol = 0px, label
+  nilai 'k', subtitle konteks, tooltip rupiah penuh; date picker auto-tutup saat
+  klik di luar `#screenLaporanFilter`.
+- **Dialog = modal in-app, bukan native**: `showConfirm()` (`js/confirm.js`,
+  Promise + antrean) untuk semua konfirmasi destruktif; `#mismatchLock`,
+  `#updateOverlay`, `#sheetRestoreOffer` pola `.lock-overlay`/center-overlay.
+  `confirm/alert/prompt` native DILARANG (webview tertanam bisa mengembalikan
+  nilai bohong — insiden 2026-09-05).
+- **Overlay update rilis** (`js/update.js` + `version.js`/`version.json`): cek
+  event-driven (boot+3 dtk, foreground, online); cacheBust beda → `#updateOverlay`
+  (hanya bisa OKE) → force SW-update + reload → boot penuh = reanchor+pull+push
+  tersinkron paksa. `version.json` di-bypass SW dari cache.
 
 ---
 

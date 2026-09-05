@@ -1,5 +1,33 @@
 # Changelog - Kasir Solo Rosok
 
+## [1.4.7] - 2026-09-05 (sw v62–v65)
+
+### Kartu KPI gradasi (v62)
+- Delapan kartu statistik Beranda & Laporan memakai gradasi 135° terang→gelap
+  dengan palet kartu dashboard admin (`summary-card.brand/.green/.red/.teal/
+  .purple/.blue`): Kas & Laba brand, Stok teal, Pembelian/Transaksi/Utang red,
+  Penjualan green, Pengeluaran purple, Piutang blue. Border pucat pada kartu
+  berwarna dihapus (jadi halo di atas gradasi).
+
+### Grafik laporan ala kaki5 (v63–v64)
+- **Harian per jam** (port `renderHourlyChart` v160): sumbu dipangkas ke rentang
+  jam aktif ±1, bar nol tanpa stub 3px, tinggi integer, label nilai 'k' di atas
+  kolom, subtitle konteks (tanggal · rentang jam · jumlah transaksi), empty
+  state bila tanpa data, tooltip nominal rupiah penuh, kolom scroll min 30px.
+- **Bulanan & Custom panjang** dikelompokkan per minggu kalender (M1..Mn)
+  seperti kaki5 — bukan 31–45 kolom harian sempit; bucket membawa rentang
+  `from/to`. Custom ≤14 hari tetap per hari. Bar 120px (160px desktop via
+  `--chart-h`).
+- **Date picker auto-tutup**: klik di luar kartu filter laporan (area header
+  sticky) saat picker terbuka → picker tertutup sendiri.
+
+### Modal konfirmasi in-app (v65)
+- Sepuluh `confirm()` native (hapus/void transaksi, pulihkan data/cloud, hapus
+  semua, tutup buku, reload SW) diganti `showConfirm()` Promise dari
+  `js/confirm.js` (port kaki5) — dialog native tidak andal di webview tertanam
+  (insiden preload `embeddedBrowserJavaScriptDialog` ZCode 2026-09-05).
+  Konvensi baru: **tidak ada `confirm/alert/prompt` native di rosok**.
+
 ## [1.4.6] - 2026-09-05 (sw v60, `?v=60`)
 
 ### Logo baru aplikasi

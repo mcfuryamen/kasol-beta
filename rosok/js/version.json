@@ -1,8 +1,9 @@
 {
-  "version": "1.4.6",
+  "version": "1.4.7",
   "cacheBust": "v65",
   "notes": [
-    "Wajah baru Kasir Rosok! Logo aplikasi diperbarui — ikon, tampilan, dan layar pemasangan di HP ikut berubah.",
-    "Perbaikan kecil lainnya agar aplikasi makin lancar dipakai setiap hari."
+    "Kartu statistik kini bergradasi warna — tampilan lebih hidup dan mudah dibedakan.",
+    "Grafik laporan diperbarui: harian per jam dirapikan, bulanan dikelompokkan per minggu (M1-M5), dan pilihan tanggal tertutup sendiri saat kamu mengetuk di luar area filter.",
+    "Dialog konfirmasi memakai tampilan aplikasi (bukan pop-up browser) — lebih andal di semua browser."
   ]
 }

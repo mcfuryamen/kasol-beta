@@ -6,7 +6,7 @@ berbasis kuota transaksi dan sinkronisasi cloud dua-arah (Supabase) ala kaki5.
 
 - **Live:** https://rosok.vercel.app (Vercel project `rosok`, repo `mcfuryamen/kasol`, Root Directory `rosok/`)
 - **Beta:** https://rosok-beta.vercel.app (Vercel project `rosok-beta`, repo `mcfuryamen/kasol-beta`)
-- **Versi:** 1.4.5 · **Service Worker:** v59 · **Dexie:** `KasirSoloRosokDB` v5
+- **Versi:** 1.4.7 · **Service Worker:** v65 · **Dexie:** `KasirSoloRosokDB` v5
 
 ## 📦 Installation (PWA)
 
@@ -109,6 +109,7 @@ rosok/
     ├── version.js      # SUMBER VERSI TUNGGAL (APP_VERSION + CACHE_BUST)
     ├── version.json    # Sinyal rilis di server (cacheBust + notes) — tak pernah di-cache SW
     ├── update.js       # Overlay update paksa + refresh (port kaki5)
+    ├── confirm.js      # Modal konfirmasi in-app showConfirm() (pengganti confirm() native)
     └── supabase-config.js  # URL+anon key (Edge Function / fallback, skip di dev host)
 ```
 
@@ -140,4 +141,4 @@ Copyright © 2026 PT Mesin Kasir Solo
 
 ---
 
-**Versi:** 1.4.5 · **Last Updated:** 2026-09-04
+**Versi:** 1.4.7 · **Last Updated:** 2026-09-05
