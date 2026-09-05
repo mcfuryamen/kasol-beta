@@ -277,6 +277,14 @@ self.addEventListener('fetch', event => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
+  // ── version.json: selalu network, tidak pernah dari SW cache ───────────────
+  // Ini memastikan overlay update muncul tanpa bergantung pada timing SW update.
+  // Tanpa ini, SW lama bisa serve version.json dari precache → overlay tidak muncul.
+  if (request.url.includes('/version.json')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   // ── API calls: network-first, no cache ────────────────────────────────────
   if (request.url.includes('/supabase.co')) {
     event.respondWith(
