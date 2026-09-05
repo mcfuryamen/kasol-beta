@@ -94,11 +94,19 @@ export function isKasOpen() {
 // `pengeluaran` (pengeluaran/pemasukan), yang memang sudah ikut dihitung.
 async function dataShift(shift, sampaiMs = Date.now()) {
   const dari = Number(shift?.waktuBuka) || 0;
+  // M3 (audit 2026-09-05): held order yang dibayar hari ini punya waktu=saat
+  // ditahan (lebih lama), tapi paidAt=saat bayar. Pakai paidAt ?? waktu untuk atribusi
+  // kas per shift — held yang dibayar setelah shift dibuka ikut masuk shift tsb.
+  // Legacy record tanpa paidAt fallback ke waktu (backward-compatible).
   const [salesAll, expAll] = await Promise.all([
     DB.penjualan.where('waktu').between(dari, sampaiMs).toArray(),
     DB.pengeluaran.where('waktu').between(dari, sampaiMs).toArray()
   ]);
-  const sales = (salesAll || []).filter(s => s?.status !== 'held');
+  const sales = (salesAll || []).filter(s => {
+    if (s?.status === 'held') return false;
+    const paidAt = s?.paidAt || s?.waktu;
+    return paidAt >= dari && paidAt <= sampaiMs;
+  });
   const { expenses, incomes } = pisahkanCatatan(expAll);
   return { sales, expenses, incomes };
 }
@@ -151,7 +159,22 @@ export function closeBukaKasModal() {
   closeModal('bukaKasModal');
 }
 
+// P0 (audit 2026-09-05): guard in-flight — dobel tap "🔓 Buka Kas" dulu bisa
+// membuat 2 shift (baca-then-write tanpa guard; getOpenShift hanya memakai
+// shift terbaru, shift lama menggantung "Berjalan" di riwayat).
+let _bukaKasInFlight = false;
+
 export async function bukaKas() {
+  if (_bukaKasInFlight) return;
+  _bukaKasInFlight = true;
+  try {
+    await _bukaKasCore();
+  } finally {
+    _bukaKasInFlight = false;
+  }
+}
+
+async function _bukaKasCore() {
   // Guard LANTASAN (audit v166): modal Buka Kas bisa saja sudah terbuka sebelum
   // saklar dimatikan, dan `bukaKas` ikut ter-expose ke window lewat _kasWireMap.
   // Tanpa ini, satu klik "🔓 Buka Kas" tetap menulis shift padahal fitur mati.

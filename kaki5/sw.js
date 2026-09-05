@@ -1,7 +1,7 @@
 // Service Worker for Kasir Solo - Kaki Lima
 // Strategi: API calls → network-only, HTML → cache-first (offline navigable),
 // static assets → network-first dengan fallback cache.
-// Cache version v170 — ubah angka INI juga setiap swap (harus sama dengan
+// Cache version v171 — ubah angka INI juga setiap swap (harus sama dengan
 // CACHE_NAME di bawah; baris ini tertinggal di v119 selama belasan rilis
 // dan bikin salah baca seolah CACHE_NAME tidak di-bump).
 // v170: gerbang Buka Kas dikunci rapat + tema gradasi diadopsi dari rosok.
@@ -183,7 +183,7 @@
 // v72: konsolidasi P2 — css/style.css jadi satu-satunya stylesheet (13 file
 // css/ modular dilebur; rule uniknya sudah dipindah ke style.css).
 
-const CACHE_NAME = 'kasir-solo-kaki5-v170';
+const CACHE_NAME = 'kasir-solo-kaki5-v171';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

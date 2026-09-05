@@ -4,7 +4,7 @@
  */
 
 import { getUnitId, getDeviceCode } from './license.js';
-import { showToast } from './helpers.js';
+import { showToast, escapeHtml } from './helpers.js';
 import { pullCloudProfileTo } from './sync.js';
 import { rateLimiters } from './helpers.pure.js';
 import { openModal, closeModal } from './modal.js';
@@ -114,11 +114,13 @@ export async function openPurchaseSheet() {
     payInfo.isDemo = !payInfo.qrisUrl && !payInfo.bank && !payInfo.accountNumber && !payInfo.accountName;
   } catch (e) { console.error('Failed to load payment info', e); }
 
-  const hasQris = !!payInfo.qrisUrl;
+  // M6 (audit 2026-09-05): qrisUrl admin bisa arbitrary — validasi https:// prefix.
+  const safeQrisUrl = (typeof payInfo.qrisUrl === 'string' && /^https:\/\//.test(payInfo.qrisUrl)) ? payInfo.qrisUrl : '';
+  const hasQris = !!safeQrisUrl;
   const qrisHtml = hasQris
-    ? `<img src="${payInfo.qrisUrl}" style="width:100%;max-width:300px;border-radius:12px;margin-bottom:12px" alt="QRIS">
+    ? `<img src="${safeQrisUrl}" style="width:100%;max-width:300px;border-radius:12px;margin-bottom:12px" alt="QRIS">
        <div class="kcenter kmb12">
-         <a href="${payInfo.qrisUrl}" download="qris-kasirsolo.png" class="btn btn-outline btn-sm">⤓ Unduh QRIS</a>
+         <a href="${safeQrisUrl}" download="qris-kasirsolo.png" class="btn btn-outline btn-sm">⤓ Unduh QRIS</a>
        </div>`
     : `<div style="text-align:center;padding:20px;border:1px dashed var(--line,var(--border));border-radius:12px;color:var(--text2)">
          <div class="kfs30 kmb8">▦</div>
@@ -126,18 +128,19 @@ export async function openPurchaseSheet() {
          <div style="font-size:12px;margin-top:4px">QRIS asli belum diatur di Admin Console.</div>
        </div>`;
 
+  // M6 (audit 2026-09-05): bank/rekening/nama admin — semua nilai dinamis di-escape.
   const bankHtml = (payInfo.bank || payInfo.accountNumber || payInfo.accountName)
     ? `
       <div style="background:var(--bg2);border-radius:12px;padding:14px;margin-bottom:16px">
         <div style="font-size:13px;color:var(--text2);margin-bottom:8px;font-weight:700">🏦 Rekening Pembayaran</div>
         <div class="kflex-between kgap8 kmb8 kfs14">
-          <span class="ktext2">Bank</span><span class="kfw700">${payInfo.bank || '—'}</span>
+          <span class="ktext2">Bank</span><span class="kfw700">${escapeHtml(payInfo.bank || '—')}</span>
         </div>
         <div class="kflex-between kgap8 kmb8 kfs14">
-          <span class="ktext2">No. Rekening</span><span style="font-size:18px;font-weight:800;font-family:monospace">${payInfo.accountNumber || '—'}</span>
+          <span class="ktext2">No. Rekening</span><span style="font-size:18px;font-weight:800;font-family:monospace">${escapeHtml(payInfo.accountNumber || '—')}</span>
         </div>
         <div style="display:flex;justify-content:space-between;gap:8px;font-size:14px">
-          <span class="ktext2">Atas Nama</span><span class="kfw700">${payInfo.accountName || '—'}</span>
+          <span class="ktext2">Atas Nama</span><span class="kfw700">${escapeHtml(payInfo.accountName || '—')}</span>
         </div>
       </div>`
     : `
@@ -158,8 +161,8 @@ export async function openPurchaseSheet() {
                NB: <s> WAJIB ditutup di sini — kalau tidak, seluruh konten di
                bawahnya (QRIS, rekening, cara pembayaran) ikut tercoret. -->
           <span style="display:inline-flex;align-items:baseline;gap:8px">
-            ${payInfo.priceBeforeLabel ? `<s style="font-size:13px;color:var(--primary);font-weight:600">${payInfo.priceBeforeLabel}</s>` : ''}
-            <span style="font-size:18px;font-weight:800;color:var(--accent,var(--success,#16a34a))">${payInfo.priceLabel}</span>
+            ${payInfo.priceBeforeLabel ? `<s style="font-size:13px;color:var(--primary);font-weight:600">${escapeHtml(payInfo.priceBeforeLabel)}</s>` : ''}
+            <span style="font-size:18px;font-weight:800;color:var(--accent,var(--success,#16a34a))">${escapeHtml(payInfo.priceLabel || '')}</span>
           </span>
         </div>
       </div>`

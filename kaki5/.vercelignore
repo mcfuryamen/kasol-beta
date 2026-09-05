@@ -7,6 +7,7 @@
 .env.local
 *.bak
 server.js
+server.cjs   # P3a / 2026-09-05: dev server, tidak ikut deploy
 test-*.js
 test-import.mjs
 docs/
@@ -14,3 +15,5 @@ docs/
 AUDIT-*.md
 PLAN-*.md
 SECURITY-AUDIT-*.md
+_qa-*         # P3a / 2026-09-05: artefak QA audit, bukan kode production
+*.log          # P3a / 2026-09-05: log tidak ikut deploy

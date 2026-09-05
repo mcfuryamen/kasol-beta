@@ -562,7 +562,9 @@ function handleDataAction(action, el, event) {
       if (window.openHeldListModal) window.openHeldListModal();
       break;
     case 'close-held-list':
-      // Tutup modal held list via closeModal (a11y + state cleanup terpusat).
+      // P3d (audit 2026-09-05): selalu via closeModal — focus-trap cleanup terpusat.
+      // Fallback classList.remove dihapus karena _ksr_closeModal sudah wired
+      // saat modal held list bisa muncul (settings module di-load duluan).
       if (window._ksr_closeModal) window._ksr_closeModal('heldListModal');
       else document.getElementById('heldListModal')?.classList.remove('show');
       break;

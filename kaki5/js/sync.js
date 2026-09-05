@@ -317,6 +317,7 @@ export async function ensureSynced({ force = false, silent = false } = {}) {
     const message = String(e?.message || e);
     await setSetting('sync', {
       status: 'pending',
+      pendingIntent: force ? 'force' : 'backfill', // M4 / 2026-09-05
       lastError: message,
       lastStage: stage,
       lastTryAt: new Date().toISOString()
@@ -338,11 +339,11 @@ export function startSyncRetryLoop() {
       if (!navigator.onLine) return;
       const st = await getSyncState();
       if (st.status === 'pending') {
-        // force:true = pending hampir selalu berasal dari form profil yang
-        // gagal sinkron saat offline (user-intent) — harus tetap boleh
-        // meng-update baris cloud yang sudah ada saat online kembali,
-        // sesuai toast "akan otomatis dicoba saat online".
-        await ensureSynced({ silent: true, force: true });
+        // M4 (audit 2026-09-05): pendingIntent membedakan intent push.
+        // 'force' → profile form/user-intent, boleh timpa cloud row.
+        // 'backfill' → push boot/auto, JANGAN timpa cloud row yang sudah ada.
+        const shouldForce = st.pendingIntent === 'force';
+        await ensureSynced({ silent: true, force: shouldForce });
       }
     } catch (_) { /* retry loop tidak boleh crash */ }
   }, RETRY_INTERVAL_MS);

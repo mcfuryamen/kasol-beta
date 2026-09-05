@@ -212,30 +212,51 @@ export async function resumeHeldOrder(heldId, opts = {}) {
       return;
     }
     // Susun cart dari row.items. Lookup menu terkini dari DB (harga bisa
-    // berubah sejak ditahan). Skip menu yang sudah dihapus.
+    // berubah sejak ditahan).
+    // M7 (audit 2026-09-05): item yang sudah dihapus dari DB → tanya konfirmasi
+    // sebelum deleteHeldSync, karena pesanan bisa jadi penting sebagai catatan.
+    // M2 (audit 2026-09-05): item yang masih ada tapi qty melebihi stok
+    // terkini → clamp ke stok maks + toast, supaya pesanan tetap bisa dibuka.
     const newCart = {};
+    let skippedCount = 0;
+    let clampedItems = [];
     for (const it of (row.items || [])) {
       const menuRow = await DB.menu.get(it.menuId);
-      if (!menuRow) continue;
+      if (!menuRow) { skippedCount++; continue; }
+      let qty = it.qty || 1;
+      if (menuRow.pakaiStok && qty > (menuRow.stok || 0)) {
+        clampedItems.push(menuRow.nama);
+        qty = Math.max(1, menuRow.stok || 0);
+      }
       newCart[it.menuId] = {
         menu: menuRow,
-        qty: it.qty || 1,
-        // v158: item hasil buka-tahan membawa tipe pesanannya (dulu kosong, jadi
-        // pesanan Ojol hasil resume sempat dihitung dengan harga jual).
+        qty,
         orderType: row.orderType || 'dine-in',
         selectedToppings: it.selectedToppings || [],
         toppingQtys: it.toppingQtys || {},
         catatanItem: it.catatanItem || ''
       };
     }
+    if (clampedItems.length) {
+      showToast(`${clampedItems[0]}${clampedItems.length > 1 ? ' +' + (clampedItems.length - 1) + ' lainnya' : ''} stok kurang — jumlah disesuaikan 🛒`, 'warn', 4000);
+    }
     if (Object.keys(newCart).length === 0) {
-      showToast('Menu di pesanan ini sudah dihapus dari database', 'error', 3500);
-      await deleteHeldSync(id).catch(() => {});
-      if (getResumedHeldId() === id) setResumedHeldId(null);
-      const n = await countHeldSync();
-      await updateHeldFab(n);
-      const rows = await listHeldSync();
-      renderHeldListModal(rows);
+      // M7: semua menu sudah dihapus → konfirmasi sebelum deleteHeldSync.
+      const label = row.heldName || `pesanan #${id}`;
+      const doDelete = async () => {
+        await deleteHeldSync(id).catch(() => {});
+        if (getResumedHeldId() === id) setResumedHeldId(null);
+        const n = await countHeldSync();
+        await updateHeldFab(n);
+        const rows = await listHeldSync();
+        renderHeldListModal(rows);
+        showToast('Menu pesanan sudah dihapus — held order dihapus', 'info', 3000);
+      };
+      if (typeof window.showConfirm === 'function') {
+        window.showConfirm('⚠️', `Menu di "${label}" sudah dihapus dari database — pesanan tidak bisa dibuka. Hapus held order ini?`, 'Ya, Hapus', doDelete, 'Batal');
+      } else {
+        showToast('Menu pesanan sudah dihapus — held order tidak bisa dibuka', 'error', 4000);
+      }
       return;
     }
     setCart(newCart);
@@ -288,21 +309,6 @@ export async function refreshHeldFab() {
   } catch (_) {
     await updateHeldFab(0);
   }
-}
-
-// Debounced search for POS menu
-let _debouncedPosSearch = null;
-export function getDebouncedPosSearch(fn) {
-  if (!_debouncedPosSearch) {
-    _debouncedPosSearch = (f) => {
-      let timer = null;
-      return function() {
-        clearTimeout(timer);
-        timer = setTimeout(() => f.apply(this, args), 300);
-      };
-    };
-  }
-  return _debouncedPosSearch(fn);
 }
 
 // Simple debounce function
@@ -533,16 +539,42 @@ export function setNominalBayar(nominal) {
 }
 
 // ---- Simpan penjualan (DB + DOM) ----
+
+// P0 (audit 2026-09-05): guard in-flight — dobel tap tombol "Bayar" tidak boleh
+// menghasilkan dua run paralel (2 record penjualan + stok terkurang 2×; jalur
+// held malah membuat penjualan BARU lagi saat payHeldSync throw "bukan held").
+// Tombol Bayar ikut di-disable selama proses (style .btn:disabled sudah ada di
+// style.css — tanpa CSS baru). Flag ter-set SEBELUM await pertama agar run
+// kedua dari dobel-tap selalu tertahan di gerbang wrapper.
+let _simpanInFlight = false;
+function setBayarBusy(busy) {
+  try {
+    document.querySelectorAll('[data-action="save-sale-print"]').forEach(b => { b.disabled = !!busy; });
+  } catch (_) { /* DOM belum siap — flag guard tetap melindungi */ }
+}
+
 export async function simpanPenjualan(cetakJuga = false) {
+  if (_simpanInFlight) { showToast('Transaksi sedang diproses…', 'info', 1500); return; }
   const items = Object.values(cart).filter(c => c.qty > 0);
   if (items.length === 0) { showToast('Keranjang kosong!', 'error'); return; }
+  _simpanInFlight = true;
+  setBayarBusy(true);
+  try {
+    await _simpanPenjualanCore(cetakJuga, items);
+  } finally {
+    _simpanInFlight = false;
+    setBayarBusy(false);
+  }
+}
 
+async function _simpanPenjualanCore(cetakJuga, items) {
   // v161 (adopsi buka/tutup kas dari rosok): uang di laci harus punya titik
   // awal yang jelas. Tanpa shift 'buka', angka saat tutup kas tidak akan pernah
   // cocok, jadi transaksi diblok SEBELUM ada yang ditulis ke DB.
   // v166: gerbang ini HANYA berlaku bila fitur buka/tutup kas diaktifkan di
   // Pengaturan. Saklar mati = kios boleh jualan tanpa buka kas sama sekali.
-  if (await fiturKasAktif()) {
+  try {
+    if (await fiturKasAktif()) {
     if (!(await getOpenShift())) {
       showToast('Kas belum dibuka — buka kas dulu untuk mulai transaksi 💰', 'error', 4000);
       openBukaKasModal();
@@ -552,13 +584,13 @@ export async function simpanPenjualan(cetakJuga = false) {
 
   // Fallback terakhir (2026-08-31): stok bisa berubah SETELAH item masuk
   // keranjang (isi ulang stok nol, sinkron antar perangkat, dsb). Cek ulang
-  // stok terkini dari DB — produk yang kini habis memblokir transaksi.
+  // stok terkini dari DB — blokir transaksi bila qty melebihi stok (M2 / 2026-09-05).
   for (const c of items) {
     const mid = c.menu && c.menu.id;
     if (!mid) continue;
     const fresh = await DB.menu.get(mid);
-    if (fresh && fresh.pakaiStok && (fresh.stok || 0) <= 0) {
-      showToast(`"${c.menu.nama}" habis — hapus dari keranjang dulu 🛒`, 'error', 3500);
+    if (fresh && fresh.pakaiStok && c.qty > (fresh.stok || 0)) {
+      showToast(`"${c.menu.nama}" stok tinggal ${fresh.stok || 0} — sesuaikan jumlah dulu 🛒`, 'error', 3500);
       return;
     }
   }
@@ -573,7 +605,9 @@ export async function simpanPenjualan(cetakJuga = false) {
   }
 
   const totalHarga = calculateTotal(cart, getOjolPlatform(), orderType);
-  const totalModal = items.reduce((a,c) => a + c.qty * c.menu.hargaModal, 0);
+  // P3f (audit 2026-09-05): selaras dengan _calcCartTotals — hargaModal bisa
+  // undefined pada data lama/import yang tidak punya field itu.
+  const totalModal = items.reduce((a,c) => a + c.qty * (c.menu.hargaModal || 0), 0);
 
   // Metode pembayaran (komentar browser #5): QRIS/Transfer = bayar pas sesuai
   // total → tidak ada uang diterima & kembalian, validasi "Uang kurang" dilewati.
@@ -638,7 +672,8 @@ export async function simpanPenjualan(cetakJuga = false) {
     metodeBayar: payMethod,
     buktiBayar,
     catatanBayar,
-    waktu: Date.now()
+    waktu: Date.now(),
+    paidAt: Date.now() // M3 / 2026-09-05: untuk atribusi kas per shift
   };
   const resumedId = getResumedHeldId();
   let saleId = null;
@@ -705,5 +740,9 @@ export async function simpanPenjualan(cetakJuga = false) {
     window.showConfirm('🧾', 'Transaksi tersimpan. Cetak nota sekarang?', '🖨️ Cetak', () => { doPrintNota(); }, 'Tidak');
   } else if (cetakJuga) {
     await doPrintNota();
+  }
+  } finally {
+    // Outer try (line 570) dari _simpanPenjualanCore.
+    // Flag in-flight + disable tombol sudah di-wrap luar simpanPenjualan().
   }
 }

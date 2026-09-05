@@ -903,7 +903,8 @@ function renderHeldRow(r) {
   const itemCount = (r.items || []).reduce((s, i) => s + (i.qty || 0), 0);
   const itemSummary = (r.items || []).slice(0, 3).map(i => escapeHtml(i.nama)).join(', ')
     + ((r.items || []).length > 3 ? ` +${r.items.length - 3}` : '');
-  const typeLabel = r.orderType === 'ojol' ? '🛵 ' + (r.ojolPlatform || 'Ojol')
+  // M1 (audit 2026-09-05): ojolPlatform input user, wajib di-escape.
+  const typeLabel = r.orderType === 'ojol' ? '🛵 ' + escapeHtml(r.ojolPlatform || 'Ojol')
     : r.orderType === 'takeaway' ? '🥡 Take-away' : '🍽️ Dine-in';
   const nameBadge = r.heldName ? `<span class="held-name-badge">${escapeHtml(r.heldName)}</span>` : '';
   // v151 komentar browser #4+#5: tombol "Buka" dihapus — SELURUH kartu bisa

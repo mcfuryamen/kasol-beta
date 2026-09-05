@@ -12,15 +12,17 @@
 //
 // Bisa dipakai offline-cache manual oleh caller jika perlu.
 // LOCAL FALLBACK: provinces.json tersimpan di assets/region/provinces.json
+import { escapeHtml } from './helpers.js';
 
 const BASE = 'https://raw.githubusercontent.com/emsifa/api-wilayah-indonesia/master/static/api';
 const LOCAL_BASE = './assets/region';
 const cache = {};
 
+// M5 (audit 2026-09-05): peta penggantian di bawah salah — karakter dimapping
+// ke dirinya sendiri (& → &, < → <…) sehingga esc() tidak mengganti apa pun.
+// Pakai escapeHtml dari helpers.js (satu implementasi, tidak duplikasi).
 function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"'\x27]/g, (c) => ({
-    '&': '&', '<': '<', '>': '>', '"': '"', "'": "'"
-  }[c]));
+  return escapeHtml(String(s == null ? '' : s));
 }
 
 async function getJson(url) {

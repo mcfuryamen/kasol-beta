@@ -60,7 +60,14 @@ export async function showTrxDetail(id) {
     <div class="kflex-between kmb8"><span>Metode</span><strong>${escapeHtml(payLabel)}</strong></div>
     ${s.refBayar ? `<div class="kflex-between kmb8"><span>No. Referensi</span><strong>${escapeHtml(s.refBayar)}</strong></div>` : ''}
     ${s.catatanBayar ? `<div class="kflex-between kmb8"><span>Catatan bayar</span><strong>${escapeHtml(s.catatanBayar)}</strong></div>` : ''}
-    ${s.buktiBayar ? `<div style="margin:8px 0"><div style="font-size:12px;color:var(--text2);margin-bottom:4px">📸 Bukti pembayaran</div><img src="${s.buktiBayar}" alt="Bukti pembayaran" style="max-width:100%;max-height:280px;border-radius:12px;border:1px solid var(--border);display:block"></div>` : ''}
+    ${s.buktiBayar ? (() => {
+      // M6 (audit 2026-09-05): whitelist scheme — dataURL (kamera) atau https.
+      // Restore backup bisa menulis string arbitrer; atribut src dicek di sini.
+      const src = (typeof s.buktiBayar === 'string' && /^data:image\//.test(s.buktiBayar))
+        ? s.buktiBayar : (typeof s.buktiBayar === 'string' && /^https:\/\//.test(s.buktiBayar))
+          ? s.buktiBayar : '';
+      return src ? `<div style="margin:8px 0"><div style="font-size:12px;color:var(--text2);margin-bottom:4px">📸 Bukti pembayaran</div><img src="${src}" alt="Bukti pembayaran" style="max-width:100%;max-height:280px;border-radius:12px;border:1px solid var(--border);display:block"></div>` : '';
+    })() : ''}
     <div class="kflex-between kmb8"><span>Bayar</span><strong>${formatRp(s.bayar)}</strong></div>
     <div class="kflex-between"><span>Kembalian</span><strong>${formatRp(s.kembalian)}</strong></div>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">

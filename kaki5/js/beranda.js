@@ -1,14 +1,17 @@
 // ==================== BERANDA (ESM) ====================
 import { DB, getSetting } from './db.js';
 import { escapeHtml, todayStr, formatRp, formatDate, formatTime, dayName, getGreeting, withPageLoading } from './helpers.js';
-import { renderPlatformCarousel } from './carousel.js';
+import { renderPlatformCarousel, platStopAuto } from './carousel.js';
 import { renderKasCard } from './kas.js';
 // v164: Laba Hari Ini tidak dihitung lokal lagi — Beranda, Laporan, dan tutup
 // buku memanggil SATU fungsi (hitungLaba) supaya ketiga angka itu tidak bisa
 // beda lagi seperti bug pemasukan v160.
 import { hitungLaba, pisahkanCatatan } from './kas.logic.js';
+import { registerCleanup } from './templates.js';
 
 export const loadBeranda = withPageLoading('recentTrx', async function () {
+  // P3b (audit 2026-09-05): hentikan auto-slide timer saat keluar dari Beranda.
+  registerCleanup('beranda', platStopAuto);
   document.getElementById('greetText').textContent = getGreeting();
   document.getElementById('todayDate').textContent = dayName(todayStr()) + ', ' + formatDate(todayStr());
 
