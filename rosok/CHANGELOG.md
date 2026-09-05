@@ -1,5 +1,16 @@
 # Changelog - Kasir Solo Rosok
 
+## [1.4.7] - 2026-09-06 (sw v68)
+
+### Kunci tema terang (cacheBust v68)
+- Akar masalah: `style.css` punya blok override `@media (prefers-color-scheme: dark)`
+  (palet navy gelap) yang aktif saat OS/shell memakai mode gelap — webview ZCode
+  mengikuti tema OS sehingga app tampil gelap. Blok tersebut DIHAPUS: rosok kini
+  selalu terang sesuai desain.
+- Lapisan kedua (defensif): opt-out auto-dark browser `<meta name="color-scheme"
+  content="only light">` + `:root{color-scheme:light}` agar widget UA dan forced-dark
+  browser tidak ikut menggelapkan.
+
 ## [1.4.7] - 2026-09-05 (sw v62–v67)
 
 ### Perbaikan wilayah emsifa (cacheBust v67)
