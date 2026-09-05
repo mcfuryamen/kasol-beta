@@ -15,7 +15,7 @@ untuk standar ekosistem, dan [`DESIGN.md`](DESIGN.md) untuk arsitektur & kontrak
 | **Salt (fallback)** | `KASIRSOLO-ROSOK-HMAC-V2` — sumber utama = kolom `products.salt` |
 | **Database lokal** | `KasirSoloRosokDB` (Dexie, schema v5) |
 | **App type cloud** | `app_type = 'rosok'` (tabel `clients`/`products`/`settings` SHARED dgn kaki5 dkk — proyek Supabase `hhywrvedlwljawgxzpkq`) |
-| **Vercel (live)** | project `rosok` (`prj_Z6lAYUJvVbdMS8aTToYLRXJoLnHI`), repo `mcfuryamen/kasol`, Root Directory `rosok/`, domain `rosok.vercel.app` |
+| **Vercel (live)** | project `rosok` (`prj_Z6lAYUJvVbdMS8aTToYLRXJoLnHI`), repo `mcfuryamen/kasol`, Root Directory `rosok/`, domain `rosok.kasirsolo.com` (rosok.vercel.app dihapus sengaja pemilik 2026-09-05) |
 | **Vercel (beta)** | project `rosok-beta`, repo `mcfuryamen/kasol-beta`, domain `rosok-beta.vercel.app` |
 | **Dev server** | `node run-local.js` → **port 8084** (WAJIB; registry di `../CONTEXT.md`) |
 | **Versi** | 1.4.7 · SW v65 |
@@ -177,9 +177,9 @@ index, Dexie `SchemaError` dan transaksi rollback (bug kritis audit 2026-09-03).
   lalu commit. (Snapshot `3b258a0` dibuat pola ini.)
 - **Verifikasi deploy JANGAN berhenti di "sudah di-push":**
   ```bash
-  curl -sI "https://rosok.vercel.app/dexie.min.js" | grep -i content-type          # application/javascript!
-  curl -sI "https://rosok.vercel.app/js/supabase.min.js" | grep -i content-type    # application/javascript! (TRAP vendor)
-  curl -s  "https://rosok.vercel.app/sw.js" | grep -oE "CACHE_VERSION = '[^']+'"
+  curl -sI "https://rosok.kasirsolo.com/dexie.min.js" | grep -i content-type          # application/javascript!
+  curl -sI "https://rosok.kasirsolo.com/js/supabase.min.js" | grep -i content-type    # application/javascript! (TRAP vendor)
+  curl -s  "https://rosok.kasirsolo.com/sw.js" | grep -oE "CACHE_VERSION = '[^']+'"
   ```
   (`text/html` = file TIDAK ADA di deployment — catch-all rewrite membalas HTML 200.)
 - **Edge functions** (`generate-license`, `activate-license`) TIDAK ikut deploy Vercel —

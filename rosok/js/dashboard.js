@@ -27,7 +27,7 @@ export async function refreshAll(){
   document.getElementById('statBeliHariIni').textContent = fmtRupiah(beliHariIni);
   document.getElementById('statJualHariIni').textContent = fmtRupiah(jualHariIni);
 
-  const recent = allTrans.sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal)).slice(0,5);
+  const recent = allTrans.filter(t => !t.void).sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal)).slice(0,5);
   const recCard = document.getElementById('dashRecentCard');
   if(recCard){
     recCard.innerHTML = recent.length

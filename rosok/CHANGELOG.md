@@ -1,6 +1,27 @@
 # Changelog - Kasir Solo Rosok
 
-## [1.4.7] - 2026-09-05 (sw v62–v65)
+## [1.4.7] - 2026-09-05 (sw v62–v67)
+
+### Perbaikan wilayah emsifa (cacheBust v67)
+- Repo upstream `emsifa/api-wilayah-indonesia` direstrukturisasi (PR #43, 2026-09-05) —
+  BASE lama `raw.../master/static/api` jadi 404 sehingga Kota/Kecamatan/Desa mati total
+  (hanya Provinsi hidup via fallback lokal).
+- `js/region.js` kini multi-BASE: utama `https://www.emsifa.com/api-wilayah-indonesia/api`
+  (200 JSON, CORS terbuka, max-age=600), cadangan raw cabang `gh-pages`; fetch
+  ber-timeout 12 detik (AbortController) agar UI tidak menggantung.
+- Hasil fetch dipersist ke localStorage (`ksr-region-cache-v1`, maks 60 entri) —
+  picker alamat tetap bisa dipakai offline setelah sekali online (dulu hanya provinsi).
+- Domain publik live kini `https://rosok.kasirsolo.com` (`rosok.vercel.app` dihapus
+  sengaja pemilik) — README/AGENTS diselaraskan.
+
+### Perbaikan bug (cacheBust v66)
+- **POS:** transaksi tetap bisa disimpan walau fitur buka/tutup kas dimatikan di Pengaturan (dead-end "Kas belum dibuka" teratasi).
+- **Tempo:** memilih metode Tempo tidak lagi otomatis tercatat lunas — utang/piutang kini tercatat benar (autoFill tidak menimpa Uang Muka 0).
+- **Riwayat:** paging "Muat Lebih Banyak" kini benar menambah halaman (transaksi ke-21+ bisa dilihat); riwayat & laporan ikut disegarkan setelah hapus/void.
+- **Laporan:** grafik harian hanya menghitung transaksi hari jangkar (tidak lagi mencumpluk sepanjang masa); off-by-one rentang custom (14 hari ikut mingguan) diperbaiki; Tutup Buku pakai tahun lokal.
+- **Kas:** buka kas kini menulis shift + modal awal dalam satu transaksi atomik; pelunasan tempo atomik + anti dobel-submit.
+- **Pengaturan:** emoji picker Jenis Rosok hidup kembali (onboard.js diimpor); install PWA pakai try/catch; region picker tidak bocor listener; printer tidak kehilangan profil saat batal; cadangan peringatkan bila shift terbuka + tolak versi cadangan lebih baru.
+- **Infra:** `js/confirm.js` masuk precache SW; `.vercelignore` menutup `.env.local`; README/CHANGELOG diselaraskan v66.
 
 ### Kartu KPI gradasi (v62)
 - Delapan kartu statistik Beranda & Laporan memakai gradasi 135° terang→gelap

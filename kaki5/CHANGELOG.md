@@ -4,6 +4,18 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 Format judul entri: `## <YYYY-MM-DD> (vNNN / 1.0.NN: judul)` — dua nomor wajib ada,
 supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
 
+## 2026-09-05 (v172 / 1.0.103: fix picker wilayah emsifa)
+- Repo upstream `emsifa/api-wilayah-indonesia` direstrukturisasi (PR #43, 2026-09-05) —
+  BASE lama `raw.../master/static/api` 404 → Kota/Kecamatan/Desa mati total (hanya
+  Provinsi hidup via fallback lokal).
+- `js/region.js` multi-BASE: utama `https://www.emsifa.com/api-wilayah-indonesia/api`
+  (200 JSON, CORS terbuka, max-age=600), cadangan raw cabang `gh-pages`; fetch
+  ber-AbortController timeout 12 dtk.
+- Hasil fetch dipersist ke localStorage (`kaki5-region-cache-v1`, maks 60 entri) —
+  picker alamat tetap jalan offline setelah sekali online (dulu hanya provinsi).
+- Guard listener region picker idempoten (`dataset.regionWired`, pola rosok v66) dan
+  `./assets/region/provinces.json` masuk precache SW.
+
 > **Catatan kelengkapan (2026-09-04).** Tidak semua rilis punya entri di sini.
 > Yang **tidak tercatat**: v103, v142, v143, v145, v146, v149, v150, dan v152–v159
 > (disebut di komentar `sw.js:7-184` tetapi tidak punya heading). Rilis-rilis itu tetap

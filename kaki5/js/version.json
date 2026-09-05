@@ -1,15 +1,8 @@
 {
   "version": "1.0.103",
-  "cacheBust": "v171",
+  "cacheBust": "v172",
   "notes": [
-    "Modal \"🔓 Buka Kas\" sekarang benar-benar mengunci aplikasi: tampil di tengah dengan tinggi mengikuti isi, tombol \"Batal\" dihapus, dan Escape / klik latar / pindah tab tidak bisa menutupnya. Satu-satunya jalan keluar adalah memasukkan modal awal lalu menekan \"🔓 Buka Kas\" — ketik 0 kalau laci memang kosong.",
-    "Saklar di form menu kini jujur mematikan nilainya. Kalau \"Pakai Stok\", \"Harga Ojol\", atau \"Topping\" dimatikan, angkanya ikut hilang (bukan cuma tersembunyi) dan tersimpan sebagai nol — jadi tidak ada lagi stok, harga ojol, atau topping bayangan yang nyangkut di data.",
-    "Seluruh aplikasi mengadopsi tema gradasi ala Kasir Solo Rosok: header, tombol utama/hijau/merah, tombol +, tab kategori, pemilih tanggal, banner profil, tombol pesanan ditahan, bar keranjang, saklar, badge titipan, dan keenam kartu statistik Beranda kini bergradien 135°.",
-    "Kartu \"❓ Bantuan\" jadi gradasi biru, dan warna gradasi disusun gelap→terang supaya teks putih di atasnya tetap terbaca (sebelumnya kontrasnya cuma ~2,3:1).",
-    "Tombol \"💬 WhatsApp\" tetap hijau gelap solid sesuai permintaan — tidak ikut digradasi.",
-    "[P0] Guard dobel-submit di \"Bayar\": flag _simpanInFlight + setBayarBusy(true/false) + try/finally memastikan tombol Bayar tidak bisa diklik dua kali secara bersamaan.",
-    "[P1] Cek qty vs stok saat resume held + saat Bayar; konfirmasi \"Yakin hapus?\" sebelum deleteHeldSync; field paidAt di held; pendingIntent force/backfill di retry sync.",
-    "[P2] ojolPlatform escape di held list; buktiBayar whitelist + escape nilai admin; esc() region.js → escapeHtml().",
-    "[P3] .vercelignore; registerCleanup platStopAuto; getDebouncedPosSearch dihapus; totalModal || 0; fallback close-held-list via closeModal."
+    "Perbaikan alamat wilayah: sumber data dipindah ke alamat resmi terbaru (alamat lama sudah dihapus pemiliknya) dan kini punya cadangan otomatis — Kota/Kecamatan/Desa kembali bisa dipilih.",
+    "Wilayah yang pernah dimuat tersimpan di perangkat, jadi daftar alamat tetap bisa dipakai saat internet sedang mati."
   ]
 }

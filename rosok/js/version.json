@@ -1,9 +1,8 @@
 {
   "version": "1.4.7",
-  "cacheBust": "v65",
+  "cacheBust": "v67",
   "notes": [
-    "Kartu statistik kini bergradasi warna — tampilan lebih hidup dan mudah dibedakan.",
-    "Grafik laporan diperbarui: harian per jam dirapikan, bulanan dikelompokkan per minggu (M1-M5), dan pilihan tanggal tertutup sendiri saat kamu mengetuk di luar area filter.",
-    "Dialog konfirmasi memakai tampilan aplikasi (bukan pop-up browser) — lebih andal di semua browser."
+    "Perbaikan alamat wilayah: sumber data dipindah ke alamat resmi terbaru (alamat lama sudah dihapus pemiliknya) dan kini punya cadangan otomatis — Kota/Kecamatan/Desa kembali bisa dipilih.",
+    "Wilayah yang pernah dimuat tersimpan di perangkat, jadi daftar alamat tetap bisa dipakai saat internet sedang mati."
   ]
 }

@@ -16,7 +16,7 @@
 import { db } from './db.js';
 import { toast, showLoading, hideLoading, getSetting, setSetting, openOverlay, closeSheet } from './utils.js';
 import { showConfirm } from './confirm.js';
-import { SETTINGS } from './app-state.js';
+import { SETTINGS, openShiftCache } from './app-state.js';
 import { hmacSignature, isLicensed, ensureUnitId } from './license.js';
 import { refreshAll } from './dashboard.js';
 import { ensureSession, getSupabaseClient } from './license.sync.js';
@@ -87,6 +87,7 @@ async function verifyBackupSignature(data, expectedSig){
 export async function validateBackup(data){
   if (!data || typeof data !== 'object' || Array.isArray(data)) return 'File tidak valid: bukan objek cadangan!';
   if (typeof data.version !== 'number' || data.version < 1) return 'File tidak valid: versi tidak dikenal!';
+  if (data.version > BACKUP_VERSION) return 'Cadangan dari versi aplikasi yang lebih baru — update aplikasi dulu';
   if (!Array.isArray(data.kategori)) return 'File tidak valid: data kategori hilang/rusak!';
   const okArr = a => !a || (Array.isArray(a) && a.every(r => r && typeof r === 'object' && !Array.isArray(r)));
   if (!okArr(data.transaksi) || !okArr(data.transaksiItem) || !okArr(data.kas) || !okArr(data.kasShift) || !okArr(data.tutupBuku)) {
@@ -162,6 +163,7 @@ export async function validateBackup(data){
 export async function exportData(){
   showLoading('Menyiapkan cadangan...');
   try {
+    if (openShiftCache) toast('Perhatian: kas masih terbuka — cadangan akan menyertakan shift berjalan');
     const data = await buildBackupPayload();
     data._signature = await generateBackupSignature(data);
     data._signatureVersion = 1;
@@ -188,6 +190,7 @@ export async function importData(event){
   if (!file) return;
   showLoading('Memeriksa file cadangan...');
   try {
+    if (openShiftCache) toast('Perhatian: kas masih terbuka — cadangan akan menyertakan shift berjalan');
     const data = JSON.parse(await file.text());
     const err = await validateBackup(data);
     hideLoading();
@@ -199,6 +202,7 @@ export async function importData(event){
       hideLoading();
       toast('✅ Data berhasil dipulihkan!');
       refreshAll();
+      if(typeof window.updateKasBarButtons === 'function') window.updateKasBarButtons();
       renderLaporanIfVisible();
     } catch (err) {
       hideLoading();
@@ -260,6 +264,7 @@ export async function cloudRestoreLatest(){
   const { sb, unitId } = ctx;
   showLoading('Mengambil cadangan dari cloud...');
   try {
+    if (openShiftCache) toast('Perhatian: kas masih terbuka — cadangan akan menyertakan shift berjalan');
     const { data: blob, error } = await sb.storage.from(CLOUD_BUCKET)
       .download(`${unitId}/cadangan-latest.json`);
     if (error) {
@@ -278,6 +283,7 @@ export async function cloudRestoreLatest(){
       hideLoading();
       toast('✅ Data dipulihkan dari cloud!');
       refreshAll();
+      if(typeof window.updateKasBarButtons === 'function') window.updateKasBarButtons();
       renderLaporanIfVisible();
     } catch (err) {
       hideLoading();
@@ -350,6 +356,7 @@ export async function confirmClearAll(){
     hideLoading();
     toast('Semua data dihapus');
     refreshAll();
+    if(typeof window.updateKasBarButtons === 'function') window.updateKasBarButtons();
   } catch (e) {
     hideLoading();
     console.error('Clear all error:', e);

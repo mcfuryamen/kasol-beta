@@ -5,7 +5,7 @@
 import { db } from './db.js';
 import { KATEGORI, activeTransTipe, cart, currentWizardStep, bayarMetode, lastNotaData, currentTimbangKat, currentBerat, currentSatuan, SATUAN_FACTOR, SATUAN_LABEL, keypadBuffer, openShiftCache, isSaving, SETTINGS, setActiveTransTipe, setCart, setCurrentWizardStep, setBayarMetode, setLastNotaData, setCurrentTimbangKat, setCurrentBerat, setCurrentSatuan, setKeypadBuffer, setIsSaving } from './app-state.js';
 import { fmtRupiah, fmtKg, fmtDate, escapeHtml, openOverlay, closeSheet, toast, showLoading, hideLoading, unformatRupiah } from './utils.js';
-import { refreshShiftCache, openBukaKasSheet } from './kas.js';
+import { refreshShiftCache, openBukaKasSheet, fiturKasAktif } from './kas.js';
 import { getLicenseStatus, incrementTxCount } from './license.js';
 
 let _refreshAll = null;
@@ -307,7 +307,10 @@ export async function saveTransaksi(){
   }
   showLoading('Menyimpan transaksi...');
   await refreshShiftCache();
-  if(!openShiftCache){ hideLoading(); toast('Kas belum dibuka'); goToStep(1); openBukaKasSheet(); return; }
+  // Bila fitur kas/shift dimatikan di Pengaturan, transaksi tetap boleh disimpan
+  // tanpa buka kas (janji UI: "transaksi tetap bisa tanpa buka kas"). Wajib buka
+  // kas hanya bila fitur aktif DAN shift belum dibuka.
+  if((await fiturKasAktif()) && !openShiftCache){ hideLoading(); toast('Kas belum dibuka'); goToStep(1); openBukaKasSheet(); return; }
 
   setIsSaving(true);
   const wizardBarInner = document.getElementById('wizardBarInner');
@@ -462,6 +465,9 @@ export function switchTransTab(tipe){
 
 // ── Payment Amount Management ─────────────────────────────────────────────
 export function autoFillBayar(){
+  // Tempo: Uang Muka wajib 0 (setMetodeBayar sudah mengosongkan input).
+  // Mengisi total di sini membuat transaksi tempo tercatat LUNAS diam-diam.
+  if(bayarMetode === 'tempo') return;
   const total = cartTotal();
   document.getElementById('bayarUangInput').value = fmtRupiah(total);
   calcKembalian();

@@ -96,12 +96,22 @@ export function initPwaInstall(){
 
 export async function installPwa(){
   if(!_deferredPrompt){ toast('Aplikasi belum siap dipasang — coba lagi sebentar'); return; }
-  _deferredPrompt.prompt();
-  const { outcome } = await _deferredPrompt.userChoice;
-  if(outcome === 'accepted') toast('Aplikasi dipasang 🎉');
-  _deferredPrompt = null;
-  const row = document.getElementById('rowInstallPwa');
-  if(row) row.style.display = 'none';
+  try {
+    await _deferredPrompt.prompt();
+    const { outcome } = await _deferredPrompt.userChoice;
+    if(outcome === 'accepted'){
+      toast('Aplikasi dipasang 🎉');
+      _deferredPrompt = null;
+      const row = document.getElementById('rowInstallPwa');
+      if(row) row.style.display = 'none';
+    }
+    // outcome 'dismissed' (atau selain 'accepted'): biarkan baris instalasi tetap
+    // tampil agar user bisa mencoba lagi — jangan sembunyikan barisnya.
+  } catch (e) {
+    console.warn('[PWA] Gagal memanggil prompt instalasi:', e);
+    // Jangan sembunyikan baris pada error (mis. user membatalkan) — biarkan
+    // user mencoba lagi nanti. _deferredPrompt tetap disimpan untuk percobaan berikutnya.
+  }
 }
 
 // ── 3. Cek Data Online — diagnosa rantai sync 10 langkah (port sync.health.js

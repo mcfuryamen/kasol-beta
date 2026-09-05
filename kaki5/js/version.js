@@ -15,4 +15,4 @@ export const APP_VERSION_LABEL = 'Versi ' + APP_VERSION;
 // KONVENSI RILIS (jangan pecah lagi — lihat insiden v100): SATU bump harus
 // menyentuh 4 tempat sekaligus: CACHE_BUST di sini, cacheBust di version.json,
 // CACHE_NAME di sw.js, dan ?v= di index.html.
-export const CACHE_BUST = 'v171';
+export const CACHE_BUST = 'v172';

@@ -1,22 +1,54 @@
 // ==================== REGION PICKER — API Wilayah Indonesia ====================
 // Data: https://github.com/emsifa/api-wilayah-indonesia (static JSON, tanpa key).
 // Struktur rantai: Provinsi → Kabupaten → Kecamatan → Desa
-// Endpoint:
-//   static/api/provinces.json                 (semua provinsi)
-//   static/api/regencies/{provinsiId}.json    (kabupaten per provinsi)
-//   static/api/districts/{kabupatenId}.json   (kecamatan per kabupaten)
-//   static/api/villages/{kecamatanId}.json    (desa per kecamatan)
+// Path (dicoba berurutan ke tiap BASE):
+//   /provinces.json                 (semua provinsi)
+//   /regencies/{provinsiId}.json    (kabupaten per provinsi)
+//   /districts/{kabupatenId}.json   (kecamatan per kabupaten)
+//   /villages/{kecamatanId}.json    (desa per kecamatan)
+//
+// FIX v172: repo emsifa direstrukturisasi upstream (2026-09-05, PR #43) — path lama
+// `master/static/api` hilang (404) sehingga kabupaten/kecamatan/desa mati total.
+// Kini multi-BASE: utama = domain resmi baru www.emsifa.com (200 JSON, CORS terbuka),
+// cadangan = raw cabang gh-pages. Fetch ber-timeout agar UI tak menggantung, dan
+// hasil fetch DIPERSIST ke localStorage agar picker alamat tetap jalan offline
+// setelah sekali online (dulu hanya provinsi yang ber-fallback lokal).
+// LOCAL FALLBACK: provinces.json tersimpan di assets/region/provinces.json
 //
 // BUG FIX: loadDesa() sekarang dipanggil saat inisialisasi prefill modal,
 //          sehingga desa terpilih otomatis ter-load saat modal dibuka.
-//
-// Bisa dipakai offline-cache manual oleh caller jika perlu.
-// LOCAL FALLBACK: provinces.json tersimpan di assets/region/provinces.json
 import { escapeHtml } from './helpers.js';
 
-const BASE = 'https://raw.githubusercontent.com/emsifa/api-wilayah-indonesia/master/static/api';
+const BASES = [
+  'https://www.emsifa.com/api-wilayah-indonesia/api',
+  'https://raw.githubusercontent.com/emsifa/api-wilayah-indonesia/gh-pages/api'
+];
 const LOCAL_BASE = './assets/region';
 const cache = {};
+const CACHE_KEY = 'kaki5-region-cache-v1';
+const FETCH_TIMEOUT_MS = 12000;
+
+// Muat cache persisten dari sesi sebelumnya (cache korup / tanpa localStorage = abaikan).
+try {
+  const _raw = localStorage.getItem(CACHE_KEY);
+  if (_raw) Object.assign(cache, JSON.parse(_raw));
+} catch (e) { /* lanjut dengan cache memori saja */ }
+
+function persistCache() {
+  try {
+    // Batasi 60 entri terakhir (villages terbesar; data wilayah statis, aman dipangkas).
+    const keys = Object.keys(cache);
+    const trimmed = {};
+    for (const k of keys.slice(-60)) trimmed[k] = cache[k];
+    localStorage.setItem(CACHE_KEY, JSON.stringify(trimmed));
+  } catch (e) { /* kuota penuh: cukup cache memori */ }
+}
+
+function fetchWithTimeout(url) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(t));
+}
 
 // M5 (audit 2026-09-05): peta penggantian di bawah salah — karakter dimapping
 // ke dirinya sendiri (& → &, < → <…) sehingga esc() tidak mengganti apa pun.
@@ -25,37 +57,48 @@ function esc(s) {
   return escapeHtml(String(s == null ? '' : s));
 }
 
-async function getJson(url) {
-  if (cache[url]) return cache[url];
-  
-  // Try local first for provinces
-  let isProvinces = url.includes('/provinces.json');
-  if (isProvinces) {
+async function getJson(path) {
+  const key = 'kaki5-region:' + path;
+  if (cache[key]) return cache[key];
+
+  // Provinsi: fallback lokal dulu (satu-satunya level yang dibundel — offline-safe).
+  if (path === '/provinces.json') {
     try {
-      const localUrl = LOCAL_BASE + '/provinces.json';
-      const r = await fetch(localUrl);
+      const r = await fetchWithTimeout(LOCAL_BASE + path);
       if (r.ok) {
         const j = await r.json();
-        cache[url] = j;
-        console.log('[REGION] Loaded provinces from local fallback');
+        cache[key] = j;
+        persistCache();
         return j;
       }
     } catch (e) {
-      console.warn('[REGION] Local fallback failed, trying API');
+      console.warn('[REGION] Fallback lokal provinsi gagal, coba remote');
     }
   }
-  
-  const r = await fetch(url);
-  if (!r.ok) throw new Error('region ' + r.status);
-  const j = await r.json();
-  cache[url] = j;
-  return j;
+
+  // Coba tiap BASE berurutan (www.emsifa.com → raw gh-pages) sampai ada yang sukses.
+  let lastErr = null;
+  for (const base of BASES) {
+    try {
+      const r = await fetchWithTimeout(base + path);
+      if (r.ok) {
+        const j = await r.json();
+        cache[key] = j;
+        persistCache();
+        return j;
+      }
+      lastErr = new Error('region ' + r.status);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('region: semua sumber wilayah gagal');
 }
 
-export function getProvinces()   { return getJson(BASE + '/provinces.json'); }
-export function getKabupaten(provId) { return getJson(BASE + '/regencies/' + provId + '.json'); }
-export function getKecamatan(kabId)  { return getJson(BASE + '/districts/' + kabId + '.json'); }
-export function getDesa(kecId)       { return getJson(BASE + '/villages/' + kecId + '.json'); }
+export function getProvinces()   { return getJson('/provinces.json'); }
+export function getKabupaten(provId) { return getJson('/regencies/' + provId + '.json'); }
+export function getKecamatan(kabId)  { return getJson('/districts/' + kabId + '.json'); }
+export function getDesa(kecId)       { return getJson('/villages/' + kecId + '.json'); }
 
 function fill(sel, items, placeholder, selectedId) {
   sel.innerHTML =
@@ -145,41 +188,53 @@ export function setupRegionPicker({ provSel, kabSel, kecSel, desaSel, state }) {
 
   // ── Event listeners ────────────────────────────────────────────────────────
 
-  pEl.addEventListener('change', () => {
-    state.provinsi_id = pEl.value;
-    const o = pEl.selectedOptions[0];
-    state.provinsi = o ? o.textContent : '';
-    state.kabkota_id = state.kabkota = state.kecamatan_id = state.kecamatan = state.desa_id = state.desa = '';
-    if (pEl.value) loadKab(pEl.value);
-    else {
-      kEl.innerHTML = '<option value="">Pilih Kota / Kabupaten</option>'; kEl.disabled = true;
-      cEl.innerHTML = '<option value="">Pilih Kecamatan</option>'; cEl.disabled = true;
-      if (dEl) { dEl.innerHTML = '<option value="">Pilih Desa / Kelurahan</option>'; dEl.disabled = true; }
-    }
-  });
+  // Guard idempoten: jangan pasang listener berulang bila setupRegionPicker dipanggil
+  // lagi pada elemen yang sama (kebocoran listener; pola rosok v66).
+  if (pEl.dataset.regionWired !== '1') {
+    pEl.dataset.regionWired = '1';
+    pEl.addEventListener('change', () => {
+      state.provinsi_id = pEl.value;
+      const o = pEl.selectedOptions[0];
+      state.provinsi = o ? o.textContent : '';
+      state.kabkota_id = state.kabkota = state.kecamatan_id = state.kecamatan = state.desa_id = state.desa = '';
+      if (pEl.value) loadKab(pEl.value);
+      else {
+        kEl.innerHTML = '<option value="">Pilih Kota / Kabupaten</option>'; kEl.disabled = true;
+        cEl.innerHTML = '<option value="">Pilih Kecamatan</option>'; cEl.disabled = true;
+        if (dEl) { dEl.innerHTML = '<option value="">Pilih Desa / Kelurahan</option>'; dEl.disabled = true; }
+      }
+    });
+  }
 
-  kEl.addEventListener('change', () => {
-    state.kabkota_id = kEl.value;
-    const o = kEl.selectedOptions[0];
-    state.kabkota = o ? o.textContent : '';
-    state.kecamatan_id = state.kecamatan = state.desa_id = state.desa = '';
-    if (kEl.value) loadKec(kEl.value);
-    else {
-      cEl.innerHTML = '<option value="">Pilih Kecamatan</option>'; cEl.disabled = true;
-      if (dEl) { dEl.innerHTML = '<option value="">Pilih Desa / Kelurahan</option>'; dEl.disabled = true; }
-    }
-  });
+  if (kEl.dataset.regionWired !== '1') {
+    kEl.dataset.regionWired = '1';
+    kEl.addEventListener('change', () => {
+      state.kabkota_id = kEl.value;
+      const o = kEl.selectedOptions[0];
+      state.kabkota = o ? o.textContent : '';
+      state.kecamatan_id = state.kecamatan = state.desa_id = state.desa = '';
+      if (kEl.value) loadKec(kEl.value);
+      else {
+        cEl.innerHTML = '<option value="">Pilih Kecamatan</option>'; cEl.disabled = true;
+        if (dEl) { dEl.innerHTML = '<option value="">Pilih Desa / Kelurahan</option>'; dEl.disabled = true; }
+      }
+    });
+  }
 
-  cEl.addEventListener('change', () => {
-    state.kecamatan_id = cEl.value;
-    const o = cEl.selectedOptions[0];
-    state.kecamatan = o ? o.textContent : '';
-    state.desa_id = state.desa = '';
-    if (cEl.value && dEl) loadDesa(cEl.value);
-    else if (dEl) { dEl.innerHTML = '<option value="">Pilih Desa / Kelurahan</option>'; dEl.disabled = true; }
-  });
+  if (cEl.dataset.regionWired !== '1') {
+    cEl.dataset.regionWired = '1';
+    cEl.addEventListener('change', () => {
+      state.kecamatan_id = cEl.value;
+      const o = cEl.selectedOptions[0];
+      state.kecamatan = o ? o.textContent : '';
+      state.desa_id = state.desa = '';
+      if (cEl.value && dEl) loadDesa(cEl.value);
+      else if (dEl) { dEl.innerHTML = '<option value="">Pilih Desa / Kelurahan</option>'; dEl.disabled = true; }
+    });
+  }
 
-  if (dEl) {
+  if (dEl && dEl.dataset.regionWired !== '1') {
+    dEl.dataset.regionWired = '1';
     dEl.addEventListener('change', () => {
       state.desa_id = dEl.value;
       const o = dEl.selectedOptions[0];

@@ -4,9 +4,9 @@ Aplikasi kasir PWA **offline-first** untuk usaha pengepul rosok / barang bekas.
 Catat pembelian & penjualan timbangan, stok, kas, laporan — dengan lisensi
 berbasis kuota transaksi dan sinkronisasi cloud dua-arah (Supabase) ala kaki5.
 
-- **Live:** https://rosok.vercel.app (Vercel project `rosok`, repo `mcfuryamen/kasol`, Root Directory `rosok/`)
+- **Live:** https://rosok.kasirsolo.com (Vercel project `rosok`, repo `mcfuryamen/kasol`, Root Directory `rosok/`; domain `rosok.vercel.app` dihapus sengaja pemilik 2026-09-05)
 - **Beta:** https://rosok-beta.vercel.app (Vercel project `rosok-beta`, repo `mcfuryamen/kasol-beta`)
-- **Versi:** 1.4.7 · **Service Worker:** v65 · **Dexie:** `KasirSoloRosokDB` v5
+- **Versi:** 1.4.7 · **Service Worker:** v67 · **Dexie:** `KasirSoloRosokDB` v5
 
 ## 📦 Installation (PWA)
 
@@ -65,7 +65,7 @@ node run-local.js
 - **Frontend:** Vanilla HTML5 + CSS3 + JavaScript ES6+ Modules (tanpa framework, tanpa build step)
 - **Database:** Dexie.js (IndexedDB) — `KasirSoloRosokDB`, schema v1→v2→v3→v5
 - **Cloud:** Supabase (PostgREST + Storage + Realtime + Edge Functions) via `supabase.min.js` + `supabase-config.js` (anon key dari Edge Function/`/api/supabase-config`, fallback konstanta)
-- **PWA:** Service Worker **network-first** (HTML & aset) dengan fallback cache offline — CACHE_VERSION v54; auto-update prompt + `controllerchange` reload
+- **PWA:** Service Worker **network-first** (HTML & aset) dengan fallback cache offline — CACHE_VERSION v66; auto-update prompt + `controllerchange` reload
 - **Wilayah:** API wilayah Indonesia emsifa (statis JSON, fallback lokal `assets/region/provinces.json`)
 
 ## 📂 Project Structure
@@ -127,8 +127,8 @@ rosok/
 2. `node run-local.js` → uji manual + `curl` endpoint
 3. Beta: rebuild folder `rosok/` di mirror `kasol-beta` → push `main`
 4. Live: `sync-to-mirror.sh` → mirror `kasol` → push `main` → Vercel auto-deploy `kasir-rosok`
-5. Verifikasi: `curl -sI https://rosok.vercel.app/dexie.min.js` (content-type JS!) + `sw.js` versi —
-   dan `curl -sI https://rosok.vercel.app/js/supabase.min.js` (vendor Supabase, jangan sampai HTML)
+5. Verifikasi: `curl -sI https://rosok.kasirsolo.com/dexie.min.js` (content-type JS!) + `sw.js` versi —
+   dan `curl -sI https://rosok.kasirsolo.com/js/supabase.min.js` (vendor Supabase, jangan sampai HTML)
 
 ## 📝 License
 

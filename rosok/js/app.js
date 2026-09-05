@@ -9,7 +9,7 @@ import { refreshAll } from './dashboard.js';
 import { refreshShiftCache, openBukaKasSheet, bukaKas, openTutupKasSheet, hitungSelisihTutupKas, tutupKas, openKasForm, setKasTipe, saveKasManual, fiturKasAktif } from './kas.js';
 import { openShiftCache } from './app-state.js';
 import { renderStok, openKategoriForm, saveKategori, deleteKategoriConfirm } from './kategori.js';
-import { renderRiwayat, loadRiwayatPage, viewTransaksiDetail, deleteTransaksi, voidTransaksi, closeNotaSheet } from './riwayat.js';
+import { renderRiwayat, viewTransaksiDetail, deleteTransaksi, voidTransaksi, closeNotaSheet } from './riwayat.js';
 import { setLaporanPeriode, renderLaporan, openLunasi, saveLunasi } from './laporan.js';
 import { checkLicenseGate, updateTrialChip, renderLicenseInfoCard, activateLicense, contactViaWA, contactViaEmail, openLicenseSheet, setLicenseRefs } from './license.js';
 import { renderWizardBar, renderKatGrid, openTimbang, buildKeypad, keypadPress, stepBerat, updateTimbangDisplay, confirmTimbang, renderCartChips, renderCartStep2, cartTotal, removeCartItem, setMetodeBayar, calcKembalian, saveTransaksi, renderNota, shareNotaWA, goToStep, switchTransTab } from './pos.js';
@@ -19,6 +19,7 @@ import { setupRegionPicker } from './region.js';
 import { loadPayOptions, initPwaInstall } from './settings-x.js';
 import { showConfirm } from './confirm.js';
 import { connectBTPrinter, disconnectBTPrinter, testPrint, restorePrinterStatus } from './printer.js';
+import './onboard.js'; // efek samping: expose window.showEmojiPicker untuk form Jenis Rosok
 
 // ── Alamat: satu kotak ringkas, modal bertingkat saat diklik (pola emsifa) ─
 // _regionState = pilihan tersimpan; modal bekerja pada salinan (temp) —
@@ -362,7 +363,6 @@ window.deleteKategoriConfirm = deleteKategoriConfirm;
 
 // Riwayat
 window.renderRiwayat = renderRiwayat;
-window.loadRiwayatPage = loadRiwayatPage;
 window.viewTransaksiDetail = viewTransaksiDetail;
 window.deleteTransaksi = deleteTransaksi;
 window.voidTransaksi = voidTransaksi;

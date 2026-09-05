@@ -9,17 +9,32 @@ import { showConfirm } from './confirm.js';
 import { riwayatPage, RIWAYAT_PER_PAGE, lastNotaData, setRiwayatPage, setLastNotaData } from './app-state.js';
 import { fmtRupiah, fmtDate, escapeHtml, openOverlay, closeSheet, toast, showLoading, hideLoading } from './utils.js';
 import { renderNota } from './pos.js';
-import { reportRange } from './laporan.js';
+import { reportRange, renderLaporan } from './laporan.js';
 
 let _refreshAll = null;
 export function setRiwayatRefs(refs){ _refreshAll = refs.refreshAll; }
 
+const ROW_TPL = (t) => `
+    <div class="row-item" onclick="window._ksr_viewTransaksiDetail(${t.id})">
+      <div class="row-icon ${t.tipe}">${t.tipe==='beli' ? '🛒' : '📦'}</div>
+      <div class="row-body">
+        <div class="row-title">${t.tipe==='beli' ? 'Beli Rosok' : 'Jual Rosok'}${t.kontakNama ? ' · '+escapeHtml(t.kontakNama) : ''}${(t.sisa||0)>0 ? ' <span class="badge red">Tempo</span>' : ''}${(t.metodeBayar||'tunai')==='transfer' ? ' <span class="badge blue">Transfer</span>' : ''}</div>
+        <div class="row-sub">${fmtDate(t.tanggal)}</div>
+      </div>
+      <div class="row-amt ${t.tipe==='beli' ? 'red' : 'green'}">${t.tipe==='beli'?'-':'+'}${fmtRupiah(t.total)}</div>
+    </div>
+  `;
+
 export async function renderRiwayat(){
   setRiwayatPage(0);
-  await loadRiwayatPage();
+  const card = document.getElementById('riwayatList');
+  if(card) card.innerHTML = '';
+  await appendRiwayatPage();
 }
 
-export async function loadRiwayatPage(){
+// Paging riwayat: APPEND (bukan replace) — tombol "Muat Lebih Banyak" menambah
+// halaman berikutnya tanpa membuang daftar yang sudah tampil.
+async function appendRiwayatPage(){
   // Saring dulu di memori (dataset kecil) baru slice — paging konsisten
   // dengan filter periode (dulu: offset Dexie dulu baru disaring = item hilang).
   const { start, end } = reportRange();
@@ -39,21 +54,19 @@ export async function loadRiwayatPage(){
 
   const card = document.getElementById('riwayatList');
   if(!card) return;
-  if(list.length === 0){
+  // Empty state hanya bila benar-benar tidak ada transaksi sama sekali.
+  if(riwayatPage === 0 && list.length === 0){
     card.innerHTML = '<div class="empty-state"><div class="ic">🧾</div><div class="t1">Belum ada transaksi</div><div class="t2">Tidak ada transaksi pada periode ini. Geser periode di filter atas.</div></div>';
     return;
   }
-  card.innerHTML = list.map(t => `
-    <div class="row-item" onclick="window._ksr_viewTransaksiDetail(${t.id})">
-      <div class="row-icon ${t.tipe}">${t.tipe==='beli' ? '🛒' : '📦'}</div>
-      <div class="row-body">
-        <div class="row-title">${t.tipe==='beli' ? 'Beli Rosok' : 'Jual Rosok'}${t.kontakNama ? ' · '+escapeHtml(t.kontakNama) : ''}${(t.sisa||0)>0 ? ' <span class="badge red">Tempo</span>' : ''}${(t.metodeBayar||'tunai')==='transfer' ? ' <span class="badge blue">Transfer</span>' : ''}</div>
-        <div class="row-sub">${fmtDate(t.tanggal)}</div>
-      </div>
-      <div class="row-amt ${t.tipe==='beli' ? 'red' : 'green'}">${t.tipe==='beli'?'-':'+'}${fmtRupiah(t.total)}</div>
-    </div>
-  `).join('');
-  if(hasMore) card.innerHTML += '<div class="text-center p16"><button class="btn btn-soft btn-sm" onclick="window._ksr_loadRiwayatPage()">Muat Lebih Banyak</button></div>';
+  // Buang tombol "Muat Lebih Banyak" lama sebelum menambah halaman + tombol baru.
+  const oldBtn = card.querySelector('.riwayat-loadmore');
+  if(oldBtn) oldBtn.remove();
+  card.insertAdjacentHTML('beforeend', list.map(ROW_TPL).join(''));
+  if(hasMore){
+    card.insertAdjacentHTML('beforeend', '<div class="riwayat-loadmore text-center p16"><button class="btn btn-soft btn-sm" onclick="window._ksr_loadRiwayatPage()">Muat Lebih Banyak</button></div>');
+    setRiwayatPage(riwayatPage + 1);
+  }
 }
 
 export async function viewTransaksiDetail(id){
@@ -105,6 +118,7 @@ export async function deleteTransaksi(id){
     });
     closeSheet('sheetNota');
     renderRiwayat();
+    renderLaporan();
     window.dispatchEvent(new CustomEvent('ksr-data-changed'));
     toast('Transaksi dihapus');
   } catch(e){
@@ -135,6 +149,7 @@ export async function voidTransaksi(id){
     });
     closeSheet('sheetNota');
     renderRiwayat();
+    renderLaporan();
     window.dispatchEvent(new CustomEvent('ksr-data-changed'));
     toast('Transaksi berhasil dibatalkan');
   } catch(e){
@@ -146,9 +161,9 @@ export async function voidTransaksi(id){
 }
 
 window._ksr_renderRiwayat = renderRiwayat;
-window._ksr_loadRiwayatPage = loadRiwayatPage;
+window._ksr_loadRiwayatPage = appendRiwayatPage;
 window._ksr_viewTransaksiDetail = viewTransaksiDetail;
 window._ksr_deleteTransaksi = deleteTransaksi;
 window._ksr_voidTransaksi = voidTransaksi;
-window._ksr_loadMore = loadRiwayatPage;
+window._ksr_loadMore = appendRiwayatPage;
 window._ksr_closeNota = closeNotaSheet;

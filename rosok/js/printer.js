@@ -103,7 +103,10 @@ export async function connectBTPrinter() {
       console.error('BT Error:', err);
       toast('Gagal menghubungkan printer');
     }
-    clearPrinterState();
+    // JANGAN hapus state persisten di sini: printer bisa jadi masih terhubung
+    // dari sesi/percobaan sebelumnya. clearPrinterState() hanya dilakukan saat
+    // koneksi BARU benar-benar berhasil (lihat blok sukses — savePrinterState
+    // menggantikan state lama) atau saat putus sungguhan (gattserverdisconnected).
   }
 }
 

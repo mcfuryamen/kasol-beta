@@ -17,5 +17,10 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Secrets — JANGAN ter-upload saat deploy via CLI (git-integration aman via .gitignore)
+.env.local
+.env
+.env.example
+
 # Logs
 *.log

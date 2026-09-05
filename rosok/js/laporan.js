@@ -9,6 +9,7 @@ import { fiturKasAktif } from './kas.js';
 import { showConfirm } from './confirm.js';
 
 let _lunasiId = null;
+let _lunasiSaving = false;
 
 // Helper: format tanggal ke 'YYYY-MM-DD' pakai waktu lokal (bukan UTC).
 // toISOString() bisa offset -7 jam di Indonesia, sehingga tanggalnya mundur 1 hari.
@@ -270,7 +271,7 @@ function chartBuckets(){
     const now = new Date();
     const start = laporanDateFrom ? new Date(laporanDateFrom + 'T00:00:00') : null;
     const end = laporanDateTo ? new Date(laporanDateTo + 'T23:59:59.999') : now;
-    const totalDays = start ? Math.min(45, Math.max(1, Math.round((end - start)/dayMs) + 1)) : 31;
+    const totalDays = start ? Math.min(45, Math.max(1, Math.round((end - start)/dayMs))) : 31;
     const buckets = [];
     const endD = new Date(end.getFullYear(), end.getMonth(), end.getDate());
     if(totalDays > 14){
@@ -364,6 +365,7 @@ export function openLunasi(id){
 }
 
 export async function saveLunasi(){
+  if(_lunasiSaving) return;
   const t = await db.transaksi.get(_lunasiId);
   if(!t) return;
   let jumlah = unformatRupiah(document.getElementById('lunasiJumlahInput').value) || 0;
@@ -371,8 +373,20 @@ export async function saveLunasi(){
   if(jumlah > t.sisa) jumlah = t.sisa;
   const newDibayarkan = (t.dibayarkan||0) + jumlah;
   const newSisa = Math.max(0, Math.round(t.total - newDibayarkan));
-  await db.transaksi.update(t.id, {dibayarkan: newDibayarkan, sisa: newSisa});
-  await db.kas.add({ tanggal: new Date().toISOString(), tipe: t.tipe==='beli'?'keluar':'masuk', jumlah, keterangan: (t.tipe==='beli'?'Pelunasan utang':'Pelunasan piutang') + (t.kontakNama?' - '+t.kontakNama:''), refTransaksiId: t.id });
+  _lunasiSaving = true;
+  try {
+    // Atomik: update transaksi + catat kas pelunasan dalam satu transaksi.
+    await db.transaction('rw', db.transaksi, db.kas, async () => {
+      await db.transaksi.update(t.id, {dibayarkan: newDibayarkan, sisa: newSisa});
+      await db.kas.add({ tanggal: new Date().toISOString(), tipe: t.tipe==='beli'?'keluar':'masuk', jumlah, keterangan: (t.tipe==='beli'?'Pelunasan utang':'Pelunasan piutang') + (t.kontakNama?' - '+t.kontakNama:''), refTransaksiId: t.id });
+    });
+  } catch(e){
+    console.error('Lunasi error:', e);
+    toast('Gagal menyimpan pelunasan');
+    return;
+  } finally {
+    _lunasiSaving = false;
+  }
   closeSheet('sheetLunasi');
   toast(newSisa<=0 ? 'Tempo lunas! 🎉' : 'Pelunasan sebagian tercatat');
   renderLaporan(); renderRiwayat();
@@ -410,7 +424,9 @@ export async function renderLaporan(){
     // (1 hari utk mingguan/custom-pendek; 7 hari utk M1..Mn bulanan/custom-panjang).
     let b;
     if(laporanPeriode === 'harian'){
-      b = bucketMap['h' + new Date(t.tanggal).getHours().toString().padStart(2,'0')];
+      // Cabang harian berbasis jam tanpa batas tanggal: hanya bucket-kan bila
+      // transaksi masuk rentang (isIn), agar histori lama tak ikut ke grafik.
+      if(isIn) b = bucketMap['h' + new Date(t.tanggal).getHours().toString().padStart(2,'0')];
     } else {
       b = buckets.find(x => localDateStr >= x.from && localDateStr <= x.to);
     }
@@ -595,8 +611,10 @@ export async function renderTutupBuku(){
 }
 
 async function tutupBukuSummary(tahun){
-  const akhir = tahun + '-12-31T23:59:59.999Z';
-  const allTrans = (await db.transaksi.toArray()).filter(t => !t.void && t.tanggal.slice(0,4) === String(tahun));
+  // Pakai tahun LOKAL (toLocalISO) supaya transaksi dini hari 1 Jan (00:00–06:59 WIB)
+  // terhitung tahun yang benar, bukan tahun sebelumnya (tanggal ISO tersimpan UTC).
+  const akhir = tahun + '-12-31T23:59:59.999';
+  const allTrans = (await db.transaksi.toArray()).filter(t => !t.void && toLocalISO(new Date(t.tanggal)).slice(0,4) === String(tahun));
   const beli = allTrans.filter(t=>t.tipe==='beli').reduce((s,t)=>s+(t.total||0),0);
   const jual = allTrans.filter(t=>t.tipe==='jual').reduce((s,t)=>s+(t.total||0),0);
   const allKas = await db.kas.toArray();

@@ -73,11 +73,14 @@ export async function bukaKas(){
   const modal = unformatRupiah(document.getElementById('bukaKasModal').value) || 0;
   if(modal < 0){ toast('Modal awal tidak boleh minus'); return; }
   const now = new Date().toISOString();
-  const shiftId = await db.kasShift.add({
-    status: 'buka', waktuBuka: now, waktuTutup: null,
-    modalAwal: modal, kasSistemAkhir: null, kasFisikAkhir: null, selisih: null, catatanTutup: ''
+  const shiftId = await db.transaction('rw', db.kasShift, db.kas, async () => {
+    const id = await db.kasShift.add({
+      status: 'buka', waktuBuka: now, waktuTutup: null,
+      modalAwal: modal, kasSistemAkhir: null, kasFisikAkhir: null, selisih: null, catatanTutup: ''
+    });
+    await db.kas.add({tanggal: now, tipe: 'masuk', jumlah: modal, keterangan: 'Modal Awal - Buka Kas', refKasShiftId: id});
+    return id;
   });
-  await db.kas.add({tanggal: now, tipe: 'masuk', jumlah: modal, keterangan: 'Modal Awal - Buka Kas', refKasShiftId: shiftId});
   closeSheet('sheetBukaKas');
   await refreshShiftCache();
   window.dispatchEvent(new CustomEvent('ksr-kas-changed'));
