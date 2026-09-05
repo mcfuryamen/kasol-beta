@@ -1,6 +1,6 @@
 // ==================== BERANDA (ESM) ====================
 import { DB, getSetting } from './db.js';
-import { escapeHtml, todayStr, formatRp, formatDate, formatTime, dayName, getGreeting, withPageLoading } from './helpers.js';
+import { escapeHtml, todayStr, formatRp, formatDate, formatTime, dayName, getGreeting, withPageLoading, setStatValue } from './helpers.js';
 import { renderPlatformCarousel, platStopAuto } from './carousel.js';
 import { renderKasCard } from './kas.js';
 // v164: Laba Hari Ini tidak dihitung lokal lagi — Beranda, Laporan, dan tutup
@@ -49,13 +49,13 @@ export const loadBeranda = withPageLoading('recentTrx', async function () {
   const profit = L.laba;
   const qty = penjualan.reduce((s, p) => s + (p.items ? p.items.reduce((q, it) => q + (it.qty || 0), 0) : 0), 0);
 
-  document.getElementById('todayOmzet').textContent = formatRp(omzet);
-  document.getElementById('todayExpense').textContent = formatRp(expense);
-  document.getElementById('todayProfit').textContent = formatRp(profit);
+  setStatValue(document.getElementById('todayOmzet'), formatRp(omzet));
+  setStatValue(document.getElementById('todayExpense'), formatRp(expense));
+  setStatValue(document.getElementById('todayProfit'), formatRp(profit));
   document.getElementById('todayTrxCount').textContent = penjualan.length;
   document.getElementById('todayQtyCount').textContent = qty;
   const avgEl = document.getElementById('todayAvgTrx');
-  if (avgEl) avgEl.textContent = formatRp(penjualan.length ? Math.round(omzet / penjualan.length) : 0);
+  if (avgEl) setStatValue(avgEl, formatRp(penjualan.length ? Math.round(omzet / penjualan.length) : 0));
   // Laba bisa naik tanpa ada penjualan (bonus/cashback/modal tambahan) — tunjukkan
   // asalnya supaya angka Beranda tidak terlihat misterius.
   const incEl = document.getElementById('todayIncomeHint');

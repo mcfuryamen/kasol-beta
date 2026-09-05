@@ -4,6 +4,12 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 Format judul entri: `## <YYYY-MM-DD> (vNNN / 1.0.NN: judul)` — dua nomor wajib ada,
 supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
 
+## 2026-09-06 (v173 / 1.0.103: nominal KPI muat ratusan juta)
+- Kartu statistik Beranda (6) & Laporan (9) kini mengecilkan font nominal otomatis:
+  jutaan+ → 18px (`stat-sm`), miliar → 15px (`stat-xs`), plus `white-space:nowrap`
+  agar nominal tak pernah terpotong/wrap. Helper baru `statSizeClass()`/`setStatValue()`
+  di `js/helpers.js`; spesifisitas 2 kelas mengalahkan override font-size di media query.
+
 ## 2026-09-05 (v172 / 1.0.103: fix picker wilayah emsifa)
 - Repo upstream `emsifa/api-wilayah-indonesia` direstrukturisasi (PR #43, 2026-09-05) —
   BASE lama `raw.../master/static/api` 404 → Kota/Kecamatan/Desa mati total (hanya

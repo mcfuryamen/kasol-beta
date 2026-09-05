@@ -1,6 +1,6 @@
 // ==================== LAPORAN (ESM) ====================
 import { DB } from './db.js';
-import { escapeHtml, formatRp, formatDate, formatTime, todayStr, addDays, dayName, getWeekRange, getMonthRange, showLoading, showToast } from './helpers.js';
+import { escapeHtml, formatRp, formatDate, formatTime, todayStr, addDays, dayName, getWeekRange, getMonthRange, showLoading, showToast, statSizeClass } from './helpers.js';
 import { reportPeriod, setReportPeriod, reportDate, setReportDate, customStart, customEnd, setCustomStart, setCustomEnd } from './app-state.js';
 // v164: Laba Laporan memakai fungsi yang sama dengan Beranda & tutup buku
 // (satu sumber kebenaran), plus label metode untuk tiap catatan.
@@ -148,19 +148,19 @@ export async function loadReport() {
   html += `<div class="stat-grid">
     <div class="stat-card" style="background:var(--green-bg);border-color:#A5D6A7">
       <div class="stat-label">💰 Omzet</div>
-      <div class="stat-value green">${formatRp(omzet)}</div>
+      <div class="stat-value green${statSizeClass(omzet)}">${formatRp(omzet)}</div>
     </div>
     <div class="stat-card" style="background:var(--orange-bg);border-color:#FFCC80">
       <div class="stat-label">🧮 Modal Bahan</div>
-      <div class="stat-value orange">${formatRp(modal)}</div>
+      <div class="stat-value orange${statSizeClass(modal)}">${formatRp(modal)}</div>
     </div>
     <div class="stat-card" style="background:var(--red-bg);border-color:#EF9A9A">
       <div class="stat-label">💸 Biaya Usaha</div>
-      <div class="stat-value red">${formatRp(totalExp)}</div>
+      <div class="stat-value red${statSizeClass(totalExp)}">${formatRp(totalExp)}</div>
     </div>
     <div class="stat-card" style="background:var(--blue-bg);border-color:#90CAF9">
       <div class="stat-label">📈 Untung Bersih</div>
-      <div class="stat-value ${profit>=0?'blue':'red'}">${formatRp(profit)}</div>
+      <div class="stat-value${statSizeClass(profit)} ${profit>=0?'blue':'red'}">${formatRp(profit)}</div>
     </div>
     <div class="stat-card kbg-orange-b">
       <div class="stat-label">🛒 Transaksi</div>
@@ -172,15 +172,15 @@ export async function loadReport() {
     </div>
     <div class="stat-card" style="background:var(--green-bg);border-color:#A5D6A7">
       <div class="stat-label">💵 Pemasukan Usaha</div>
-      <div class="stat-value green">${formatRp(totalInc)}</div>
+      <div class="stat-value green${statSizeClass(totalInc)}">${formatRp(totalInc)}</div>
     </div>
     ${nonLabaTotal > 0 ? `<div class="stat-card" style="background:#f5f5f5;border-color:var(--border)">
       <div class="stat-label">🏧 Non-Usaha (laci)</div>
-      <div class="stat-value" style="color:var(--text2)">${formatRp(nonLabaTotal)}</div>
+      <div class="stat-value${statSizeClass(nonLabaTotal)}" style="color:var(--text2)">${formatRp(nonLabaTotal)}</div>
     </div>` : ''}
     <div class="stat-card" style="background:var(--orange-bg);border-color:#FFCC80">
       <div class="stat-label">🛵 Ojol</div>
-      <div class="stat-value orange">${formatRp(ojolTotal)}</div>
+      <div class="stat-value orange${statSizeClass(ojolTotal)}">${formatRp(ojolTotal)}</div>
     </div>
   </div>`;
 

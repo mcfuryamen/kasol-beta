@@ -327,4 +327,21 @@ export function ksr(...keys) {
   return keys.map(k => `k${k}`).join(' ');
 }
 
+// v173: nominal kartu KPI bisa ratusan juta ("Rp 999.999.999") bahkan miliar —
+// font .stat-value dikecilkan otomatis agar muat di kartu tanpa overflow.
+// Threshold per jumlah digit: >6 digit (juta+) → stat-sm, >9 digit (miliar) → stat-xs.
+export function statSizeClass(text) {
+  const digits = String(text).replace(/\D/g, '').length;
+  return digits > 9 ? ' stat-xs' : digits > 6 ? ' stat-sm' : '';
+}
+
+// Versi DOM-nya (Beranda): set textContent + pasang class ukuran dari statSizeClass.
+export function setStatValue(el, text) {
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove('stat-sm', 'stat-xs');
+  const cls = statSizeClass(text).trim();
+  if (cls) el.classList.add(cls);
+}
+
 
