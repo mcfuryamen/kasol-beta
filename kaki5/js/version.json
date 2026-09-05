@@ -1,7 +1,11 @@
 {
   "version": "1.0.103",
-  "cacheBust": "v177",
+  "cacheBust": "v178",
   "notes": [
-    "Semua daftar yang bisa dibuka-tutup di Laporan (ojol, pengeluaran, pemasukan, riwayat per tanggal, konsinyasi) kini otomatis menutup daftar lain saat kamu membuka satu daftar — layar tetap rapi."
+    "Kartu statistik Beranda & Laporan bergradasi warna dengan ukuran huruf otomatis — aman untuk angka ratusan juta.",
+    "Jumlah pesanan per menu kini bisa sampai 9.999 — termasuk di layar pilihan menu; jika melebihi stok muncul pemberitahuan yang jelas.",
+    "Semua daftar di Laporan otomatis menutup daftar lain saat dibuka; filter tanggal menempel di atas saat digulir dan dibuka lewat tab periode.",
+    "Detail pengeluaran/pemasukan memakai pola tombol yang sama dengan Detail Transaksi; pemasukan usaha kini ikut dihitung omzet.",
+    "Peta alamat wilayah kini punya sumber cadangan otomatis dan tersimpan untuk dipakai offline."
   ]
 }

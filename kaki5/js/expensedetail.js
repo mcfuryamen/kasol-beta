@@ -57,7 +57,10 @@ export async function showExpenseDetail(id) {
 
     let html = `
       <div class="modal-handle"></div>
-      <div class="modal-title">${isInc ? '💰 Detail Pemasukan' : '💸 Detail Pengeluaran'}</div>
+      <div class="kflex-between-mb12">
+        <div class="modal-title" id="expenseDetailTitle">${isInc ? '💰 Detail Pemasukan' : '💸 Detail Pengeluaran'}</div>
+        <button class="btn btn-icon btn-ghost kclose-btn" data-action="close-expense-detail" aria-label="Tutup">✕</button>
+      </div>
 
       <div style="background:${accentBg};border-radius:12px;padding:16px;margin-bottom:16px;text-align:center">
         <div class="kfs48 kmb8">${escapeHtml(emoji)}</div>
@@ -84,13 +87,11 @@ export async function showExpenseDetail(id) {
         </div>
       </div>
 
-      <!-- v165 (poin 6): salah catat tidak perlu dihapus-lalu-tulis-ulang; tombol ini membuka form pencatatan yang sama dalam mode edit, lengkap dengan pemilih tanggal. -->
-      <div class="btn-row kmt16">
+      <div class="hint kmt8">Isi keterangan, jenis, jumlah, metode, dan tanggal bisa dikoreksi. Nomor catatan dipertahankan selama tanggalnya tidak diganti.</div>
+
+      <!-- v178: pola tombol aksi = modal Detail Transaksi (kgrid 2 kolom: aksi utama + Hapus), Tutup = ✕ kclose-btn pojok kanan atas -->
+      <div class="kgrid-2col-gap8 kmt16">
         <button class="btn btn-primary" data-action="edit-expense" data-id="${exp.id}">✏️ Ubah Catatan</button>
-      </div>
-      <div class="hint kmt8" style="margin-top:6px">Isi keterangan, jenis, jumlah, metode, dan tanggal bisa dikoreksi. Nomor catatan dipertahankan selama tanggalnya tidak diganti.</div>
-      <div class="kgrid-2col-gap8" style="margin-top:10px">
-        <button class="btn btn-secondary" data-action="close-expense-detail">Tutup</button>
         <button class="btn btn-red" data-action="delete-expense" data-id="${exp.id}">🗑️ Hapus</button>
       </div>
     `;

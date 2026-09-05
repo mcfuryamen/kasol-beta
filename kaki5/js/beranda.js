@@ -49,20 +49,16 @@ export const loadBeranda = withPageLoading('recentTrx', async function () {
   const profit = L.laba;
   const qty = penjualan.reduce((s, p) => s + (p.items ? p.items.reduce((q, it) => q + (it.qty || 0), 0) : 0), 0);
 
-  setStatValue(document.getElementById('todayOmzet'), formatRp(omzet));
+  // v178: pemasukan usaha (non-menu) ikut dihitung omzet — hint "+ pemasukan lain" dihapus
+  const omzetTampil = omzet + totalInc;
+  setStatValue(document.getElementById('todayOmzet'), formatRp(omzetTampil));
   setStatValue(document.getElementById('todayExpense'), formatRp(expense));
   setStatValue(document.getElementById('todayProfit'), formatRp(profit));
   document.getElementById('todayTrxCount').textContent = penjualan.length;
   document.getElementById('todayQtyCount').textContent = qty;
   const avgEl = document.getElementById('todayAvgTrx');
-  if (avgEl) setStatValue(avgEl, formatRp(penjualan.length ? Math.round(omzet / penjualan.length) : 0));
-  // Laba bisa naik tanpa ada penjualan (bonus/cashback/modal tambahan) — tunjukkan
-  // asalnya supaya angka Beranda tidak terlihat misterius.
-  const incEl = document.getElementById('todayIncomeHint');
-  if (incEl) {
-    incEl.textContent = totalInc > 0 ? '+ pemasukan lain ' + formatRp(totalInc) : '';
-    incEl.style.display = totalInc > 0 ? 'block' : 'none';
-  }
+  if (avgEl) setStatValue(avgEl, formatRp(penjualan.length ? Math.round(omzetTampil / penjualan.length) : 0));
+  // v178: hint "+ pemasukan lain" dihapus — pemasukan usaha kini masuk angka Omzet.
 
   // v161: kartu status kas (buka/tutup shift) — query sendiri, kegagalan
   // render tidak boleh menghentikan Beranda.

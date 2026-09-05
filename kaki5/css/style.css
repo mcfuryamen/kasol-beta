@@ -18,6 +18,7 @@
 --grad-red:linear-gradient(135deg,#B71C1C 0%,#C62828 55%,#EF5350 100%);
 --grad-blue:linear-gradient(135deg,#0D47A1 0%,#1565C0 55%,#2563EB 100%);
 --grad-kpi-orange:linear-gradient(135deg,#D6501C 0%,#F5821F 100%);
+--grad-purple:linear-gradient(135deg,#4A148C 0%,#6A1B9A 55%,#8E24AA 100%);
 --shadow-brand:0 6px 16px rgba(214,80,28,.3);
 --bg:#FFFAF5;--card:#FFFFFF;--paper:#FFF8F0;--text:#1A1A1A;--text2:#555;--text3:#888;
 --border:#E0E0E0;--shadow:0 2px 8px rgba(0,0,0,.1);
@@ -895,8 +896,9 @@ body.modal-open .main-content{overflow:hidden}
 .stat-card.kbg-red-b{background:var(--grad-red);border-color:transparent}
 .stat-card.kbg-blue-b{background:var(--grad-blue);border-color:transparent}
 .stat-card.kbg-orange-b{background:var(--grad-kpi-orange);border-color:transparent}
-.stat-card.kbg-green-b .stat-label,.stat-card.kbg-red-b .stat-label,.stat-card.kbg-blue-b .stat-label,.stat-card.kbg-orange-b .stat-label{color:rgba(255,255,255,.9)}
-.stat-card.kbg-green-b .stat-value,.stat-card.kbg-red-b .stat-value,.stat-card.kbg-blue-b .stat-value,.stat-card.kbg-orange-b .stat-value{color:#fff}
+.stat-card.kbg-purple-b{background:var(--grad-purple);border-color:transparent}
+.stat-card.kbg-green-b .stat-label,.stat-card.kbg-red-b .stat-label,.stat-card.kbg-blue-b .stat-label,.stat-card.kbg-orange-b .stat-label,.stat-card.kbg-purple-b .stat-label{color:rgba(255,255,255,.9)}
+.stat-card.kbg-green-b .stat-value,.stat-card.kbg-red-b .stat-value,.stat-card.kbg-blue-b .stat-value,.stat-card.kbg-orange-b .stat-value,.stat-card.kbg-purple-b .stat-value{color:#fff}
 /* Card-like containers */
 .kinfo-card{background:var(--green-bg);padding:12px;border-radius:8px;margin-top:12px}
 .kwarn-card{background:var(--orange-bg);padding:12px;border-radius:8px;margin-top:12px}
@@ -1193,3 +1195,6 @@ body.modal-open .main-content{overflow:hidden}
    query. */
 #expenseModal .form-input{font-size:16px;padding:13px 16px}
 #expenseModal select.form-input{padding:13px 40px 13px 16px}
+
+/* v178: tabs + date picker Laporan menempel di bawah header saat scroll */
+.laporan-sticky{position:sticky;top:0;z-index:90;background:var(--paper);padding-bottom:8px;box-shadow:0 6px 10px -8px rgba(0,0,0,.14)}

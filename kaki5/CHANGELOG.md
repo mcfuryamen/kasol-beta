@@ -4,6 +4,15 @@ Semua perubahan dicatat per tanggal, versi terbaru di atas.
 Format judul entri: `## <YYYY-MM-DD> (vNNN / 1.0.NN: judul)` — dua nomor wajib ada,
 supaya bisa di-diff terhadap `js/version.json` saat audit rilis.
 
+## 2026-09-06 (v178 / 1.0.103: rilis gabungan — nominal, qty 9.999, akordeon, gradasi)
+- Bump gabungan v173–v178 untuk rilis beta+live sekaligus: nominal KPI auto-shrink
+  (`statSizeClass`/`setStatValue`), qty keranjang & Menu Selector sampai 9.999,
+  toast guard stok, akordeon Laporan auto-close, kartu KPI Laporan bergradasi
+  `kbg-*-b` kontekstual (+ varian baru `kbg-purple-b`), date picker Laporan jadi
+  akordeon sticky ber-trigger tab periode, hint "+ pemasukan lain" dihapus dan
+  pemasukan usaha ikut dihitung omzet, modal detail pengeluaran/pemasukan memakai
+  pola tombol Detail Transaksi (✕ pojok kanan atas + kgrid aksi).
+
 ## 2026-09-06 (v177 / 1.0.103: akordeon Laporan auto-close)
 - Seluruh akordeon di Laporan (Transaksi Ojol per platform, Rincian Pengeluaran &
   Pemasukan per kategori, Riwayat per tanggal, Konsinyasi per suplayer) kini

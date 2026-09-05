@@ -20,7 +20,7 @@ dikirim ke server** (`../CONTEXT.md:77`).
 | Aspek | Nilai | Bukti |
 |---|---|---|
 | **Nama aplikasi** | Kasir Solo - Kaki Lima (`short_name: KasirKaki5`) | `manifest.json` |
-| **Versi** | `APP_VERSION 1.0.103` · `CACHE_BUST v177` | `js/version.js:7,18` |
+| **Versi** | `APP_VERSION 1.0.103` · `CACHE_BUST v178` | `js/version.js:7,18` |
 | **Tema** | Gradasi 135° pada permukaan terisi (pola diadopsi dari aplikasi rosok, stop gelap→terang demi kontras); aksen teks/border tetap oranye `#D6501C` | `css/style.css:16-20` |
 | **Arsitektur** | SPA vanilla ESM, modular-atomic 3-layer, PWA offline | `docs/DEVELOPER.md` §1 |
 | **Penyimpanan data** | IndexedDB via **Dexie 3.2.4**, skema **v8**, 9 object store | `js/db.js:6,137` |

@@ -7,6 +7,7 @@ import { reportPeriod, setReportPeriod, reportDate, setReportDate, customStart, 
 import { hitungLaba, pisahkanCatatan, metodeCatatan, isNonLaba, METODE_LABEL } from './kas.logic.js';
 
 let _customPickerOpen = false;
+let _dateNavOpen = false; // v178: akordeon date picker — default tertutup, dibuka dari tab periode
 
 // v164: satu baris keterangan untuk catatan pengeluaran/pemasukan — nomor,
 // tanggal/waktu, metode kalau tidak lewat laci, dan penanda kalau kategorinya
@@ -78,10 +79,13 @@ function ensureReportDelegation() {
 }
 
 export function setReportPeriodUI(p) {
+  const sameTab = reportPeriod === p; // baca SEBELUM setter mengganti nilai
   setReportPeriod(p);
   document.querySelectorAll('.report-tab').forEach(t => {
     t.classList.toggle('active', t.dataset.period === p);
   });
+  // v178: date picker = akordeon, trigger dari tab periode — tab aktif diklik lagi menutupnya
+  _dateNavOpen = sameTab ? !_dateNavOpen : true;
   loadReport();
 }
 
@@ -145,42 +149,46 @@ export async function loadReport() {
   let html = '';
 
   // Summary cards
+  // v178: kartu KPI Laporan memakai palet gradasi ala Beranda (kbg-*-b = gradasi
+  // + teks putih otomatis), warna mengikuti konteks data tiap kartu:
+  // hijau = pendapatan, oranye = volume/komponen, merah = biaya (dan rugi),
+  // biru = laba sehat & uang non-usaha.
   html += `<div class="stat-grid">
-    <div class="stat-card" style="background:var(--green-bg);border-color:#A5D6A7">
+    <div class="stat-card kbg-green-b">
       <div class="stat-label">💰 Omzet</div>
-      <div class="stat-value green${statSizeClass(omzet)}">${formatRp(omzet)}</div>
+      <div class="stat-value${statSizeClass(omzet + totalInc)}">${formatRp(omzet + totalInc)}</div>
     </div>
-    <div class="stat-card" style="background:var(--orange-bg);border-color:#FFCC80">
+    <div class="stat-card kbg-orange-b">
       <div class="stat-label">🧮 Modal Bahan</div>
-      <div class="stat-value orange${statSizeClass(modal)}">${formatRp(modal)}</div>
+      <div class="stat-value${statSizeClass(modal)}">${formatRp(modal)}</div>
     </div>
-    <div class="stat-card" style="background:var(--red-bg);border-color:#EF9A9A">
+    <div class="stat-card kbg-red-b">
       <div class="stat-label">💸 Biaya Usaha</div>
-      <div class="stat-value red${statSizeClass(totalExp)}">${formatRp(totalExp)}</div>
+      <div class="stat-value${statSizeClass(totalExp)}">${formatRp(totalExp)}</div>
     </div>
-    <div class="stat-card" style="background:var(--blue-bg);border-color:#90CAF9">
+    <div class="stat-card ${profit>=0?'kbg-blue-b':'kbg-red-b'}">
       <div class="stat-label">📈 Untung Bersih</div>
-      <div class="stat-value${statSizeClass(profit)} ${profit>=0?'blue':'red'}">${formatRp(profit)}</div>
+      <div class="stat-value${statSizeClass(profit)}">${formatRp(profit)}</div>
     </div>
     <div class="stat-card kbg-orange-b">
       <div class="stat-label">🛒 Transaksi</div>
-      <div class="stat-value orange">${sales.length}</div>
+      <div class="stat-value">${sales.length}</div>
     </div>
     <div class="stat-card kbg-orange-b">
       <div class="stat-label">🍽️ Porsi Terjual</div>
-      <div class="stat-value orange">${totalQty}</div>
+      <div class="stat-value">${totalQty}</div>
     </div>
-    <div class="stat-card" style="background:var(--green-bg);border-color:#A5D6A7">
+    <div class="stat-card kbg-purple-b">
       <div class="stat-label">💵 Pemasukan Usaha</div>
-      <div class="stat-value green${statSizeClass(totalInc)}">${formatRp(totalInc)}</div>
+      <div class="stat-value${statSizeClass(totalInc)}">${formatRp(totalInc)}</div>
     </div>
-    ${nonLabaTotal > 0 ? `<div class="stat-card" style="background:#f5f5f5;border-color:var(--border)">
+    ${nonLabaTotal > 0 ? `<div class="stat-card kbg-blue-b">
       <div class="stat-label">🏧 Non-Usaha (laci)</div>
-      <div class="stat-value${statSizeClass(nonLabaTotal)}" style="color:var(--text2)">${formatRp(nonLabaTotal)}</div>
+      <div class="stat-value${statSizeClass(nonLabaTotal)}">${formatRp(nonLabaTotal)}</div>
     </div>` : ''}
-    <div class="stat-card" style="background:var(--orange-bg);border-color:#FFCC80">
+    <div class="stat-card kbg-orange-b">
       <div class="stat-label">🛵 Ojol</div>
-      <div class="stat-value orange${statSizeClass(ojolTotal)}">${formatRp(ojolTotal)}</div>
+      <div class="stat-value${statSizeClass(ojolTotal)}">${formatRp(ojolTotal)}</div>
     </div>
   </div>`;
 
@@ -825,6 +833,8 @@ async function renderReportDateNav() {
       </div>
     </div>
   `;
+  // v178: akordeon — panel date nav hanya tampil saat aktif (dibuka dari tab periode)
+  box.style.display = _dateNavOpen ? '' : 'none';
 }
 
 // Klik tanggal di kalender harian → langsung set & filter
