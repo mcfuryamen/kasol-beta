@@ -1,0 +1,14 @@
+{
+	"pid": 9820,
+	"port": 8081,
+	"url": "http://localhost:8081",
+	"urls": {
+		"local": [
+			"http://localhost:8081/"
+		],
+		"network": [],
+		"networkInterfaceNames": []
+	},
+	"background": false,
+	"startedAt": "2026-08-11T00:44:16.160Z"
+}

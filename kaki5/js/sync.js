@@ -1,0 +1,484 @@
+// ==================== SINKRONISASI PROFIL KLIEN → SUPABASE (CRM) ====================
+// Mengirim profil identitas outlet (nama usaha, pemilik, WA, wilayah, device code)
+// dari Dexie lokal ke tabel `clients` di Supabase.
+//
+// Fitur:
+//  * OFFLINE-FIRST — app tetap jalan tanpa internet. Sync hanya dicoba saat online.
+//  * DUA SKENARIO:
+//     - User BARU → dipanggil setelah selesai onboarding / aktivasi.
+//     - User LAMA (data cuma lokal, belum pernah sync) → di boot otomatis di-push
+//       lewat flag lokal `sync` (none → synced / pending). Inilah "backfill".
+//  * SELF-HEALING (T29, 2026-08-17): flag `synced` TIDAK dipercaya buta. Minimal
+//    1x/hari flag diverifikasi ke server (select murah); kalau baris ternyata
+//    tidak ada (mis. pernah "sukses" di era pipeline lama), profil di-push ulang
+//    otomatis. Ini menutup kasus "perangkat online tapi profil tak pernah masuk".
+//  * OBSERVABILITY: tiap kegagalan nyata dicatat lokal (maks 5 terakhir, untuk
+//    panel Diagnosa) DAN dikirim ke tabel `sync_errors` (insert-only via RLS)
+//    supaya pola kegagalan lintas perangkat kelihatan dari dashboard.
+//  * Dedupe: baris dikenali lewat unit_id; update bila sudah ada, insert bila baru.
+//  * Keamanan: pakai Supabase anonymous sign-in; baris `clients` dimiliki user
+//    anonim tsb (RLS auth.uid() = user_id). Tiap device cuma bisa ubah barisnya.
+
+import { getSetting, setSetting } from './db.js';
+import { showToast, getDeviceInfo } from './helpers.js';
+import { getUnitId, getDeviceCode, getInstallId, cloudProfileMatchesLocal } from './license.js';
+
+// Dev detection helper
+function isDev() {
+  return location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('192.168.') || location.hostname.startsWith('10.') || location.hostname.endsWith('.local') || !location.hostname.includes('.');
+}
+
+const APP_TYPE = 'kaki5';
+// Flag "synced" di-cache selama ini lama; lewat dari itu WAJIB verifikasi server.
+const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
+
+// Placeholder anon key menghasilkan JWT yang gagal auth → semua sync/purchase
+// reject RLS. Deteksi pola placeholder umum (bintang, 'PASTE_', '...', 'xxxx').
+function isPlaceholderKey(k) {
+  if (!k) return true;
+  const s = String(k);
+  return (
+    s.includes('***') ||
+    s.includes('...') ||
+    /^PASTE/i.test(s) ||
+    /^xxxx/i.test(s) ||
+    !s.includes('.') // JWT anon asli selalu punya 3 segmen bertitik
+  );
+}
+
+function getClient() {
+  if (!window.supabase) return null;
+  const url = window.KASIRSOLO_SUPABASE_URL;
+  const anon = window.KASIRSOLO_SUPABASE_ANON_KEY;
+  if (!url || isPlaceholderKey(anon)) return null;
+  if (!window._ksrSupabaseClient) {
+    window._ksrSupabaseClient = window.supabase.createClient(url, anon, {
+      auth: { persistSession: true, autoRefreshToken: true }
+    });
+  }
+  return window._ksrSupabaseClient;
+}
+
+export function isSyncConfigured() {
+  return !!getClient();
+}
+
+// ============================================================================
+// Auth session helper (C2v3, 2026-08-27)
+// RLS policy pada tabel `clients` mengizinkan SELECT jika
+//   auth.uid() = user_id  ATAU  unit_id claim di JWT = clients.unit_id.
+// Saat boot, belum ada session → token kosong → query mentok RLS.
+// Fungsi ini MENJAMIN ada session anonim yang user_metadata-nya membawa
+// claim `unit_id`. Reuse di pullCloudProfileIfOnline dan ensureSynced.
+// Return { ok, userId }; tidak pernah throw.
+// ============================================================================
+export async function ensureAuthSession(sb) {
+  try {
+    if (!sb) return { ok: false, reason: 'no-client' };
+    const unitId = await getUnitId();
+    const { data: sessData } = await sb.auth.getSession();
+    if (sessData?.session?.user?.id) {
+      const metaUnit = sessData.session.user.user_metadata?.unit_id;
+      if (!metaUnit || metaUnit !== unitId) {
+        try { await sb.auth.updateUser({ data: { unit_id: unitId } }); }
+        catch (_claimErr) { console.warn('[AUTH] claim unit_id update skipped:', _claimErr?.message || _claimErr); }
+      }
+      return { ok: true, userId: sessData.session.user.id };
+    }
+    const { data: anon, error: auErr } = await sb.auth
+      .signInAnonymously({ options: { data: { unit_id: unitId } } });
+    if (auErr) return { ok: false, reason: 'signin', error: auErr };
+    return { ok: true, userId: anon?.user?.id };
+  } catch (e) {
+    return { ok: false, reason: 'error', error: e };
+  }
+}
+
+/** Snapshot konfigurasi untuk panel Diagnosa (tanpa menjalankan sync). */
+export function getSyncClientDebug() {
+  return {
+    globalLoaded: !!window.supabase,
+    url: window.KASIRSOLO_SUPABASE_URL || null,
+    keyPresent: !!window.KASIRSOLO_SUPABASE_ANON_KEY,
+    keyLooksReal: !isPlaceholderKey(window.KASIRSOLO_SUPABASE_ANON_KEY),
+    clientReady: !!getClient(),
+    online: navigator.onLine
+  };
+}
+
+export async function getSyncState() {
+  return (await getSetting('sync', null)) || { status: 'none' };
+}
+
+/**
+ * Catat kegagalan sync: lokal (untuk panel Diagnosa) + kirim ke `sync_errors`
+ * (fire-and-forget). Tidak boleh melempar — pelaporan tidak boleh bikin sync crash.
+ */
+async function reportSyncError(stage, err) {
+  const message = String(err?.message || err || 'unknown');
+  try {
+    const st = await getSyncState();
+    const errs = Array.isArray(st.recentErrors) ? st.recentErrors : [];
+    errs.unshift({ stage, message, at: new Date().toISOString() });
+    await setSetting('sync', { ...st, recentErrors: errs.slice(0, 5) });
+  } catch (_) { /* penyimpanan lokal gagal — tidak ada yang bisa dilakukan */ }
+  try {
+    const sb = getClient();
+    if (!sb || !navigator.onLine) return;
+    const unitId = await getUnitId();
+    await sb.from('sync_errors').insert({
+      unit_id: unitId,
+      app_type: APP_TYPE,
+      stage,
+      error: message.slice(0, 500),
+      user_agent: String(navigator.userAgent || '').slice(0, 300)
+    });
+  } catch (_) { /* server tak terjangkau — sudah tercatat lokal */ }
+}
+
+async function buildPayload(unitId) {
+  const [namaUsaha, pemilik, wa, provId, prov, kabId, kab, kecId, kec, desaId, desa, alamat] =
+    await Promise.all([
+      getSetting('namaUsaha', '') || getSetting('namaWarung', ''),
+      getSetting('namaPemilik', ''),
+      getSetting('noWhatsapp', ''), getSetting('provinsiId', ''),
+      getSetting('provinsi', ''),  getSetting('kabkotaId', ''),
+      getSetting('kabkota', ''),   getSetting('kecamatanId', ''),
+      getSetting('kecamatan', ''), getSetting('desaId', ''),
+      getSetting('desa', ''),      getSetting('alamat', '')
+    ]);
+  const payload = {
+    unit_id:      unitId,
+    app_type:     APP_TYPE,
+    device_code:  await getDeviceCode(),
+    install_id:   await getInstallId(),
+    nama_usaha:   namaUsaha,
+    nama_pemilik: pemilik,
+    no_whatsapp:  wa,
+    provinsi_id:  provId,  provinsi:  prov,
+    kabkota_id:   kabId,   kabkota:   kab,
+    kecamatan_id: kecId,   kecamatan: kec,
+    desa_id:      desaId,  desa:      desa,
+    alamat_detail: alamat,
+    last_seen:    new Date().toISOString()
+  };
+
+  // Capture tipe browser & jenis perangkat -> update di tiap sync (bukan cuma
+  // onboarding), jadi info di CRM selalu fresh walau user pindah browser/device.
+  try {
+    const dev = getDeviceInfo();
+    payload.browser = dev.browser;
+    payload.os = dev.os;
+    payload.device_type = dev.deviceType;
+    payload.user_agent = dev.userAgent;
+    // Simpan lokal juga biar terakhir-terlihat (tanpa nunggu sync berikutnya)
+    await setSetting('deviceInfo', dev).catch(() => {});
+  } catch (_devErr) {
+    // detection gagal -> biarkan kosong, jangan blokir sync
+  }
+  return payload;
+}
+
+/** Verifikasi murah: apakah baris unit ini memang ada di server? */
+async function serverRowExists(sb, unitId) {
+  const { data, error } = await sb
+    .from('clients')
+    .select('unit_id')
+    .eq('unit_id', unitId)
+    .maybeSingle();
+  if (error) throw error;
+  return !!data;
+}
+
+/**
+ * Sinkronkan profil ke Supabase.
+ * @returns Promise<{ok, reason?, stage?, error?}>
+ */
+export async function ensureSynced({ force = false, silent = false } = {}) {
+  const sb = getClient();
+  if (!sb) {
+    // Komponen/config tidak termuat — kegagalan struktural, hanya catat lokal
+    // (tidak bisa kirim ke server karena client-nya memang tidak ada).
+    reportSyncError('config', new Error('supabase client tidak tersedia (script/key)'));
+    if (!silent) showToast('Komponen sinkronisasi tidak termuat — muat ulang halaman.', 'warning');
+    return { ok: false, reason: 'no-config', stage: 'config' };
+  }
+  if (!navigator.onLine) {
+    return { ok: false, reason: 'offline', stage: 'online' };
+  }
+
+  const state = await getSyncState();
+  if (!force && state.status === 'synced') {
+    // SELF-HEALING: flag lokal hanya cache. Kalau belum diverifikasi >24 jam,
+    // cek ke server — baris hilang = push ulang, jangan percaya flag buta.
+    const verifiedAtMs = state.verifiedAt ? new Date(state.verifiedAt).getTime() : 0;
+    if (Date.now() - verifiedAtMs < VERIFY_TTL_MS) {
+      return { ok: true, reason: 'already-synced' };
+    }
+    try {
+      const unitId = await getUnitId();
+      if (await serverRowExists(sb, unitId)) {
+        await setSetting('sync', { ...state, verifiedAt: new Date().toISOString() });
+        return { ok: true, reason: 'already-synced' };
+      }
+      // Baris tidak ada padahal flag bilang synced → lanjut push (self-heal).
+      console.warn('[SYNC] Flag lokal "synced" tetapi baris tidak ada di server — push ulang.');
+    } catch (e) {
+      // Verifikasi gagal (network/RLS) — biarkan proses push di bawah yang bicara.
+      await reportSyncError('verify', e);
+    }
+  }
+
+  // jangan push kalau profil belum diisi
+  if (!(await getSetting('namaUsaha', '')) && !(await getSetting('namaWarung', ''))) {
+    return { ok: false, reason: 'no-profile', stage: 'profile' };
+  }
+
+  let stage = 'session';
+  try {
+    // Pakai session yang sudah ada kalau ada (persistSession=true di client config),
+    // jangan signIn baru tiap kali — itu bikin user anonim baru & RLS auth.uid() mismatch.
+    const unitId = await getUnitId();
+    let userId = null;
+    const auth = await ensureAuthSession(sb);
+    if (auth.ok) {
+      userId = auth.userId;
+    } else if (auth.reason === 'signin') {
+      throw auth.error;
+    } else {
+      throw new Error('auth session gagal: ' + (auth.reason || 'unknown'));
+    }
+    const payload = await buildPayload(unitId);
+    // Klaim device lama lebih dulu agar update profil tidak mentok RLS
+    // saat browser/storage anonim berubah.
+    stage = 'claim';
+    const { error: claimErr } = await sb.rpc('device_known', {
+      p_unit_id: unitId,
+      p_device_code: payload.device_code,
+      p_app_type: APP_TYPE
+    });
+    if (claimErr) throw claimErr;
+    stage = 'write';
+    const { data: existing } = await sb
+      .from('clients')
+      .select('unit_id')
+      .eq('unit_id', unitId)
+      .maybeSingle();
+    // Aturan sumber kebenaran (2026-08-29): cloud = satu-satunya sumber lisensi
+    // & profil. Push OTOMATIS (boot 1c / latar, tanpa `force`) hanya BACKFILL:
+    // baris belum ada → insert; baris sudah ada → JANGAN sentuh field profil,
+    // supaya data lokal basi tidak pernah menimpa cloud. Penimpaan cloud hanya
+    // lewat jalur user-intent (`force`: form profil & tombol sinkron).
+    // FIX (2026-09-06): backfill non-force pada baris yang sudah ada dulu
+    // mengevaluasi ke null lalu di-destructure → crash "Cannot destructure
+    // property 'error'" tiap siklus (135 entri sync_errors, sync tak pernah
+    // ditandai synced, retry tanpa henti). Baris sudah ada + non-force =
+    // selesai normal, bukan kegagalan.
+    let upErr = null;
+    if (existing) {
+      if (force) {
+        ({ error: upErr } = await sb.from('clients')
+          .update({ ...payload, user_id: userId })
+          .eq('unit_id', unitId));
+      }
+    } else {
+      ({ error: upErr } = await sb.from('clients').insert({ ...payload, user_id: userId }));
+    }
+    if (upErr) throw upErr;
+    // Pipeline marketing kini ada DI clients (leads/pembelian lama sudah
+    // dikonsolidasi). Profil tidak boleh me-reset status yang sudah dimajukan
+    // admin, jadi `source` & `status` hanya di-set saat baris masih baru
+    // (status null/'' ) lewat PATCH selektif — bukan lewat upsert profil.
+    try {
+      const { data: cur } = await sb
+        .from('clients')
+        .select('status, source')
+        .eq('unit_id', payload.unit_id)
+        .maybeSingle();
+      const needSeed = !cur || !cur.status || cur.status === '' || cur.status === null;
+      if (needSeed) {
+        await sb.from('clients').update({
+          source: 'app-' + payload.app_type,
+          status: 'baru'
+        }).eq('unit_id', payload.unit_id);
+      } else if (!cur.source) {
+        await sb.from('clients').update({
+          source: 'app-' + payload.app_type
+        }).eq('unit_id', payload.unit_id);
+      }
+    } catch (_leadErr) {
+      console.warn('pipeline seed skipped (clients):', _leadErr?.message || _leadErr);
+    }
+    stage = 'readback';
+    if (!(await serverRowExists(sb, unitId))) {
+      // Tulis "sukses" tapi baris tak terbaca (indikasi RLS write silently
+      // dibuang atau race) — jangan tandai synced.
+      throw new Error('baris tidak terbaca setelah tulis (RLS?)');
+    }
+    await setSetting('sync', {
+      status: 'synced',
+      syncedAt: new Date().toISOString(),
+      verifiedAt: new Date().toISOString(),
+      recentErrors: []
+    });
+    if (!silent) showToast('✅ Profil tersinkron ke server');
+    return { ok: true };
+  } catch (e) {
+    const message = String(e?.message || e);
+    await setSetting('sync', {
+      status: 'pending',
+      pendingIntent: force ? 'force' : 'backfill', // M4 / 2026-09-05
+      lastError: message,
+      lastStage: stage,
+      lastTryAt: new Date().toISOString()
+    });
+    await reportSyncError(stage, e);
+    console.error('Gagal sinkron', stage, message); if (!silent) showToast('Gagal sinkron', 'error', { duration: 5000 });
+    return { ok: false, reason: 'error', stage, error: message };
+  }
+}
+
+// ── Retry otomatis (T29): pending dicoba ulang berkala selama online ──
+let _retryTimer = null;
+const RETRY_INTERVAL_MS = 5 * 60 * 1000;
+
+export function startSyncRetryLoop() {
+  if (_retryTimer) return;
+  _retryTimer = setInterval(async () => {
+    try {
+      if (!navigator.onLine) return;
+      const st = await getSyncState();
+      if (st.status === 'pending') {
+        // M4 (audit 2026-09-05): pendingIntent membedakan intent push.
+        // 'force' → profile form/user-intent, boleh timpa cloud row.
+        // 'backfill' → push boot/auto, JANGAN timpa cloud row yang sudah ada.
+        const shouldForce = st.pendingIntent === 'force';
+        await ensureSynced({ silent: true, force: shouldForce });
+      }
+    } catch (_) { /* retry loop tidak boleh crash */ }
+  }, RETRY_INTERVAL_MS);
+}
+
+// ============================================================================
+// C2 (2026-08-19): Pull cloud profile → lokal
+// Sebelum ini, ensureSynced() hanya push (lokal → cloud). Device baru /
+// install ulang / wipe IndexedDB kehilangan profil karena tidak ada reverse
+// flow. Fungsi ini membaca baris clients di Supabase (unit_id-based) lalu
+// menuliskan ke settings table lokal.
+// ============================================================================
+export async function pullCloudProfileTo(cloudClient) {
+  if (!cloudClient || typeof cloudClient !== 'object') return;
+  // Guard tabrakan identitas (port rosok 2026-09-04): sesama model HP bisa
+  // berbagi unit_id — bila baris cloud sudah diprofilkan oleh usaha LAIN
+  // (tidak cocok dgn lokal), pull DILEWATI. Tanpa ini, profil usaha tetangga
+  // menimpa profil lokal kita setiap boot.
+  if (!(await cloudProfileMatchesLocal(cloudClient))) {
+    console.warn('[C2] pull profil DILEWATI — baris cloud terisi profil asing (indikasi tabrakan identitas)');
+    return;
+  }
+  // Mapping kolom clients (snake_case) → key settings (camelCase)
+  const mapping = {
+    nama_usaha:    'namaUsaha',
+    nama_pemilik:  'namaPemilik',
+    no_whatsapp:   'noWhatsapp',
+    provinsi_id:   'provinsiId',
+    provinsi:      'provinsi',
+    kabkota_id:    'kabkotaId',
+    kabkota:       'kabkota',
+    kecamatan_id:  'kecamatanId',
+    kecamatan:     'kecamatan',
+    desa_id:       'desaId',
+    desa:          'desa',
+    alamat_detail: 'alamat'
+  };
+  let changed = 0;
+  let skipped = 0;
+  for (const [col, key] of Object.entries(mapping)) {
+    const val = cloudClient[col];
+    // C2v2: overwrite juga bila nilai kosong/'' — cloud bisa jadi sengaja
+    // membersihkan field (buffer profile). Jangan skip empty string.
+    if (val !== undefined && val !== null) {
+      let local;
+      try { local = await getSetting(key, undefined); } catch (_) { local = undefined; }
+      // Hanya tulis bila benar-benar berubah — mencegah loop log & write
+      // IndexedDB yang sia-sia dari pemicu ganda (boot + realtime + verify).
+      if (local === val) { skipped++; continue; }
+      try { await setSetting(key, val); changed++; } catch (_) { /* abaikan */ }
+    }
+  }
+  if (changed > 0) console.log(`[C2] pullCloudProfileTo: ${changed} field profil di-sync dari cloud (${skipped} tidak berubah)`);
+}
+
+// ============================================================================
+// C2v2 (2026-08-19): Pull cloud profile on EVERY boot
+// Setiap kali app dimuat, cek apakah baris clients untuk unit_id ini ada di
+// cloud. Bila ada, pull profil ke IndexedDB sebelum UI pertama kali render.
+// Ini menutup kasus device baru / install ulang / wipe yang kehilangan profil.
+// Fire-and-forget: tidak menghalangi boot sequence.
+// ============================================================================
+export async function pullCloudProfileIfOnline(silent = true) {
+  const sb = getClient();
+  if (!sb || !navigator.onLine) return;
+  try {
+    // 1) Pastikan ada session anon bermetadata unit_id — TANPA ini RLS block
+    //    semua SELECT clients (auth.uid()/unit_id claim kosong saat boot).
+    const auth = await ensureAuthSession(sb);
+    if (!auth.ok) {
+      console.warn('[C2v2] ensureAuthSession gagal:', auth.reason, auth.error?.message || '');
+      return;
+    }
+    const unitId = await getUnitId();
+    const deviceCode = await getDeviceCode();
+
+    // 2) CLAIM device DULU via RPC `device_known` (SECURITY DEFINER, bypass RLS).
+    //    RPC mencocokkan row by unit_id ATAU device_code lalu men-SET
+    //    user_id = auth.uid(). Setelah itu SELECT by unit_id/device_code lolos
+    //    policy `auth.uid() = user_id` — inilah kunci fix RLS untuk pull.
+    //    Dipanggil untuk semua path (bukan cuma fallback) agar row selalu
+    //    ter-assign ke session anonim yang sama seperti push.
+    const { error: claimErr } = await sb.rpc('device_known', {
+      p_unit_id: unitId,
+      p_device_code: deviceCode,
+      p_app_type: APP_TYPE
+    });
+    if (claimErr) {
+      console.warn('[C2v2] device_known gagal:', claimErr?.message || claimErr);
+      return;
+    }
+
+    let { data: client } = await sb
+      .from('clients')
+      .select('*')
+      .eq('unit_id', unitId)
+      .eq('app_type', APP_TYPE)
+      .maybeSingle();
+    // Fallback: query by device_code if unit_id not found (unit_id mismatch).
+    if (!client && deviceCode) {
+      const { data: byDevice } = await sb
+        .from('clients')
+        .select('*')
+        .eq('device_code', deviceCode)
+        .eq('app_type', APP_TYPE)
+        .maybeSingle();
+      if (byDevice) {
+        client = byDevice;
+        // Sync local unit_id to match cloud's unit_id
+        if (byDevice.unit_id && byDevice.unit_id !== unitId) {
+          await setSetting('unitId', byDevice.unit_id);
+          console.log(`[C2v2] Unit ID disinkronkan ke cloud: ${byDevice.unit_id}`);
+        }
+      }
+    }
+    if (!client) return;
+    await pullCloudProfileTo(client);
+  } catch (e) {
+    console.warn('[C2v2] pullCloudProfileIfOnline gagal:', e?.message || e);
+    // Audit toast 2026-09-07: halaman Pengaturan mempromosikan "profil =
+    // Supabase, tarik dulu" tapi gagalnya cuma console.warn — tampilan menunjuk
+    // data lokal basi seolah benar. Boot tetap silent (default).
+    if (!silent && !pullCloudProfileIfOnline._warned) {
+      pullCloudProfileIfOnline._warned = true;
+      showToast('⚠️ Gagal menarik profil dari server — menampilkan data tersimpan 📴', 'warning', 5000);
+    }
+  }
+}

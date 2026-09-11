@@ -1,0 +1,1277 @@
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+--primary:#D6501C;--primary-light:#E6602C;--primary-dark:#B04018;
+--green:#2E7D32;--green-light:#4CAF50;--green-bg:#E8F5E9;
+--red:#C62828;--red-light:#EF5350;--red-bg:#FFEBEE;
+--blue:#1565C0;--blue-bg:#E3F2FD;
+--orange-bg:#FFF3E0;
+/* v170 — Adopsi pola gradasi aplikasi rosok (rosok/style.css:3-8 + :142-166).
+   Yang diadopsi POLA-nya (arah 135°, permukaan terisi = gradien, teks putih),
+   bukan hue-nya: kaki5 tetap oranye khas, Pengeluaran tetap merah, Laba tetap biru.
+   Urutan stop dibalik jadi gelap→terang dibanding rosok (yang menaruh stop terang di
+   0%) supaya label/teks putih di kiri-atas lolos kontras — putih di atas #5CB6CC
+   cuma ~2.3:1, di atas #1565C0 ~6.4:1. --primary TETAP #D6501C (identik dengan
+   --brand-dark rosok) sehingga 67 pemakaian warna teks/border aksen tidak berubah.
+   Pengecualian: .btn-wa tetap hijau gelap solid (permintaan eksplisit user 2026-09-04). */
+--grad:linear-gradient(135deg,#F5821F 0%,#D6501C 55%,#B04018 100%);
+--grad-green:linear-gradient(135deg,#1B5E20 0%,#2E7D32 55%,#43A047 100%);
+--grad-red:linear-gradient(135deg,#B71C1C 0%,#C62828 55%,#EF5350 100%);
+--grad-blue:linear-gradient(135deg,#0D47A1 0%,#1565C0 55%,#2563EB 100%);
+--grad-kpi-orange:linear-gradient(135deg,#D6501C 0%,#F5821F 100%);
+--grad-purple:linear-gradient(135deg,#4A148C 0%,#6A1B9A 55%,#8E24AA 100%);
+--shadow-brand:0 6px 16px rgba(214,80,28,.3);
+--bg:#FFFAF5;--card:#FFFFFF;--paper:#FFF8F0;--text:#1A1A1A;--text2:#555;--text3:#888;
+--border:#E0E0E0;--shadow:0 2px 8px rgba(0,0,0,.1);
+--radius:16px;--radius-sm:12px;
+--nav-h:72px;--header-h:60px;
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:16px;overscroll-behavior:none}
+body{display:flex;flex-direction:column}
+
+/* HEADER */
+.app-header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--grad);color:#fff;display:flex;align-items:center;padding:0 16px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.app-header .header-logo{width:36px;height:36px;border-radius:50%;margin-right:10px;object-fit:contain}
+.app-header h1{font-size:17px;font-weight:700;flex:1;line-height:1.2}
+.app-header .header-btn{background:#fff;border:2px solid rgba(255,255,255,.9);color:var(--primary);box-shadow:0 2px 6px rgba(0,0,0,.25);width:42px;height:42px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-left:8px;transition:transform .12s ease,box-shadow .12s ease}.app-header .header-btn:active{transform:scale(.9)}
+
+/* MAIN CONTENT */
+.main-content{flex:1;margin-top:var(--header-h);margin-bottom:var(--nav-h);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 20px}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:#fff;display:flex;border-top:2px solid var(--border);z-index:350;padding-bottom:env(safe-area-inset-bottom)}
+/* Gate onboarding/lisensi = full-screen blocker: sembunyikan navbar + header biar nggak nongol di atasnya */
+body.gate-active .bottom-nav,
+body.gate-active .app-header{display:none !important}
+body.gate-active .main-content{margin-top:0;margin-bottom:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:color .2s,background-color .2s;border:none;background:none;color:var(--text3);font-size:11px;font-weight:600;gap:2px;padding:4px 0;position:relative}
+.nav-item.active{color:var(--primary)}
+.nav-item .nav-icon{font-size:26px;line-height:1}
+.nav-item.active::before{content:'';position:absolute;top:-2px;left:20%;right:20%;height:3px;background:var(--grad);border-radius:0 0 4px 4px}
+.nav-badge{position:absolute;top:4px;right:50%;transform:translateX(18px);background:var(--red);color:#fff;font-size:10px;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;padding:0 4px}
+
+/* PAGES */
+.page{display:none}
+.page.active{display:block}
+
+/* CARDS */
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.card-title{font-size:15px;font-weight:700;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+/* v170 (komentar browser 2026-09-05 #5): kartu hero jadi gradasi biru ala rosok.
+   Kelas ditambahkan SETELAH `.card` (spesifisitas sama, urutan menang) dan hanya
+   mengubah latar/teks — padding & radius tetap ikut `.card` per breakpoint.
+   .card-title dan .ktext2 perlu ditimpa eksplisit supaya tidak tetap gelap. */
+.card-hero-blue{background:var(--grad-blue);color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(37,99,235,.26)}
+.card-hero-blue .card-title{color:#fff}
+.card-hero-blue .ktext2{color:rgba(255,255,255,.93)}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border:1px solid var(--border);text-align:center}
+.stat-card.full{grid-column:1/-1}
+.stat-icon{font-size:28px;margin-bottom:4px}
+.stat-label{font-size:12px;color:var(--text3);font-weight:600;margin-bottom:2px}
+.stat-value{font-size:22px;font-weight:800;white-space:nowrap}
+.stat-value.green{color:var(--green)}
+.stat-value.red{color:var(--red)}
+.stat-value.blue{color:var(--blue)}
+.stat-value.orange{color:var(--primary)}
+/* v173: nominal ratusan juta/miliar — kecilkan font otomatis (di-set js: statSizeClass).
+   Spesifisitas 2 kelas mengalahkan override font-size .stat-value di media query mana pun. */
+.stat-value.stat-sm{font-size:18px}
+.stat-value.stat-xs{font-size:15px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:var(--radius-sm);font-size:16px;font-weight:700;border:none;cursor:pointer;transition:background-color .15s,color .15s,transform .15s,box-shadow .15s;min-height:52px;width:100%;text-align:center}
+/* Tombol disabled: abu-abu, tidak bisa di-hover (pointer-events:none) */
+.btn:disabled,.btn[disabled]{background:#d9d9d9;color:#9c9c9c;cursor:not-allowed;box-shadow:none;transform:none;pointer-events:none;opacity:1}
+.btn-primary{background:var(--grad);color:#fff;box-shadow:var(--shadow-brand)}
+.btn-primary:active{filter:brightness(.92);transform:scale(.97)}
+.btn-green{background:var(--grad-green);color:#fff}
+.btn-secondary{border:2px solid var(--primary);color:var(--primary);background:transparent}
+/* v154: varian oranye (senada FAB held) — dipakai tombol "Kembali" daftar held */
+.btn-orange{background:var(--grad);color:#fff}
+.btn-orange:active{filter:brightness(.92);transform:scale(.97)}
+.btn-green:active{filter:brightness(.92);transform:scale(.97)}
+.btn-red{background:var(--grad-red);color:#fff}
+/* Tombol WhatsApp — hijau gelap solid (komentar browser #2, 2026-09-04).
+   Kelas sendiri, bukan .btn-secondary, supaya tidak ikut oranye transparan. */
+.btn-wa{background:var(--green);color:#fff;border:none}
+.btn-wa:hover,.btn-wa:focus-visible{background:#1B5E20;color:#fff;outline:none}
+.btn-wa:active{transform:scale(.98)}
+.btn-red:active{filter:brightness(.92);transform:scale(.97)}
+.btn-outline{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn-outline:active{background:var(--orange-bg)}
+/* Komentar browser #4+#5 (v146): tombol "＋ Tambah baris" & "＋ Tambah Topping"
+   jadi garis putus-putus hijau, labelnya ikut hijau. Kelas khusus — .btn-outline
+   masih dipakai tombol lisensi/QRIS, jadi tidak diubah global. Ukuran tetap ikut
+   .btn (tidak menyentuh height) agar tidak bentrok dengan .btn media-query. */
+.btn-add-dashed{background:#fff;color:var(--green);border:2px dashed var(--green)}
+.btn-add-dashed:active{background:var(--green-bg)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:active{background:#f5f5f5}
+.btn-sm{padding:10px 16px;font-size:14px;min-height:42px;border-radius:10px}
+.btn-icon{width:48px;height:48px;min-height:48px;padding:0;border-radius:10px;font-size:20px}
+.btn-row{display:flex;gap:8px}
+.btn-row .btn{flex:1}
+
+/* Aksi (Batal/Simpan dst) menempel di DASAR sheet — permintaan pemilik 2026-08-29:
+   - Modal yang punya .btn-row selalu setinggi 90vh (bottom sheet penuh);
+     margin-top:auto mendorong bar ke dasar meski konten pendek.
+   - Konten panjang: bar tetap sticky di bawah saat discroll, background
+     menutup konten di belakangnya.
+   - Padding-bottom modal (putih) menutup sisa area sampai tepi bawah. */
+.modal:has(> .btn-row){display:flex;flex-direction:column;min-height:90vh;padding-bottom:calc(4px + env(safe-area-inset-bottom))}
+.modal .btn-row{position:sticky;bottom:0;z-index:40;background:var(--card);margin-top:auto;padding:14px 0 calc(4px + env(safe-area-inset-bottom));border-top:1px solid var(--border)}
+
+/* menuSelectorModal: Batal kecil (auto), Tambah ke Keranjang full-width */
+#menuSelectorModal .btn-row .btn:first-child{flex:0;width:auto;min-width:80px}
+
+/* cartModal footer (v155): ✕ lingkaran merah tetap; "Tahan" auto size mengikuti
+   label; "Bayar" mengisi sisa area sehingga LEBIH PANJANG dari "Tahan". */
+#cartModal .btn-row .btn{flex:1 1 0;width:auto}
+/* Komentar browser #2 (v146): tombol ✕ batal di keranjang jadi lingkaran merah.
+   height/min-height dipin di sini supaya tidak kalah dari .btn{min-height:…}
+   di media query (specificity 0,1,0) pada breakpoint lain. */
+#cartModal .btn-row [data-action="close-cart"]{flex:0 0 auto;width:48px;height:48px;min-height:48px;border-radius:50%;background:var(--red);border-color:var(--red);color:#fff}
+#cartModal .btn-row [data-action="close-cart"]:active{background:#8E0000;border-color:#8E0000}
+#cartModal .btn-row [data-action="hold-cart"]{flex:0 0 auto;width:auto;padding:0 20px}
+#cartModal .btn-row [data-action="save-sale-print"]{flex:1 1 0;width:auto}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(var(--nav-h) + 16px);right:16px;width:64px;height:64px;border-radius:50%;background:var(--grad);color:#fff;border:none;font-size:32px;cursor:pointer;box-shadow:var(--shadow-brand);z-index:50;display:flex;align-items:center;justify-content:center;transition:transform .2s,background-color .2s,box-shadow .2s}
+.fab:active{transform:scale(.9)}
+
+/* FORMS */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:14px;font-weight:700;color:var(--text2);margin-bottom:6px}
+.form-helper{font-size:12px;color:var(--text3);font-style:italic;margin-bottom:6px}
+.form-input{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:17px;font-weight:600;background:#fff;color:var(--text);transition:border .2s;-webkit-appearance:none}
+/* Fokus field isian: border oranye tipis (sama dengan search-box) —
+   tanpa outline tebal. Indikator keyboard = perubahan border ini juga
+   (rule :focus ini menang atas :focus-visible global di akhir file). */
+.form-input:focus{outline:none;border-color:var(--primary)}
+.form-input::placeholder,.search-box input::placeholder{color:#bbb;font-size:.85em;font-weight:400}
+select.form-input{background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 16px center}
+
+/* MENU GRID */
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+.menu-item{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:12px 8px;text-align:center;cursor:pointer;transition:transform .15s,background-color .15s,border-color .15s;position:relative}
+.menu-item:active{transform:scale(.95)}
+.menu-item.selected{border-color:var(--primary);background:var(--orange-bg)}
+.menu-item .item-emoji{font-size:32px;display:block;margin-bottom:4px}
+.menu-item .item-name{font-size:13px;font-weight:700;line-height:1.2;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-item .item-price{font-size:14px;font-weight:800;color:var(--primary)}
+.menu-item .item-badges{display:flex;justify-content:center;align-items:center;gap:4px;margin-top:3px;font-size:12px;line-height:1}
+.menu-item .item-ojol,.menu-item .item-topping{font-size:12px;line-height:1}
+/* Barang titipan (konsinyasi) & stok habis di grid POS */
+.menu-item .item-titipan{font-size:12px;line-height:1}
+.menu-item.sold-out{opacity:.55;background:var(--bg);border-style:dashed}
+.menu-item.sold-out .item-emoji{filter:grayscale(1)}
+.menu-item.sold-out .item-name{color:var(--text3)}
+.item-habis{font-size:10px;font-weight:800;color:var(--red);background:#fee2e2;border-radius:6px;padding:2px 6px}
+.menu-item .item-qty{position:absolute;top:4px;right:4px;background:var(--primary);color:#fff;min-width:24px;height:24px;padding:0 6px;border-radius:12px;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+/* Sisa stok di pojok KIRI atas kartu menu (komentar browser #9, 2026-09-04) —
+   sengaja beda warna dari .item-qty (kanan atas) agar jumlah di keranjang dan
+   sisa stok tidak terbaca sebagai hal yang sama. */
+.menu-item .item-stok{position:absolute;top:4px;left:4px;background:rgba(0,0,0,.06);color:var(--text2);min-width:22px;height:22px;padding:0 5px;border-radius:11px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.menu-item .item-stok.habis{background:var(--red-bg);color:var(--red)}
+
+/* CATEGORY TABS */
+.cat-tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.cat-tabs::-webkit-scrollbar{display:none}
+.cat-tab{flex:0 0 auto;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:700;border:2px solid var(--border);background:#fff;color:var(--text2);cursor:pointer;white-space:nowrap;transition:background-color .15s,color .15s,border-color .15s}
+.cat-tab.active{background:var(--grad);color:#fff;border-color:var(--primary-dark)}
+
+/* Focus-visible catch-all (paritas base.css, konsolidasi P2 2026-08-22) */
+
+/* Phone: reduce cat-tab size to prevent overflow */
+@media (max-width:414px){
+  .cat-tab{padding:6px 10px;font-size:12px;border-radius:16px}
+}
+
+/* KERANJANG */
+.cart-item{display:flex;align-items:center;justify-content:space-between;gap:6px 10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.cart-item:last-child{border-bottom:none}
+.cart-info{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.cart-name{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-name-price{margin-left:0;flex:0 0 auto;font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap}
+.cart-meta{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-qty-price{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.cart-price{font-weight:700;color:var(--primary);font-size:15px;min-width:68px;text-align:right;white-space:nowrap}
+/* Stepper qty keranjang: tombol − / ＋ jadi LINGKARAN rasio 1:1 (permintaan
+   pemilik 2026-08-31, komentar browser "ubah semua tombol plus dan minus menjadi
+   bentuk lingkaran dengan rasio 1:1"). Kontainer tidak lagi jadi pil abu-abu
+   supaya tiap tombol terbaca sebagai lingkaran terpisah. */
+.qty-control{display:flex;align-items:center;gap:6px;background:none;border-radius:0;overflow:visible}
+.qty-btn{width:36px;height:36px;aspect-ratio:1/1;border:none;border-radius:50%;font-size:20px;font-weight:700;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;background:#f5f5f5;color:var(--text);padding:0}
+.qty-btn:active{background:#e0e0e0}
+/* Tombol − / ＋ di modal Pilihan Menu (qty menu) & stepper topping.
+   Selector `button[data-action=…]` = spesifisitas 0,1,1 → MENANG atas
+   `.btn{min-height:46/56/58px}` di media query (0,1,0) yang ditaruh lebih
+   bawah di file. Inline style width lama DIHAPUS dari template JS karena
+   inline mengalahkan CSS dan bikin tombol persegi panjang (lebar saja). */
+button[data-action="menu-selector-qty"]{width:38px;height:38px;min-width:38px;min-height:38px;aspect-ratio:1/1;border-radius:50%;padding:0;font-size:18px;font-weight:700;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+button[data-action="topping-qty"]{width:30px;height:30px;min-width:30px;min-height:30px;aspect-ratio:1/1;border-radius:50%;padding:0;font-size:15px;font-weight:700;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.qty-val{width:60px;text-align:center;font-size:16px;font-weight:800;border:none;background:transparent;padding:4px 0;-moz-appearance:textfield;appearance:textfield}
+.qty-val::-webkit-outer-spin-button,.qty-val::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qty-val:focus{outline:none;background:#e8e8e8;border-radius:6px}
+
+/* TRANSACTION LIST */
+.trx-item{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);gap:12px;cursor:pointer}
+.trx-item:last-child{border-bottom:none}
+.trx-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.trx-icon.sale{background:var(--green-bg);color:var(--green)}
+.trx-icon.expense{background:var(--red-bg);color:var(--red)}
+.trx-info{flex:1;min-width:0}
+.trx-info .trx-title{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trx-info .trx-sub{font-size:12px;color:var(--text3)}
+.trx-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.trx-amount{font-weight:800;font-size:15px;text-align:right;white-space:nowrap}
+.trx-amount.green{color:var(--green)}
+.trx-amount.red{color:var(--red)}
+
+/* Phone: tighter trx-item */
+@media (max-width:414px){
+  .trx-item{gap:8px;padding:10px 0}
+  .trx-icon{width:36px;height:36px;font-size:18px}
+  .trx-info .trx-title{font-size:13px}
+  .trx-info .trx-sub{font-size:11px}
+  .trx-amount{font-size:14px}
+  .trx-actions{gap:4px}
+}
+
+/* ── NOTIFIKASI PROFIL — CENTER LARGE IMMERSIVE ── */
+#profileBanner{position:fixed;inset:0;z-index:520;display:none;align-items:center;justify-content:center;padding:24px;margin:0}
+#profileBanner.show{display:flex}
+.prof-banner-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px)}
+.prof-banner-card{position:relative;width:100%;max-width:420px;background:var(--grad);color:#fff;border-radius:28px;padding:34px 22px 22px;box-shadow:0 24px 60px rgba(0,0,0,.45);text-align:center;animation:profPop .35s cubic-bezier(.22,1,.36,1);max-height:88vh;overflow-y:auto}
+@keyframes profPop{from{transform:translateY(30px) scale(.95);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+.prof-emoji{font-size:58px;margin-bottom:8px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.25))}
+.prof-banner-title{font-size:21px;font-weight:800;letter-spacing:.3px;margin-bottom:10px;color:#fff}
+.prof-banner-sub{font-size:13.5px;color:rgba(255,255,255,.94);line-height:1.65;margin-bottom:16px}
+.prof-banner-points{background:rgba(255,255,255,.15);border-radius:18px;padding:14px 16px;margin-bottom:18px;text-align:left;font-size:13px;line-height:1.55;display:flex;flex-direction:column;gap:10px}
+.prof-banner-points div{display:flex;gap:10px;align-items:flex-start;color:rgba(255,255,255,.97)}
+.prof-banner-points span:first-child{font-size:17px}
+.prof-banner-cta{width:100%;background:#fff;color:var(--primary);border:none;border-radius:16px;padding:15px;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.22);transition:transform .12s}
+.prof-banner-cta:active{transform:scale(.97)}
+/* Phone: banner profil kompak (dulu @380 di sini vs @414 di base.css —
+   disatukan ke 414 = perilaku render yang selama ini efektif, konsolidasi P2) */
+@media (max-width:414px){.prof-banner-card{padding:28px 16px 18px}.prof-emoji{font-size:48px}.prof-banner-title{font-size:18px}.prof-banner-sub{font-size:12.5px}}
+
+/* MODAL / OVERLAY */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:600;display:none;align-items:flex-end;justify-content:center;padding:0;padding-bottom:env(safe-area-inset-bottom);overflow-y:auto;-webkit-overflow-scrolling:touch;pointer-events:none}
+.modal-overlay.show{display:flex;pointer-events:auto}
+.modal-overlay.show .license-sheet,.modal-overlay.show .modal{pointer-events:auto}
+.modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:20px 16px;padding-bottom:calc(var(--nav-h) + 20px + env(safe-area-inset-bottom));animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:20px;font-weight:800;margin-bottom:16px;text-align:center}
+
+/* ── v170 (komentar browser 2026-09-05): modal GERBANG di tengah, tinggi ikut isi ─
+   Kelas dipasang pada OVERLAY, bukan pada .modal, supaya spesifikasinya (0,3,0)
+   mengalahkan dua aturan yang bikin bottom-sheet melebar/memanjang:
+     • `.modal:has(> .btn-row){min-height:90vh}` (baris 97) → modal setinggi layar
+     • `.modal{border-radius:20px 20px 0 0; padding-bottom:nav-h+20}` (baris 239)
+   Media query (baris 441/485/577) menulis ulang padding .modal dengan spesifikasi
+   (0,1,0) — tetap kalah oleh aturan di bawah, jadi tidak perlu duplikasi per-breakpoint.
+   Hanya dipakai oleh modal yang memang gerbang (saat ini #bukaKasModal); modal lain
+   tetap bottom-sheet seperti semula. */
+.modal-overlay.modal-center{align-items:center;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
+.modal-overlay.modal-center .modal{border-radius:20px;min-height:0;max-height:85vh;padding:22px 18px;animation:popIn .2s ease}
+.modal-overlay.modal-center .modal .btn-row{position:static;margin-top:18px;padding:0;border-top:none}
+
+/* ── v181: gerbang Buka Kas hanya mengunci KONTEN halaman ─
+   Bottom navbar tetap DI ATAS backdrop gerbang (z 340 < .bottom-nav 350)
+   supaya pindah halaman selalu bisa diklik saat gerbang aktif — permintaan
+   pemilik: gerbang kas hanya mengunci Jualan, halaman lain bebas.
+   Konten halaman tetap tertutup backdrop (tak bisa diklik tanpa buka kas). */
+#bukaKasModal.show{z-index:340}
+
+/* CONFIRM DIALOG */
+.confirm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:610;display:none;align-items:center;justify-content:center;padding:20px}
+.confirm-overlay.show{display:flex}
+.confirm-box{background:#fff;border-radius:var(--radius);padding:24px;max-width:340px;width:100%;text-align:center;animation:popIn .2s ease}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.confirm-box .confirm-icon{font-size:48px;margin-bottom:12px}
+.confirm-box .confirm-text{font-size:16px;font-weight:600;margin-bottom:20px;line-height:1.4}
+
+/* TOAST */
+.toast{position:fixed;top:calc(var(--header-h) + 12px);left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:30px;font-size:14px;font-weight:600;z-index:650;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1}
+.toast.show{pointer-events:auto}
+.toast .toast-action{pointer-events:auto;margin-left:10px;background:#fff;color:#333;border:none;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.toast.warning{background:var(--primary)}
+
+/* FORCE UPDATE OVERLAY — menutup SELURUH dashboard (di atas nav 700 & sheet 640),
+   user wajib tekan OKE -> reload -> profil tersinkron & aset baru termuat. */
+#updateOverlay{position:fixed;inset:0;z-index:800;background:rgba(43,36,32,.94);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+#updateOverlay.show{display:flex}
+/* v162 (komentar browser #1-#7) + revisi v163: kartu update dipecah jadi 3 zona.
+   HEAD = judul, badge versi, intro, label "Yang baru" — nempel di atas. Logo
+   dihapus atas permintaan pemilik (2026-09-03), kalimat penenang "Data jualanmu
+   aman, tidak ada yang hilang." pindah dari hint footer ke intro header.
+   BODY = daftar catatan, satu-satunya bagian yang memanjang tiap rilis, jadi
+   cuma dia yang menggulir; min-height:0 wajib supaya area ini mau menyusut
+   (bukan mendorong kartu/melempar footer ke luar layar) saat catatannya banyak.
+   FOOT = tombol OKE saja, nempel di bawah. Flex column + scroll internal begini
+   lebih jujur daripada position:sticky + shadow "menyamarkan" teks yang lewat:
+   header/footer benar-benar tidak pernah tertutupi catatan. */
+.update-card{background:#fff;border-radius:20px;padding:0;max-width:420px;width:100%;max-height:88vh;overflow:hidden;text-align:center;animation:popIn .3s ease;display:flex;flex-direction:column}
+.update-head{flex:0 0 auto;padding:20px 20px 12px;background:#fff;box-shadow:0 10px 12px -12px rgba(43,36,32,.28)}
+.update-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:12px 20px 10px;-webkit-overflow-scrolling:touch;text-align:left}
+.update-foot{flex:0 0 auto;padding:14px 20px 20px;background:#fff;box-shadow:0 -10px 12px -12px rgba(43,36,32,.28)}
+.update-title{font-size:20px;font-weight:800;margin-top:0}
+.update-version{display:inline-block;background:var(--orange-bg);color:var(--primary);font-weight:800;font-size:13px;border-radius:20px;padding:4px 14px;margin-top:8px}
+.update-sub{font-size:13.5px;color:var(--text2);line-height:1.6;margin-top:12px;text-align:left}
+.update-notes-title{font-size:13px;font-weight:800;margin-top:14px;text-align:left}
+.update-notes{list-style:none;padding:0;margin:0;text-align:left;display:flex;flex-direction:column;gap:8px}
+.update-notes li{font-size:13px;color:var(--text);line-height:1.55;background:var(--paper);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-state .empty-icon{font-size:60px;margin-bottom:12px;opacity:.5}
+.empty-state .empty-text{font-size:15px;font-weight:600;line-height:1.4}
+
+/* REPORT TABS */
+.report-tabs{display:flex;background:#f0f0f0;border-radius:12px;padding:4px;margin-bottom:16px}
+.report-tab{flex:1;padding:10px;border-radius:10px;text-align:center;font-size:14px;font-weight:700;cursor:pointer;color:var(--text3);transition:background-color .15s,color .15s,box-shadow .15s}
+.report-tab.active{background:#fff;color:var(--primary);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* CHART BAR */
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:140px;padding:8px 0}
+.chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.chart-bar{width:100%;border-radius:6px 6px 0 0;min-height:4px}
+.chart-bar.income{background:var(--green-light)}
+.chart-bar.expense{background:var(--red-light)}
+.chart-label{font-size:10px;color:var(--text3);font-weight:600}
+.chart-val{font-size:9px;color:var(--text2);font-weight:700}
+
+/* TOP MENU LIST */
+.top-menu-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.top-menu-item:last-child{border-bottom:none}
+.top-rank{width:28px;height:28px;border-radius:50%;background:var(--orange-bg);color:var(--primary);font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.top-menu-info{flex:1}
+.top-menu-name{font-weight:700;font-size:14px}
+.top-menu-stat{font-size:12px;color:var(--text3)}
+.top-menu-total{font-weight:800;color:var(--green);font-size:14px}
+
+/* SETTINGS LIST */
+.setting-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.setting-item:last-child{border-bottom:none}
+.setting-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.setting-info{flex:1}
+.setting-info .s-title{font-weight:700;font-size:15px}
+.setting-info .s-desc{font-size:12px;color:var(--text3)}
+.setting-arrow{color:var(--text3);font-size:18px}
+/* Settings responsive grid (cards sit side-by-side on tablets instead of one tall column) */
+.settings-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.settings-grid .card{margin-bottom:0}
+/* Kartu pengaturan jadi grid. HANYA saat .active — tanpa .active, selector
+   #page-pengaturan (specificity 100) mengalahkan .page{display:none} (10)
+   sehingga kartu bocor ke semua halaman. Paritas components-settings.css. */
+#page-pengaturan.active{display:grid;gap:16px;grid-template-columns:1fr}
+
+/* SEARCH */
+.search-box{display:flex;align-items:stretch;gap:8px;margin-bottom:12px;position:relative;width:100%;min-width:0;max-width:100%}
+/* stretch: input & tombol Kategori sama tinggi (baris mengikuti item tertinggi) */
+.search-box input{flex:1;min-width:0;padding:12px 16px 12px 44px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-weight:600;background:#fff}
+.search-box .btn{flex:0 0 auto;width:auto;min-width:0;white-space:nowrap}
+.search-box input:focus{outline:none;border-color:var(--primary)}
+.search-box .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--text3)}
+/* Modal menu selector: TAB pilih app ojol — baris tab app di atas catatan
+   (pengganti akordeon "Pilih app", 2026-08-31). 1 tab = 1 app milik menu
+   terbuka; harga ojol app tampil di bawah nama. Tab aktif = oranye. */
+.ojol-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:8px;-webkit-overflow-scrolling:touch}
+.ojol-tab{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:64px;padding:7px 12px;font-size:13px;font-weight:700;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text2);cursor:pointer;white-space:nowrap}
+.ojol-tab.active{border-color:var(--primary);background:var(--orange-bg);color:var(--primary)}
+/* Harga satuan pindah ke baris nama menu (komentar browser #1, v146) — dulu
+   .ojol-tab-harga menempel di dalam tiap tab app, sekarang di kiri tombol −. */
+.ms-harga{font-size:15px;font-weight:800;color:var(--primary);white-space:nowrap}
+#menuSelectorModal #orderNoteBox{margin:8px 0 0} /* override margin -2px base .order-note-box */
+/* Modal catat transaksi: tab Pengeluaran | Pemasukan */
+.txn-tabs{display:flex;gap:4px;margin-bottom:14px;background:var(--bg);padding:4px;border-radius:10px}
+.txn-tab{flex:1;height:36px;min-height:36px;border:none;border-radius:8px;background:none;font-weight:700;font-size:13px;color:var(--text2);cursor:pointer}
+.txn-tab.active{background:#fff;color:var(--primary);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* Menu & Jualan: search-box sticky — kontainer full-bleed & nempel tepi bawah
+   header (margin-top = -padding), konten di dalamnya tetap berjarak dari header.
+   width:auto + max-width:none wajib: .search-box base memakai width/max-width:100%
+   sehingga margin negatif kanan jadi over-constrained (diabaikan) — kotak tidak
+   sampai tepi kanan layar (celah 2×padding) & bisa bocor saat konten scroll.
+   Padding atas=bawah → input & tombol Kategori CENTER vertikal di kontainer;
+   margin-bottom 0 (padding bawah sudah memberi jarak ke list + menutup leak). */
+#page-menu .search-box{position:sticky;top:0;z-index:30;background:var(--bg);margin:-12px -12px 0;padding:12px 12px 12px;width:auto;max-width:none}
+/* Jualan: search-box TIDAK punya kontainer sendiri — dia anak biasa .pos-controls
+   (satu kontainer dgn tipe pesanan & catatan). Sticky full-bleed-nya pindah ke
+   .pos-controls, background sama var(--bg) (style .pos-controls). */
+#page-jualan .pos-controls{margin:-12px -12px 12px;padding:12px 12px 8px;width:auto;max-width:none}
+/* Ikon 🔍 melekat pada search-box (bukan input): left = padding sticky + 14px
+   offset dalam input (12px di ≤375px). Padding kini simetris → top:50% murni,
+   center kontainer = center input. */
+#page-menu .search-box .search-icon{left:26px;top:50%}
+@media(min-width:600px){#page-menu .search-box{margin:-20px -24px 0;padding:20px 24px 20px}#page-menu .search-box .search-icon{left:38px;top:50%}#page-jualan .pos-controls{margin:-20px -24px 12px;padding:20px 24px 8px}}
+@media(min-width:900px){#page-menu .search-box{margin:-24px -40px 0;padding:24px 40px 24px}#page-menu .search-box .search-icon{left:54px;top:50%}#page-jualan .pos-controls{margin:-24px -40px 12px;padding:24px 40px 8px}}
+
+/* DATE PICKER */
+.date-nav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.date-nav .date-label{flex:1;text-align:center;font-size:16px;font-weight:800;padding:10px;background:#fff;border-radius:10px;border:1px solid var(--border)}
+.date-nav .date-btn{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--text)}
+.date-nav .date-btn:active{background:#f5f5f5}
+.date-nav .custom-date-input{border:1px solid var(--border);border-radius:10px;padding:9px 10px;font-size:15px;font-weight:700;color:var(--text);background:#fff;outline:none;-webkit-appearance:none;appearance:none;max-width:100%}
+.date-nav .custom-date-input:focus{border-color:var(--primary)}
+
+/* ===== Kontekstual date picker (harian/mingguan/bulanan) — pindahan
+   components.css, konsolidasi P2 2026-08-22. Latar krem-oranye + border +
+   bayangan supaya jelas terpisah dari kartu konten laporan di bawahnya. ===== */
+.date-nav .date-label{transition:opacity .15s ease}
+.date-nav .date-label:active{opacity:.6}
+.date-nav .date-label.active{color:var(--primary);text-decoration:underline;text-underline-offset:3px}
+.date-nav .custom-picker{width:100%;box-sizing:border-box;background:var(--orange-bg);border:2px solid rgba(230,81,0,.35);border-radius:12px;padding:10px;box-shadow:0 8px 20px rgba(43,36,32,.14)}
+/* Panah geser bulan per kalender custom (revisi 2026-09-08) */
+.cal-title-nav{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.cal-nav-btn{width:26px;height:26px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1}
+.cal-nav-btn:disabled{opacity:.28;cursor:default}
+.cal-nav-btn:active:not(:disabled){background:var(--orange-bg)}
+.date-nav .custom-picker .cal-cell{background:#fff}
+.date-nav .cal-title{text-align:center;font-weight:800;font-size:13px;color:var(--text);margin-bottom:6px}
+.date-nav .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.date-nav .cal-head{text-align:center;font-size:10px;font-weight:800;color:var(--text3);padding-bottom:2px}
+.date-nav .cal-cell{height:clamp(30px,7vw,38px);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--text);background:#f7f7f7;border-radius:8px;cursor:pointer;user-select:none}
+.date-nav .cal-cell.empty{visibility:hidden}
+.date-nav .cal-cell.today{border:2px solid var(--primary)}
+.date-nav .cal-cell.sel{background:var(--grad);color:#fff}
+/* Klik 1 (tanggal mulai) oranye; klik 2 (tanggal akhir) MERAH — pembeda
+   visual fase picker custom (revisi 2026-09-08, penting utk kalender yang
+   sama bulannya agar tidak ambigu). */
+.date-nav .cal-cell.sel.sel-start{background:var(--grad)}
+.date-nav .cal-cell.sel.sel-end{background:var(--red);color:#fff}
+.date-nav .cal-cell.inrange{background:rgba(230,81,0,.14);box-shadow:inset 0 0 0 1px rgba(230,81,0,.35)}
+.date-nav .cal-cell:active{opacity:.6}
+.date-nav .week-opt{display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 12px;margin-bottom:5px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:13px;cursor:pointer;color:var(--text)}
+.date-nav .week-opt b{font-weight:800}
+.date-nav .week-opt span{font-size:12px;color:var(--text3);font-weight:600}
+.date-nav .week-opt.sel{border-color:var(--primary-dark);background:var(--grad);color:#fff}
+.date-nav .week-opt.sel span{color:rgba(255,255,255,.85)}
+.date-nav .week-opt:active{opacity:.7}
+.date-nav .month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.date-nav .month-opt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:10px 4px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:13px;cursor:pointer;color:var(--text)}
+.date-nav .month-opt b{font-weight:800}
+.date-nav .month-opt span{font-size:10px;color:var(--text3);font-weight:600}
+.date-nav .month-opt.sel{border-color:var(--primary-dark);background:var(--grad);color:#fff}
+.date-nav .month-opt.sel span{color:rgba(255,255,255,.85)}
+.date-nav .month-opt:active{opacity:.7}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px}
+
+/* Number input no spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+
+/* === TABLET PORTRAIT (600px+) === */
+@media(min-width:600px){
+:root{--header-h:64px;--nav-h:76px}
+.app-header{left:0;right:0;max-width:100%;padding:0 24px}
+.app-header .header-logo{width:40px;height:40px}
+.app-header h1{font-size:19px}
+.main-content{width:100%;max-width:none;margin-top:var(--header-h);margin-bottom:var(--nav-h);padding:20px 24px 28px}
+.bottom-nav{max-width:100%;left:0;right:0;transform:none}
+.stat-grid{grid-template-columns:1fr 1fr;gap:14px}
+/* Kategori & Suplayer: 2 kolom mulai tablet (HP = 1 kolom, base) */
+.kgrid-konsinyasi{grid-template-columns:1fr 1fr}
+.stat-card.full{grid-column:1/-1}
+.menu-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px}
+.menu-item{padding:16px 12px}
+.menu-item .item-emoji{font-size:38px}
+.menu-item .item-name{font-size:14px}
+.menu-item .item-price{font-size:15px}
+.btn{min-height:56px;font-size:17px}
+.card{padding:20px;margin-bottom:16px}
+.card-title{font-size:16px}
+.form-input{padding:16px 18px;font-size:18px}
+.nav-item{font-size:12px}
+.nav-item .nav-icon{font-size:28px}
+.modal{max-width:560px;margin:0 auto;padding:24px 20px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom))}
+.stat-value{font-size:24px}
+.trx-item{padding:14px 0;gap:14px}
+.trx-icon{width:48px;height:48px;font-size:24px}
+.trx-info .trx-title{font-size:15px}
+.trx-amount{font-size:16px}
+.setting-item{padding:16px 0;gap:16px}
+.setting-icon{width:48px;height:48px;font-size:24px;border-radius:14px}
+.setting-info .s-title{font-size:16px}
+.setting-info .s-desc{font-size:13px}
+.search-box input{padding:14px 16px 14px 46px;font-size:16px}
+.cat-tab{padding:10px 18px;font-size:15px}
+.confirm-box{max-width:420px;padding:28px}
+.fab{width:68px;height:68px;font-size:34px}
+#cartBar{max-width:600px!important}
+/* Settings: 2-column card grid on tablet portrait */
+.settings-grid{grid-template-columns:1fr 1fr;gap:16px}
+#page-pengaturan.active{grid-template-columns:repeat(2,1fr)}
+/* Report date nav fits wider tablet */
+.date-nav .date-label{font-size:16px}
+}
+
+/* === TABLET LANDSCAPE / SMALL DESKTOP (900px+) === */
+@media(min-width:900px){
+:root{--header-h:68px;--nav-h:80px}
+.app-header{padding:0 40px}
+.app-header .header-logo{width:44px;height:44px}
+.app-header h1{font-size:21px}
+.main-content{width:100%;max-width:none;margin-top:var(--header-h);margin-bottom:var(--nav-h);padding:24px 40px 32px}
+.stat-grid{grid-template-columns:repeat(3,1fr);gap:16px}
+.stat-card.full{grid-column:span 1}
+.menu-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px}
+.menu-item{padding:18px 14px}
+.menu-item .item-emoji{font-size:42px}
+.menu-item .item-name{font-size:15px}
+.menu-item .item-price{font-size:16px}
+.btn{min-height:58px;font-size:18px;border-radius:14px}
+.card{padding:24px;margin-bottom:18px;border-radius:20px}
+.card-title{font-size:17px;margin-bottom:16px}
+.form-group{margin-bottom:20px}
+.form-input{padding:16px 20px;font-size:18px;border-radius:14px}
+.form-label{font-size:15px}
+.nav-item{font-size:13px;gap:4px}
+.nav-item .nav-icon{font-size:30px}
+.modal{max-width:600px;border-radius:24px 24px 0 0;padding:28px 24px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom))}
+.modal-title{font-size:22px}
+.stat-value{font-size:26px}
+.stat-label{font-size:13px}
+.stat-icon{font-size:32px}
+.trx-item{padding:16px 0;gap:16px}
+.trx-icon{width:52px;height:52px;font-size:26px}
+.trx-info .trx-title{font-size:16px}
+.trx-info .trx-sub{font-size:13px}
+.trx-amount{font-size:17px}
+.setting-item{padding:18px 0;gap:18px}
+.setting-icon{width:52px;height:52px;font-size:26px}
+.settings-grid{grid-template-columns:repeat(3,1fr)}
+#page-pengaturan.active{grid-template-columns:repeat(3,1fr)}
+.chart-bars{height:200px}
+.search-box input{padding:14px 18px 14px 48px;font-size:16px}
+.cat-tab{padding:10px 20px;font-size:15px}
+.report-tabs{margin-bottom:20px}
+.report-tab{padding:12px;font-size:15px}
+.confirm-box{max-width:460px;padding:32px}
+.confirm-box .confirm-icon{font-size:56px}
+.confirm-box .confirm-text{font-size:18px}
+.qty-btn{width:42px;height:42px;font-size:22px}
+.qty-val{font-size:18px;width:60px}
+.fab{width:72px;height:72px;font-size:36px;bottom:calc(var(--nav-h) + 20px);right:40px}
+.date-nav .date-btn{width:48px;height:48px;font-size:22px}
+.date-nav .date-label{font-size:17px;padding:12px}
+#cartBar{max-width:700px!important}
+.empty-state{padding:60px 20px}
+.empty-state .empty-icon{font-size:72px}
+.empty-state .empty-text{font-size:17px}
+}
+
+/* === LARGE SCREEN (1100px+) === */
+@media(min-width:1100px){
+.menu-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:18px}
+.menu-item{padding:20px 16px}
+.menu-item .item-emoji{font-size:46px}
+.menu-item .item-name{font-size:16px}
+.menu-item .item-price{font-size:17px}
+.stat-value{font-size:28px}
+.stat-icon{font-size:34px}
+.card{padding:28px;margin-bottom:20px}
+.trx-info .trx-title{font-size:17px}
+.trx-amount{font-size:18px}
+}
+
+/* =========================================
+   RESPONSIVE BREAKPOINTS (2026-08-28)
+   -----------------------------------------
+   1) HP kecil   : <= 375px  (layar 320–375px) — font & spacing dipadatkan
+   2) HP normal  : 376–599px — gaya dasar mobile-first di atas (default)
+   3) Tablet     : >= 600px  (potrait) / 900px (landscape) — grid 2–3 kolom
+   ========================================= */
+
+/* ── HP KECIL (<= 375px) ── */
+/* HP kecil (<=375px): Uang Diterima + Kembalian ditumpuk 1 kolom; normal/sedang
+   ke atas tetap 2 kolom — revisi 2026-09-08 (komentar browser). */
+@media (max-width:375px){
+  :root{--nav-h:64px;--header-h:54px}
+  #cashPayBlock .kgrid-2col-gap12{grid-template-columns:1fr;gap:8px}
+  .app-header{padding:0 12px}
+  .app-header h1{font-size:15px}
+  .app-header .header-logo{width:30px;height:30px;margin-right:8px}
+  .app-header .header-btn{width:38px;height:38px;font-size:18px}
+  .main-content{padding:10px 10px 16px}
+
+  /* Stat: tetap 2 kolom, padding dipadatkan agar angka tidak tumpah */
+  .stat-grid{gap:8px}
+  .stat-card{padding:11px 8px}
+  .stat-icon{font-size:24px}
+  .stat-value{font-size:19px}
+  .stat-label{font-size:11px}
+
+  .card{padding:13px}
+  .card-title{font-size:14px}
+  .btn{min-height:46px;padding:12px 16px;font-size:15px;border-radius:11px}
+  .fab{width:56px;height:56px;font-size:28px;right:12px}
+
+  .search-box input{padding:10px 12px 10px 40px;font-size:14px}
+  .search-box .search-icon{left:12px;font-size:16px}
+  /* Full-bleed sticky search: padding .main-content di HP kecil = 10px (bukan 12px),
+     jadi margin -12px membuat box menembus tepi viewport 2px (x=-2). Samakan nilai margin
+     dengan padding parent agar box tepat nempel tepi viewport tanpa overflow. */
+  #page-menu .search-box{margin:-10px -10px 0;padding:10px 10px 10px}
+  #page-menu .search-box .search-icon{left:22px;top:50%}
+  #page-jualan .pos-controls{margin:-10px -10px 12px;padding:10px 10px 8px}
+  /* Search box tetap sejajar horizontal: padatkan tombol Kategori agar input tetap lega */
+  .search-box .btn{padding:8px 10px;font-size:13px;min-height:42px;gap:4px}
+  #orderTypeButtons .btn{padding:10px 10px;font-size:13px;min-height:42px}
+
+  .menu-item .item-name{font-size:12.5px}
+  .menu-item .item-emoji{font-size:30px}
+
+  /* Modal: tepi & tombol aksi lebih rapat agar konten tidak mentok */
+  .modal{padding:18px 12px calc(var(--nav-h) + 16px + env(safe-area-inset-bottom))}
+  .modal-title{font-size:18px}
+  .form-group{margin-bottom:14px}
+  .form-input{padding:12px 14px;font-size:16px}
+  .kgrid-2col-gap8,.kgrid-konsinyasi{gap:8px}
+  /* HP kecil: semua field diurutkan vertikal (1 kolom) */
+  .kgrid-2col-gap8.kgrid-2col-gap8,.kgrid-2col-gap12.kgrid-2col-gap12,.kgrid-konsinyasi.kgrid-konsinyasi{grid-template-columns:1fr;gap:10px}
+  .toggle-switch{transform:scale(.9)}
+
+  /* Kartu transaksi: kompak */
+  .trx-item{gap:8px;padding:9px 0}
+  .trx-icon{width:34px;height:34px;font-size:17px}
+  .trx-actions{gap:4px}
+  .qty-btn{width:32px;height:32px;font-size:18px}
+  .qty-val{width:56px;font-size:15px}
+
+  /* Laporan */
+  .report-tab{padding:9px;font-size:13px}
+  .date-nav .date-btn{width:40px;height:40px;font-size:18px}
+  .date-nav .date-label{padding:8px;font-size:15px}
+
+  /* Header/label teks panjang tetap terpotong rapi, tanpa scroll horizontal */
+  .ktruncate,.ktab-label,.kdate-label,.trial-badge{max-width:100%}
+}
+
+/* Inisialisasi touch UX (berlaku semua ukuran) */
+button,[role="button"]{touch-action:manipulation}
+
+/* === PHONE LANDSCAPE (short height) === */
+@media(orientation:landscape) and (max-height:500px){
+:root{--header-h:48px;--nav-h:56px}
+.app-header h1{font-size:15px}
+.app-header .header-logo{width:30px;height:30px}
+.nav-item .nav-icon{font-size:22px}
+.nav-item{font-size:10px}
+.stat-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+.stat-card{padding:10px}
+.stat-card.full{grid-column:span 1}
+.stat-icon{font-size:22px;margin-bottom:2px}
+.stat-value{font-size:18px}
+.stat-label{font-size:11px}
+.menu-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+.menu-item{padding:10px 6px}
+.menu-item .item-emoji{font-size:26px}
+.card{padding:12px;margin-bottom:8px}
+.modal{max-height:95vh}
+}
+
+/* === TABLET LANDSCAPE (wider + taller) === */
+@media(orientation:landscape) and (min-height:501px) and (min-width:900px){
+.stat-grid{grid-template-columns:repeat(3,1fr)}
+.stat-card.full{grid-column:span 1}
+.menu-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.settings-grid{grid-template-columns:repeat(3,1fr)}
+}
+
+/* Skeleton loading (P3) */
+.skeleton { width: 100%; padding: 4px 0; }
+.skeleton-line {
+  height: 16px; border-radius: 8px; margin: 10px 0;
+  background: linear-gradient(90deg, #eee 25%, #f7f7f7 37%, #eee 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+.skeleton-line:nth-child(1) { width: 90%; }
+.skeleton-line:nth-child(2) { width: 70%; }
+.skeleton-line:nth-child(3) { width: 80%; }
+.skeleton-line:nth-child(4) { width: 100%; }
+.skeleton-line:nth-child(5) { width: 55%; }
+.skeleton-line:nth-child(6) { width: 85%; }
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* =========================================
+   ACCESSIBILITY - Reduced Motion
+   ========================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton-line {
+    animation: none !important;
+    background: #f0f0f0 !important;
+  }
+  .license-progress span {
+    animation: none !important;
+  }
+  .plat-carousel-track {
+    transition: none !important;
+  }
+}
+
+/* === LICENSE / TRIAL COMPONENTS (adopted from Kasir Solo Rosok) === */
+.header-right{display:flex;align-items:center;gap:8px}
+.trial-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;padding:5px 10px;border-radius:10px;text-align:center;flex-shrink:0;min-width:62px;cursor:pointer;line-height:1.15}
+.trial-badge.warn{background:#fff;color:var(--primary-dark);border-color:#fff}
+.trial-label-xs{font-size:9px;opacity:.9;letter-spacing:.5px}
+.trial-value-sm{font-weight:700;font-size:12px}
+
+.badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;line-height:1.4}
+.badge.green{background:#E8F5E9;color:var(--green)}
+.badge.orange{background:#FFF3E0;color:var(--primary-dark)}
+.badge.red{background:#FFEBEE;color:var(--red)}
+.badge.compact{font-size:13px;padding:6px 14px}
+
+.license-card-active{text-align:center;padding:18px;border-color:rgba(46,125,50,.2)}
+.license-card-active .license-icon{font-size:40px;margin-bottom:8px}
+.license-card-active .license-key{font-size:13px;color:var(--text3);margin-top:8px;margin-bottom:0;word-break:break-all}
+.license-card-active .license-expiry{font-size:12px;color:var(--text3);margin:4px 0 8px}
+.license-card-active .license-desc{font-size:12px;color:var(--text3);margin-top:8px;line-height:1.4}
+.license-card-trial{text-align:center}
+.license-card-revoked{text-align:center;padding:20px;border:2px solid var(--red);background:linear-gradient(180deg,#fff,var(--red-bg));box-shadow:0 4px 16px rgba(198,40,40,.12)}
+.license-card-revoked .license-icon{font-size:44px;margin-bottom:6px}
+.license-card-revoked .license-title{font-size:16px;color:var(--red)}
+.license-card-revoked .license-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-top:6px}
+.license-header{margin-bottom:12px}
+.license-header .badge{margin-left:6px}
+.license-icon{font-size:32px;margin-bottom:8px}
+.license-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px}
+.license-description{font-size:13px;color:var(--text2);margin-bottom:8px;line-height:1.4}
+.license-extend-section{margin-top:12px}
+.license-extend-section .license-usage{margin-top:8px}
+.license-usage{text-align:center;font-size:12px;color:var(--text3)}
+.license-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.btn-extend{background:var(--grad-green);color:#fff;border:none;padding:14px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;width:100%}
+.btn-extend:active{transform:scale(.98)}
+.btn-buy-wa{background:#fff;border:1.5px solid var(--primary-dark);color:var(--primary-dark);padding:14px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.btn-buy-wa:active{transform:scale(.98)}
+.field-label{display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:6px}
+.mt12{margin-top:12px}
+.hint{margin-top:12px;font-size:12px;color:var(--text3);line-height:1.4}
+.uppercase{text-transform:uppercase}
+
+/* License sheet (bottom sheet) */
+.license-sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:20px;padding-bottom:calc(100px + env(safe-area-inset-bottom));animation:sheetUp .3s ease}
+#sheetPurchase.show{z-index:640}
+@keyframes sheetUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.license-sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sheet-close{background:#f2f2f2;border:none;width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--text2)}
+.license-sheet-body{max-width:480px;margin:0 auto}
+.license-lock-card{text-align:center;padding:24px;max-width:480px;width:90%;border-radius:20px}
+
+/* ===== License extras — pindahan components-license.css, konsolidasi P2 2026-08-22 ===== */
+.license-state-card{border:1px solid rgba(191,54,12,.12);box-shadow:0 8px 24px rgba(90,45,10,.08);padding:18px}
+.license-steps{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:18px;color:var(--text3);font-size:10px;font-weight:700}
+.license-step{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:40px}
+.license-step-dot{width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:#f1f1f1;color:var(--text3)}
+.license-step.is-current{color:var(--primary-dark)}
+.license-step.is-current .license-step-dot{background:var(--primary-dark);color:#fff;box-shadow:0 0 0 4px rgba(191,54,12,.12)}
+.license-step.is-done{color:var(--green)}
+.license-step.is-done .license-step-dot{background:var(--green-bg);color:var(--green)}
+.license-step-line{flex:1;max-width:30px;height:2px;background:#e5e5e5;margin-bottom:16px}
+.license-actions-primary{grid-template-columns:1.25fr 1fr}
+.license-actions-row{grid-template-columns:1.25fr 1fr;align-items:stretch}
+.license-actions-row .btn-buy-wa,.license-actions-row .btn{min-height:48px;padding:13px 12px;font-size:13px}
+.license-secondary-actions{text-align:center;margin-top:8px}
+.license-secondary-actions .btn{font-size:12px}
+.license-active-actions{margin-top:14px}
+.license-active-actions .btn{width:100%}
+/* v160 (komentar browser #1 & #2): ISI bar kuota hijau, WADAH/track oranye.
+   Sebelumnya terbalik — isi oranye brand (override v151) di atas track krem #f3eadf. */
+.license-progress{height:6px;border-radius:99px;background:#FFE0B2;overflow:hidden;margin:16px 0 4px}
+.license-progress span{display:block;width:66%;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--green-light),var(--green));animation:licenseProgress 1.6s ease-in-out infinite alternate}
+@keyframes licenseProgress{from{width:54%}to{width:78%}}
+.license-hint{color:var(--text3);font-size:11px;margin-top:10px}
+.badge.amber{background:#FFF8E1;color:#b45309}
+.license-card-pending{text-align:center;padding:16px}
+.license-card-pending .license-icon{font-size:40px;margin-bottom:8px}
+.license-card-pending .license-title{font-size:15px}
+.license-card-pending .license-description{font-size:13px;color:var(--text2);line-height:1.5}
+.manual-key-toggle{font-size:12px;color:var(--text3);text-align:center;margin-top:14px}
+.manual-key-toggle a{color:var(--text3);text-decoration:underline}
+.manual-key-wrap{display:none;margin-top:10px;text-align:left}
+.manual-key-wrap .btn{width:100%;margin-top:8px}
+
+/* PLATFORM CAROUSEL */
+.plat-carousel{position:relative;overflow:hidden;border-radius:var(--radius);color:#fff}
+.plat-carousel-track{display:flex;transition:transform .35s ease}
+.plat-carousel-slide{min-width:100%;padding:20px 18px}
+.plat-carousel-slide .plat-emoji{font-size:28px;margin-bottom:8px}
+.plat-carousel-slide .plat-title{font-size:15px;font-weight:800;margin-bottom:4px;line-height:1.3}
+.plat-carousel-slide .plat-body{font-size:12.5px;opacity:0.88;line-height:1.55}
+.plat-carousel-dots{display:flex;justify-content:center;gap:6px;padding:0 0 12px 0}
+.plat-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.4);border:none;cursor:pointer;padding:0;transform-origin:left center;transition:transform .2s,background-color .2s}
+.plat-dot.active{background:#fff;transform:scaleX(2.6)}
+
+/* === P1 audit 2026-08-22 — paritas components-modal.css & components-cart.css === */
+#licenseGate{display:none;position:fixed;inset:0;background:var(--bg);z-index:500;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+body.modal-open .main-content{overflow:hidden}
+/* v153: #cartBar = WRAPPER transparan (flex row). Tombol "Tahan" cart-bar sudah
+   DIHAPUS (aksi tahan pindah ke footer modal keranjang sejak v152) — isi wrapper
+   hanya .cart-bar-inner (flex:1 → keranjang kembali melebar penuh).
+   JS toggle display:flex/none (renderCartBar). */
+#cartBar{display:none;position:fixed;bottom:calc(var(--nav-h) + 8px);left:8px;right:8px;max-width:90%;margin:0 auto;background:transparent;color:#fff;border-radius:0;padding:0;z-index:50;align-items:stretch;gap:10px}
+/* Kontainer hijau keranjang (dulu #cartBar) — tetap tombol buka modal cart. */
+.cart-bar-inner{flex:1 1 auto;min-width:0;background:var(--grad-green);color:#fff;border-radius:16px;padding:14px 20px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+/* FAB "Tahan" (v148): pojok kanan bawah di atas cart. Default hidden (display:none)
+   sampai class `.show` ditambah oleh updateHeldFab(). Badge counter di pojok
+   kanan-atas (lingkaran merah kecil seperti FAB Material). */
+.held-fab{display:none;position:fixed;right:14px;bottom:calc(var(--nav-h) + 76px);width:56px;height:56px;border-radius:50%;background:var(--grad);color:#fff;border:none;box-shadow:var(--shadow-brand);cursor:pointer;z-index:55;align-items:center;justify-content:center;transition:transform .15s ease, box-shadow .15s ease}
+.held-fab.show{display:flex}
+.held-fab:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.32)}
+.held-fab:active{transform:translateY(0)}
+.held-fab-icon{font-size:26px;line-height:1}
+.held-fab-badge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:10px;background:#e23b3b;color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 1px 4px rgba(0,0,0,.3);border:2px solid #fff}
+/* Modal daftar held (v148): list rows dengan tipe, total, item summary, waktu,
+   tombol "Buka" + "Hapus". Padding aman untuk layar kecil. */
+#heldListBody{max-height:60vh;overflow-y:auto}
+.held-row{display:flex;align-items:stretch;gap:8px;padding:12px;margin-bottom:10px;background:var(--card-bg,#f7f7f7);border:1px solid var(--border,#e3e3e3);border-radius:12px}
+.held-row-main{flex:1;min-width:0}
+.held-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.held-row-title{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.held-name-badge{background:var(--grad);color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800}
+.held-row-type{font-size:12px;color:var(--text2,#555);font-weight:600}
+.held-row-total{font-weight:800;color:var(--primary,#2563eb);font-size:15px}
+.held-row-meta{font-size:12px;color:var(--text2,#555);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.held-row-time{font-size:11px;color:var(--text2,#888)}
+/* v157 komentar #1: .held-row-note DIHAPUS — baris catatan tak lagi dirender (sudah ada di judul kartu) */
+/* v157 komentar #2: total dipindah ke kolom aksi, SEJAJAR tombol hapus (center vertikal) */
+.held-row-actions{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:10px;flex:0 0 auto}
+/* v151 komentar browser: tombol hapus held = lingkaran rasio 1:1 outline merah
+   (satu bahasa visual dengan .btn-clear-cart di header keranjang). */
+.held-row-delete{width:40px;height:40px;min-height:40px;aspect-ratio:1/1;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;transition:background-color .15s,color .15s}
+.held-row-delete:hover,.held-row-delete:focus-visible{background:var(--red);color:#fff;outline:none}
+.held-row-delete:active{transform:scale(.96)}
+/* v151 komentar browser #4+#5: seluruh kartu held bisa diklik (buka pesanan)
+   — kasih affordance pointer + feedback tekan seperti .menu-item. */
+.held-row{cursor:pointer}
+.held-row:active{background:var(--orange-bg,#fff3e0);transform:scale(.99)}
+/* v151 komentar browser #3: kotak pencarian di modal daftar held. */
+.held-search-input{width:100%;box-sizing:border-box;padding:11px 14px;font-size:15px;border:1.5px solid var(--border,#ccc);border-radius:12px;background:var(--bg,#fff);color:var(--text,#111);margin:10px 0}
+.held-search-input:focus{outline:none;border-color:var(--orange,#ff8a3d)}
+
+/* =========================================
+   KSR UTILITIES (P4 2026-08-22)
+   =========================================
+   Paritas lengkap dengan _KEY_CSS di js/helpers.js.
+   Pemanggilan di template: class="${ksr('mt16','flex-center')}"
+   → class=" kmt16 kflex-center" (lihat helpers.js untuk daftar key).
+*/
+/* Margins */
+.kmt2{margin-top:2px}.kmt8{margin-top:8px}.kmt10{margin-top:10px}.kmt12{margin-top:12px}.kmt14{margin-top:14px}.kmt16{margin-top:16px}
+.kmb8{margin-bottom:8px}.kmb10{margin-bottom:10px}.kmb12{margin-bottom:12px}.kmb16{margin-bottom:16px}
+.kml20{margin-left:20px}
+/* Paddings */
+.kp10{padding:10px}.kp12{padding:12px}.kpt12{padding-top:12px}.kpl20{padding-left:20px}
+/* Flex & display */
+.kflex{display:flex}.kflex-1{flex:1}
+.kflex-center{display:flex;align-items:center;justify-content:center}
+.kflex-between{display:flex;align-items:center;justify-content:space-between}
+.kflex-between-mb12{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.kflex-gap4{display:flex;gap:4px}.kflex-gap10{display:flex;align-items:center;gap:10px}.kflex-gap12{display:flex;gap:12px}
+.kflex-col{display:flex;flex-direction:column}.kflex-wrap{display:flex;flex-wrap:wrap}
+.kgrid-4col{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.kcol-span2{grid-column:1/-1}
+.khide{display:none}.kcenter{text-align:center}.kright{text-align:right}.kleft{text-align:left}
+/* Font sizes */
+.kfs11{font-size:11px}.kfs12{font-size:12px}.kfs13{font-size:13px}.kfs14{font-size:14px}.kfs15{font-size:15px}
+.kfs16{font-size:16px}.kfs17{font-size:17px}.kfs18{font-size:18px}.kfs20{font-size:20px}.kfs22{font-size:22px}
+.kfs24{font-size:24px}.kfs28{font-size:28px}.kfs30{font-size:30px}.kfs32{font-size:32px}
+/* Font weights & line-height */
+.kfw600{font-weight:600}.kfw700{font-weight:700}.kfw800{font-weight:800}.klh18{line-height:1.8}
+/* Colors */
+.ktext2{color:var(--text2)}.ktext3{color:var(--text3)}.kprimary{color:var(--primary)}
+.kgreen{color:var(--green)}.kred{color:var(--red)}.ktext-blue{color:var(--blue)}.ktext-white{color:#fff}.kgray{color:var(--text2)}
+/* Backgrounds */
+.kbg-green{background:var(--green-bg)}.kbg-red{background:var(--red-bg)}.kbg-orange{background:var(--orange-bg)}.kbg-blue{background:var(--blue-bg)}
+.kbg-green-b{background:var(--green-bg);border-color:#A5D6A7}.kbg-red-b{background:var(--red-bg);border-color:#EF9A9A}.kbg-blue-b{background:var(--blue-bg);border-color:#90CAF9}.kbg-orange-b{background:var(--orange-bg);border-color:#FFCC80}
+/* v170: kartu statistik Beranda ikut pola gradasi rosok (KPI card, rosok/style.css:142-166).
+   Selector digabung .stat-card.kbg-* — kelas kbg-* yang sama dipakai 18 .setting-icon di
+   halaman Pengaturan, dan tile ikon itu harus TETAP pastel. Spesifisitas (0,3,0) di bawah
+   ini mengalahkan .stat-value.green (0,2,0), jadi angka ikut jadi putih. */
+.stat-card.kbg-green-b{background:var(--grad-green);border-color:transparent}
+.stat-card.kbg-red-b{background:var(--grad-red);border-color:transparent}
+.stat-card.kbg-blue-b{background:var(--grad-blue);border-color:transparent}
+.stat-card.kbg-orange-b{background:var(--grad-kpi-orange);border-color:transparent}
+.stat-card.kbg-purple-b{background:var(--grad-purple);border-color:transparent}
+.stat-card.kbg-green-b .stat-label,.stat-card.kbg-red-b .stat-label,.stat-card.kbg-blue-b .stat-label,.stat-card.kbg-orange-b .stat-label,.stat-card.kbg-purple-b .stat-label{color:rgba(255,255,255,.9)}
+.stat-card.kbg-green-b .stat-value,.stat-card.kbg-red-b .stat-value,.stat-card.kbg-blue-b .stat-value,.stat-card.kbg-orange-b .stat-value,.stat-card.kbg-purple-b .stat-value{color:#fff}
+/* Card-like containers */
+.kinfo-card{background:var(--green-bg);padding:12px;border-radius:8px;margin-top:12px}
+.kwarn-card{background:var(--orange-bg);padding:12px;border-radius:8px;margin-top:12px}
+.kerr-card{background:var(--red-bg);padding:12px;border-radius:8px;margin-top:12px}
+.kdashed-box{padding:10px;text-align:center;border:1px dashed var(--border);border-radius:12px;color:var(--text2);font-size:13px}
+/* Widget sizes */
+.kwh80{width:80px;height:80px;margin-bottom:8px}
+.kwh64{width:64px;height:64px;margin:0 auto 8px;display:block}
+.kwh64-round{width:64px;height:64px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0}
+.kwh44{width:44px;height:44px;min-height:44px;font-size:16px}
+.kbtn-icon{width:44px;height:44px;min-height:44px;font-size:16px}
+.kdot{width:12px;height:12px;border-radius:3px}
+.kdot-circle{width:12px;height:12px;background:var(--red-light);border-radius:50%;flex-shrink:0}
+.kw-full{width:100%}.kw-max300{width:100%;max-width:300px;border-radius:12px;margin-bottom:12px}
+/* Text overflow */
+.ktruncate,.ktab-label,.kdate-label{flex:1;text-align:center;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none}
+
+/* Footer info aplikasi (semantik — dipakai 1x di index.html) */
+.app-footer{display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:20px}
+
+/* KSR tambahan (P4 migrasi lanjutan — 61 inline style → kelas) */
+.kreq{color:var(--red);font-weight:700}
+.kop85{opacity:.85}
+.kfw400{font-weight:400}
+.knote{font-size:11px;color:var(--text3);font-weight:400;margin-left:6px}
+.kno-underline{text-decoration:none}
+.kjc-center{justify-content:center}
+.kdivider{border-top:2px solid var(--border);margin-top:12px;padding-top:12px}
+.kgrid-2col-gap12{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;margin-bottom:12px}
+.kgrid-2col-gap8{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* Grid blok Stok + Harga Ojol: SATU kolom di semua perangkat (permintaan
+   pemilik 2026-08-31, komentar browser "jadikan 1 grid kolom di semua
+   perangkat"). Override 2-kolom tablet (600px+) sengaja DIHAPUS. */
+.kgrid-stokojol{display:grid;grid-template-columns:1fr;gap:12px;margin:6px 0}
+.kgrid-stokojol .form-group{min-width:0}
+/* Grid Kategori+Suplayer: selalu 2 kolom sejajar, kolom melebar penuh mengisi area */
+.kgrid-konsinyasi{display:grid;grid-template-columns:1fr;gap:12px;width:100%}
+/* Select di form Kategori+Suplayer: isi penuh kolom */
+.kgrid-konsinyasi select.form-input{width:100%;padding:10px 32px 10px 12px;min-height:44px;font-size:15px}
+/* Trigger accordion & kotak: melebar penuh mengisi kolomnya */
+.kgrid-konsinyasi .acc{width:100%}
+.kgrid-konsinyasi .acc-trigger{width:100%}
+/* [[ FORM MENU ]] Accordion Kategori & Suplayer (melebar penuh di form-group)
+   Select tersembunyi tetap dipakai untuk logika simpan; accordion hanya UI. */
+.acc{width:100%}
+.acc-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;width:100%;text-align:left;min-height:44px;font-size:15px}
+.acc-trigger-value{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-caret{flex-shrink:0;font-size:12px;color:var(--text2);transition:transform .2s ease;pointer-events:none}
+.acc.open .acc-caret{transform:rotate(180deg)}
+.acc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .22s ease;width:100%}
+.acc-inner{min-height:0;overflow:hidden;width:100%}
+/* Panel terbuka = in-flow (BUKAN melayang): mendorong konten di bawahnya,
+   tidak menutupi daftar menu (permintaan pemilik 2026-08-29). */
+.acc.open .acc-panel{grid-template-rows:1fr;
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  padding:12px 16px;margin:8px 0}
+.acc.open .acc-inner{width:100%}
+.acc-options{display:flex;flex-wrap:wrap;flex-direction:row;gap:8px;padding:10px 0 2px}
+.acc-opt{width:auto;text-align:left;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:14px;cursor:pointer}
+.acc-opt:hover{background:var(--green-bg)}
+.acc-opt.selected{background:var(--green-bg);border-color:var(--primary);color:var(--primary);font-weight:600}
+/* Chip custom kategori/suplayer: wrap relatif + × kecil bulat di pojok kanan
+   atas (hapus manual, permintaan pemilik 2026-09-08) — hanya chip custom yang
+   dapat tombol ini, preset bawaan & 'Umum' tidak. */
+.acc-opt-wrap{position:relative;display:inline-flex}
+.acc-opt-wrap .acc-opt{padding-right:14px}
+.acc-opt-del{position:absolute;top:-7px;right:-7px;width:18px;height:18px;border:none;border-radius:50%;background:var(--red);color:#fff;font-size:12px;line-height:1;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.acc-opt-del:hover{filter:brightness(.85)}
+.acc-empty{font-size:13px;color:var(--text2);padding:6px 0}
+.acc-add{width:auto;margin-top:0;padding:10px 14px;border-radius:8px;border:1px dashed var(--primary);background:var(--green-bg);color:var(--primary);font-size:14px;font-weight:600;cursor:pointer;text-align:center;align-self:center}
+.acc-add:hover{background:#e6f7ee}
+/* Kartu menu = akordeon (auto close): trigger = nama+info kiri & harga jual
+   kanan (tanpa label); aksi (retur/edit/jeda/hapus) di dalam panel. Panel
+   akordeon kartu TANPA border box (beda dari form kategori/suplayer). */
+.acc-menu .acc-trigger{min-height:52px;padding:10px 0}
+.acc-menu.open .acc-panel{background:transparent;border:none;border-radius:0;padding:0;margin:0}
+.menu-acc-price{font-weight:800;font-size:15px;color:var(--text);white-space:nowrap}
+.menu-acc-actions{display:flex;gap:8px;padding:8px 0 12px;border-top:1px dashed var(--border)}
+/* Dim stok-habis/jeda hanya pada baris trigger — tombol aksi di panel tetap
+   opacity penuh & jelas bisa diklik (opacity parent tidak bisa di-override anak). */
+.acc-menu .acc-trigger.dimmed{opacity:.45}
+/* Panel accordion menutup penuh lebar form-group */
+.kgrid-konsinyasi .form-group{min-width:0}
+.kkembalian-box{background:var(--red-bg);border-radius:12px;padding:14px 16px;text-align:center;display:flex;align-items:center;justify-content:center}
+/* Kotak uang diterima menyamai kotak kembalian (blok berwarna); kembalian
+   merah/oranye tipis — revisi 2026-09-08 (komentar browser). */
+.kbayar-box{background:var(--green-bg);border-radius:12px;padding:10px 12px;display:flex;align-items:center}
+.kbayar-box .form-input{border:none;background:transparent;padding:6px 2px;font-weight:800}
+.kclose-btn{padding:8px;width:40px;height:40px;border-radius:8px;flex-shrink:0}
+.klh16{line-height:1.6}.klh15{line-height:1.5}
+.kgate-box{max-width:440px;width:100%;text-align:center}
+/* Mode "Lisensi Dicabut" (#lockOverlay.revoked-page, toggle di license.ui.js
+   setLockMode): overlay WAJIB solid putih — objek di belakang tidak boleh
+   terlihat — dan kartu #lockRevokedPage di tengah (vertikal & horizontal).
+   Rule ini hilang saat konsolidasi CSS modular (v72) sehingga overlay
+   tampil transparan. */
+#lockOverlay.revoked-page{background:#fff;align-items:center;justify-content:center;padding:24px;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.kgreen-box{background:var(--green-bg);border-radius:16px;padding:16px;margin-bottom:16px}
+.kfs40{font-size:40px}
+
+.kmy8{margin:8px 0}
+/* KSR tambahan untuk migrasi JS templates (P4-lanjut) */
+.kfs48{font-size:48px}
+.kgap8{gap:8px}
+.kp24{padding:24px}
+.kpy4{padding-top:4px;padding-bottom:4px}
+.kcursor-pointer{cursor:pointer}
+
+/* KSR tambahan — minimal utility yang dibutuhkan */
+.kmin-w0{min-width:0}
+.kflex-shrink0{flex-shrink:0}
+/* Menu selector: horizontal full-width tipe pesanan */
+#menuSelectorOrderBtns{display:flex;gap:8px;flex-wrap:wrap}
+#menuSelectorOrderBtns .btn{flex:1;width:auto;min-width:0}
+
+/* Topping & Ojol (opsi ringan — field tambahan di tabel menu) */
+.ojol-tag{display:inline-block;background:#FFF3E0;color:#E65100;font-size:10px;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:4px;vertical-align:middle}
+.ojol-badge{display:inline-block;background:#FFF3E0;color:#E65100;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px}
+.cart-name-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.cart-toppings{margin-bottom:6px}
+.topping-tag{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);color:var(--green);font-size:11px;font-weight:600;padding:2px 6px;border-radius:6px;margin:2px}
+.topping-remove{cursor:pointer;font-weight:700;color:var(--red);margin-left:2px}
+/* Topping option row: 1 grid penuh (1 opsi = 1 baris), stepper qty di kanan (hidden sampai dicentang) */
+.topping-option-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);margin-bottom:0;cursor:pointer;font-size:13px;background:#fff}
+.topping-option-row:hover{background:var(--green-bg)}
+.topping-option-row input[type="checkbox"]{accent-color:var(--primary);width:16px;height:16px;flex-shrink:0}
+.topping-option-row .topping-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topping-option-row .topping-harga{font-size:12px;font-weight:600;color:var(--text2);min-width:60px;text-align:right;flex-shrink:0}
+.topping-option-row .topping-stepper{display:inline-flex;align-items:center;gap:4px;flex-shrink:0}
+.topping-option-row .topping-qty-input{width:42px !important;height:28px;text-align:center;font-weight:700;font-size:13px}
+.topping-editing{outline:2px solid var(--primary-light);outline-offset:-2px;border-radius:12px}
+#toppingList{max-height:220px;overflow-y:auto;margin-bottom:8px}
+#toppingSelector{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px}
+/* Topping grid (menu form: 2 kolom nama|harga + tombol hapus) */
+.topping-grid-row{display:grid;grid-template-columns:1fr 110px 46px;gap:6px;align-items:center;margin-bottom:6px}
+.topping-grid-row .topping-harga{text-align:left}
+/* Tombol hapus baris (topping & ojol): bulat solid oranye seukuran saklar (tinggi 24px) */
+.topping-rm-btn{background:var(--primary);border:none;color:#fff;font-size:13px;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;justify-self:center;padding:0;line-height:1}
+.topping-rm-btn:hover{filter:brightness(.88)}
+
+/* Cart info-only: tipe order sebagai badge + topping tags horizontal */
+.cart-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:4px 0}
+.cart-topping-tags{display:inline-flex;gap:4px;flex-wrap:wrap}
+.topping-tag{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);color:var(--green);font-size:11px;font-weight:600;padding:2px 6px;border-radius:6px;margin:2px}
+.takeaway-badge{display:inline-block;background:#E3F2FD;color:#1565C0;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px}
+.dinein-badge{display:inline-block;background:#E8F5E9;color:#2E7D32;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px}
+/* Cart layout: nama + meta di baris sendiri, qty + price di baris bawah */
+.cart-item{display:flex;flex-wrap:wrap;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:6px 10px}
+.cart-item .cart-name{width:100%;font-weight:600;font-size:15px}
+.cart-meta{width:100%;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0}
+.cart-topping-tags{display:inline-flex;gap:4px;flex-wrap:wrap}
+.topping-tag{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);color:var(--green);font-size:11px;font-weight:600;padding:2px 6px;border-radius:6px;margin:2px}
+.ojol-badge{display:inline-block;background:#FFF3E0;color:#E65100;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px}
+.takeaway-badge{display:inline-block;background:#E3F2FD;color:#1565C0;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px}
+.dinein-badge{display:inline-block;background:#E8F5E9;color:#2E7D32;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px}
+/* Cart top row: nama menu (kiri) + qty/price (kanan) */
+.cart-top{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
+.cart-qty-price{display:flex;align-items:center;gap:6px;flex-shrink:0}
+
+/* Cart: harga tipe order di samping nama menu */
+.cart-name-price{margin-left:8px;font-size:12px;font-weight:600;color:var(--text2)}
+.cart-meta{font-size:12px;color:var(--text2);margin:2px 0}
+
+/* Cart layout — nama + meta (tipe+topping) di container kiri, qty+price di kanan */
+.cart-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.cart-info{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.cart-name{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-name-price{margin-left:0;flex:0 0 auto;font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap}
+.cart-meta{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-qty-price{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.cart-price{font-weight:700;color:var(--primary);font-size:15px;min-width:68px;text-align:right;white-space:nowrap}
+
+/* ── Cart: harga SATUAN di KANAN nama menu, satu baris (komentar browser #4,
+   2026-09-04). `.cart-name` sebelumnya dipaksa `width:100%` oleh aturan lama
+   (.cart-item .cart-name di atas) sehingga .cart-name-price jatuh ke baris
+   kedua — di sini lebarnya dikembalikan auto supaya nama + harga satuan muat
+   sebaris; nama panjang tetap terpotong ellipsis (min-width:0 + flex-shrink).
+   Komentar browser #5: kolom nominal total diberi min-width 68px supaya lebarnya
+   tidak ikut melebar/sempit mengikuti panjang nama menu. ── */
+.cart-item .cart-name{width:auto;flex:0 1 auto;min-width:0}
+.cart-name-row .cart-name-price{margin-left:0;flex:0 0 auto}
+.cart-qty-price .cart-price{min-width:68px}
+/* Catatan per menu terpilih — teks kecil di bawah nama item */
+.cart-item-note{font-size:12px;color:var(--text2);white-space:normal;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+/* ── Header keranjang: label tipe pesanan + NAMA APP OJOL + catatan global
+   per transaksi (komentar browser #3 & #4, 2026-08-31). Nama app ditarik dari
+   pilihan "Pilih app" di modal Pilihan Menu (getOjolPlatform). ── */
+.cart-order-head{display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:var(--orange-bg);border-radius:12px;margin-bottom:8px}
+.cart-order-type-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cart-order-type{display:flex;align-items:center;gap:6px;font-size:17px;font-weight:800;color:var(--primary);line-height:1.2;min-width:0;flex:1 1 auto}
+.btn-clear-cart{flex:0 0 auto;width:36px;height:36px;border-radius:50%;border:1px solid var(--red);background:#fff;color:var(--red);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:background-color .15s,color .15s}
+.btn-clear-cart:hover,.btn-clear-cart:focus-visible{background:var(--red);color:#fff;outline:none}
+.btn-clear-cart:active{transform:scale(.96)}
+.cart-global-note{width:100%;font-size:13px;font-weight:600;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--text)}
+.cart-global-note::placeholder{color:var(--text3);font-weight:500}
+.cart-global-note:focus{outline:none;border-color:var(--primary)}
+
+/* ── Metode pembayaran: Tunai | QRIS | Transfer (komentar browser #5).
+   Kelas sendiri, BUKAN .btn, agar tidak terseret min-height media query. ── */
+.pay-method-row{display:flex;gap:8px;margin:12px 0}
+.pay-method-btn{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;height:42px;min-height:42px;border:1px solid var(--border);border-radius:11px;background:#fff;color:var(--text2);font-size:14px;font-weight:700;cursor:pointer}
+.pay-method-btn.active{border-color:var(--primary);background:var(--orange-bg);color:var(--primary)}
+.pay-noncash{background:#fafafa;border:1px solid var(--border);border-radius:12px;padding:12px;margin:12px 0}
+.pay-noncash-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;margin-bottom:6px}
+.pay-noncash-row:last-child{margin-bottom:0}
+.pay-noncash-row .klabel{color:var(--text2)}
+.pay-noncash-row .kval{font-weight:800}
+/* 📸 Bukti pembayaran non-tunai (foto dari kamera) — v144 */
+.pay-proof-btn{width:100%;margin-top:8px}
+.pay-proof-preview{position:relative;margin-top:8px;text-align:center}
+.pay-proof-preview img{max-width:100%;max-height:220px;border-radius:12px;border:1px solid var(--border);display:block;margin:0 auto}
+.pay-proof-remove{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:14px;line-height:1;cursor:pointer}
+.pay-hint{font-size:12px;color:var(--text2);margin-top:8px;line-height:1.4}
+
+/* ── Modal Pilihan Menu: catatan jadi milik MENU TERPILIH (per item).
+   Kontainer dashed DIHAPUS, diganti garis pemisah saja (komentar browser #8). ── */
+.ms-item-note-sep{border:none;border-top:1px solid var(--border);margin:12px 0 8px}
+.ms-item-note-label{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:6px}
+
+/* Menu selector modal: konsistensi font */
+#menuSelectorModal .modal-title{font-size:18px;margin-bottom:12px}
+#menuSelectorModal .kmb8{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:6px}
+#menuSelectorModal .kmb12{margin-bottom:12px}
+/* Topping menu selector: 1 grid penuh (1 opsi per baris) */
+#menuSelectorToppings{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto}
+/* Input jumlah manual di menu selector (pengganti span statis) */
+.ms-qty-input,#menuSelectorQty{width:52px;height:36px;text-align:center;font-weight:800;font-size:16px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:0;-moz-appearance:textfield;appearance:textfield}
+#menuSelectorQty::-webkit-inner-spin-button,#menuSelectorQty::-webkit-outer-spin-button,.ms-qty-input::-webkit-inner-spin-button,.ms-qty-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+#menuSelectorQty:focus,.ms-qty-input:focus{outline:none;border-color:var(--primary)}
+
+/* Kontrol POS sticky: tipe order + cari + kategori tetap di atas saat menu discroll */
+.pos-controls{position:sticky;top:0;z-index:20;background:var(--bg);padding-bottom:8px;min-width:0}
+/* Catatan pesanan (akordeon di bawah tombol tipe order) */
+.order-note-box{margin:-2px 0 12px}
+.order-note-box .form-input{font-size:14px;padding:10px 14px;background:#fff}
+/* Tipe order buttons (Dine-in / Take-away / Ojol) */
+#orderTypeButtons{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+#orderTypeButtons .btn{flex:1 1 0;min-width:0;justify-content:center}
+.pos-cat-accordion{background:#fff;padding:0 12px;max-height:0;overflow:hidden;transition:max-height .2s ease}
+.pos-cat-accordion.open{max-height:300px;padding:8px 12px}
+.pos-cat-accordion-inner{display:flex;flex-wrap:wrap;gap:8px}
+.pos-cat-accordion-inner .btn{font-size:13px;min-height:36px;padding:8px 14px;width:auto;flex:0 0 auto}
+
+/* Konsinyasi badges */
+.badge-titipan{display:inline-block;background:var(--grad);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle}
+.badge-stok{display:inline-block;background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle}
+.badge-stok-habis{background:#ffebee;color:#c62828}
+
+/* Toggle switch (konsinyasi stok) */
+.toggle-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.2s}
+.toggle-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle-switch input:checked+.toggle-slider{background:var(--grad)}
+.toggle-switch input:checked+.toggle-slider::before{transform:translateX(20px)}
+
+/* ===== Fokus global (permintaan pemilik 2026-08-29) =====
+   Klik mouse: tanpa outline (bersih, tanpa dobel border).
+   Keyboard (:focus-visible): outline bawaan browser (tipis).
+   Field isian: indikator fokus = border oranye tipis via rule
+   .form-input:focus dkk di atas — specificity-nya menang atas global ini. */
+:focus{outline:none}
+:focus-visible{outline:auto}
+
+/* ==================== BANNER KUOTA TRANSAKSI (2026-08-29) ====================
+   Pengganti full-screen gate: fixed tepat di bawah header, bisa ditutup,
+   tidak memblok interaksi konten di bawahnya (pointer-events none di wrapper). */
+#quotaBanner{position:fixed;left:12px;right:12px;top:calc(var(--header-h) + 10px);z-index:850;pointer-events:none}
+#quotaBanner .quota-banner-card{pointer-events:auto;background:#fff7ed;border:1px solid #fdba74;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.14)}
+
+/* ==================== KAS / SHIFT (v161, adopsi rosok) ====================
+   Kartu status kas di Beranda (#kasCard), kotak rincian di modal Tutup Kas,
+   dan grid ringkasan (dipakai kartu Beranda + modal Tutup Buku). */
+.kas-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.kas-cell{background:var(--bg);border-radius:10px;padding:8px 10px;min-width:0}
+.kas-cell-label{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:2px}
+.kas-cell-value{font-size:14px;font-weight:800;color:var(--text);overflow-wrap:anywhere}
+.kas-cell-value.strong{color:var(--primary)}
+.kas-box{background:var(--bg);border-radius:12px;padding:4px 12px}
+/* Judul kecil di dalam kotak rincian (v164: blok "Dompet digital" di modal
+   Tutup Kas). Baris pertama .kas-row diberi border atas tipis supaya judulnya
+   tidak tampak menggantung di atas angka. */
+.kas-box-title{font-size:12px;font-weight:800;color:var(--text2);padding:9px 0 2px;border-bottom:1px solid var(--border)}
+.kas-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--border)}
+.kas-row:last-child{border-bottom:none}
+.kas-row span{color:var(--text2)}
+.kas-row b{overflow-wrap:anywhere;text-align:right}
+.kas-row.total{border-top:1px solid var(--border);border-bottom:none;margin-top:2px;padding-top:9px;font-weight:800}
+.kas-row.total span{color:var(--text);font-weight:800}
+.kas-row.total b{font-size:15px;color:var(--primary)}
+/* Baris riwayat shift di Laporan jadi trigger modal detail (komentar browser #6).
+   .trx-item sudah cursor:pointer; kelas ini hanya menata kolom kanan supaya
+   badge status dan petunjuk "Detail ›" tidak bertumpuk. */
+.kas-shift-go{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:0 0 auto}
+.kas-shift-chev{font-size:11px;font-weight:700;color:var(--primary);white-space:nowrap}
+
+/* ── v165 (komentar UI #1 #2 #4 #5): skala teks form "Catat" ─────────────────
+   Opsi kategori/metode itu teks panjang + emoji; 18px bold bikin modal terasa
+   berat dan opsi terpotong di layar sempit. Satu skala saja untuk seluruh
+   modal (label 15px -> isian 16px) supaya proporsional, dan padding kanan
+   select dilebarkan agar panah dropdown tidak menimpa teks.
+   Spesifik ke #expenseModal: form lain (menu, pengaturan) sengaja tidak ikut
+   berubah. Diletakkan di akhir file supaya menang atas .form-input di media
+   query. */
+#expenseModal .form-input{font-size:16px;padding:13px 16px}
+#expenseModal select.form-input{padding:13px 40px 13px 16px}
+
+/* v178: tabs + date picker Laporan menempel di bawah header saat scroll */
+.laporan-sticky{position:sticky;top:0;z-index:90;background:var(--paper);padding-bottom:8px;box-shadow:0 6px 10px -8px rgba(0,0,0,.14)}
+
+/* ── Bantuan: tab sticky Tutorial | Changelog (2026-09-08) ──
+   Dua tab memenuhi lebar (kiri/kanan) tepat di bawah header; tetap menempel
+   saat konten discroll. */
+/* top:-12px = menutupi padding-top scrollport .main-content (12px) sehingga
+   tepi atas tab menempel persis di bawah header saat discroll. */
+.bantuan-tabs{position:sticky;top:-12px;z-index:30;display:flex;gap:6px;background:var(--bg);padding:8px 12px;margin:-12px -12px 12px}
+.bantuan-tab{flex:1;min-height:44px;border:1.5px solid var(--border);background:#fff;color:var(--text2);font-size:13.5px;font-weight:700;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;transition:background .15s,color .15s,border-color .15s}
+.bantuan-tab.active{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 3px 10px rgba(214,80,28,.3)}
+
+/* ── v181 (revisi): item keranjang satu baris + topping di bawah ─
+   Permintaan pemilik: urutan SATU BARIS = info menu+harga (kiri) |
+   quantity (tengah) | subtotal (kanan); info topping pindah ke kontainer
+   SENDIRI di bawahnya, melebar penuh dan mengalir horizontal bila topping
+   banyak. Wrapper .cart-qty-price & .cart-info dihapus dari markup; blok
+   ini menimpa definisi cart pada baris 193-205, 1045-1058 dan 1062-1068. */
+.cart-item{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:10px 0;border-bottom:1px solid var(--border)}
+.cart-item:last-child{border-bottom:none}
+.cart-name-row{display:flex;align-items:center;gap:4px;flex:1;min-width:0;margin-bottom:0}
+/* Revisi 2026-09-08 (komentar browser): teks menu banyak terpotong — rapatkan
+   jarak & izinkan nama membungkus 2 baris di layar sempit, bukan ellipsis. */
+.cart-name-row .cart-name{flex:1;min-width:0;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cart-item-note{width:100%}
+.cart-topping-tags{display:flex;width:100%;gap:4px 10px;flex-wrap:wrap;margin-left:0}
+/* Kontainer tags = pintu masuk panel Pilih Topping (revisi 2026-09-08: tombol
+   🧂 Ubah Topping dihapus, fungsinya pindah ke sini — klik tag = ubah topping
+   tanpa menaikkan qty produk utama). */
+.cart-topping-tags[role="button"]{cursor:pointer}
+.cart-topping-tags[role="button"]:active .topping-tag{filter:brightness(.94)}
+.topping-tag-hint{background:var(--orange-bg);color:var(--primary);border:1px dashed var(--primary);font-style:normal}
+
+/* v181: aksi detail pemasukan/pengeluaran — Hapus compact, Ubah Catatan isi sisa.
+   Selector #expenseDetailContent > .kflex.kmt16 sengaja dipertahankan untuk
+   markup lama yang masih hidup di modal sebelum reload penuh. */
+.expense-detail-actions,
+#expenseDetailContent > .kflex.kmt16{display:flex;align-items:stretch;gap:8px}
+.expense-detail-actions .expense-delete-btn,
+#expenseDetailContent > .kflex.kmt16 > button[data-action="delete-expense"]{flex:0 0 auto!important;width:auto!important;min-width:0!important;padding-left:16px;padding-right:16px;white-space:nowrap}
+.expense-detail-actions .expense-edit-btn,
+#expenseDetailContent > .kflex.kmt16 > button[data-action="edit-expense"]{flex:1 1 0!important;width:auto!important;min-width:0!important}
+
+/* v181: aksi detail transaksi — pola sama: Hapus compact, aksi utama isi sisa */
+.detail-actions{display:flex;align-items:stretch;gap:8px}
+.detail-actions .detail-delete-btn{flex:0 0 max-content;width:max-content;min-width:max-content;padding-left:16px;padding-right:16px;white-space:nowrap}
+.detail-actions .detail-main-btn{flex:1 1 auto;width:auto;min-width:0}

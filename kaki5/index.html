@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#D6501C">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kasir Solo">
+<meta name="description" content="Aplikasi kasir untuk pedagang kaki lima. Catat jualan, pengeluaran, dan lihat untung tiap hari!">
+<!-- CSP 2026-08-22: nonce placeholder dihapus (nilai publik = tanpa nilai keamanan,
+     malah memblokir semua inline style + onload handler → layout rusak).
+     style-src 'unsafe-inline' diperlukan karena 340+ style attribute di markup/template.
+     Inline <script> dilarang (script-src 'self') — semua JS wajib file eksternal. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://hhywrvedlwljawgxzpkq.supabase.co wss://hhywrvedlwljawgxzpkq.supabase.co https://raw.githubusercontent.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<link rel="icon" type="image/png" sizes="48x48" href="assets/icon-48.png">
+<link rel="icon" type="image/png" sizes="72x72" href="assets/icon-72.png">
+<link rel="icon" type="image/png" sizes="96x96" href="assets/icon-96.png">
+<link rel="icon" type="image/png" sizes="144x144" href="assets/icon-144.png">
+<link rel="icon" type="image/png" sizes="152x152" href="assets/icon-152.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="icon" type="image/png" sizes="384x384" href="assets/icon-384.png">
+<link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>Kasir Solo - Kaki Lima</title>
+<!-- Konsolidasi P2 2026-08-22: css/style.css = satu-satunya stylesheet (superset
+     lengkap; 13 file css/ modular dilebur ke sini). Jangan tambahkan link css lain. -->
+<link rel="stylesheet" href="css/style.css">
+<script src="dexie.min.js" integrity="sha384-vG8R9Zn5YZHCeXt9gLNp8MnsUCqmIy7HPxhdOdLGa/30/c8uZXFrrN0iKGID/ZvC" crossorigin="anonymous"></script>
+<!-- Disable PWA cache during development (eksternal: inline script diblokir CSP script-src 'self') -->
+<script src="js/dev-unregister-sw.js"></script>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+<img src="assets/icon.png" class="header-logo" alt="Logo"><h1>Kasir Solo<br><span class="kfs12 kfw400 kop85">Kaki Lima Edition</span></h1>
+<div class="header-right">
+<div class="trial-badge" id="trialChip" data-action="open-license-sheet" role="button" tabindex="0" title="Status Lisensi"><div class="trial-label-xs">GRATIS</div><div class="trial-value-sm">—</div></div>
+<button class="header-btn" title="Bantuan" data-action="navigate-bantuan">📖</button>
+</div>
+</header>
+
+<!-- MAIN -->
+<main class="main-content" id="mainContent">
+
+<!-- ====== HALAMAN BERANDA ====== -->
+<div class="page active" id="page-beranda">
+<div class="kflex-between-mb12">
+<div>
+<div class="kfs14 ktext3 kfw600" id="greetText">Selamat pagi! 👋</div>
+<div class="kfs20 kfw800" id="namaUsaha">Warung Saya</div>
+</div>
+<div class="kfs13 ktext3 kfw600 kright" id="todayDate"></div>
+</div>
+
+<div class="stat-grid">
+<div id="platCarouselEl" class="kcol-span2 kmb8"></div>
+<div class="stat-card kbg-green-b">
+<div class="stat-label">💰 Omzet Hari Ini</div>
+<div class="stat-value green" id="todayOmzet">Rp 0</div>
+</div>
+<div class="stat-card kbg-red-b">
+<div class="stat-label">🧾 Pengeluaran</div>
+<div class="stat-value red" id="todayExpense">Rp 0</div>
+</div>
+<div class="stat-card kbg-blue-b">
+<div class="stat-label">📈 Laba Hari Ini</div>
+<div class="stat-value blue" id="todayProfit">Rp 0</div>
+</div>
+<div class="stat-card kbg-orange-b">
+<div class="stat-label">🛒 Jumlah Transaksi</div>
+<div class="stat-value orange" id="todayTrxCount">0</div>
+</div>
+<div class="stat-card kbg-orange-b">
+<div class="stat-label">🍽️ Porsi Terjual</div>
+<div class="stat-value orange" id="todayQtyCount">0</div>
+</div>
+<div class="stat-card kbg-purple-b">
+<div class="stat-label">💸 Rata-rata per Transaksi</div>
+<div class="stat-value" id="todayAvgTrx">Rp 0</div>
+</div>
+</div>
+
+<!-- display:none dulu: renderKasCard() yang memutuskan tampil atau tidak.
+     Tanpa ini, placeholder "Kas Belum Dibuka" berkedip di Beranda pada setiap
+     load walaupun fitur buka/tutup kas sedang dimatikan (audit v166). -->
+<div class="card" id="kasCard" style="display:none">
+<div class="card-title">🔒 Kas Belum Dibuka</div>
+<div class="hint" style="margin-top:0">Memuat status kas…</div>
+</div>
+
+<div class="card">
+<div class="card-title">⏱️ Transaksi Terakhir</div>
+<div id="recentTrx">
+<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">Belum ada transaksi hari ini.<br>Yuk mulai jualan!</div></div>
+</div>
+</div>
+</div>
+
+<!-- ====== HALAMAN JUALAN (POS) ====== -->
+<div class="page" id="page-jualan">
+<!-- Kontrol POS (tipe order + cari + kategori) — STICKY saat menu discroll -->
+<div class="pos-controls">
+<!-- Tipe order: dine-in / takeaway / ojol -->
+<div id="orderTypeButtons">
+  <button class="btn btn-sm btn-primary" data-action="switch-order-type" data-tipe="dine-in">Dine-in</button>
+  <button class="btn btn-sm btn-ghost"   data-action="switch-order-type" data-tipe="takeaway">Take-away</button>
+  <button class="btn btn-sm btn-ghost"   data-action="switch-order-type" data-tipe="ojol">Ojol</button>
+</div>
+<!-- Catatan pesanan & ojol picker: PINDAH ke dalam modal Pilihan Menu (2026-08-31) -->
+<div class="search-box">
+<span class="search-icon">🔍</span>
+<input type="text" id="searchMenu" placeholder="Cari menu..." data-action="pos-search">
+<button class="btn btn-sm btn-ghost" data-action="toggle-cat-accordion">📂 Kategori</button>
+</div>
+<div id="posCatAccordion" class="pos-cat-accordion">
+  <div class="pos-cat-accordion-inner" id="posCatAccordionInner"></div>
+</div>
+</div><!-- /.pos-controls -->
+<div class="menu-grid" id="posMenuGrid"></div>
+
+<!-- Keranjang floating — styling di css/style.css (#cartBar), JS toggle display.
+     v153: tombol "Tahan" di cart bar DIHAPUS (aksi tahan sudah pindah ke footer
+     modal keranjang sejak v152). #cartBar wrapper flex tetap, isinya hanya
+     .cart-bar-inner (kontainer hijau = tombol buka keranjang,
+     data-action="open-cart") sehingga keranjang kembali melebar penuh. -->
+<div id="cartBar">
+<div class="cart-bar-inner" data-action="open-cart">
+<div class="kflex-between">
+<div class="kflex-gap10">
+<span class="kfs24">🛒</span>
+<span class="kfw800 kfs16" id="cartCount">0 item</span>
+</div>
+<div class="kfw800 kfs18" id="cartTotal">Rp 0</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- FAB "Tahan" (v148) — pojok kanan bawah di atas cart. Muncul saat ada ≥1
+     pesanan ditahan. Badge counter di pojok kanan-atas FAB. Tap → modal daftar held. -->
+<button type="button" class="held-fab" id="heldFab" data-action="open-held-list" title="Pesanan yang ditahan" aria-label="Pesanan ditahan">
+  <span class="held-fab-icon">🤚</span>
+  <span class="held-fab-badge" id="heldFabBadge">0</span>
+</button>
+
+<!-- Modal daftar held (v148) -->
+<div class="modal-overlay" id="heldListModal" role="dialog" aria-modal="true" aria-labelledby="heldListTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="heldListTitle">🤚 Pesanan Ditahan</div>
+<input type="text" id="heldSearchInput" class="held-search-input" placeholder="🔍 Cari catatan, nomor, atau menu..." autocomplete="off">
+<div id="heldListBody"></div>
+<div class="btn-row kmt12">
+  <button type="button" class="btn btn-orange" data-action="close-held-list" title="Kembali" aria-label="Kembali">Kembali</button>
+</div>
+</div>
+</div>
+
+<!-- ====== HALAMAN MENU ====== -->
+<div class="page" id="page-menu">
+<div class="search-box">
+<span class="search-icon">🔍</span>
+<input type="text" id="searchMenuList" placeholder="Cari menu..." data-action="menu-search">
+<button class="btn btn-sm btn-ghost" data-action="toggle-menu-cat-accordion">📂 Kategori</button>
+</div>
+<div id="menuCatAccordion" class="pos-cat-accordion">
+<div class="pos-cat-accordion-inner" id="menuCatAccordionInner"></div>
+</div>
+<div id="menuListContainer"></div>
+<button class="fab" data-action="open-menu-form" title="Tambah Menu">➕</button>
+</div>
+
+<!-- ====== HALAMAN LAPORAN (+ Pengeluaran digabung) ====== -->
+<div class="page" id="page-laporan">
+<div class="laporan-sticky" id="laporanSticky">
+<div class="report-tabs" id="reportPeriodTabs">
+<div class="report-tab active" data-period="harian" data-action="report-period-harian">Harian</div>
+<div class="report-tab" data-period="mingguan" data-action="report-period-mingguan">Mingguan</div>
+<div class="report-tab" data-period="bulanan" data-action="report-period-bulanan">Bulanan</div>
+        <div class="report-tab" data-period="custom" data-action="report-period-custom">Custom</div>
+</div>
+<div class="date-nav" id="reportDateNav"></div>
+</div>
+<div id="reportContent"></div>
+<button class="fab" data-action="open-expense-form" title="Catat Pengeluaran">➕</button>
+</div>
+
+<!-- ====== HALAMAN PENGATURAN ====== -->
+<div class="page" id="page-pengaturan">
+<div class="card">
+<div class="card-title">👤 Profil</div>
+<div class="setting-item" data-action="open-name-modal">
+<div class="setting-icon kbg-orange">🏪</div>
+<div class="setting-info"><div class="s-title">Nama Usaha <span class="kreq">*</span></div><div class="s-desc" id="settingName">Warung Saya</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<div class="setting-item" data-action="open-owner-modal">
+<div class="setting-icon kbg-orange">👤</div>
+<div class="setting-info"><div class="s-title">Nama Pemilik <span class="kreq">*</span></div><div class="s-desc" id="settingOwner">—</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<div class="setting-item" data-action="open-wa-modal">
+<div class="setting-icon kbg-green">💬</div>
+<div class="setting-info"><div class="s-title">Nomor WhatsApp <span class="kreq">*</span></div><div class="s-desc" id="settingWa">—</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<div class="setting-item" data-action="open-alamat-modal">
+<div class="setting-icon kbg-blue">📍</div>
+<div class="setting-info"><div class="s-title">Alamat <span class="kreq">*</span></div><div class="s-desc" id="settingAlamat">—</div></div>
+<div class="setting-arrow">›</div>
+</div>
+</div>
+<!-- ⚙️ Saklar fitur — blok "aktifkan/nonaktifkan" (permintaan pemilik
+     2026-08-31: QRIS/Transfer cukup foto bukti bayar, tanpa setting QR/rekening;
+     2026-09-04 v166: blok yang sama menaungi saklar fitur buka/tutup kas).
+     Jika hanya satu opsi pembayaran aktif, row pilihan metode disembunyikan di keranjang. -->
+<div class="card">
+<div class="card-title">⚙️ Aktifkan Fitur</div>
+<div class="setting-item">
+<div class="setting-icon kbg-green">💵</div>
+<div class="setting-info"><div class="s-title">Tunai</div><div class="s-desc">Uang diterima + kembalian</div></div>
+<label class="toggle-switch" style="margin:0"><input type="checkbox" id="payOptTunai" data-action="save-pay-options" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="setting-item">
+<div class="setting-icon kbg-blue">📱</div>
+<div class="setting-info"><div class="s-title">QRIS</div><div class="s-desc">Pembeli transfer/scan → foto bukti bayar</div></div>
+<label class="toggle-switch" style="margin:0"><input type="checkbox" id="payOptQris" data-action="save-pay-options" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="setting-item">
+<div class="setting-icon kbg-orange">🏦</div>
+<div class="setting-info"><div class="s-title">Transfer</div><div class="s-desc">Pembeli transfer → foto bukti bayar</div></div>
+<label class="toggle-switch" style="margin:0"><input type="checkbox" id="payOptTransfer" data-action="save-pay-options" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="setting-item">
+<div class="setting-icon kbg-green">💰</div>
+<div class="setting-info"><div class="s-title">Buka / Tutup Kas</div><div class="s-desc" id="fiturKasDesc">Laci punya modal awal; transaksi diblok kalau kas belum dibuka</div></div>
+<label class="toggle-switch" style="margin:0"><input type="checkbox" id="fiturKasToggle" data-action="save-fitur-kas" checked><span class="toggle-slider"></span></label>
+</div>
+</div>
+<div class="card">
+<div class="card-title">📱 Perangkat</div>
+<div class="setting-item" data-action="connect-printer" id="btPrinterConnectRow">
+<div class="setting-icon kbg-blue">📡</div>
+<div class="setting-info"><div class="s-title">Hubungkan Printer</div><div class="s-desc" id="btPrinterStatus">Belum terhubung</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<div class="setting-item" data-action="test-print">
+<div class="setting-icon kbg-green">📄</div>
+<div class="setting-info"><div class="s-title">Cetak Tes</div><div class="s-desc">Cek apakah printer berfungsi</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<div class="setting-item" data-action="disconnect-printer">
+<div class="setting-icon kbg-red">❌</div>
+<div class="setting-info"><div class="s-title">Putuskan Printer</div><div class="s-desc">Lepas koneksi Bluetooth</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<div class="setting-item" data-action="install-pwa" id="pwaInstallRow">
+<div class="setting-icon kbg-green">📲</div>
+<div class="setting-info"><div class="s-title" id="pwaInstallTitle">Pasang Aplikasi</div><div class="s-desc" id="pwaInstallDesc">Buka kayak app native di HP</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<!-- v151 komentar browser #1: "Cek Data Online" dipindah dari kartu Data &
+     Cadangan ke kartu Perangkat. -->
+<div class="setting-item" data-action="open-sync-diag">
+<div class="setting-icon kbg-orange">🩺</div>
+<div class="setting-info"><div class="s-title">Cek Data Online</div><div class="s-desc">Pastikan data usaha aman & tersimpan di server</div></div>
+<div class="setting-arrow">›</div>
+</div>
+</div>
+<div class="card">
+<div class="card-title">💾 Data & Cadangan</div>
+<div class="setting-item" data-action="export-data">
+<div class="setting-icon kbg-green">💾</div>
+<div class="setting-info"><div class="s-title">Simpan Cadangan</div><div class="s-desc">Simpan produk & transaksi ke file HP</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<div class="setting-item" data-action="trigger-import">
+<div class="setting-icon kbg-blue">📂</div>
+<div class="setting-info"><div class="s-title">Pulihkan Data</div><div class="s-desc">Pulihkan produk & transaksi dari file cadangan</div></div>
+<div class="setting-arrow">›</div>
+<input type="file" id="importFile" accept=".json" class="khide" data-action="import-data">
+</div>
+<div class="setting-item" data-action="cloud-backup">
+<div class="setting-icon kbg-green">☁️</div>
+<div class="setting-info"><div class="s-title">Cadangan Cloud</div><div class="s-desc">Simpan produk & transaksi ke server · 🔒 khusus lisensi aktif</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<div class="setting-item" data-action="cloud-restore-latest">
+<div class="setting-icon kbg-blue">☁️</div>
+<div class="setting-info"><div class="s-title">Pulihkan Cloud</div><div class="s-desc">Ambil cadangan terakhir dari server · 🔒 khusus lisensi aktif</div></div>
+<div class="setting-arrow">›</div>
+</div>
+<div class="setting-item" data-action="confirm-clear-all">
+<div class="setting-icon kbg-red">🗑️</div>
+<div class="setting-info"><div class="s-title">Hapus Semua Data</div><div class="s-desc">Hati-hati! Data tidak bisa kembali</div></div>
+<div class="setting-arrow">›</div>
+</div>
+</div>
+
+<div class="card">
+<!-- licenseInfoCard: status lisensi (aktif/trial/expired) di-render oleh license.ui.renderLicenseInfoCard() -->
+<div id="licenseInfoCard" class="kmt16"></div>
+</div>
+
+<!-- ====== Footer Info Aplikasi (hanya di halaman Pengaturan) ====== -->
+<div class="app-footer">
+<img src="assets/icon-old.png" class="kwh64-round" alt="Logo">
+<div class="kfw800 kfs18 kmt10">Kasir Solo - Kaki Lima</div>
+<div class="kfw600 ktext2 kfs12 kmt12">PT Mesin Kasir Solo</div>
+<div class="kmt8 kflex-gap12 kflex-wrap kjc-center">
+<a href="https://wa.me/628816566935" class="kgreen kfw600 kfs12 kno-underline">📱 0881-6566-935</a>
+<a id="appSiteLink" href="https://kasirsolo.app" target="_blank" rel="noopener" class="ktext-blue kfw600 kfs12 kno-underline">🌐 kasirsolo.app</a>
+</div>
+<div class="kfs13 ktext2 kmt12"><span id="appVersionLabel">Versi 1.0.0</span></div>
+<div id="licUnit" class="kfs11 ktext3 kmt2"></div>
+</div>
+</div><!-- /#page-pengaturan -->
+
+<!-- ====== HALAMAN BANTUAN ====== -->
+<div class="page" id="page-bantuan">
+<!-- Tab sticky: Tutorial (kiri) | Changelog (kanan) — revisi 2026-09-08.
+     Kartu hero ikut panel Tutorial (komentar pemilik: kartu bantuan masuk tab
+     tutorial), jadi tab bar adalah elemen pertama halaman. -->
+<div class="bantuan-tabs" role="tablist" aria-label="Bagian bantuan">
+<button type="button" class="bantuan-tab active" id="bantuanTabTutorial" role="tab" aria-selected="true" data-action="bantuan-tab" data-tab="tutorial">📖 Tutorial</button>
+<button type="button" class="bantuan-tab" id="bantuanTabChangelog" role="tab" aria-selected="false" data-action="bantuan-tab" data-tab="changelog">🕓 Changelog</button>
+</div>
+
+<div id="bantuanPanelTutorial">
+<div class="card card-hero-blue">
+<div class="card-title">📖 Bantuan</div>
+<div class="kfs14 ktext2 klh16">
+Panduan singkat cara memakai <b>Kasir Solo - Kaki Lima</b>.
+</div>
+</div>
+<div id="bantuanContent"></div>
+<div class="card">
+<div class="card-title">📜 Dokumen</div>
+<div class="setting-item" data-action="open-tc">
+<div class="setting-icon kbg-blue">📜</div>
+<div class="setting-info"><div class="s-title">Syarat &amp; Ketentuan</div><div class="s-desc">Baca ketentuan pemakaian aplikasi</div></div>
+<div class="setting-arrow">›</div>
+</div>
+</div>
+</div>
+<div id="bantuanPanelChangelog" style="display:none"></div>
+</div>
+
+</main>
+
+<!-- Notifikasi lengkapi profil — CENTER LARGE IMMERSIVE (mandatory).
+     Diletakkan di level body (bukan di dalam page) supaya bisa muncul
+     di semua halaman; position:fixed membuat posisinya tidak tergantung
+     lokasi di DOM. -->
+<div id="profileBanner" role="dialog" aria-modal="true" aria-labelledby="profileBannerTitle">
+<div class="prof-banner-backdrop"></div>
+<div class="prof-banner-card">
+<div class="prof-emoji">📝</div>
+<div class="prof-banner-title" id="profileBannerTitle">Lengkapi Profil Tokomu</div>
+<div class="prof-banner-sub">Isi info singkat biar pengalaman pakai Kasir Solo makin nyaman — kamu dapat bantuan lebih cepat, plus info promo &amp; tips yang pas buat usahamu.</div>
+<div class="prof-banner-points">
+<div><span>👤</span><span>Nama &amp; nomor WhatsApp — biar kami bisa bantu kamu lebih cepat</span></div>
+<div><span>📍</span><span>Alamat toko — biar tips &amp; informasinya sesuai tempat usahamu</span></div>
+</div>
+<button class="prof-banner-cta" data-action="dismiss-profile-banner">Isi Profil Sekarang</button>
+</div>
+</div>
+
+<!-- BOTTOM NAVIGATION -->
+<nav class="bottom-nav">
+<button class="nav-item active" data-page="beranda">
+<span class="nav-icon">🏠</span>
+<span>Beranda</span>
+</button>
+<button class="nav-item" data-page="menu">
+<span class="nav-icon">🍽️</span>
+<span>Menu</span>
+</button>
+<button class="nav-item" data-page="jualan">
+<span class="nav-icon">🛒</span>
+<span>Jualan</span>
+</button>
+<button class="nav-item" data-page="laporan">
+<span class="nav-icon">📊</span>
+<span>Laporan</span>
+</button>
+<button class="nav-item" data-page="pengaturan">
+<span class="nav-icon">⚙️</span>
+<span>Pengaturan</span>
+</button>
+</nav>
+
+<!-- CART MODAL -->
+<div class="modal-overlay" id="cartModal" role="dialog" aria-modal="true" aria-labelledby="cartModalTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="cartModalTitle">🛒 Keranjang</div>
+<!-- Header keranjang: tipe pesanan + NAMA APP OJOL (dibesarkan, datanya ditarik
+     dari pilihan "Pilih app" di modal Pilihan Menu) + KOTAK CATATAN GLOBAL per
+     transaksi — bisa dipakai untuk nama driver, nomor orderan ojol, no. meja, dll
+     (komentar browser #3 & #4, 2026-08-31). -->
+<div id="cartOrderTypeHeader" class="cart-order-head">
+  <div class="cart-order-type-row">
+    <div class="cart-order-type" id="cartOrderTypeLabel"></div>
+    <!-- Tombol kosongkan keranjang (komentar browser v147): hapus semua item,
+         reset catatan global, reset bukti bayar. Konfirmasi dulu via showConfirm. -->
+    <button class="btn-clear-cart" data-action="clear-cart" aria-label="Kosongkan keranjang" title="Kosongkan keranjang">🗑️</button>
+  </div>
+  <input type="text" class="cart-global-note" id="globalNoteInput" placeholder="Catatan transaksi: nama driver, no. orderan ojol, no. meja…" maxlength="120" data-action="global-note-input" aria-label="Catatan global transaksi">
+</div>
+<div id="cartItems"></div>
+<!-- Topping selector panel (disembunyikan sampai '+' diklik) -->
+<div id="toppingSelector" style="display:none">
+  <div class="kfw600 ktext2 kmb8">Pilih Topping</div>
+  <div id="toppingList" class="kgrid-1col-gap8"></div>
+  <button class="btn btn-sm btn-primary kmt8" data-action="apply-topping">✔ Terapkan</button>
+</div>
+<div class="kdivider">
+<div class="kflex-between kmb8"><span class="kfw600 ktext2">Total Harga</span><span class="kfw800 kfs20 kprimary" id="cartModalTotal">Rp 0</span></div>
+
+<!-- Metode pembayaran: Tunai | QRIS | Transfer (komentar browser #5, 2026-08-31).
+     QRIS/Transfer = bayar pas sesuai total → blok uang diterima & kembalian
+     disembunyikan; nominal + no. referensi tetap dicatat ke record penjualan. -->
+<div class="pay-method-row" id="payMethodRow">
+  <button type="button" class="pay-method-btn active" data-action="set-pay-method" data-method="tunai">💵 Tunai</button>
+  <button type="button" class="pay-method-btn" data-action="set-pay-method" data-method="qris">📱 QRIS</button>
+  <button type="button" class="pay-method-btn" data-action="set-pay-method" data-method="transfer">🏦 Transfer</button>
+</div>
+
+<!-- Blok TUNAI: uang diterima (kiri) + kembalian (kanan) — HP kecil 1 kolom
+     (media query 375px), normal/sedang ke atas 2 kolom; lalu preset nominal -->
+<div id="cashPayBlock">
+<div class="kgrid-2col-gap12">
+<div class="kflex-col">
+<label class="form-label">💵 Uang Diterima</label>
+<div class="kbayar-box">
+<input type="text" class="form-input" id="bayarInput" placeholder="Masukkan nominal..." data-action="format-bayar" inputmode="numeric">
+</div>
+</div>
+<div class="kflex-col">
+<label class="form-label">💰 Kembalian</label>
+<div id="kembalianBox" class="kkembalian-box">
+<div class="kfs20 kfw800" id="kembalianVal" style="color:var(--red)">Rp 0</div>
+</div>
+</div>
+</div>
+
+<!-- 4 kolom preset buttons -->
+<div class="kgrid-4col kmb12" id="presetBayarContainer"></div>
+</div>
+
+<!-- Blok NON-TUNAI (QRIS / Transfer): nominal + foto bukti pembayaran + catatan
+     (permintaan pemilik 2026-08-31: simpel — merchant sudah punya QRIS cetak,
+     aplikasi cukup merekam bukti bayar dari kamera perangkat). -->
+<div id="nonCashBlock" class="pay-noncash" style="display:none">
+  <div class="pay-noncash-row"><span class="klabel">Nominal bayar</span><span class="kval" id="payNoncashNominal">Rp 0</span></div>
+  <input type="file" id="payProofFile" accept="image/png,image/jpeg,image/webp" capture="environment" hidden data-action="handle-pay-proof">
+  <button type="button" class="btn btn-secondary pay-proof-btn" data-action="capture-pay-proof" id="payProofBtn">📸 Foto Bukti Pembayaran</button>
+  <div id="payProofPreviewWrap" class="pay-proof-preview" style="display:none">
+    <img id="payProofPreview" alt="Bukti pembayaran">
+    <button type="button" class="pay-proof-remove" data-action="remove-pay-proof" title="Hapus foto" aria-label="Hapus foto bukti">✕</button>
+  </div>
+  <input type="text" class="form-input" id="payNoteInput" placeholder="Catatan pembayaran (opsional) — mis. sudah dikonfirmasi" maxlength="120" style="margin-top:8px">
+</div>
+</div>
+<div class="btn-row kmt12">
+<button class="btn btn-secondary btn-sm btn-icon" data-action="close-cart" title="Batal">✕</button>
+<button class="btn btn-primary" data-action="hold-cart">🤚 Tahan</button>
+<button class="btn btn-green" data-action="save-sale-print">Bayar</button>
+</div>
+<div id="afterSaleActions" style="display:none;margin-top:8px">
+<button class="btn btn-primary" data-action="print-last-nota">🖨️ Cetak Nota</button>
+</div>
+</div>
+</div>
+
+<!-- MENU SELECTOR MODAL (topping + tipe order SEBELUM masuk keranjang) -->
+<div class="modal-overlay" id="menuSelectorModal" role="dialog" aria-modal="true" aria-labelledby="menuSelectorTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="menuSelectorTitle">📋 Pilihan Menu</div>
+<!-- Tab pilih app ojol — dipindah ke urutan PALING ATAS modal (2026-08-31):
+     harga ojol per app tampil di tab, jadi pilih app dulu sebelum topping/qty. -->
+<div id="ojolTabsWrap" style="display:none;margin:0 0 4px">
+  <div class="form-label" style="margin:0 0 6px;font-size:13px">🛵 Pilih app</div>
+  <div id="ojolTabs" class="ojol-tabs"></div>
+</div>
+<div id="menuSelectorBody"></div>
+<!-- Catatan milik MENU TERPILIH (per item) — kontainer dashed DIHAPUS, diganti
+     garis pemisah saja (komentar browser #8, 2026-08-31). Catatan GLOBAL per
+     transaksi pindah ke header keranjang (#globalNoteInput). -->
+<hr class="ms-item-note-sep">
+<div class="ms-item-note-label">📝 Catatan menu ini</div>
+<div id="orderNoteBox" class="order-note-box">
+  <input type="text" class="form-input" id="orderNoteInput" placeholder="Contoh: tanpa sambal, extra pedas, matang…" maxlength="120" data-action="order-note-input">
+</div>
+<div class="btn-row">
+<button class="btn btn-secondary" data-action="close-menu-selector">Batal</button>
+<button class="btn btn-primary" data-action="confirm-menu-selector">➕ Tambah ke Keranjang</button>
+</div>
+</div>
+</div>
+
+<!-- MENU FORM MODAL -->
+<div class="modal-overlay" id="menuModal" role="dialog" aria-modal="true" aria-labelledby="menuModalTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="menuModalTitle">🍽️ Tambah Menu</div>
+<input type="hidden" id="editMenuId">
+<input type="hidden" id="menuSuplayerVal">
+<div class="form-group">
+<label class="form-label">Nama Menu</label>
+<input type="text" class="form-input" id="menuNama" placeholder="Contoh: Nasi Goreng">
+</div>
+<div class="kgrid-2col-gap8">
+<div class="form-group">
+<label class="form-label">Harga Modal</label>
+<input type="number" class="form-input" id="menuHargaModal" placeholder="Contoh: 8000" inputmode="numeric">
+</div>
+<div class="form-group">
+<label class="form-label">Harga Jual</label>
+<input type="number" class="form-input" id="menuHargaJual" placeholder="Contoh: 15000" inputmode="numeric">
+</div>
+</div>
+<div class="kgrid-konsinyasi">
+  <div class="form-group">
+    <label class="form-label">Kategori</label>
+    <!-- Select tersembunyi: kompatibel utk logika simpan & set nilai -->
+    <select id="menuKategori" style="display:none"><option value="Makanan">🍚 Makanan</option></select>
+    <div class="acc">
+      <button type="button" class="form-input acc-trigger" data-action="toggle-kategori-acc">
+        <span class="acc-trigger-value" id="menuKategoriTriggerVal">🍚 Makanan</span>
+        <span class="acc-caret">▾</span>
+      </button>
+      <div class="acc-panel" id="menuKategoriAcc">
+        <div class="acc-inner">
+          <div class="acc-options" id="menuKategoriOptions"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Suplayer</label>
+    <select id="menuSuplayerSelect" style="display:none" class="form-input"><option value="Umum">🏠 Umum</option></select>
+    <div class="acc">
+      <button type="button" class="form-input acc-trigger" data-action="toggle-suplayer-acc">
+        <span class="acc-trigger-value" id="menuSuplayerTriggerVal">🏠 Umum</span>
+        <span class="acc-caret">▾</span>
+      </button>
+      <div class="acc-panel" id="menuSuplayerAcc">
+        <div class="acc-inner">
+          <div class="acc-options" id="menuSuplayerOptions"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="kgrid-stokojol">
+  <div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <label class="form-label" style="margin:0">📦 Pakai Stok</label>
+      <label class="toggle-switch" style="margin:0">
+        <input type="checkbox" id="menuPakaiStok">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div id="menuStokWrap" style="display:none;margin-top:10px">
+      <input type="number" class="form-input" id="menuStok" placeholder="Jumlah stok awal" inputmode="numeric" min="0">
+    </div>
+  </div>
+  <div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <label class="form-label" style="margin:0">🛵 Harga Ojol</label>
+      <label class="toggle-switch" style="margin:0">
+        <input type="checkbox" id="menuOjolToggle">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div id="menuOjolWrap" style="display:none;margin-top:10px">
+      <div id="menuOjolGrid"></div>
+      <button class="btn btn-add-dashed" type="button" data-action="add-ojol-row" style="margin-top:8px;font-size:13px;width:100%">＋ Tambah baris</button>
+    </div>
+  </div>
+</div>
+<div class="form-group" style="padding:10px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafafa;margin:6px 0">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <label class="form-label" style="margin:0">🍥 Topping</label>
+    <label class="toggle-switch" style="margin:0">
+      <input type="checkbox" id="menuToppingToggle">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <div id="menuToppingWrap" style="display:none;margin-top:10px">
+    <div id="menuToppingGrid"></div>
+    <button class="btn btn-add-dashed" type="button" data-action="add-topping-row" style="margin-top:8px;font-size:13px;width:100%">＋ Tambah Topping</button>
+  </div>
+</div>
+<div class="btn-row">
+<button class="btn btn-secondary" data-action="close-menu-modal">Batal</button>
+<button class="btn btn-primary" data-action="save-menu">💾 Simpan</button>
+</div>
+</div>
+</div>
+
+<!-- RETUR MODAL -->
+<div class="modal-overlay" id="returModal" role="dialog" aria-modal="true" aria-labelledby="returModalTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="returModalTitle">↩️ Retur Barang</div>
+<input type="hidden" id="returMenuId">
+<div id="returSingleBody">
+  <div class="form-group">
+    <div id="returMenuInfo" style="background:var(--card);border-radius:8px;padding:12px;font-size:14px"></div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Jumlah yang Dikembalikan</label>
+    <input type="number" class="form-input" id="returQty" inputmode="numeric" min="1" placeholder="Contoh: 3">
+  </div>
+</div>
+<div id="returKonsinyasiBody" style="display:none">
+  <div id="returKonsinyasiRows" style="border:1px solid var(--border);border-radius:10px;padding:2px 12px;margin-bottom:4px"></div>
+</div>
+<div class="btn-row">
+  <button class="btn btn-secondary" data-action="close-retur-modal">Batal</button>
+  <button class="btn btn-primary" data-action="confirm-retur-menu">💾 Retur</button>
+</div>
+</div>
+</div>
+
+<!-- EXPENSE FORM MODAL -->
+<div class="modal-overlay" id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle"><div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="expenseModalTitle">🧾 Catat Pengeluaran</div>
+<input type="hidden" id="editExpenseId">
+<div class="txn-tabs">
+<button class="txn-tab active" type="button" data-action="txn-tab" data-txntab="expense">🧾 Pengeluaran</button>
+<button class="txn-tab" type="button" data-action="txn-tab" data-txntab="income">💰 Pemasukan</button>
+</div>
+<div id="txnExpenseBody">
+<div class="form-group">
+<label class="form-label">Buat Apa?</label>
+<input type="text" class="form-input" id="expKeterangan" placeholder="Contoh: Beli daging ayam">
+</div>
+<div class="form-group">
+<label class="form-label">Jenis Pengeluaran</label>
+<select class="form-input" id="expKategori">
+<option value="Bahan Baku">🥬 Bahan Baku / Bumbu</option>
+<option value="Gas & BBM">⛽ Gas & BBM</option>
+<option value="Sewa Tempat">🏪 Sewa Tempat / Lapak</option>
+<option value="Peralatan">🍳 Peralatan</option>
+<option value="Setoran Konsinyasi">🤝 Setoran Konsinyasi</option>
+<option value="Retur Konsinyasi">↩️ Retur Konsinyasi</option>
+<option value="Setor Bank / Prive">🏧 Setor Bank / Ambil Uang</option>
+<option value="Lainnya">📦 Lainnya</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label">Tanggal Catatan</label>
+<input type="date" class="form-input" id="expTanggal">
+<div class="hint" style="margin-top:6px">Boleh mundur beberapa hari untuk mencatat yang ketinggalan. Tanggal menentukan laporan hari apa catatan ini masuk.</div>
+</div>
+<div class="form-group">
+<label class="form-label">Jumlah Uang (Rp)</label>
+<input type="number" class="form-input" id="expJumlah" placeholder="Contoh: 50000" inputmode="numeric">
+</div>
+<div class="form-group">
+<label class="form-label">Ambil dari?</label>
+<select class="form-input" id="expMetode">
+<option value="tunai">💵 Tunai dari laci</option>
+<option value="qris">📱 QRIS (dari rekening)</option>
+<option value="transfer">🏦 Transfer bank</option>
+</select>
+<div class="hint" id="expMetodeHint" style="margin-top:6px">Hanya "Tunai dari laci" yang mengurangi uang laci waktu tutup kas. Kategori 🏧 Setor Bank tidak memotong Laba — itu uang pemilik, bukan kerugian.</div>
+</div>
+</div>
+<div id="txnIncomeBody" style="display:none">
+<div class="form-group">
+<label class="form-label">Dari Apa?</label>
+<input type="text" class="form-input" id="incKeterangan" placeholder="Contoh: Jual galon, bantuan titipan teman">
+</div>
+<div class="form-group">
+<label class="form-label">Jenis Pemasukan</label>
+<select class="form-input" id="incKategori">
+<option value="Pemasukan Lain">💰 Pemasukan Lain</option>
+<option value="Penjualan Non-Menu">🛍️ Penjualan Non-Menu</option>
+<option value="Bonus / Cashback">🎁 Bonus / Cashback</option>
+<option value="Modal Tambahan">🏦 Modal Tambahan</option>
+<option value="Lainnya">📦 Lainnya</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label">Tanggal Catatan</label>
+<input type="date" class="form-input" id="incTanggal">
+<div class="hint" style="margin-top:6px">Boleh mundur beberapa hari untuk mencatat yang ketinggalan. Tanggal menentukan laporan hari apa catatan ini masuk.</div>
+</div>
+<div class="form-group">
+<label class="form-label">Jumlah Uang (Rp)</label>
+<input type="number" class="form-input" id="incJumlah" placeholder="Contoh: 15000" inputmode="numeric">
+</div>
+<div class="form-group">
+<label class="form-label">Masuk ke?</label>
+<select class="form-input" id="incMetode">
+<option value="tunai">💵 Tunai ke laci</option>
+<option value="qris">📱 QRIS (ke rekening)</option>
+<option value="transfer">🏦 Transfer bank</option>
+</select>
+<div class="hint" style="margin-top:6px">Kategori 🏦 Modal Tambahan (isi laci dari dompet pribadi) tidak menambah Laba — itu uang pemilik, bukan hasil jualan.</div>
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-secondary" data-action="close-expense-modal">Batal</button>
+<button class="btn btn-primary" id="saveTxnBtn" data-action="save-txn">💾 Simpan</button>
+</div>
+</div>
+</div>
+
+<!-- ====== MODAL KAS (v161, adopsi buka/tutup kas + tutup buku dari rosok) ====== -->
+<!-- BUKA KAS -->
+<!-- v170 (komentar browser 2026-09-05): `.modal-center` = tampil di tengah dengan
+     tinggi mengikuti isi (bukan bottom-sheet 90vh). Tombol "Batal" DAN .modal-handle
+     DIHAPUS: modal ini gerbang — satu-satunya jalan keluar adalah mengisi modal awal
+     lalu "🔓 Buka Kas". Backdrop/Escape/navigasi juga diblokir (HARD_GATE_OVERLAYS). -->
+<div class="modal-overlay modal-center" id="bukaKasModal" role="dialog" aria-modal="true" aria-labelledby="bukaKasModalTitle"><div class="modal">
+<div class="modal-title" id="bukaKasModalTitle">🔓 Buka Kas</div>
+<div class="form-group">
+<label class="form-label">Modal Awal di Laci (Rp)</label>
+<input type="number" class="form-input" id="bukaKasModalAwal" placeholder="Contoh: 100000" inputmode="numeric">
+<div class="hint" id="bukaKasInfo" style="margin-top:8px">Hitung uang tunai yang ada di laci sekarang, lalu masukkan sebagai modal awal sebelum mulai jualan.</div>
+<div class="hint" style="margin-top:6px">Layar lain terkunci sampai modal awal dimasukkan — ketik <b>0</b> kalau laci memang kosong.</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" type="button" data-action="save-buka-kas">🔓 Buka Kas</button>
+</div>
+</div></div>
+
+<!-- TUTUP KAS -->
+<div class="modal-overlay" id="tutupKasModal" role="dialog" aria-modal="true" aria-labelledby="tutupKasModalTitle"><div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="tutupKasModalTitle">🔒 Tutup Kas</div>
+<div class="kas-box">
+<div class="kas-row"><span>Kas dibuka</span><b id="tutupKasWaktuLbl">—</b></div>
+<div class="kas-row"><span>Durasi shift</span><b id="tutupKasDurasiLbl">—</b></div>
+<div class="kas-row"><span>Jumlah transaksi</span><b id="tutupKasTrxLbl">0 transaksi</b></div>
+</div>
+<div class="kas-box" style="margin-top:10px">
+<div class="kas-row"><span>Modal awal di laci</span><b id="tutupKasModalLbl">Rp 0</b></div>
+<div class="kas-row"><span>Penjualan tunai</span><b id="tutupKasTunaiLbl" style="color:var(--green)">Rp 0</b></div>
+<div class="kas-row"><span>Pengeluaran tunai</span><b id="tutupKasExpenseLbl" style="color:var(--red)">Rp 0</b></div>
+<div class="kas-row"><span>Pemasukan tunai</span><b id="tutupKasIncomeLbl" style="color:var(--green)">Rp 0</b></div>
+<div class="kas-row total"><span>Kas sistem (perkiraan di laci)</span><b id="tutupKasSistemLbl">Rp 0</b></div>
+</div>
+<div class="kas-box" style="margin-top:10px">
+<div class="kas-box-title">📱 Dompet digital — di luar laci</div>
+<div id="tutupKasDompet"><div class="kas-row"><span>Belum ada transaksi non-tunai</span><b>Rp 0</b></div></div>
+</div>
+<div class="hint">Uang di atas tidak lewat laci: QRIS/Transfer masuk rekening, dan pengeluaran non-tunai dibayar dari rekening juga. Yang dibandingkan dengan hitungan fisik cuma <b>Kas sistem</b>.</div>
+<div class="form-group" style="margin-top:14px">
+<label class="form-label">Uang tunai fisik di laci (hitung manual)</label>
+<input type="number" class="form-input" id="tutupKasFisik" placeholder="Contoh: 268000" inputmode="numeric" data-action="kas-fisik-input">
+</div>
+<div class="kas-row total"><span>Selisih (fisik − sistem)</span><b id="tutupKasSelisih">—</b></div>
+<div class="form-group" style="margin-top:12px">
+<label class="form-label">Catatan (opsional)</label>
+<input type="text" class="form-input" id="tutupKasCatatan" placeholder="Contoh: kurang Rp 5.000 buat kembalian">
+</div>
+<div class="btn-row">
+<button class="btn btn-secondary" type="button" data-action="close-tutup-kas">Batal</button>
+<button class="btn btn-primary" type="button" data-action="save-tutup-kas">🔒 Tutup Kas</button>
+</div>
+</div></div>
+
+<!-- CATAT KAS MANUAL dihapus v164: tambah/ambil uang laci dicatat lewat
+     #expenseModal (tab Pengeluaran/Pemasukan) — satu jalur, satu sumber data. -->
+
+<!-- TUTUP BUKU TAHUNAN -->
+<div class="modal-overlay" id="tutupBukuModal" role="dialog" aria-modal="true" aria-labelledby="tutupBukuModalTitle"><div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="tutupBukuModalTitle">📕 Tutup Buku Tahunan</div>
+<div id="tutupBukuBody"></div>
+</div></div>
+
+<!-- NAME MODAL -->
+<div class="modal-overlay" id="nameModal" role="dialog" aria-modal="true" aria-labelledby="nameModalTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="nameModalTitle">🏪 Nama Usaha</div>
+<div class="form-group">
+<label class="form-label">Ketik nama usaha kamu</label>
+<input type="text" class="form-input" id="inputNamaUsaha" placeholder="Contoh: Bakso Pak Joko" required>
+</div>
+<div class="btn-row">
+<button class="btn btn-secondary" data-action="close-name-modal">Batal</button>
+<button class="btn btn-primary" data-action="save-nama-usaha">💾 Simpan</button>
+</div>
+</div>
+</div>
+
+<!-- OWNER MODAL -->
+<div class="modal-overlay" id="ownerModal" role="dialog" aria-modal="true" aria-labelledby="ownerModalTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="ownerModalTitle">👤 Nama Pemilik</div>
+<div class="form-group">
+<label class="form-label">Siapa nama pemilik usaha?</label>
+<input type="text" class="form-input" id="inputOwner" placeholder="Contoh: Pak Joko" required>
+</div>
+<div class="btn-row">
+<button class="btn btn-secondary" data-action="close-owner-modal">Batal</button>
+<button class="btn btn-primary" data-action="save-owner">💾 Simpan</button>
+</div>
+</div>
+</div>
+
+<!-- WA MODAL -->
+<div class="modal-overlay" id="waModal" role="dialog" aria-modal="true" aria-labelledby="waModalTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="waModalTitle">💬 Nomor WhatsApp</div>
+<div class="form-group">
+<label class="form-label">Nomor WhatsApp kamu</label>
+<input type="tel" class="form-input" id="inputWa" placeholder="Contoh: 0812-3456-7890" inputmode="tel" data-action="sanitize-wa-input" required>
+</div>
+<div class="btn-row">
+<button class="btn btn-secondary" data-action="close-wa-modal">Batal</button>
+<button class="btn btn-primary" data-action="save-wa">💾 Simpan</button>
+</div>
+</div>
+</div>
+
+<!-- ALAMAT MODAL -->
+<div class="modal-overlay" id="alamatModal" role="dialog" aria-modal="true" aria-labelledby="alamatModalTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="modal-title" id="alamatModalTitle">📍 Alamat</div>
+<div class="form-group">
+<label class="form-label">Provinsi</label>
+<select class="form-input" id="alamatProvinsi" disabled><option value="">—</option></select>
+</div>
+<div class="form-group">
+<label class="form-label">Kota / Kabupaten</label>
+<select class="form-input" id="alamatKabkota" disabled><option value="">—</option></select>
+</div>
+<div class="form-group">
+<label class="form-label">Kecamatan</label>
+<select class="form-input" id="alamatKecamatan" disabled><option value="">—</option></select>
+</div>
+<div class="form-group">
+<label class="form-label">Desa / Kelurahan</label>
+<select class="form-input" id="alamatDesa" disabled><option value="">—</option></select>
+</div>
+<div class="form-group">
+<label class="form-label">Detail Alamat (jalan, no. rumah) <span class="kreq">*</span></label>
+<input type="text" class="form-input" id="inputAlamat" placeholder="Contoh: Jl. Merdeka No. 10, Solo" required>
+</div>
+<div class="btn-row">
+<button class="btn btn-secondary" data-action="close-alamat-modal">Batal</button>
+<button class="btn btn-primary" data-action="save-alamat">💾 Simpan</button>
+</div>
+</div>
+</div>
+
+<!-- EXPENSE DETAIL MODAL -->
+<div class="modal-overlay" id="expenseDetailModal" role="dialog" aria-modal="true" aria-labelledby="expenseDetailTitle">
+<div class="modal">
+<div id="expenseDetailContent"></div>
+</div>
+</div>
+
+<!-- TRX DETAIL MODAL -->
+<div class="modal-overlay" id="trxDetailModal" role="dialog" aria-modal="true" aria-labelledby="trxDetailTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="kflex-between-mb12">
+<div class="modal-title" id="trxDetailTitle">📃 Detail Transaksi</div>
+<button class="btn btn-icon btn-ghost kclose-btn" data-action="close-trx-detail">✕</button>
+</div>
+<div id="trxDetailContent"></div>
+<!-- v181 (permintaan pemilik): pola sama dgn detail pengeluaran — Hapus dulu
+     (auto-size ikut label), Cetak Nota isi sisa area; flex horizontal di
+     semua perangkat (kgrid-2col-gap8 bisa ditumpuk 1 kolom oleh media query) -->
+<div class="detail-actions kmt16">
+<button class="btn btn-red detail-delete-btn" id="trxDeleteBtn" data-action="delete-sale">🗑️ Hapus</button>
+<button class="btn btn-primary detail-main-btn" data-action="print-nota">🖨️ Cetak Nota</button>
+</div>
+</div>
+</div>
+
+<!-- KAS SHIFT DETAIL MODAL (komentar browser #6 — riwayat buka/tutup kas bisa dibuka) -->
+<div class="modal-overlay" id="kasShiftDetailModal" role="dialog" aria-modal="true" aria-labelledby="kasShiftDetailTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="kflex-between-mb12">
+<div class="modal-title" id="kasShiftDetailTitle">🕐 Detail Riwayat Kas</div>
+<button class="btn btn-icon btn-ghost kclose-btn" data-action="close-kas-shift-detail" aria-label="Tutup detail riwayat kas">✕</button>
+</div>
+<div id="kasShiftDetailContent"></div>
+</div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirmDialog" role="dialog" aria-modal="true" aria-labelledby="confirmText">
+<div class="confirm-box">
+<div class="confirm-icon" id="confirmIcon">⚠️</div>
+<div class="confirm-text" id="confirmText">Yakin?</div>
+<div class="btn-row">
+<button class="btn btn-secondary btn-sm" id="confirmNo" data-action="close-confirm">Batal</button>
+<button class="btn btn-red btn-sm" id="confirmYes">Ya, Hapus</button>
+</div>
+</div>
+</div>
+
+<!-- INPUT DIALOG (pengganti window.prompt — tidak didukung embedded browser, 2026-08-30) -->
+<div class="confirm-overlay" id="inputDialog" role="dialog" aria-modal="true" aria-labelledby="inputDialogTitle">
+<div class="confirm-box">
+<div class="confirm-icon" id="inputDialogIcon">✏️</div>
+<div class="confirm-text" id="inputDialogTitle">Masukkan nama</div>
+<input class="form-input" id="inputDialogField" type="text" autocomplete="off" style="text-align:left;margin-bottom:16px">
+<div class="btn-row">
+<button class="btn btn-secondary btn-sm" id="inputDialogCancel">Batal</button>
+<button class="btn btn-green btn-sm" id="inputDialogOk">Simpan</button>
+</div>
+</div>
+</div>
+
+<!-- FORCE UPDATE OVERLAY (versi baru wajib dimuat) -->
+<div id="updateOverlay" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
+<div class="update-card">
+<div class="update-head">
+<div class="update-title" id="updateTitle">✨ Versi Baru Tersedia!</div>
+<div class="update-version" id="updateVersionLabel">Versi —</div>
+<div class="update-sub">Ada pembaruan penting supaya aplikasi makin lancar dan data usahamu makin aman. Tekan OKE untuk memuat versi terbaru. Data jualanmu aman, tidak ada yang hilang.</div>
+<div class="update-notes-title">Yang baru di versi ini:</div>
+</div>
+<div class="update-body">
+<ul class="update-notes" id="updateNotesList"></ul>
+</div>
+<div class="update-foot">
+<button class="btn btn-green kw-full kfs16" id="updateOkBtn">OKE</button>
+</div>
+</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<!-- BANNER KUOTA (2026-08-29): pengganti full-screen gate — bisa ditutup,
+     aplikasi tetap bisa dieksplor; transaksi diblokir di pos.js. -->
+<div id="quotaBanner" class="khide" role="status">
+<div class="quota-banner-card">
+<div id="quotaBannerText" style="flex:1;font-size:13px;color:#7c2d12;line-height:1.5"></div>
+<button class="btn btn-primary" data-action="buy-gate" style="flex-shrink:0;padding:8px 14px;font-size:13px">💳 Lisensi</button>
+<button class="btn btn-icon btn-ghost kclose-btn" data-action="close-quota-banner" aria-label="Tutup banner kuota" style="flex-shrink:0;color:#7c2d12">✕</button>
+</div>
+</div>
+
+<!-- SYNC DIAGNOSTICS MODAL -->
+<div class="modal-overlay" id="syncDiagModal" role="dialog" aria-modal="true" aria-labelledby="syncDiagTitle">
+<div class="modal">
+<div class="modal-handle"></div>
+<div class="kflex-between-mb12">
+<div class="modal-title" id="syncDiagTitle">🔄 Cek Data Online</div>
+<button class="btn btn-icon btn-ghost kclose-btn" data-action="close-sync-diag">✕</button>
+</div>
+<div id="syncDiagContent" class="kfs13"></div>
+<div class="btn-row kmt14">
+<button class="btn btn-secondary" data-action="copy-sync-diag">📋 Kirim ke Admin</button>
+<button class="btn btn-primary" data-action="open-sync-diag">🔄 Periksa Ulang</button>
+</div>
+</div>
+</div>
+
+<!-- SYARAT & KETENTUAN MODAL -->
+<div class="modal-overlay" id="tcModal" role="dialog" aria-modal="true" aria-labelledby="tcModalTitle">
+<div style="background:#fff;border-radius:20px;padding:24px;max-width:520px;width:100%;max-height:85vh;display:flex;flex-direction:column;animation:popIn .3s ease">
+<div class="modal-title" id="tcModalTitle" style="font-size:19px;font-weight:800;margin-bottom:6px">📜 Syarat & Ketentuan</div>
+<div style="font-size:11.5px;color:var(--text3);display:flex;align-items:center;gap:6px;margin-bottom:12px">🕒 Terakhir diperbarui: <b>7 Agustus 2026</b> · v1.1</div>
+<div style="flex:1;overflow-y:auto;font-size:13.5px;color:var(--text);line-height:1.7;padding-right:4px">
+<p><b>1. Layanan</b> — <b>Kasir Solo Kaki Lima</b> adalah aplikasi kasir (POS) untuk pedagang kaki lima &amp; warung: mencatat transaksi jualan, mengelola menu/produk &amp; stok, rekap laporan &amp; pengeluaran, kas harian, dan cetak nota lewat printer thermal Bluetooth. Dengan menyetujui Syarat &amp; Ketentuan ini, Anda mendapat akses penuh selama masa uji coba maupun lisensi resmi.</p>
+<p><b>2. Kuota Gratis &amp; Lisensi</b> — Versi gratis memberi <b>kuota transaksi setiap bulan</b> (jumlah tertera di aplikasi) tanpa batas waktu; kuota menyegarkan diri di awal bulan. Saat kuota habis, aplikasi tetap bisa dibuka &amp; dieksplor, namun pencatatan transaksi baru terkunci sampai bulan berikutnya — atau buka lebih awal dengan <b>membeli lisensi</b> melalui QRIS; setelah pembayaran diverifikasi, admin mengaktifkan lisensi Anda <b>secara otomatis</b>. Lisensi berlaku <b>per perangkat</b>; menyebarkan atau menggandakan kode lisensi tanpa izin dapat menyebabkan penonaktifan.</p>
+<p><b>3. Data Anda</b> — Seluruh data transaksi &amp; usaha tersimpan <b>lokal di HP Anda</b> (IndexedDB, mode offline penuh) dan tidak dikirim ke server. Gunakan <b>Simpan Cadangan</b> (ekspor JSON — gratis) untuk memindahkan/backup; fitur <b>Cadangan Cloud</b> tersedia untuk pengguna lisensi aktif. Menekan <b>Hapus Semua Data</b> menghapus semua data secara permanen dan tidak dapat dikembalikan.</p>
+<p><b>4. Profil &amp; Sinkronisasi</b> — Nama usaha, pemilik, WhatsApp, dan wilayah akan disinkronkan ke server kami untuk keperluan dukungan, pengelolaan lisensi, dan statistik agregat. Data penjualan/transaksi <b>tidak</b> ikut disinkronkan pada tahap ini.</p>
+<p><b>5. Tanggung Jawab</b> — Anda bertanggung jawab atas penggunaan aplikasi pada perangkat Anda. Kami tidak bertanggung jawab atas kehilangan data akibat tindakan manual (hapus data, reset/pergantian HP) atau kerusakan perangkat.</p>
+<p><b>6. Bantuan &amp; Perubahan</b> — Butuh bantuan? Hubungi kami melalui WhatsApp. Kami dapat memperbarui Syarat &amp; Ketentuan ini sewaktu-waktu; penggunaan berkelanjutan berarti Anda menyetujui versi terbaru.</p>
+</div>
+<div style="display:flex;gap:10px;margin-top:14px">
+<button class="btn btn-secondary" style="flex:1" data-action="cancel-tc">✕ Nanti Saja</button>
+<button class="btn btn-green" style="flex:1" data-action="accept-tc">✓ Saya Setuju</button>
+</div>
+</div>
+</div>
+
+<!-- LICENSE SHEET (status + extend + activate) -->
+<div class="modal-overlay" id="sheetLicense" role="dialog" aria-modal="true" aria-labelledby="sheetLicenseTitle">
+<div class="license-sheet">
+<div class="license-sheet-head">
+<div id="sheetLicenseTitle" class="kfs18 kfw800">🔐 Status Lisensi</div>
+<button class="sheet-close" data-action="close-sheet-license" aria-label="Tutup">✕</button>
+</div>
+<div class="license-sheet-body" id="licenseSheetBody"></div>
+</div>
+</div>
+
+<!-- PEMBELIAN SHEET (QRIS + upload bukti) -->
+<div class="modal-overlay" id="sheetPurchase" role="dialog" aria-modal="true" aria-labelledby="sheetPurchaseTitle">
+<div class="license-sheet">
+<div class="license-sheet-head">
+<div id="sheetPurchaseTitle" class="kfs18 kfw800">💳 Beli Lisensi</div>
+<button class="sheet-close" data-action="close-sheet-purchase" aria-label="Tutup" style="border:1.5px solid var(--primary)">✕</button>
+</div>
+<div class="license-sheet-body" id="purchaseSheetBody"></div>
+</div>
+</div>
+
+<!-- LOCK OVERLAY (trial habis / perlu lisensi) -->
+<div class="modal-overlay" id="lockOverlay" role="dialog" aria-modal="true" aria-labelledby="lockOverlayTitle">
+<div class="card license-lock-card">
+<div class="license-icon kfs40">🔒</div>
+<div class="license-title kfs20 kmt8" id="lockOverlayTitle">Lisensi Diperlukan</div>
+<p class="license-desc kcenter" id="lockOverlayDesc">Pencatatan transaksi dibatasi. Beli lisensi resmi lewat QRIS — aktivasi otomatis setelah pembayaran diverifikasi — atau hubungi admin lewat WhatsApp.</p>
+<div id="lockLicenseStatusArea"></div>
+</div>
+<!-- Mode "Lisensi Dicabut": halaman penuh putih bergaya gate (diisi dinamis
+     renderRevokedLockOverlay); kartu di atas disembunyikan saat mode ini aktif. -->
+<div id="lockRevokedPage" class="khide kgate-box" role="dialog" aria-modal="true" aria-labelledby="lockRevokedTitle"></div>
+</div>
+
+  <script type="module" src="js/app.js?v=194"></script>
+<script src="js/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
+<script src="js/supabase-config.js"></script>
+</body>
+</html>

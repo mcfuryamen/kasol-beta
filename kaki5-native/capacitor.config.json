@@ -1,0 +1,11 @@
+{
+  "appId": "com.kasirsolo.kaki5",
+  "appName": "Kasir Solo",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

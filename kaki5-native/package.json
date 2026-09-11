@@ -1,0 +1,23 @@
+{
+  "name": "kaki5-native",
+  "version": "1.0.0",
+  "description": "Aplikasi Android native (Capacitor) untuk Kasir Solo - Kaki Lima",
+  "main": "index.js",
+  "scripts": {
+    "sync:www": "node sync-www.mjs",
+    "sync": "node sync-www.mjs && npx cap sync android",
+    "build:debug": "node sync-www.mjs && npx cap sync android && cd android && ./gradlew assembleDebug",
+    "build:release": "node sync-www.mjs && npx cap sync android && cd android && ./gradlew assembleRelease"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@capacitor-community/bluetooth-le": "^8.3.0",
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1"
+  },
+  "private": true
+}

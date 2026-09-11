@@ -1,0 +1,81 @@
+---
+import Base from '../../layouts/Base.astro';
+import { projects, getProject, site } from '../../data/portfolio';
+
+export function getStaticPaths() {
+  return projects.map((p) => ({ params: { slug: p.slug }, props: { project: p } }));
+}
+
+const { project } = Astro.props;
+const related = projects.filter((p) => p.slug !== project.slug && p.category === project.category).slice(0, 3);
+
+const title = `${project.title} | Portfolio PT Mesin Kasir Solo`;
+const description = project.desc;
+const ogImage = project.image;
+---
+<Base title={title} description={description}>
+  <article class="article">
+    <div class="container article-inner">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/">Beranda</a><span>/</span><a href="/portfolio">Portfolio</a><span>/</span><em>{project.client}</em>
+      </nav>
+
+      <header class="art-head">
+        <div class="art-tags">
+          <span class="tag">{project.tag}</span>
+          <span class="tag tag-city">{project.city}</span>
+        </div>
+        <h1>{project.title}</h1>
+        {project.desc && <p class="art-lead">{project.desc}</p>}
+        <div class="art-meta">
+          <div><small>KLIEN</small><b>{project.client}</b></div>
+          <div><small>LOKASI</small><b>{project.city}</b></div>
+          {project.value && <div><small>NILAI PROYEK</small><b>{project.value}</b></div>}
+          {project.duration && <div><small>DURASI</small><b>{project.duration}</b></div>}
+        </div>
+      </header>
+
+      <div class="art-cover">
+        <img src={project.image} alt={project.title} width="1200" height="675" />
+      </div>
+
+      <section class="art-body">
+        <h2>Tantangan</h2>
+        <p>{project.desc}</p>
+        <h2>Yang Dikerjakan</h2>
+        <p>
+          Eksekusi penuh oleh tim {site.legalName}: survei lokasi, pemasangan & konfigurasi,
+          pelatihan tim operasional, dan pendampingan pasca-install. Satu tujuan — sistem yang
+          dibangun harus mengurangi pekerjaan, bukan menambah.
+        </p>
+        <h2>Hasil</h2>
+        <p>
+          Operasional {project.client} berjalan dengan pencatatan otomatis dan laporan yang bisa
+          dipantau kapan saja. Detail angka & refleksi lengkap bisa ditanyakan langsung saat
+          konsultasi — termasuk apa yang tidak jalan sebelum sistem ini dipasang.
+        </p>
+      </section>
+
+      <div class="cta-final art-cta">
+        <h2>Ingin Hasil yang Sama?</h2>
+        <p>Konsultasi gratis langsung dengan founder. Nggak pake makelar.</p>
+        <a href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener" class="btn btn-primary">Chat Founder<span class="shine"></span></a>
+      </div>
+
+      {related.length > 0 && (
+        <section class="related">
+          <h2>Proyek Lain Sejenis</h2>
+          <div class="grid grid-3">
+            {related.map((p) => (
+              <a class="card proj-card" href={`/portfolio/${p.slug}`}>
+                <div class="proj-thumb"><img src={p.image} alt={p.title} loading="lazy" width="800" height="450" /></div>
+                <span class="type">{p.tag} — {p.city}</span>
+                <h3>{p.title}</h3>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  </article>
+</Base>

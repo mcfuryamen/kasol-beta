@@ -1,0 +1,11 @@
+{
+  "version": "1.0.119",
+  "cacheBust": "v194",
+  "notes": [
+    "Penyelarasan internal: dashboard kini bernama 'Control Center' dan halaman katalog 'Shop' — konsisten di seluruh aplikasi Kasir Solo. Tidak ada perubahan fitur.",
+    "Istilah 'Admin Console' di layar pembelian lisensi kini jadi 'Control Center' — sama seperti nama dashboard terbaru.",
+    "Laporan custom makin aman & terbaca: rentang terbalik ditolak dengan pesan (laporan tak lagi tampil kosong menyesatkan), dan grafik rentang panjang (2 bulan ke atas) kini per bulan — bukan puluhan kolom sempit tak terbaca.",
+    "Kalender custom: kedua panah selalu tampil dengan batas arah geser — atas maksimal bulan berjalan, bawah minimal satu bulan setelah kalender atas.",
+    "Pesanan ditahan yang dibayar besoknya tercatat di hari pembayaran (omzet & laporan hari itu), nomor nota tetap dari saat ditahan."
+  ]
+}

@@ -1,0 +1,150 @@
+// ==================== EXPENSE DETAIL (ESM) ====================
+// Modal detail catatan pengeluaran/pemasukan — mirip trxdetail.js tapi untuk
+// baris tabel `pengeluaran`.
+// v160 (audit pemasukan): dulu modal ini BUTA JENIS — judul, warna, dan angka
+// selalu "pengeluaran" (merah) padahal pemasukan disimpan di tabel yang sama
+// dengan jenis:'pemasukan'. Sekarang jenis-sadar, plus tombol hapus: sebelum
+// v160 catatan pemasukan tidak bisa dikoreksi lewat UI sama sekali.
+import { DB } from './db.js';
+import { escapeHtml, formatRp, formatDate, formatTime, showToast } from './helpers.js';
+import { openModal, closeModal } from './modal.js';
+import { showConfirm } from './confirm.js';
+import { currentPage } from './app-state.js';
+import { loadBeranda } from './beranda.js';
+// v165: loadReport() tidak dipanggil lagi di sini — penyegaran Laporan lewat
+// kas.refreshKasViews() supaya satu jalur untuk semua halaman (lihat hapusExpense).
+import { peringatanTahunTertutup } from './kas.js';
+// v164: catatan kini membawa metode (tunai laci / QRIS / transfer) dan kategori
+// non-usaha — keduanya wajib terlihat di detail supaya user paham kenapa angka
+// Laba tidak berubah.
+import { metodeCatatan, isNonLaba, METODE_LABEL } from './kas.logic.js';
+
+const CAT_EMOJI = {
+  'Bahan Baku': '🥬',
+  'Gas & BBM': '⛽',
+  'Sewa Tempat': '🏪',
+  'Peralatan': '🍳',
+  'Setoran Konsinyasi': '🤝',
+  'Retur Konsinyasi': '↩️',
+  'Setor Bank / Prive': '🏧',
+  'Lainnya': '📦'
+};
+
+// Kategori form Pemasukan (index.html #incKategori) — setnya beda dari
+// pengeluaran, jadi butuh map emoji sendiri.
+const INC_EMOJI = {
+  'Pemasukan Lain': '💰',
+  'Penjualan Non-Menu': '🛍️',
+  'Bonus / Cashback': '🎁',
+  'Modal Tambahan': '🏦',
+  'Lainnya': '📦'
+};
+
+export async function showExpenseDetail(id) {
+  try {
+    const exp = await DB.pengeluaran.get(id);
+    if (!exp) {
+      // Audit toast 2026-09-07: dulu console.error + return — tap baris yang
+      // catatannya sudah terhapus = layar diam (bandingkan ubahCatatan yang
+      // ber-toast 'Catatan sudah tidak ada').
+      showToast('⚠️ Catatan sudah tidak ada', 'warning', 3000);
+      return;
+    }
+
+    const isInc = exp.jenis === 'pemasukan';
+    const emoji = (isInc ? INC_EMOJI : CAT_EMOJI)[exp.kategori] || (isInc ? '💰' : '📦');
+    const accent = isInc ? 'var(--green)' : 'var(--red)';
+    const accentBg = isInc ? 'var(--green-bg)' : 'var(--red-bg)';
+    const metode = metodeCatatan(exp);
+    const nonLaba = isNonLaba(exp);
+
+    let html = `
+      <div class="modal-handle"></div>
+      <div class="kflex-between-mb12">
+        <div class="modal-title" id="expenseDetailTitle">${isInc ? '💰 Detail Pemasukan' : '💸 Detail Pengeluaran'}</div>
+        <button class="btn btn-icon btn-ghost kclose-btn" data-action="close-expense-detail" aria-label="Tutup">✕</button>
+      </div>
+
+      <div style="background:${accentBg};border-radius:12px;padding:16px;margin-bottom:16px;text-align:center">
+        <div class="kfs48 kmb8">${escapeHtml(emoji)}</div>
+        <div class="kfs28 kfw800 kmb8" style="color:${accent}">${isInc ? '+' : '-'}${formatRp(exp.jumlah)}</div>
+        <div class="kfs13 ktext2">${escapeHtml(exp.kategori || (isInc ? 'Pemasukan Lain' : 'Lainnya'))}</div>
+        <div style="font-size:12px;margin-top:6px;color:var(--text2)">${escapeHtml(METODE_LABEL[metode] || metode)}${nonLaba ? ' · <b style="color:var(--orange)">tidak masuk Laba</b>' : ''}</div>
+      </div>
+
+      <div style="background:#f9f9f9;border-radius:10px;padding:14px;margin-bottom:12px">
+        ${exp.nomor ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span class="kfs20">🔢</span><div class="kflex-1"><div style="font-size:12px;color:var(--text3);margin-bottom:2px">Nomor</div><div class="kfw600 kfs15">${escapeHtml(String(exp.nomor))}</div></div></div>` : ''}
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span class="kfs20">📝</span>
+          <div class="kflex-1">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Keterangan</div>
+            <div class="kfw600 kfs15">${escapeHtml(exp.keterangan)}</div>
+          </div>
+        </div>
+        <div class="kflex-gap10">
+          <span class="kfs20">📅</span>
+          <div class="kflex-1">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Tanggal & Waktu</div>
+            <div class="kfw600 kfs15">${escapeHtml(formatDate(exp.tanggal))} • ${escapeHtml(formatTime(exp.waktu))}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hint kmt8">Isi keterangan, jenis, jumlah, metode, dan tanggal bisa dikoreksi. Nomor catatan dipertahankan selama tanggalnya tidak diganti.</div>
+
+      <!-- v181 (revisi permintaan pemilik): urutan ditukar — Hapus DULU dengan
+           lebar auto ikut label, Ubah Catatan mengisi sisa area; flex horizontal
+           di semua perangkat (kgrid-2col-gap8 dihindari karena media query
+           tertentu menumpuknya jadi 1 kolom). Berlaku utk detail pemasukan &
+           pengeluaran (renderer bersama). Tutup tetap ✕ kclose-btn pojok kanan atas -->
+      <div class="expense-detail-actions kmt16">
+        <button class="btn btn-red expense-delete-btn" data-action="delete-expense" data-id="${exp.id}">🗑️ Hapus</button>
+        <button class="btn btn-primary expense-edit-btn" data-action="edit-expense" data-id="${exp.id}">✏️ Ubah Catatan</button>
+      </div>
+    `;
+
+    document.getElementById('expenseDetailContent').innerHTML = html;
+    await openModal('expenseDetailModal');
+  } catch (err) {
+    // Audit toast 2026-09-07: dulu cuma console.error — tap baris saat DB
+    // gagal = tidak terjadi apa-apa.
+    console.error('[ExpenseDetail] Error:', err);
+    showToast('❌ Gagal membuka detail catatan — coba lagi', 'error');
+  }
+}
+
+export function closeExpenseDetail() {
+  closeModal('expenseDetailModal');
+}
+
+// Hapus catatan pengeluaran/pemasukan. Pola ikut trxdetail.js: konfirmasi dulu,
+// tutup modal, lalu refresh halaman yang sedang tampil supaya angkanya langsung
+// cocok (Beranda & Laporan menghitung dari tabel yang sama).
+export async function hapusExpense(id) {
+  const numId = Number(id);
+  if (!Number.isFinite(numId)) return;
+  // v161: ingatkan kalau tahun catatan ini sudah ditutup buku.
+  const row = await DB.pengeluaran.get(numId);
+  const pesan = await peringatanTahunTertutup(row?.tanggal, 'catatan ini');
+  showConfirm('🗑️', pesan, 'Ya, Hapus', async () => {
+    try {
+      await DB.pengeluaran.delete(numId);
+    } catch (e) {
+      // Audit toast 2026-09-07: dialog sudah tertutup — gagal hapus diam.
+      console.error('[ExpenseDetail] hapus gagal:', e?.message || e);
+      showToast('❌ Gagal menghapus catatan — coba lagi', 'error');
+      return;
+    }
+    closeExpenseDetail();
+    showToast('Catatan dihapus');
+    if (currentPage === 'beranda') await loadBeranda();
+    // v165: kartu kas Beranda dan blok kas di Laporan membaca tabel yang sama.
+    // refreshKasViews() mengurus keduanya (Laporan hanya bila sedang dibuka),
+    // jadi hapusan dari halaman mana pun langsung terlihat di angka laci.
+    try { const kas = await import('./kas.js'); await kas.refreshKasViews(); } catch (_) { /* bukan fatal */ }
+  });
+}
+
+// Export ke window hanya untuk yang dipanggil via inline HTML onclick attribute
+// di tempat yang BUKAN lewat showPage dispatch. Lihat app.js untuk wiring terpusat.
+// (Audit 2026-08-09: hapus self-wire untuk showExpenseDetail — duplikat dgn app.js:72)

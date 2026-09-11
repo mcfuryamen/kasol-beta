@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<!-- BUILD-MODULAR-V2 -->
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Kasir Solo - Rosok</title>
+<meta name="description" content="Aplikasi kasir untuk usaha pengepul rosok / barang bekas. Catat pembelian, penjualan, stok, dan kas dengan mudah.">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F5821F">
+<meta name="color-scheme" content="only light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kasir Rosok">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="msapplication-TileColor" content="#F5821F">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=70">
+<script src="dexie.min.js"></script>
+<script src="js/supabase.min.js"></script>
+<script src="js/supabase-config.js"></script>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand-badge">
+        <img id="headerLogo" src="assets/logo.png" alt="logo">
+      </div>
+      <div class="brand-txt">
+        <div class="biz" id="bizNameHeader">Kasir Solo - Rosok</div>
+        <div class="tag" id="bizTagHeader">Barang Bekas Tak Terpakai</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="trial-badge" id="trialChip" onclick="openLicenseSheet()">
+        <div class="trial-label-xs">GRATIS</div>
+        <div class="trial-value-sm">…</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ DASHBOARD ============ -->
+    <section class="screen active" id="screen-dashboard">
+      <div id="platCarouselEl" class="plat-carousel-spacing"></div>
+
+      <div class="section-label">Ringkasan Hari Ini</div>
+      <div class="stat-grid">
+        <div class="stat-card stat-kas">
+          <div class="stat-icon">💰</div>
+          <div class="stat-body">
+            <div class="lbl">Kas</div>
+            <div class="val" id="statKas">Rp 0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-stok">
+          <div class="stat-icon">⚖️</div>
+          <div class="stat-body">
+            <div class="lbl">Stok</div>
+            <div class="val" id="statStok">0 kg</div>
+          </div>
+        </div>
+        <div class="stat-card stat-beli">
+          <div class="stat-icon">🛒</div>
+          <div class="stat-body">
+            <div class="lbl">Beli</div>
+            <div class="val" id="statBeliHariIni">Rp 0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-jual">
+          <div class="stat-icon">📦</div>
+          <div class="stat-body">
+            <div class="lbl">Jual</div>
+            <div class="val" id="statJualHariIni">Rp 0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">Transaksi Terakhir</div>
+      <div class="card card-compact" id="dashRecentCard"></div>
+    </section>
+
+    <!-- ============ TRANSAKSI (BELI/JUAL) ============ -->
+    <section class="screen" id="screen-transaksi">
+      <div class="tabs">
+        <div class="tab-btn" id="tabBeli" onclick="switchTransTab('beli')">🛒 Beli dari Warga</div>
+        <div class="tab-btn" id="tabJual" onclick="switchTransTab('jual')">📦 Jual ke Bandar</div>
+      </div>
+
+      <!-- STEP 1: Pilih Barang -->
+      <div class="wizard-step active" id="transStep1">
+        <div class="section-label mb0">Pilih Jenis Rosok</div>
+        <div class="hint mt8" id="transHint">Ketuk jenis rosok untuk timbang & masukkan ke keranjang</div>
+        <div class="kat-grid mt12" id="katGrid"></div>
+        <div class="cart-chip-row" id="cartChipsStep1"></div>
+      </div>
+
+      <!-- STEP 2: Pembayaran — REDESIGNED COMPACT LAYOUT -->
+      <div class="wizard-step" id="transStep2">
+        <!-- Back & Contact Info - Side by side grid -->
+        <div class="step2-header-grid">
+          <div class="wizard-back" onclick="goToStep(1)">← Tambah barang lain</div>
+          <input type="text" id="transNamaKontak" class="contact-input" placeholder="Nama Penjual/Pembeli (opsional)">
+        </div>
+
+        <!-- Compact Cart Summary -->
+        <div class="payment-cart-compact" id="cartCard">
+          <div class="empty-state-cart text-center" id="cartEmpty">
+            <div class="ic">🧺</div>
+            <div class="t1">Keranjang masih kosong</div>
+            <div class="t2">Pilih jenis rosok dulu ya</div>
+          </div>
+          <div id="cartListStep2" class="cart-compact-list"></div>
+        </div>
+
+        <!-- Contact Info - Catatan only -->
+        <input type="text" id="transCatatan" class="contact-input" placeholder="Catatan (opsional)">
+
+        <!-- Unified Payment Card (Compact) -->
+        <div class="payment-card-compact">
+          <!-- Total Display -->
+          <div class="payment-total">
+            <span>Total Belanja</span>
+            <b id="bayarTotalLbl">Rp 0</b>
+          </div>
+
+          <!-- Payment Method Selector (inline) -->
+          <div class="payment-method-inline" id="metodeBayarTabs" role="group" aria-label="Pilih metode pembayaran">
+            <button type="button" class="method-btn active" data-m="tunai" onclick="setMetodeBayar('tunai')" aria-pressed="true" aria-label="Metode pembayaran: Tunai (uang tunai)">💵 Tunai</button>
+            <button type="button" class="method-btn" data-m="transfer" onclick="setMetodeBayar('transfer')" aria-pressed="false" aria-label="Metode pembayaran: Transfer (transfer bank)">🏦 Transfer</button>
+            <button type="button" class="method-btn" data-m="tempo" onclick="setMetodeBayar('tempo')" aria-pressed="false" aria-label="Metode pembayaran: Tempo (cicilan)">📝 Tempo</button>
+          </div>
+
+          <!-- Uang Dibayarkan & Kembalian - 2 Kolom Sejajar -->
+          <div class="payment-row" id="cashPayRow">
+            <div class="payment-col">
+              <label class="amount-label" id="bayarUangLabel">Uang Dibayarkan</label>
+              <input type="text" id="bayarUangInput" class="amount-input" placeholder="Masukkan nominal" inputmode="numeric" oninput="formatInputRupiah(this); calcKembalian()" onblur="formatInputRupiah(this)">
+            </div>
+            <div class="payment-col">
+              <label class="amount-label" id="kembalianLbl">Kembalian</label>
+              <div class="kembalian-box">
+                <b id="kembalianVal" aria-live="polite">Rp 0</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preset Nominal Buttons -->
+          <div class="amount-presets" id="presetButtonsContainer" role="group" aria-label="Preset nominal pembayaran">
+            <button type="button" class="preset-btn" onclick="setPresetAmount(1)">+10K</button>
+            <button type="button" class="preset-btn" onclick="setPresetAmount(2)">+25K</button>
+            <button type="button" class="preset-btn" onclick="setPresetAmount(3)">+50K</button>
+            <button type="button" class="preset-btn" onclick="setPresetAmount(4)">+100K</button>
+          </div>
+
+          <!-- Panel Transfer (non-tunai, pola kaki5): nominal pas + foto bukti + catatan -->
+          <div class="transfer-panel hidden" id="transferPanel">
+            <div class="transfer-nominal">
+              <span>Nominal Transfer</span>
+              <b id="transferNominalLbl">Rp 0</b>
+            </div>
+            <input type="file" id="payProofFile" accept="image/png,image/jpeg,image/webp" capture="environment" style="display:none" onchange="window._ksr_handlePayProof(this)">
+            <button type="button" class="btn btn-outline" id="payProofBtn" onclick="window._ksr_capturePayProof()">📷 Foto Bukti Transfer</button>
+            <div class="pay-proof-wrap" id="payProofPreviewWrap" style="display:none">
+              <img id="payProofPreview" class="pay-proof-preview" alt="Preview bukti transfer">
+              <button type="button" class="pay-proof-remove" onclick="window._ksr_removePayProof()" aria-label="Hapus bukti">✕</button>
+            </div>
+            <input type="text" id="payNoteInput" class="amount-input" placeholder="Catatan transfer (opsional)" maxlength="120">
+          </div>
+
+          <!-- Tempo Hint -->
+          <div class="payment-hint hidden" id="tempoHint" role="status">Sisa dicatat sebagai tempo, lunasi kapan saja di menu Laporan.</div>
+
+          <!-- Payment Footer (state info: utang/piutang/kembalian) -->
+          <div id="paymentFooter" class="payment-footer"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STOK ============ -->
+    <section class="screen" id="screen-stok">
+      <div class="section-label mb0">Stok & Harga Jenis Rosok</div>
+      <div class="hint mt8">Ketuk item untuk ubah harga atau nonaktifkan</div>
+      <div class="card mt12" id="stokListCard"></div>
+    </section>
+
+    <!-- Sticky bar: Tambah Jenis Rosok (melayang di atas bottom nav) -->
+    <div class="stok-bar" id="stokBar">
+      <div class="stok-bar-inner">
+        <button class="btn btn-primary" onclick="openKategoriForm(null)">➕ Tambah Jenis Rosok Baru</button>
+      </div>
+    </div>
+
+    <!-- ============ LAPORAN + RIWAYAT (satu halaman, 2026-09-03) ============ -->
+    <section class="screen" id="screen-laporan">
+      <div class="card laporan-filter-block" id="screenLaporanFilter">
+        <div class="report-tabs">
+          <div class="report-tab active" data-p="harian" onclick="setLaporanPeriode('harian')">Harian</div>
+          <div class="report-tab" data-p="mingguan" onclick="setLaporanPeriode('mingguan')">Mingguan</div>
+          <div class="report-tab" data-p="bulanan" onclick="setLaporanPeriode('bulanan')">Bulanan</div>
+          <div class="report-tab" data-p="custom" onclick="setLaporanPeriode('custom')">Custom</div>
+        </div>
+        <div id="reportDateNav"></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card stat-beli">
+          <div class="stat-icon">🛒</div>
+          <div class="stat-body">
+            <div class="lbl">Pembelian</div>
+            <div class="val" id="lapBeli">Rp 0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-jual">
+          <div class="stat-icon">📦</div>
+          <div class="stat-body">
+            <div class="lbl">Penjualan</div>
+            <div class="val" id="lapJual">Rp 0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-pengeluaran">
+          <div class="stat-icon">⬇️</div>
+          <div class="stat-body">
+            <div class="lbl">Pengeluaran</div>
+            <div class="val red" id="lapPengeluaran">Rp 0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-laba">
+          <div class="stat-icon">💰</div>
+          <div class="stat-body">
+            <div class="lbl">Laba</div>
+            <div class="val green" id="lapLaba">Rp 0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-utang">
+          <div class="stat-icon">📉</div>
+          <div class="stat-body">
+            <div class="lbl">Utang</div>
+            <div class="val red" id="lapUtang">Rp 0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-piutang">
+          <div class="stat-icon">📈</div>
+          <div class="stat-body">
+            <div class="lbl">Piutang</div>
+            <div class="val green" id="lapPiutang">Rp 0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-kas">
+          <div class="stat-icon">💵</div>
+          <div class="stat-body">
+            <div class="lbl">Total Kas</div>
+            <div class="val" id="lapKasHarian">Rp 0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-beli">
+          <div class="stat-icon">🧾</div>
+          <div class="stat-body">
+            <div class="lbl">Transaksi</div>
+            <div class="val" id="lapNTrans">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="card mt12" id="lapMarginCard">
+        <div class="flex-between"><h3 class="mb0">📊 Margin Kotor</h3></div>
+      </div>
+      <div class="card mt12">
+        <h3 id="lapChartTitle">Omzet</h3>
+        <div class="chart-sub" id="chartSub"></div>
+        <div class="barchart" id="barChart"></div>
+        <div class="legend-row">
+          <span><span class="legend-dot legend-beli"></span>Beli</span>
+          <span><span class="legend-dot legend-jual"></span>Jual</span>
+        </div>
+        <div class="hint chart-swipe-hint hidden" id="chartSwipeHint">↔️ Geser grafik ke samping untuk melihat periode lebih panjang</div>
+      </div>
+      <div class="card">
+        <h3>🏆 Rosok Terlaris (Berat)</h3>
+        <div id="topKategoriList"></div>
+      </div>
+      <!-- Riwayat Transaksi: format kartu biasa, urutan setelah Rosok Terlaris -->
+      <div class="card">
+        <h3>🧾 Riwayat Transaksi</h3>
+        <div id="riwayatList"></div>
+      </div>
+      <div class="card">
+        <h3>Utang &amp; Piutang Tempo</h3>
+        <div id="tempoList"></div>
+      </div>
+      <div class="card">
+        <div class="flex-between"><h3 class="mb0">Buku Kas</h3><span class="badge green" id="kasSaldoBadge">Rp 0</span></div>
+        <div id="kasList" class="mt10 compact-list"></div>
+      </div>
+      <div class="card" id="kasShiftCard">
+        <h3 class="mb0">Riwayat Buka/Tutup Kas</h3>
+        <div id="kasShiftHistoryList" class="mt10 compact-list"></div>
+      </div>
+      <div class="card">
+        <div class="flex-between"><h3 class="mb0">Tutup Buku Tahunan</h3><span class="badge orange" id="tutupBukuStatusBadge">-</span></div>
+        <p class="hint mt-4">Rekap laba tahunan dan kunci pembukuan di akhir tahun.</p>
+        <div id="tutupBukuList" class="mt10 compact-list"></div>
+        <button class="btn btn-primary mt12" onclick="window._ksr_openTutupBuku()">🔒 Tutup Buku Tahun <span id="tutupBukuTahunLbl"></span></button>
+      </div>
+    </section>
+
+    <!-- Sticky bar: Catat Kas (melayang di atas bottom nav, pola sama seperti stokBar) -->
+    <div class="kas-bar" id="kasBar">
+      <div class="kas-bar-inner" style="display:flex; align-items:stretch; gap:10px;">
+        <div class="kas-bar-left" style="flex:1 1 0; min-width:0;">
+          <button class="btn btn-outline" id="btnToggleKas" onclick="handleToggleKasClick()">🔓 Buka Kas</button>
+        </div>
+        <div class="kas-bar-right" style="flex:1 1 0; min-width:0;">
+          <button class="btn btn-secondary" id="btnOpenKasManual" onclick="openKasForm()">➕ Catat Kas</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      // Fallback safe handler so the button remains clickable even if module script fails to run yet
+      if(!window.handleToggleKasClick){
+        window.handleToggleKasClick = function(){
+          try{
+            if(window.openShiftCache){
+              // Shift buka ada → tutup kas
+              if(typeof window.openTutupKasSheet === 'function') return window.openTutupKasSheet();
+            } else {
+              // Tidak ada shift buka → buka kas
+              if(typeof window.openBukaKasSheet === 'function') return window.openBukaKasSheet();
+            }
+            // best-effort fallback: call openBukaKasSheet if available
+            if(typeof window.openBukaKasSheet === 'function') return window.openBukaKasSheet();
+            console.log('handleToggleKasClick: kas functions not available yet');
+          }catch(e){ console.error('fallback handleToggleKasClick error', e); }
+        };
+      }
+    </script>
+
+    <!-- ============ PENGATURAN (blok terpisah ala kaki5) ============ -->
+    <section class="screen" id="screen-pengaturan">
+      <div class="card mt12">
+        <div class="card-title">👤 Profil Usaha</div>
+        <div class="field"><label class="field-label" for="setBizName">Nama Usaha</label><input type="text" id="setBizName"></div>
+        <div class="field"><label class="field-label" for="setBizOwner">Nama Pemilik</label><input type="text" id="setBizOwner" placeholder="Contoh: Pak Budi"></div>
+        <div class="field mb0"><label class="field-label" for="setAlamatLengkap">Alamat Lengkap</label>
+          <input type="text" id="setAlamatLengkap" class="alamat-box" readonly placeholder="Ketuk untuk pilih alamat" onclick="openAlamatSheet()">
+        </div>
+        <div class="field mb0"><label class="field-label" for="setBizPhone">No. Telepon Usaha</label><input type="tel" id="setBizPhone"></div>
+        <button class="btn btn-primary mt12" onclick="saveBizIdentity()">Simpan Identitas</button>
+      </div>
+
+      <div class="card mt12">
+        <div class="card-title">⚙️ Fitur Aplikasi</div>
+        <div class="setting-row">
+          <span class="setting-ic ic-green">💵</span>
+          <div class="setting-txt"><div class="s-title">Tunai</div><div class="s-desc">Uang diterima + kembalian</div></div>
+          <label class="toggle-switch"><input type="checkbox" id="payOptTunai" checked onchange="savePayOptions()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <span class="setting-ic ic-blue">🏦</span>
+          <div class="setting-txt"><div class="s-title">Transfer</div><div class="s-desc">Pembeli transfer ke rekening usaha</div></div>
+          <label class="toggle-switch"><input type="checkbox" id="payOptTransfer" checked onchange="savePayOptions()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <span class="setting-ic ic-orange">📝</span>
+          <div class="setting-txt"><div class="s-title">Tempo</div><div class="s-desc">Bayar sebagian, sisanya dicatat utang/piutang</div></div>
+          <label class="toggle-switch"><input type="checkbox" id="payOptTempo" checked onchange="savePayOptions()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <span class="setting-ic ic-blue">🧾</span>
+          <div class="setting-txt"><div class="s-title">Kas &amp; Shift Harian</div><div class="s-desc">Buka/tutup kas dengan modal awal; matikan bila tidak dipakai — transaksi tetap bisa tanpa buka kas</div></div>
+          <label class="toggle-switch"><input type="checkbox" id="fiturKasToggle" checked onchange="saveFiturKas()"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="card mt12">
+        <div class="card-title">📱 Perangkat</div>
+        <div class="setting-row" id="btPrinterConnectRow" onclick="connectBTPrinter()" style="cursor:pointer;">
+          <span class="setting-ic ic-blue">📡</span>
+          <div class="setting-txt"><div class="s-title">Hubungkan Printer</div><div class="s-desc" id="btPrinterStatus">Belum terhubung</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-row" onclick="testPrint()" style="cursor:pointer;">
+          <span class="setting-ic ic-green">📄</span>
+          <div class="setting-txt"><div class="s-title">Cetak Tes</div><div class="s-desc">Cek apakah printer berfungsi</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-row" onclick="disconnectBTPrinter()" style="cursor:pointer;">
+          <span class="setting-ic ic-red">❌</span>
+          <div class="setting-txt"><div class="s-title">Putuskan Printer</div><div class="s-desc">Lepas koneksi Bluetooth</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-row" id="rowInstallPwa" onclick="installPwa()" style="display:none; cursor:pointer;">
+          <span class="setting-ic ic-green">📲</span>
+          <div class="setting-txt"><div class="s-title">Pasang Aplikasi</div><div class="s-desc">Buka kayak app native di HP</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-row" onclick="openCekDataSheet()" style="cursor:pointer;">
+          <span class="setting-ic ic-orange">🩺</span>
+          <div class="setting-txt"><div class="s-title">Cek Data Online</div><div class="s-desc">Pastikan koneksi & kuota tersambung ke server</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+      </div>
+
+      <div class="card mt12">
+        <div class="card-title">🔑 Lisensi Aplikasi</div>
+        <div id="licenseInfoCard"></div>
+      </div>
+
+      <div class="card mt12">
+        <div class="card-title">💾 Data &amp; Cadangan</div>
+        <div class="setting-row" onclick="exportData()" style="cursor:pointer;">
+          <span class="setting-ic ic-green">💾</span>
+          <div class="setting-txt"><div class="s-title">Simpan Cadangan</div><div class="s-desc">Simpan data ke file (kategori, transaksi, kas, tutup buku)</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-row" onclick="document.getElementById('importFile').click()" style="cursor:pointer;">
+          <span class="setting-ic ic-blue">📂</span>
+          <div class="setting-txt"><div class="s-title">Pulihkan Data</div><div class="s-desc">Pulihkan data dari file cadangan</div></div>
+          <div class="setting-arrow">›</div>
+          <input type="file" id="importFile" accept="application/json" class="hidden" onchange="importData(event)">
+        </div>
+        <div class="setting-row" onclick="cloudSaveBackup()" style="cursor:pointer;">
+          <span class="setting-ic ic-green">☁️</span>
+          <div class="setting-txt"><div class="s-title">Cadangan Cloud</div><div class="s-desc">Simpan data ke server · 🔒 khusus lisensi aktif</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-row" onclick="cloudRestoreLatest()" style="cursor:pointer;">
+          <span class="setting-ic ic-blue">☁️</span>
+          <div class="setting-txt"><div class="s-title">Pulihkan Cloud</div><div class="s-desc">Ambil cadangan terakhir dari server · 🔒 khusus lisensi aktif</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-row" onclick="confirmClearAll()" style="cursor:pointer;">
+          <span class="setting-ic ic-red">🗑️</span>
+          <div class="setting-txt"><div class="s-title">Hapus Semua Data</div><div class="s-desc">Hati-hati! Data tidak bisa kembali · lisensi tetap tersimpan</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+      </div>
+      <!-- ====== Tentang Aplikasi (pola kaki5, urutan paling akhir) ====== -->
+      <div class="app-about">
+        <img src="assets/logo.png" class="about-logo" alt="Logo">
+        <div class="about-name">Kasir Solo - Rosok</div>
+        <div class="about-company">PT Mesin Kasir Solo</div>
+        <div class="about-links">
+          <a href="https://wa.me/628816566935" target="_blank" rel="noopener">📱 0881-6566-935</a>
+          <a id="aboutSiteLink" href="https://rosok.kasirsolo.com" target="_blank" rel="noopener">🌐 rosok.kasirsolo.com</a>
+        </div>
+        <div class="about-version">Versi <span id="appVersionLabel">1.0.0</span></div>
+        <div class="about-device">ID Perangkat: <span id="aboutDeviceCode">—</span></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottomnav">
+    <div class="bottomnav-inner">
+      <div class="nav-item active" data-screen="dashboard" onclick="showScreen('dashboard')"><div class="ic">🏠</div><div class="lbl">Beranda</div></div>
+      <div class="nav-item" data-screen="stok" onclick="showScreen('stok')"><div class="ic">⚖️</div><div class="lbl">Stok</div></div>
+      <div class="nav-item" onclick="openTransaksi('beli')"><div class="fab-wrap"><span>+</span></div><div class="lbl mt-2">Transaksi</div></div>
+      <div class="nav-item" data-screen="laporan" onclick="showScreen('laporan')"><div class="ic">📊</div><div class="lbl">Laporan</div></div>
+      <div class="nav-item" data-screen="pengaturan" onclick="showScreen('pengaturan')"><div class="ic">⚙️</div><div class="lbl">Pengaturan</div></div>
+    </div>
+  </nav>
+</div>
+
+<!-- Settings icon sudah pindah ke header topbar-right -->
+
+
+<!-- ============ SHEET: Timbang Item ============ -->
+<div class="overlay" id="sheetTimbang">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span id="timbangKatNama">Kertas</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetTimbang')">✕</span></div>
+    <div class="tabs" id="satuanTabs">
+      <div class="tab-btn active" data-u="kg" onclick="setSatuan('kg')">Kg</div>
+      <div class="tab-btn" data-u="ons" onclick="setSatuan('ons')">Ons</div>
+      <div class="tab-btn" data-u="kuintal" onclick="setSatuan('kuintal')">Kuintal</div>
+    </div>
+    <div class="scale-display">
+      <div class="kg-val" id="timbangKgVal">0.0</div>
+      <div class="kg-unit" id="timbangUnitLbl">KILOGRAM</div>
+    </div>
+    <div class="stepper-row">
+      <button class="step-btn" onclick="stepBerat(-1)">-1</button>
+      <button class="step-btn" onclick="stepBerat(-0.1)">-0.1</button>
+      <button class="step-btn" onclick="stepBerat(0.1)">+0.1</button>
+      <button class="step-btn" onclick="stepBerat(1)">+1</button>
+    </div>
+    <div class="keypad" id="keypad"></div>
+    <div class="mt16 flex-between">
+      <span class="small-label">Harga/kg: <b id="timbangHargaLbl">Rp 0</b></span>
+      <span class="big-strong" id="timbangSubtotal">Rp 0</span>
+    </div>
+    <div class="btn-block-row btn-row-timbang mt16">
+      <button class="btn btn-outline" onclick="closeSheet('sheetTimbang')">Batal</button>
+      <button class="btn btn-primary" onclick="confirmTimbang()">Masukkan ke Keranjang</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ WIZARD STICKY ACTION BAR ============ -->
+<div class="wizard-bar" id="wizardBar">
+  <div class="wizard-bar-inner" id="wizardBarInner"></div>
+</div>
+
+<!-- ============ SHEET: Nota ============ -->
+<div class="overlay" id="sheetNota">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>Nota Transaksi</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetNota')">✕</span></div>
+    <div id="printArea">
+      <div class="card card-no-shadow" id="notaBody"></div>
+    </div>
+    <div class="btn-block-row mt12">
+      <button class="btn btn-outline" onclick="window.print()">🖨️ Cetak</button>
+      <button class="btn btn-primary" onclick="shareNotaWA()">💬 Kirim WA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SHEET: Kategori Form ============ -->
+<div class="overlay" id="sheetKategori">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span id="katFormTitle">Jenis Rosok Baru</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetKategori')">✕</span></div>
+    <input type="hidden" id="katFormId">
+    <div class="field"><label class="field-label" for="katFormNama">Nama Jenis Rosok</label><input type="text" id="katFormNama" placeholder="Contoh: Botol Plastik (PET)"></div>
+    <div class="field">
+      <label class="field-label">Ikon (emoji)</label>
+      <div class="emoji-picker">
+        <input type="text" id="katFormEmoji" placeholder="♻️" maxlength="4" onfocus="showEmojiPicker()">
+        <div class="emoji-picker-grid" id="emojiPickerGrid"></div>
+      </div>
+    </div>
+    <div class="field"><label class="field-label" for="katFormHargaBeli">Harga Beli / kg (Rp)</label><input type="text" id="katFormHargaBeli" placeholder="0" inputmode="numeric" oninput="formatInputRupiah(this)" onblur="formatInputRupiah(this)"></div>
+    <div class="field"><label class="field-label" for="katFormHargaJual">Harga Jual / kg (Rp)</label><input type="text" id="katFormHargaJual" placeholder="0" inputmode="numeric" oninput="formatInputRupiah(this)" onblur="formatInputRupiah(this)"></div>
+    <div class="btn-block-row mt12">
+      <button class="btn btn-primary" onclick="saveKategori()">Simpan</button>
+      <button class="btn btn-danger hidden" id="katDeleteBtn" onclick="deleteKategoriConfirm()">Nonaktifkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SHEET: Kas Manual ============ -->
+<div class="overlay" id="sheetKas">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>Catat Kas</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetKas')">✕</span></div>
+    <div class="tabs">
+      <div class="tab-btn active" id="kasTabMasuk" onclick="setKasTipe('masuk')">Kas Masuk</div>
+      <div class="tab-btn" id="kasTabKeluar" onclick="setKasTipe('keluar')">Kas Keluar</div>
+    </div>
+    <div class="field"><label class="field-label" for="kasJumlah">Jumlah (Rp)</label><input type="text" id="kasJumlah" placeholder="0" inputmode="numeric" oninput="formatInputRupiah(this)" onblur="formatInputRupiah(this)"></div>
+    <div class="field"><label class="field-label" for="kasKet">Keterangan</label><input type="text" id="kasKet" placeholder="Contoh: Modal awal / Beli bensin"></div>
+    <button class="btn btn-primary mt12" onclick="saveKasManual()">Simpan</button>
+  </div>
+</div>
+
+<!-- ============ SHEET: Lunasi Tempo ============ -->
+<div class="overlay" id="sheetLunasi">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span id="lunasiTitle">Lunasi Tempo</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetLunasi')">✕</span></div>
+    <div class="card card-no-shadow bordered">
+      <div class="flex-between"><span id="lunasiKontakLbl">-</span><span class="badge orange" id="lunasiSisaBadge">Rp 0</span></div>
+    </div>
+    <div class="field mt12"><label class="field-label" id="lunasiInputLabel" for="lunasiJumlahInput">Jumlah Dibayar Sekarang</label><input type="text" id="lunasiJumlahInput" placeholder="0" inputmode="numeric" oninput="formatInputRupiah(this)" onblur="formatInputRupiah(this)"></div>
+    <button class="btn btn-primary mt12" onclick="saveLunasi()">✅ Simpan Pelunasan</button>
+  </div>
+</div>
+
+<!-- ============ SHEET: Tutup Buku Tahunan ============ -->
+<div class="overlay" id="sheetTutupBuku">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>🔒 Tutup Buku Tahunan</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetTutupBuku')">✕</span></div>
+    <div id="tutupBukuBody"></div>
+  </div>
+</div>
+
+<!-- ============ SHEET: Buka Kas ============ -->
+<div class="overlay" id="sheetBukaKas">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>🔓 Buka Kas</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetBukaKas')">✕</span></div>
+    <p style="font-size:13px; color:var(--ink-soft); margin-top:-4px;">Hitung uang tunai yang ada di laci/kantong sekarang, lalu masukkan sebagai modal awal sebelum mulai transaksi.</p>
+    <div class="field">
+      <label class="field-label" for="bukaKasModal">Modal Awal (Rp)</label>
+      <input type="text" id="bukaKasModal" placeholder="0" inputmode="numeric" oninput="formatInputRupiah(this)" onblur="formatInputRupiah(this)">
+    </div>
+    <button class="btn btn-primary mt12" onclick="bukaKas()">🔓 Buka Kas & Mulai</button>
+  </div>
+</div>
+
+<!-- ============ SHEET: Tutup Kas ============ -->
+<div class="overlay" id="sheetTutupKas">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>🔒 Tutup Kas</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetTutupKas')">✕</span></div>
+    <div class="card card-no-shadow bordered">
+      <div class="flex-between"><span>Modal Awal</span><b id="tutupModalLbl">Rp 0</b></div>
+      <div class="flex-between mt8"><span>Perkiraan Kas Sistem</span><b id="tutupSistemLbl">Rp 0</b></div>
+    </div>
+
+    <!-- Ringkasan Aktivitas Harian (shift berjalan) -->
+    <div class="card card-no-shadow bordered mt12">
+      <div class="section-label mb0" style="margin-bottom:8px;">📊 Ringkasan Shift Hari Ini</div>
+      <div class="flex-between"><span>Kas dibuka</span><b id="tutupWaktuBukaLbl">-</b></div>
+      <div class="flex-between mt8"><span>Durasi shift</span><b id="tutupDurasiLbl">-</b></div>
+      <div class="flex-between mt8"><span>Jumlah transaksi</span><b id="tutupJumlahTransLbl">0 transaksi</b></div>
+      <div class="flex-between mt8"><span>Total Kas Masuk</span><b id="tutupKasMasukLbl" style="color:var(--green);">Rp 0</b></div>
+      <div class="flex-between mt8"><span>Total Kas Keluar</span><b id="tutupKasKeluarLbl" style="color:var(--red);">Rp 0</b></div>
+    </div>
+    <div class="field mt12">
+      <label class="field-label" for="tutupFisikInput">Uang Tunai Fisik Sekarang (hasil hitung manual)</label>
+      <input type="text" id="tutupFisikInput" placeholder="0" inputmode="numeric" oninput="formatInputRupiah(this); hitungSelisihTutupKas()" onblur="formatInputRupiah(this)">
+    </div>
+    <div class="flex-between compact-row">
+      <span>Selisih</span><b id="tutupSelisihVal">Rp 0</b>
+    </div>
+    <div class="field mt12"><label class="field-label" for="tutupCatatan">Catatan (opsional)</label><input type="text" id="tutupCatatan" placeholder="Contoh: selisih karena kembalian kurang"></div>
+    <button class="btn btn-primary mt12" onclick="tutupKas()">🔒 Tutup Kas Sekarang</button>
+  </div>
+</div>
+
+<!-- ============ SHEET: Lisensi / Trial ============ -->
+<div class="overlay" id="sheetLicense">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>Status Lisensi</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetLicense')">✕</span></div>
+    <div id="licenseSheetBody"></div>
+  </div>
+</div>
+
+<!-- ============ BANNER KUOTA (transaksi terkunci, eksplorasi bebas) ============ -->
+<div id="quotaBanner" class="khide">
+  <div class="quota-banner-card">
+    <div id="quotaBannerText"></div>
+    <button class="quota-banner-close" onclick="hideQuotaBanner()" aria-label="Tutup">✕</button>
+  </div>
+</div>
+
+<!-- ============ SHEET: Pilih Alamat (emsifa) ============ -->
+<div class="overlay" id="sheetAlamat">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>📍 Pilih Alamat</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="cancelAlamat()">✕</span></div>
+    <div class="field"><label class="field-label">Provinsi</label><select id="alamatProvinsi" class="region-select" disabled></select></div>
+    <div class="field"><label class="field-label">Kota / Kabupaten</label><select id="alamatKabkota" class="region-select" disabled></select></div>
+    <div class="field"><label class="field-label">Kecamatan</label><select id="alamatKecamatan" class="region-select" disabled></select></div>
+    <div class="field"><label class="field-label">Desa / Kelurahan</label><select id="alamatDesa" class="region-select" disabled></select></div>
+    <div class="field mb0"><label class="field-label" for="inAlamatDetail">Detail Alamat (jalan, nomor, RT/RW)</label><input type="text" id="inAlamatDetail" placeholder="Contoh: Jl. Merdeka No. 10"></div>
+    <div class="btn-block-row mt12">
+      <button class="btn btn-outline" onclick="cancelAlamat()">Batal</button>
+      <button class="btn btn-primary" onclick="saveAlamatLengkap()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SHEET: Cek Data Online ============ -->
+<div class="overlay" id="sheetCekData">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>🩺 Cek Data Online</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetCekData')">✕</span></div>
+    <div id="cekDataBody"></div>
+  </div>
+</div>
+
+<!-- ============ SHEET: Beli Lisensi ============ -->
+<div class="overlay" id="sheetPurchase">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>💳 Beli Lisensi</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetPurchase')">✕</span></div>
+    <div id="purchaseSheetBody"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL WAJIB: Lengkapi Profil (pola kaki5) ============ -->
+<div class="overlay center-overlay" id="profileBanner" role="dialog" aria-modal="true" aria-labelledby="profileBannerTitle">
+  <div class="prof-card">
+    <div class="prof-emoji">📝</div>
+    <div class="prof-title" id="profileBannerTitle">Lengkapi Profil Usahamu</div>
+    <div class="prof-sub">Isi data singkat supaya bantuan &amp; info dari PT Mesin Kasir Solo lebih cepat dan pas untuk usahamu.</div>
+    <div class="prof-points">
+      <div><span>👤</span><span>Nama pemilik &amp; No. Telepon — biar kami bisa bantu lebih cepat</span></div>
+      <div><span>📍</span><span>Alamat usaha — biar info &amp; tips sesuai tempat usahamu</span></div>
+    </div>
+    <button class="btn btn-primary" onclick="window._ksr_dismissProfileBanner()">Isi Profil Sekarang</button>
+  </div>
+</div>
+
+<!-- ====== KUNCI PROFIL-TIDAK-COCOK (pola kaki5 renderProfileMismatchOverlay) ======
+     Hard lock TANPA tombol tutup — serial ditolak cloud karena terikat profil
+     usaha lain. Satu-satunya jalan: hubungi admin / beli lisensi yang cocok. -->
+<div class="lock-overlay" id="mismatchLock" role="alertdialog" aria-modal="true" aria-labelledby="mismatchTitle">
+  <div class="lock-card">
+    <img src="assets/logo.png" alt="Logo">
+    <div class="lock-title">Kasir Solo - Rosok</div>
+    <div class="lock-icon">🚫</div>
+    <div class="lock-title" id="mismatchTitle" style="color:var(--red)">Profil Tidak Cocok</div>
+    <p class="lock-desc">Lisensi ini terikat ke profil usaha lain.<br>Data usaha perangkat ini harus sesuai dengan data lisensi agar bisa digunakan.</p>
+    <div class="license-actions" style="display:flex; flex-direction:column; gap:8px;">
+      <button class="btn btn-primary" onclick="contactViaWA()">💬 Hubungi Admin</button>
+    </div>
+    <p class="lock-desc" style="font-size:12px;margin-top:12px;margin-bottom:0">Perbaiki profil di Pengaturan lalu coba aktivasi lagi, atau beli lisensi baru yang sesuai dengan usahamu.</p>
+  </div>
+</div>
+
+<!-- ====== PENAWARAN PULIH DARI CLOUD (browser baru, perangkat berlisensi — audit multi-browser 2026-09-04) ======
+     Ditampilkan deferred oleh backup.maybeOfferCloudRestore() saat DB lokal kosong
+     & ada cadangan cloud utk unit ini. Bisa ditolak; maksimal ditawari 1x/hari. -->
+<div class="overlay center-overlay" id="sheetRestoreOffer" role="dialog" aria-modal="true" aria-labelledby="restoreOfferTitle">
+  <div class="prof-card">
+    <div class="prof-emoji">☁️</div>
+    <div class="prof-title" id="restoreOfferTitle">Ada Cadangan di Cloud</div>
+    <div class="prof-sub">Browser ini belum punya data transaksi, tapi perangkatmu punya cadangan tersimpan di server. Pulihkan sekarang?</div>
+    <div class="btn-block-row mt12">
+      <button class="btn btn-outline" onclick="window._ksr_declineRestoreOffer()">Nanti saja</button>
+      <button class="btn btn-primary" onclick="window._ksr_acceptRestoreOffer()">☁️ Pulihkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== OVERLAY UPDATE APLIKASI (port kaki5 update.js — full-screen, hanya bisa OKE) ======
+     Muncul saat js/version.json (server) cacheBust ≠ CACHE_BUST build ini.
+     Pola .lock-overlay + classList langsung → Escape/backdrop tidak menutup.
+     OKE = performForceUpdate(): SW baru activate → cache lama dihapus → reload
+     → boot penuh (re-anchor, pull profil, push pending, sync lisensi). -->
+<div class="lock-overlay" id="updateOverlay" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
+  <div class="lock-card">
+    <img src="assets/logo.png" alt="Logo">
+    <div class="lock-title" id="updateTitle">Ada Versi Baru! 🔄</div>
+    <div id="updateVersionLabel" style="font-weight:700;color:var(--brand);margin:2px 0 10px">Versi —</div>
+    <ul id="updateNotesList" style="text-align:left;font-size:13px;color:var(--ink-soft);line-height:1.6;margin:0 0 14px;padding-left:18px"></ul>
+    <button class="btn btn-primary" id="updateOkBtn">OKE, Perbarui Sekarang</button>
+  </div>
+</div>
+
+<!-- ====== CONFIRM DIALOG in-app (port kaki5 confirm.js — native confirm() tak andal di webview tertanam) ====== -->
+<div class="overlay center-overlay" id="confirmModal" role="alertdialog" aria-modal="true" aria-labelledby="confirmText">
+  <div class="prof-card">
+    <div class="prof-emoji" id="confirmIcon">⚠️</div>
+    <div class="prof-sub" id="confirmText"></div>
+    <div class="btn-block-row mt12">
+      <button class="btn btn-outline" id="confirmCancelBtn">Batal</button>
+      <button class="btn btn-primary" id="confirmOkBtn">Ya</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner">
+    <div class="spinner"></div>
+    <div class="text" id="loadingText">Memproses...</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+
+<!-- Load modules in order -->
+<script type="module" src="js/app.js?v=70"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "version": "1.4.9",
+  "cacheBust": "v70",
+  "notes": [
+    "Perangkat lama kini otomatis menyesuaikan kode identitasnya ke satu kode yang sama — kasus satu perangkat terdeteksi beberapa kode tidak terulang, dan perangkat yang terlanjur dobel konvergen sendiri ke satu identitas."
+  ]
+}

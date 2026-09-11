@@ -1,0 +1,264 @@
+---
+import Base from '../layouts/Base.astro';
+import {
+  site, apps, hardware, hwCategoryLabel, portal, problems, solutions, cities, projects, services,
+  pulseEvents, testimonials, founderSlots, formatRupiah,
+} from '../data/portfolio';
+---
+<Base>
+  {/* ============ HERO (splash app di mobile) ============ */}
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="orb-1"></div>
+      <div class="orb-2"></div>
+      <div class="grid-lines"></div>
+    </div>
+    <div class="hero-inner">
+      <span class="hero-badge anim-fade">Official Site — {site.legalName}</span>
+      <h1 class="anim-fade anim-d1" data-i18n="home.heroTitle">Pusat <span class="accent">Mesin Kasir</span><br />Terbesar di Solo.</h1>
+      <p class="hero-sub anim-fade anim-d2" data-i18n="home.heroSub">{site.heroSubtitle}</p>
+      <div class="hero-cta anim-fade anim-d3">
+        <a href="#hardware" class="btn btn-primary btn-hero"><span data-i18n="home.ctaBorong">Borong Paket Mesin →</span><span class="shine"></span></a>
+        <a href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener" class="btn btn-outline btn-hero" data-i18n="home.ctaTanya">Tanya Founder Langsung</a>
+      </div>
+      <p class="established">{site.established}</p>
+      <div class="scroll-ind">
+        <div class="line"></div>
+        <span data-i18n="home.scroll">Scroll</span>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ TRUST STRIP (widget 2x2 di mobile) ============ */}
+  <div class="trust">
+    <div class="container trust-grid">
+      {site.stats.map((s) => (
+        <div class="trust-cell"><b>{s.value}</b><span>{s.label}</span></div>
+      ))}
+    </div>
+  </div>
+
+  {/* ============ LIVE PULSE (⚠️ MOCK — data riil dari orders/leads Supabase) ============ */}
+  <section class="pulse" aria-label="Aktivitas terbaru">
+    <div class="pulse-head">
+      <span class="pulse-live"><i></i>AKTIF MALAM INI</span>
+    </div>
+    <div class="pulse-viewport">
+      <div class="pulse-track">
+        {[...pulseEvents, ...pulseEvents].map((e) => (
+          <div class="pulse-item">
+            <b>{e.name}</b>
+            <span class="pulse-item-act">{e.item}</span>
+            <span class="pulse-item-meta">{e.location} · {e.time}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* ============ APLIKASI (carousel di mobile) ============ */}
+  <section class="block" id="aplikasi">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="home.aplikasiKicker">Aplikasi Kasir</span>
+        <h2 data-i18n="home.aplikasiTitle">Bukan Sekadar <span class="hl">Mesin Kasir.</span></h2>
+        <p class="sub" data-i18n="home.aplikasiSub">Rakit otak digital buat bisnis lo — aplikasi kasir offline-first yang jalan penuh di HP, tanpa takut internet mati.</p>
+      </div>
+      <div class="grid grid-3 snap-wrap">
+        {apps.map((a) => (
+          <article class="card">
+            <span class="type">{a.type}</span>
+            <h3>{a.name}</h3>
+            <p>{a.desc}</p>
+            <div class="tags">{a.tags.map((t) => <span class="tag">{t}</span>)}</div>
+          </article>
+        ))}
+      </div>
+      <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    </div>
+  </section>
+
+  {/* ============ MESIN KASIR (hardware) ============ */}
+  <section class="block tint" id="hardware">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="home.mesinKicker">Mesin Kasir</span>
+        <h2 data-i18n="home.mesinTitle">Paket Rakitan <span class="hl">Siap Pakai.</span></h2>
+        <p class="sub" data-i18n="home.mesinSub">Hardware + software terintegrasi — satu tujuan: bikin bisnis lo gede. Balik modal terukur.</p>
+      </div>
+      <div class="grid grid-2 snap-wrap">
+        {hardware.map((h) => (
+          <article class="card hw" id={`hw${h.id}`}>
+            <div class="hw-thumb-sm">
+              <img src={h.image} alt={h.name} loading="lazy" width="400" height="300" />
+              {h.tag && <span class="hw-tag-sm">{h.tag}</span>}
+            </div>
+            <span class="type">{hwCategoryLabel[h.category] || h.category}</span>
+            <h3>{h.name}</h3>
+            <p class="price">{formatRupiah(h.price)}</p>
+            <p class="desc">{h.desc}</p>
+            <ul class="hw-specs-sm">
+              {(Array.isArray(h.specs) ? h.specs : Object.entries(h.specs || {}).map(([k, v]) => `${k}: ${v}`)).slice(0, 3).map((s) => (
+                <li>{s}</li>
+              ))}
+            </ul>
+            <a class="hw-link" href={`/hardware#p${h.id}`} data-i18n="home.detailOrder">Detail & Order →</a>
+          </article>
+        ))}
+      </div>
+      <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="center" style="margin-top:32px">
+        <a class="btn btn-outline" href="/hardware"><span data-i18n="home.seeAllHw">Lihat Semua Hardware</span><span class="shine"></span></a>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ PORTAL R&D (carousel di mobile) ============ */}
+  <section class="block" id="portal">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="home.portalKicker">R&amp;D Division</span>
+        <h2 data-i18n="home.portalTitle">Gue Gak Cuma Jual <span class="hl">Mesin Kasir Besi.</span></h2>
+        <p class="sub" data-i18n="home.portalSub">Portal solusi digital per industri — masing-masing dibangun dari nol untuk masalah yang spesifik.</p>
+      </div>
+      <div class="grid grid-3 snap-wrap">
+        {portal.map((p) => (
+          <article class="card portal-card">
+            <div class="icon-tile">
+              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ff914d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            </div>
+            <span class="type">Portal</span>
+            <h3>{p.name}</h3>
+            <p class="tagline">{p.tagline}.</p>
+            <p>{p.desc}</p>
+          </article>
+        ))}
+      </div>
+      <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    </div>
+  </section>
+
+  {/* ============ JASA DIGITAL ============ */}
+  <section class="block tint" id="jasa">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="home.jasaKicker">Jasa Digital</span>
+        <h2 data-i18n="home.jasaTitle">Urusan Online Bisnis Lo, <span class="hl">Gue Yang Beresin.</span></h2>
+        <p class="sub" data-i18n="home.jasaSub">Tiga lini yang paling sering dibutuhin mitra mesin kasir — dikerjakan tim yang sama, bukan di-subkon.</p>
+      </div>
+      <div class="grid grid-3 snap-wrap">
+        {services.map((s) => (
+          <article class="card">
+            <span class="type">{s.subtitle}</span>
+            <h3>{s.title}</h3>
+            <p>{s.desc}</p>
+          </article>
+        ))}
+      </div>
+      <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    </div>
+  </section>
+
+  {/* ============ PROBLEM vs SOLUTION ============ */}
+  <section class="block tint">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" style="color:#f87171;border-color:rgba(248,113,113,.25);background:rgba(248,113,113,.08);">Problem → Solution</span>
+        <h2 data-i18n="home.problemTitle">Hari Gini Masih Catat Manual? <span class="hl">Kelar Hidup Lo.</span></h2>
+        <p class="sub" data-i18n="home.problemSub">Sadar gak lo? Selama ini lo gak lagi berbisnis — lo cuma lagi diperbudak rutinitas toko yang gak ada abisnya.</p>
+      </div>
+      <div class="vs">
+        <div class="bad">
+          <p class="col-title" data-i18n="home.colOld">Cara Lama (Manual)</p>
+          <div class="grid">
+            {problems.map((p) => (
+              <div class="card"><h3>{p.title}</h3><p>{p.desc}</p></div>
+            ))}
+          </div>
+        </div>
+        <div class="good">
+          <p class="col-title" data-i18n="home.colNew">Cara Kasir Solo (Mesin Kasir)</p>
+          <div class="grid">
+            {solutions.map((p) => (
+              <div class="card"><h3>{p.title}</h3><p>{p.desc}</p></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ PORTFOLIO PREVIEW ============ */}
+  <section class="block tint" id="portfolio">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="home.portoKicker">Jejak Perang</span>
+        <h2 data-i18n="home.portoTitle">Bukti Otentik, <span class="hl">Bukan Colongan.</span></h2>
+        <p class="sub" data-i18n="home.portoSub">Kafe, toko ritel, sekolah, sampai franchise — semua terpasang dan dikerjain sendiri. Cek arsenal lengkapnya.</p>
+      </div>
+      <div class="grid grid-3 snap-wrap">
+        {projects.slice(0, 6).map((p) => (
+          <a class="card proj-card" href={`/portfolio/${p.slug}`}>
+            <div class="proj-thumb"><img src={p.image} alt={p.title} loading="lazy" width="800" height="450" /></div>
+            <span class="type">{p.tag} — {p.city}</span>
+            <h3>{p.title}</h3>
+          </a>
+        ))}
+      </div>
+      <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="center" style="margin-top: 40px;">
+        <a href="/portfolio" class="btn btn-outline" data-i18n="home.portoBtn">Bongkar Semua Arsenal →</a>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ TESTIMONI (⚠️ MOCK — ganti testimoni asli + foto sebelum launch) ============ */}
+  <section class="block" id="testimoni">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="home.testiKicker">Kata Lapangan</span>
+        <h2 data-i18n="home.testiTitle">Bukan Gue Yang Bilang. <span class="hl">Mitra Lo.</span></h2>
+      </div>
+      <div class="grid grid-3 snap-wrap">
+        {testimonials.map((t) => (
+          <figure class="card quote-card">
+            <div class="quote-mark">"</div>
+            <blockquote>{t.quote}</blockquote>
+            <figcaption>
+              <b>{t.name}</b>
+              <span>{t.business}</span>
+              <small>{t.since}</small>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+      <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    </div>
+  </section>
+
+  {/* ============ JANGKAUAN (chips scroll di mobile) ============ */}
+  <section class="block" id="jangkauan">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="home.jangkauanKicker">Jangkauan</span>
+        <h2 data-i18n="home.jangkauanTitle">Dari Solo Raya, <span class="hl">Siap Se-Indonesia.</span></h2>
+        <p class="sub" data-i18n="home.jangkauanSub">Area kandang — support penuh on-site. Area ekspansi — kirim & support remote.</p>
+      </div>
+      <div class="cities">
+        {cities.map((c) => <a class={`city ${c.type.toLowerCase()}`} href={`/kota/${c.slug}`}>{c.name}</a>)}
+      </div>
+    </div>
+  </section>
+
+  {/* ============ CTA AKHIR — FOUNDER + SLOT (⚠️ slot MOCK, nanti dari control) ============ */}
+  <section class="block" style="padding-top: 0;">
+    <div class="container">
+      <div class="cta-final">
+        <span class="cta-slots">SISA BULAN INI: <b>{founderSlots.onsite}</b> SLOT ON-SITE · <b>{founderSlots.digital}</b> SLOT PROYEK DIGITAL</span>
+        <h2 data-i18n="home.ctaTitle">Borong Paket Mesin — Sekali Bayar, Seumur Hidup.</h2>
+        <p data-i18n="home.ctaSub">Konsultasi gratis langsung dengan founder. Yang dijawab orang yang ngerti mesinnya, bukan sales.</p>
+        <a href={`https://wa.me/${site.whatsapp}?text=${encodeURIComponent('Halo founder, saya mau tanya soal mesin kasir.')}`} target="_blank" rel="noopener" class="btn btn-primary"><span data-i18n="home.ctaBtn">Amankan Slot Lo</span><span class="shine"></span></a>
+      </div>
+    </div>
+  </section>
+</Base>

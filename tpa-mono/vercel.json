@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "apps/admin/vite.config.ts",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "apps/admin/dist" }
+    },
+    {
+      "src": "apps/guru/vite.config.ts",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "apps/guru/dist" }
+    },
+    {
+      "src": "apps/wali/vite.config.ts",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "apps/wali/dist" }
+    },
+    {
+      "src": "apps/portal/vite.config.ts",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "apps/portal/dist" }
+    }
+  ],
+  "routes": [
+    { "src": "/admin/(.*)", "dest": "/apps/admin/dist/$1" },
+    { "src": "/guru/(.*)",  "dest": "/apps/guru/dist/$1" },
+    { "src": "/wali/(.*)",  "dest": "/apps/wali/dist/$1" },
+    { "src": "/portal/(.*)","dest": "/apps/portal/dist/$1" },
+    { "src": "/(.*)",      "dest": "/apps/portal/dist/index.html" }
+  ]
+}

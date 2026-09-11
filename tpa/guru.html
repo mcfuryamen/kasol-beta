@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#ea580c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Kasir Solo - TPA | Ustadz / Pengajar</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+<style>
+:root{
+  --brand:#ea580c;--brand-light:#fff7ed;--brand-dark:#c2410c;
+  --surface:#ffffff;--surface-dim:#f8fafc;--surface-container:#f1f5f9;--surface-variant:#e2e8f0;
+  --on-surface:#0f172a;--on-surface-variant:#475569;--outline:#cbd5e1;--outline-variant:#e2e8f0;
+  --error:#dc2626;--error-bg:#fef2f2;--success:#16a34a;--success-bg:#f0fdf4;
+  --info:#2563eb;--info-bg:#eff6ff;--warning:#d97706;--warning-bg:#fffbeb;
+  --nav-h:64px;--bar-h:56px;--radius:12px;--radius-full:9999px;
+  --shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 2px 8px rgba(0,0,0,.1);--shadow-lg:0 4px 16px rgba(0,0,0,.12);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--surface-dim);color:var(--on-surface);font-size:14px;line-height:1.5;height:100%;overflow:hidden;-webkit-font-smoothing:antialiased}
+.hidden{display:none!important}
+
+/* Shell */
+.app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.app-bar{background:var(--surface);padding:0 16px;height:var(--bar-h);display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;z-index:30}
+.app-bar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:var(--outline-variant)}
+.app-bar-title{font-size:20px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-bar-sub{font-size:11px;color:var(--on-surface-variant);font-weight:400}
+.bar-btn{width:40px;height:40px;border:none;background:none;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;color:var(--on-surface-variant);flex-shrink:0;position:relative}
+.bar-btn:active{background:var(--surface-container)}
+.page-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + var(--safe-b) + 16px)}
+
+/* Bottom Nav */
+.bottom-nav{background:var(--surface);display:flex;height:var(--nav-h);flex-shrink:0;padding-bottom:var(--safe-b);z-index:40;box-shadow:0 -1px 0 var(--outline-variant)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;padding:8px 4px;color:var(--on-surface-variant);font-family:inherit;transition:color .2s}
+.nav-item.active{color:var(--brand)}
+.nav-pill{width:48px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;transition:background .2s;font-size:20px}
+.nav-item.active .nav-pill{background:var(--brand-light)}
+.nav-label{font-size:11px;font-weight:500}.nav-item.active .nav-label{font-weight:700;color:var(--brand)}
+.nav-item:active .nav-pill{transform:scale(.9)}
+
+/* Sub chips */
+.sub-chips{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0}
+.sub-chips::-webkit-scrollbar{display:none}
+.chip{padding:7px 16px;border-radius:var(--radius-full);border:1px solid var(--outline);background:var(--surface);color:var(--on-surface-variant);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit;flex-shrink:0}
+.chip.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.chip:active{transform:scale(.95)}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b) + 16px);right:16px;width:56px;height:56px;border-radius:16px;background:var(--brand);color:#fff;border:none;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-lg);cursor:pointer;z-index:35;transition:transform .2s}
+.fab:active{transform:scale(.92)}
+
+/* Cards */
+.m-card{background:var(--surface);border-radius:var(--radius);margin:0 16px 12px;box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--outline-variant)}
+.m-card.el{box-shadow:var(--shadow-md);border:none}
+.m-card-body{padding:16px}
+
+/* List */
+.li{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;transition:background .12s;min-height:56px}
+.li:active{background:var(--surface-container)}
+.li+.li{border-top:1px solid var(--outline-variant)}
+.li-icon{width:40px;height:40px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.li-body{flex:1;min-width:0}
+.li-title{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li-sub{font-size:12px;color:var(--on-surface-variant);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li-end{font-size:12px;color:var(--on-surface-variant);flex-shrink:0;text-align:right}
+
+/* Stats */
+.stats-row{display:flex;gap:12px;padding:12px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.stats-row::-webkit-scrollbar{display:none}
+.stat-chip{background:var(--surface);border:1px solid var(--outline-variant);border-radius:var(--radius);padding:14px 18px;min-width:130px;flex-shrink:0}
+.sc-icon{font-size:20px;margin-bottom:4px}.sc-val{font-size:22px;font-weight:800}.sc-lbl{font-size:11px;color:var(--on-surface-variant)}
+
+/* Hero */
+.hero{margin:12px 16px;border-radius:20px;padding:24px 20px;background:linear-gradient(135deg,#ea580c,#f97316,#fb923c);color:#fff;position:relative;overflow:hidden}
+.hero::after{content:'📖';position:absolute;right:-10px;bottom:-15px;font-size:80px;opacity:.15;transform:rotate(-15deg)}
+.hero h2{font-size:22px;font-weight:800;margin-bottom:2px}
+.hero p{font-size:13px;opacity:.85}
+
+/* Badge */
+.badge{display:inline-flex;padding:3px 10px;border-radius:var(--radius-full);font-size:11px;font-weight:600}
+.bg-green{background:var(--success-bg);color:var(--success)}.bg-red{background:var(--error-bg);color:var(--error)}
+.bg-blue{background:var(--info-bg);color:var(--info)}.bg-yellow{background:var(--warning-bg);color:var(--warning)}
+.bg-orange{background:var(--brand-light);color:var(--brand)}.bg-gray{background:var(--surface-container);color:var(--on-surface-variant)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border:none;border-radius:var(--radius-full);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.btn:active{transform:scale(.96)}.btn-p{background:var(--brand);color:#fff}.btn-p:active{opacity:.9}
+.btn-t{background:var(--brand-light);color:var(--brand)}.btn-d{background:var(--error);color:#fff}
+.btn-o{background:none;border:1px solid var(--outline);color:var(--on-surface)}
+.btn-g{background:none;color:var(--on-surface-variant);padding:8px 12px;font-size:13px}
+.btn-full{width:100%}
+.btn-icon{width:40px;height:40px;padding:0;border:none;background:none;border-radius:var(--radius-full);font-size:18px;cursor:pointer;color:var(--on-surface-variant);display:flex;align-items:center;justify-content:center}
+.btn-icon:active{background:var(--surface-container)}
+
+/* Forms */
+.ff{margin-bottom:14px}
+.ff label{display:block;font-size:12px;font-weight:600;color:var(--on-surface-variant);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.fi{width:100%;padding:12px 16px;border:1px solid var(--outline);border-radius:var(--radius);font-size:15px;font-family:inherit;background:var(--surface);color:var(--on-surface);outline:none;transition:border .2s}
+.fi:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(234,88,12,.12)}
+select.fi{-webkit-appearance:menulist;appearance:menulist;cursor:pointer}
+textarea.fi{resize:vertical;min-height:70px}
+.form-row{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+
+/* Bottom Sheet */
+.bs-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;opacity:0;transition:opacity .25s;pointer-events:none}
+.bs-ov.show{opacity:1;pointer-events:auto}
+.bs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:101;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:92vh;display:flex;flex-direction:column}
+.bs.show{transform:translateY(0)}
+.bs-handle{width:32px;height:4px;background:var(--outline);border-radius:2px;margin:12px auto 0;flex-shrink:0}
+.bs-head{padding:14px 20px 6px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.bs-head h3{font-size:18px;font-weight:700}
+.bs-body{padding:8px 20px 20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.bs-foot{padding:12px 20px;padding-bottom:calc(12px + var(--safe-b));border-top:1px solid var(--outline-variant);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+
+/* Attendance */
+.att-opt{padding:10px 4px;border:2px solid var(--outline-variant);border-radius:var(--radius);background:var(--surface);cursor:pointer;text-align:center;font-size:11px;font-weight:600;transition:all .15s;font-family:inherit;color:var(--on-surface-variant)}
+.att-opt:active{transform:scale(.94)}
+.att-opt.s-h{background:var(--success-bg);border-color:var(--success);color:var(--success)}
+.att-opt.s-i{background:var(--info-bg);border-color:var(--info);color:var(--info)}
+.att-opt.s-s{background:var(--warning-bg);border-color:var(--warning);color:var(--warning)}
+.att-opt.s-a{background:var(--error-bg);border-color:var(--error);color:var(--error)}
+
+/* Grade buttons */
+.gr-row{display:flex;gap:6px;flex-wrap:wrap}
+.gr-btn{padding:8px 14px;border:2px solid var(--outline-variant);border-radius:var(--radius-full);background:var(--surface);cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;font-family:inherit;color:var(--on-surface-variant)}
+.gr-btn.active{background:var(--brand);border-color:var(--brand);color:#fff}
+.gr-btn:active{transform:scale(.94)}
+
+/* Snackbar */
+.snack-wrap{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b) + 12px);left:16px;right:16px;z-index:200;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.snack{padding:14px 20px;border-radius:var(--radius);font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.2);animation:snIn .3s;pointer-events:auto;max-width:400px;width:100%}
+.snack.ok{background:#16a34a;color:#fff}.snack.err{background:#dc2626;color:#fff}.snack.inf{background:#1e293b;color:#fff}
+@keyframes snIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* Sum rows */
+.sr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--outline-variant)}
+.sr:last-child{border-bottom:none}
+.sr-l{font-size:13px;color:var(--on-surface-variant)}.sr-v{font-size:14px;font-weight:700}
+.v-green{color:var(--success)}.v-red{color:var(--error)}.v-brand{color:var(--brand)}
+
+/* Search */
+.search{margin:0 16px 12px;position:relative}
+.search input{width:100%;padding:12px 16px 12px 44px;border:none;border-radius:var(--radius-full);font-size:14px;font-family:inherit;background:var(--surface-container);color:var(--on-surface);outline:none}
+.search input:focus{box-shadow:0 0 0 2px var(--brand)}
+.search .si{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--on-surface-variant)}
+
+/* Avatar */
+.av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
+.av-s{width:32px;height:32px;font-size:12px}.av-l{width:48px;height:48px;font-size:18px}.av-xl{width:64px;height:64px;font-size:24px}
+.av-o{background:var(--brand-light);color:var(--brand)}.av-b{background:var(--info-bg);color:var(--info)}.av-g{background:var(--success-bg);color:var(--success)}
+
+/* Section header */
+.sec{padding:20px 16px 8px;display:flex;align-items:center;justify-content:space-between}
+.sec-t{font-size:16px;font-weight:700}
+.sec-a{font-size:13px;font-weight:600;color:var(--brand);background:none;border:none;cursor:pointer;font-family:inherit}
+
+/* Empty */
+.empty{text-align:center;padding:48px 24px;color:var(--on-surface-variant)}
+.empty .ei{font-size:48px;margin-bottom:12px;display:block;opacity:.6}
+.empty .et{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--on-surface)}
+
+/* Misc */
+.flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-4{gap:4px}.gap-8{gap:8px}.gap-12{gap:12px}
+.text-center{text-align:center}.font-bold{font-weight:700}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+@media print{.app-bar,.bottom-nav,.fab,.snack-wrap,.bs,.bs-ov{display:none!important}.page-content{overflow:visible!important;padding:0!important}}
+@media(min-width:768px){.app-shell{max-width:480px;margin:0 auto;box-shadow:var(--shadow-lg);border-left:1px solid var(--outline-variant);border-right:1px solid var(--outline-variant)}}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+</head>
+<body>
+
+<div class="app-shell" id="app">
+  <div class="app-bar">
+    <div style="flex:1;min-width:0">
+      <div class="app-bar-title" id="bar-title">Ustadz / Pengajar</div>
+      <div class="app-bar-sub" id="bar-sub"></div>
+    </div>
+    <button class="bar-btn" onclick="goNotif()" title="Notifikasi">🔔</button>
+    <button class="bar-btn" onclick="showHelp()" title="Bantuan">❓</button>
+    <button class="bar-btn" onclick="showProfile()" id="prof-btn">👤</button>
+  </div>
+  <div class="sub-chips hidden" id="sub-nav"></div>
+  <div class="page-content" id="content"></div>
+  <nav class="bottom-nav" id="bnav"></nav>
+  <button class="fab hidden" id="fab" onclick="onFab()">+</button>
+</div>
+
+<div class="snack-wrap" id="snacks"></div>
+<div class="bs-ov" id="bs-ov" onclick="closeSheet()"></div>
+<div class="bs" id="bs"><div class="bs-handle"></div><div class="bs-head" id="bs-head"><h3 id="bs-title"></h3><button class="btn-icon" onclick="closeSheet()">✕</button></div><div class="bs-body" id="bs-body"></div><div class="bs-foot hidden" id="bs-foot"></div></div>
+
+<script src="https://unpkg.com/dexie@3.2.7/dist/dexie.min.js"></script>
+<script>if(typeof Dexie==='undefined')document.write('<script src="https://cdn.jsdelivr.net/npm/dexie@3.2.7/dist/dexie.min.js"><\/script>')</script>
+<script>
+'use strict';
+const db=new Dexie('KasirSoloTPA');
+db.version(1).stores({
+  locations:'++id,name',users:'++id,role,locationId,name',
+  students:'++id,locationId,guardianId,nis,name,gender,isActive',
+  teachers:'++id,locationId,name,gender,isActive',
+  guardians:'++id,locationId,name,phone',
+  classes:'++id,locationId,name,level,isActive',
+  classStudents:'++id,classId,studentId',classTeachers:'++id,classId,teacherId,isPrimary',
+  schedules:'++id,classId,teacherId,day',academicYears:'++id,locationId,name,isActive',
+  curriculumCategories:'++id,locationId,name,sortOrder',curriculumMaterials:'++id,categoryId,title',
+  classSessions:'++id,classId,teacherId,sessionDate',attendances:'++id,sessionId,studentId,status',
+  hafalanProgress:'++id,studentId,teacherId,surahNumber,type,grade,recordedAt',
+  iqroProgress:'++id,studentId,teacherId,jilid,page,grade,recordedAt',
+  sppTypes:'++id,locationId,name,amount',sppBills:'++id,studentId,sppTypeId,billMonth,status,amount,paidAmount',
+  payments:'++id,billId,studentId,amount,method,paidAt',
+  cashFlows:'++id,locationId,type,category,amount,transactionDate',
+  projects:'++id,locationId,title,status,priority',projectTasks:'++id,projectId,title,status',
+  notifications:'++id,userId,type,title,isRead,createdAt',appSettings:'++id,locationId,key,value'
+});
+
+const SURAH=[{n:1,name:'Al-Fatihah',ayat:7,juz:1},{n:36,name:'Yasin',ayat:83,juz:22},{n:55,name:'Ar-Rahman',ayat:78,juz:27},{n:67,name:'Al-Mulk',ayat:30,juz:29},{n:78,name:'An-Naba',ayat:40,juz:30},{n:87,name:'Al-Ala',ayat:19,juz:30},{n:93,name:'Ad-Dhuha',ayat:11,juz:30},{n:94,name:'Al-Insyirah',ayat:8,juz:30},{n:95,name:'At-Tin',ayat:8,juz:30},{n:96,name:'Al-Alaq',ayat:19,juz:30},{n:97,name:'Al-Qadr',ayat:5,juz:30},{n:103,name:'Al-Asr',ayat:3,juz:30},{n:105,name:'Al-Fil',ayat:5,juz:30},{n:108,name:'Al-Kausar',ayat:3,juz:30},{n:109,name:'Al-Kafirun',ayat:6,juz:30},{n:110,name:'An-Nasr',ayat:3,juz:30},{n:112,name:'Al-Ikhlas',ayat:4,juz:30},{n:113,name:'Al-Falaq',ayat:5,juz:30},{n:114,name:'An-Nas',ayat:6,juz:30}];
+const CASH_IN=['SPP','Infaq','Donasi','Zakat','Sumbangan','Lainnya'];
+const CASH_OUT=['Gaji Guru','Listrik','Air','ATK','Konsumsi','Perawatan','Operasional','Lainnya'];
+const GL={mumtaz:'Mumtaz',jayyid_jiddan:'Jayyid Jiddan',jayyid:'Jayyid',maqbul:'Maqbul',belum_lulus:'Belum Lulus'};
+const GC={mumtaz:'bg-green',jayyid_jiddan:'bg-blue',jayyid:'bg-yellow',maqbul:'bg-orange',belum_lulus:'bg-red',lancar:'bg-green',cukup:'bg-yellow',mengulang:'bg-red'};
+const SC={pending:'bg-yellow',paid:'bg-green',partial:'bg-blue',overdue:'bg-red',planned:'bg-gray',in_progress:'bg-blue',completed:'bg-green'};
+
+function $(id){return document.getElementById(id)}
+function el(t,a,ch){const e=document.createElement(t);if(a)Object.entries(a).forEach(([k,v])=>{if(k==='class')e.className=v;else if(k.startsWith('on'))e[k]=v;else if(k==='html')e.innerHTML=v;else if(k==='text')e.textContent=v;else e.setAttribute(k,v)});if(ch){if(typeof ch==='string')e.innerHTML=ch;else if(Array.isArray(ch))ch.forEach(c=>{if(c)e.appendChild(typeof c==='string'?document.createTextNode(c):c)});else e.appendChild(ch)};return e}
+function ini(n){return(n||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
+function fc(n){return'Rp '+Number(n||0).toLocaleString('id-ID')}
+function fd(d){if(!d)return'-';return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})}
+function fdl(d){if(!d)return'-';return new Date(d).toLocaleDateString('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}
+function today(){return new Date().toISOString().split('T')[0]}
+function snack(t,m){const s=el('div',{class:`snack ${t}`,html:`${t==='ok'?'✓':t==='err'?'✗':'ℹ'} ${m}`});$('snacks').appendChild(s);setTimeout(()=>s.remove(),3500)}
+function openSheet(title,bodyEl,footerEl){
+  $('bs-title').textContent=title;const b=$('bs-body');b.innerHTML='';if(typeof bodyEl==='string')b.innerHTML=bodyEl;else b.appendChild(bodyEl);
+  const f=$('bs-foot');f.innerHTML='';f.classList.toggle('hidden',!footerEl);if(footerEl){if(typeof footerEl==='string')f.innerHTML=footerEl;else f.appendChild(footerEl)}
+  $('bs-ov').classList.add('show');$('bs').classList.add('show');
+}
+function closeSheet(){$('bs-ov').classList.remove('show');$('bs').classList.remove('show')}
+async function delRec(t,id,l){if(!confirm('Hapus '+l+'?'))return;await db[t].delete(id);snack('ok',l+' dihapus');closeSheet();render()}
+
+// Session management via localStorage
+function getSession(){try{return JSON.parse(localStorage.getItem('tpa_session'))}catch{return null}}
+function setSession(s){localStorage.setItem('tpa_session',JSON.stringify(s))}
+function clearSession(){localStorage.removeItem('tpa_session')}
+
+// Seed data
+async function seedDB(){
+  if(await db.locations.count()>0)return;
+  const lid=await db.locations.add({name:'TPA Al-Hikmah',address:'Jl. Masjid No. 1, Kampung Bahagia',phone:'08816566935',headName:'Ustadz Ahmad',isActive:true});
+  await db.academicYears.add({locationId:lid,name:'2026/2027',semester:'ganjil',startDate:'2026-07-01',endDate:'2026-12-31',isActive:true});
+  const cats=['Iqro / Baca Tulis Al-Quran','Hafalan Al-Quran','Tajwid','Fiqh Ibadah','Akhlak & Adab','Doa Harian','Sirah Nabi'];
+  for(let i=0;i<cats.length;i++){
+    const catId=await db.curriculumCategories.add({locationId:lid,name:cats[i],sortOrder:i+1,isActive:true});
+    const mats={0:['Pengenalan Huruf Hijaiyah','Harakat Dasar','Huruf Bersambung','Tanwin','Sukun & Tasydid','Mad Thobi\'i'],1:['Al-Fatihah','An-Nas','Al-Falaq','Al-Ikhlas','Al-Lahab','An-Nasr','Al-Kafirun','Al-Kausar'],2:['Nun Mati & Tanwin','Mim Mati','Mad Far\'i','Waqaf & Ibtida\'','Idgham','Ikhfa\''],3:['Thaharah','Wudhu','Shalat 5 Waktu','Shalat Berjamaah','Puasa Ramadhan'],4:['Adab Makan & Minum','Adab Tidur','Adab di Masjid','Adab kepada Orang Tua','Kejujuran'],5:['Doa Sebelum Makan','Doa Masuk Masjid','Doa Sebelum Tidur','Doa Belajar','Doa untuk Orang Tua'],6:['Kelahiran Nabi','Turunnya Wahyu','Dakwah di Mekkah','Hijrah ke Madinah','Fathu Makkah']};
+    const ml=mats[i]||[];for(let j=0;j<ml.length;j++)await db.curriculumMaterials.add({categoryId:catId,title:ml[j],sortOrder:j+1,level:i<=1?'Dasar':'Menengah',durationMinutes:30,isActive:true});
+  }
+  await db.sppTypes.bulkAdd([{locationId:lid,name:'SPP Bulanan',amount:50000,isRecurring:true,isActive:true},{locationId:lid,name:'Infaq',amount:10000,isRecurring:true,isActive:true}]);
+  const g1=await db.guardians.add({locationId:lid,name:'Bapak Ahmad',relation:'ayah',phone:'081234567890',address:'Kampung Bahagia',isActive:true});
+  const g2=await db.guardians.add({locationId:lid,name:'Ibu Fatimah',relation:'ibu',phone:'081234567891',address:'Kampung Makmur',isActive:true});
+  const t1=await db.teachers.add({locationId:lid,name:'Ustadz Hasan',gender:'L',phone:'081111222333',specialization:'Hafalan',isActive:true});
+  const t2=await db.teachers.add({locationId:lid,name:'Ustadzah Maryam',gender:'P',phone:'081444555666',specialization:'Iqro',isActive:true});
+  const c1=await db.classes.add({locationId:lid,name:'Iqro 1-2',level:'iqro_1',maxStudents:20,room:'Ruang 1',isActive:true});
+  const c2=await db.classes.add({locationId:lid,name:'Juz Amma',level:'juz_amma',maxStudents:15,room:'Ruang 2',isActive:true});
+  await db.classTeachers.bulkAdd([{classId:c1,teacherId:t2,isPrimary:true},{classId:c2,teacherId:t1,isPrimary:true}]);
+  const ns=[['Muhammad Rizki','L',g1],['Aisyah Putri','P',g1],['Abdullah','L',g2],['Khadijah','P',g2],['Umar Faruq','L',g1]];
+  for(let i=0;i<ns.length;i++){const sid=await db.students.add({locationId:lid,guardianId:ns[i][2],nis:'TPA-2026-'+String(i+1).padStart(3,'0'),name:ns[i][0],gender:ns[i][1],joinDate:'2026-07-15',isActive:true});await db.classStudents.add({classId:i<3?c1:c2,studentId:sid})}
+  await db.schedules.bulkAdd([{classId:c1,teacherId:t2,day:'Senin',startTime:'15:30',endTime:'17:00',room:'Ruang 1',isActive:true},{classId:c2,teacherId:t1,day:'Selasa',startTime:'15:30',endTime:'17:00',room:'Ruang 2',isActive:true}]);
+}
+
+// ============================================================
+// SESSION CHECK
+// ============================================================
+let U=null,LOC=null,curTab='home',curSub='';
+
+function checkAuth(){
+  U=getSession();
+  if(!U||U.role!=='ustadz'){window.location.href='login.html';return false}
+  LOC={id:U.locationId,name:U.locationName};
+  $('prof-btn').textContent=ini(U.name);
+  return true;
+}
+
+function showProfile(){
+  openSheet('Profil',`
+    <div style="text-align:center;padding:12px 0">
+      <div class="av av-xl av-o" style="margin:0 auto 12px">${ini(U.name)}</div>
+      <div style="font-size:18px;font-weight:700">${U.name}</div>
+      <div style="font-size:13px;color:var(--on-surface-variant)">Ustadz / Pengajar</div>
+      <div style="font-size:12px;color:var(--on-surface-variant);margin-top:4px">📍 ${LOC?.name||'-'}</div>
+    </div>
+    <div style="border-top:1px solid var(--outline-variant);margin-top:12px;padding-top:12px">
+      <a href="login.html" class="btn btn-o btn-full" style="text-decoration:none;margin-bottom:8px;display:flex">↩️ Ganti Role</a>
+      <button class="btn btn-d btn-full" onclick="clearSession();window.location.href='login.html'">🚪 Keluar</button>
+    </div>`);
+}
+function goNotif(){curSub='notifications';switchTab(curTab)}
+
+
+const TABS=[
+  {id:'home',icon:'🏠',label:'Beranda'},
+  {id:'kelas',icon:'🏫',label:'Kelas'},
+  {id:'input',icon:'✏️',label:'Input'},
+  {id:'lainnya',icon:'📁',label:'Lainnya'},
+];
+const SUBS={kelas:['myclasses','schedules','curriculum'],input:['attendance','hafalan','iqro'],lainnya:['projects','notifications']};
+const SLBL={myclasses:'Kelas Saya',schedules:'Jadwal',curriculum:'Kurikulum',attendance:'Absensi',hafalan:'Hafalan',iqro:'Iqro',projects:'Proyek',notifications:'Notifikasi'};
+const TTITLES={home:'Kasir Solo - TPA',kelas:'Kelas',input:'Input Harian',lainnya:'Lainnya'};
+const FABS={attendance:'✅',hafalan:'📖',iqro:'📕'};
+
+function renderNav(){const nav=$('bnav');nav.innerHTML='';TABS.forEach(t=>{nav.innerHTML+=`<button class="nav-item ${t.id===curTab?'active':''}" onclick="switchTab('${t.id}')"><div class="nav-pill">${t.icon}</div><span class="nav-label">${t.label}</span></button>`})}
+function switchTab(tab){curTab=tab;renderNav();const subs=SUBS[tab];const sn=$('sub-nav');if(subs){sn.classList.remove('hidden');sn.innerHTML='';curSub=curSub&&subs.includes(curSub)?curSub:subs[0];subs.forEach(s=>{sn.innerHTML+=`<button class="chip ${s===curSub?'active':''}" onclick="curSub='${s}';switchTab('${tab}')">${SLBL[s]||s}</button>`})}else{sn.classList.add('hidden');if(tab==='home')curSub=''}$('bar-title').textContent=TTITLES[tab]||'';$('bar-sub').textContent=curSub?SLBL[curSub]||'':'';const fab=$('fab');const fc2=FABS[curSub];fab.classList.toggle('hidden',!fc2);if(fc2)fab.textContent=fc2;render()}
+function onFab(){const h={attendance:loadAtt,hafalan:showHafalanForm,iqro:showIqroForm};(h[curSub]||function(){})()}
+function render(){const c=$('content');c.innerHTML='';c.scrollTop=0;const pg=curSub||curTab;const r={home:pgHome,myclasses:pgMyClasses,schedules:pgSchedules,curriculum:pgCurriculum,attendance:pgAtt,hafalan:pgHafalan,iqro:pgIqro,projects:pgProjects,notifications:pgNotifs};(r[pg]||r.home)(c)}
+
+
+
+async function pgHome(c){
+  const days=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];const td=days[new Date().getDay()];
+  const tea=await db.teachers.where('locationId').equals(U.locationId).toArray();
+  const me=tea.find(t=>t.name===U.name)||tea[0];
+  let myC=[];if(me){const ct=await db.classTeachers.where('teacherId').equals(me.id).toArray();myC=ct.map(x=>x.classId)}
+  let sc=0;for(const cid of myC)sc+=await db.classStudents.where('classId').equals(cid).count();
+  const todaySch=me?await db.schedules.where({teacherId:me.id,day:td}).toArray():[];
+  c.innerHTML=`<div class="hero"><p style="opacity:.8">${fdl(new Date())}</p><h2>Assalamu'alaikum 👋</h2><p>${U.name}</p></div>
+    <div class="stats-row"><div class="stat-chip"><div class="sc-icon">🏫</div><div class="sc-val">${myC.length}</div><div class="sc-lbl">Kelas</div></div><div class="stat-chip"><div class="sc-icon">👨‍🎓</div><div class="sc-val">${sc}</div><div class="sc-lbl">Santri</div></div><div class="stat-chip"><div class="sc-icon">📅</div><div class="sc-val">${todaySch.length}</div><div class="sc-lbl">Hari ini</div></div></div>
+    <div class="sec"><span class="sec-t">Jadwal Hari Ini (${td})</span></div><div class="m-card" id="gsch"></div>`;
+  const box=$('gsch');if(!todaySch.length){box.innerHTML='<div class="empty"><span class="ei">🎉</span><div class="et">Tidak ada jadwal</div></div>';return}
+  for(const s of todaySch){const cls=await db.classes.get(s.classId);box.innerHTML+=`<div class="li"><div class="li-icon av av-o">${cls?.name?.[0]||'?'}</div><div class="li-body"><div class="li-title">${cls?.name||'-'}</div><div class="li-sub">Ruang ${s.room||'-'}</div></div><span style="font-weight:700;color:var(--brand)">${s.startTime}-${s.endTime}</span></div>`}
+}
+async function pgMyClasses(c){
+  const tea=await db.teachers.where('locationId').equals(U.locationId).toArray();const me=tea.find(t=>t.name===U.name)||tea[0];
+  if(!me){c.innerHTML='<div class="empty"><span class="ei">🏫</span><div class="et">Belum terdaftar</div></div>';return}
+  const ct=await db.classTeachers.where('teacherId').equals(me.id).toArray();c.innerHTML='<div id="mcl"></div>';
+  for(const item of ct){const cls=await db.classes.get(item.classId);if(!cls)continue;const sc=await db.classStudents.where('classId').equals(cls.id).count();
+    $('mcl').innerHTML+=`<div class="m-card el" style="margin:0 16px 12px"><div class="m-card-body"><div class="flex items-center gap-12"><div class="av av-l av-o">🏫</div><div style="flex:1"><div style="font-size:15px;font-weight:700">${cls.name}</div><div style="font-size:12px;color:var(--on-surface-variant)">${cls.level||''} · ${sc} santri</div></div>${item.isPrimary?'<span class="badge bg-orange">Wali Kelas</span>':''}</div></div></div>`}
+}
+async function pgSchedules(c){const data=await db.schedules.toArray();const days=['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];c.innerHTML='<div class="m-card" id="sch"></div>';const box=$('sch');if(!data.length){box.innerHTML='<div class="empty"><span class="ei">📅</span><div class="et">Belum ada</div></div>';return}data.sort((a,b)=>days.indexOf(a.day)-days.indexOf(b.day));for(const s of data){const cls=await db.classes.get(s.classId);box.innerHTML+=`<div class="li"><div class="li-icon av av-o">${s.day?.slice(0,2)}</div><div class="li-body"><div class="li-title">${s.day} · ${cls?.name||'-'}</div><div class="li-sub">${s.startTime}-${s.endTime} · Ruang ${s.room||'-'}</div></div></div>`}}
+
+// ============================================================
+// ENHANCED CURRICULUM MODULE
+// ============================================================
+async function pgCurriculum(c){
+  const cats=await db.curriculumCategories.where('locationId').equals(U.locationId).toArray();
+  const allMats=await db.curriculumMaterials.toArray();
+  const totalMats=allMats.length;
+
+  c.innerHTML=`
+    <div class="stats-row">
+      <div class="stat-chip"><div class="sc-icon">📚</div><div class="sc-val">${cats.length}</div><div class="sc-lbl">Kategori</div></div>
+      <div class="stat-chip"><div class="sc-icon">📄</div><div class="sc-val">${totalMats}</div><div class="sc-lbl">Total Materi</div></div>
+    </div>
+    <div id="cur-cats"></div>`;
+
+  const box=$('cur-cats');
+  for(const cat of cats.sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0))){
+    const cm=allMats.filter(m=>m.categoryId===cat.id).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+    const catColors=['#fff7ed','#eff6ff','#f0fdf4','#faf5ff','#fffbeb','#fef2f2','#f0f9ff'];
+    const catEmojis=['📕','🕌','📖','🕋','💎','🤲','📜'];
+    const idx=cats.indexOf(cat);
+    const emoji=catEmojis[idx%catEmojis.length];
+    const bg=catColors[idx%catColors.length];
+
+    box.innerHTML+=`
+      <div class="sec"><span class="sec-t">${emoji} ${cat.name}</span><span class="badge bg-orange">${cm.length} materi</span></div>
+      <div class="m-card">
+        ${cm.length?cm.map((m,i)=>`
+          <div class="li" onclick="showMaterialDetail(${m.id})">
+            <div class="li-icon" style="background:${bg};font-size:14px;font-weight:800;width:32px;height:32px;border-radius:8px">${i+1}</div>
+            <div class="li-body">
+              <div class="li-title">${m.title}</div>
+              <div class="li-sub">${m.level||'Umum'}${m.durationMinutes?' · '+m.durationMinutes+' menit':''}</div>
+            </div>
+            <span style="color:var(--on-surface-variant);font-size:14px">›</span>
+          </div>
+        `).join(''):`
+          <div class="empty" style="padding:20px">
+            <div class="et">Belum ada materi</div>
+            <div style="font-size:12px;margin-top:4px">Tap + untuk menambahkan</div>
+          </div>
+        `}
+      </div>`;
+  }
+}
+
+async function showMaterialDetail(id){
+  const m=await db.curriculumMaterials.get(id);if(!m)return;
+  const cat=await db.curriculumCategories.get(m.categoryId);
+  const body=`
+    <div style="text-align:center;padding:16px 0">
+      <div style="font-size:40px;margin-bottom:8px">📄</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px">${m.title}</div>
+      <span class="badge bg-orange">${cat?.name||'-'}</span>
+    </div>
+    <div style="background:var(--surface-dim);border-radius:var(--radius);padding:14px;margin:12px 0">
+      <div class="sr"><span class="sr-l">Level</span><span class="sr-v">${m.level||'Umum'}</span></div>
+      <div class="sr"><span class="sr-l">Durasi</span><span class="sr-v">${m.durationMinutes||'-'} menit</span></div>
+      <div class="sr"><span class="sr-l">Urutan</span><span class="sr-v">#${m.sortOrder||'-'}</span></div>
+      <div class="sr"><span class="sr-l">Status</span><span class="sr-v">${m.isActive!==false?'✅ Aktif':'❌ Nonaktif'}</span></div>
+    </div>
+    ${m.description?`<div style="margin-top:12px"><div style="font-size:12px;font-weight:600;color:var(--on-surface-variant);margin-bottom:4px">DESKRIPSI</div><div style="font-size:13px;line-height:1.6;color:var(--on-surface-variant)">${m.description}</div></div>`:''}
+    ${m.content?`<div style="margin-top:12px"><div style="font-size:12px;font-weight:600;color:var(--on-surface-variant);margin-bottom:4px">KONTEN MATERI</div><div style="font-size:13px;line-height:1.7;background:var(--surface-dim);padding:14px;border-radius:var(--radius)">${m.content}</div></div>`:''}
+  `;
+  openSheet(m.title,body);
+}
+
+async function pgAtt(c){const data=await db.classSessions.orderBy('sessionDate').reverse().limit(20).toArray();c.innerHTML='<div class="m-card" id="at"></div>';const box=$('at');if(!data.length){box.innerHTML='<div class="empty"><span class="ei">✅</span><div class="et">Belum ada</div><div>Tap ✅ untuk mulai</div></div>';return}for(const s of data){const cls=await db.classes.get(s.classId);const cnt=await db.attendances.where('sessionId').equals(s.id).count();box.innerHTML+=`<div class="li"><div class="li-icon av av-g">✅</div><div class="li-body"><div class="li-title">${cls?.name||'-'}</div><div class="li-sub">${fd(s.sessionDate)} · ${cnt} santri</div></div></div>`}}
+async function loadAtt(){const cls=await db.classes.where('locationId').equals(U.locationId).toArray();if(!cls.length){snack('err','Belum ada kelas');return}openSheet('Input Absensi',`<div class="ff"><label>Kelas</label><select class="fi" id="ac" onchange="loadAS()">${cls.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div><div id="as"></div><div id="asv" style="margin-top:12px"></div>`);loadAS()}
+async function loadAS(){const cid=parseInt($('ac')?.value);if(!cid)return;const cs=await db.classStudents.where('classId').equals(cid).toArray();const box=$('as');box.innerHTML='';window._aM={};for(const item of cs){const s=await db.students.get(item.studentId);if(!s)continue;window._aM[s.id]='hadir';box.innerHTML+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div class="av av-s av-o">${ini(s.name)}</div><div style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;width:160px">${['hadir','izin','sakit','alpha'].map(st=>`<button class="att-opt ${st==='hadir'?'s-h':''}" onclick="setA(${s.id},'${st}')" id="a-${s.id}-${st}">${st==='hadir'?'✅':st==='izin'?'📝':st==='sakit'?'🤒':'❌'}</button>`).join('')}</div></div>`}$('asv').innerHTML=`<button class="btn btn-p btn-full" onclick="saveA(${cid})">💾 Simpan</button>`}
+function setA(sid,st){window._aM[sid]=st;['hadir','izin','sakit','alpha'].forEach(s=>{const b=$(`a-${sid}-${s}`);if(b)b.className=`att-opt ${s===st?'s-'+s[0]:''}`})}
+async function saveA(cid){const sid=await db.classSessions.add({classId:cid,sessionDate:today(),startTime:new Date().toTimeString().slice(0,5)});await db.attendances.bulkAdd(Object.entries(window._aM).map(([s,st])=>({sessionId:sid,studentId:parseInt(s),status:st})));snack('ok','Disimpan!');closeSheet();render()}
+async function pgHafalan(c){const data=await db.hafalanProgress.orderBy('recordedAt').reverse().limit(30).toArray();c.innerHTML='<div class="m-card" id="hl"></div>';const box=$('hl');if(!data.length){box.innerHTML='<div class="empty"><span class="ei">🕌</span><div class="et">Belum ada</div></div>';return}for(const h of data){const s=await db.students.get(h.studentId);box.innerHTML+=`<div class="li"><div class="li-icon av av-o">${ini(s?.name)}</div><div class="li-body"><div class="li-title">${s?.name||'-'}</div><div class="li-sub">${h.surahName} (${h.ayatFrom}-${h.ayatTo})</div></div><span class="badge ${GC[h.grade]}">${GL[h.grade]||h.grade}</span></div>`}}
+async function showHafalanForm(){const cls=await db.classes.where('locationId').equals(U.locationId).toArray();const sO=SURAH.map(s=>`<option value="${s.n}">${s.n}. ${s.name} (${s.ayat})</option>`).join('');openSheet('Input Hafalan',`<div class="form-row"><div class="ff"><label>Kelas</label><select class="fi" id="hc" onchange="loadHS()">${cls.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div><div class="ff"><label>Santri</label><select class="fi" id="hs"></select></div></div><div class="ff"><label>Jenis</label><select class="fi" id="ht"><option value="ziyadah">Ziyadah</option><option value="murajaah">Murajaah</option><option value="tasmi">Tasmi'</option></select></div><div class="ff"><label>Surat</label><select class="fi" id="hsu">${sO}</select></div><div class="form-row"><div class="ff"><label>Dari</label><input class="fi" type="number" id="hf" value="1"></div><div class="ff"><label>Sampai</label><input class="fi" type="number" id="hto" value="7"></div></div><div class="ff"><label>Nilai</label><div class="gr-row" id="hgr"></div></div><div class="ff"><label>Catatan</label><textarea class="fi" id="hn" rows="2"></textarea></div>`,`<button class="btn btn-t" onclick="closeSheet()">Batal</button><button class="btn btn-p" onclick="saveH()">💾 Simpan</button>`);window._hG='jayyid';const gb=$('hgr');Object.entries(GL).forEach(([k,v])=>{gb.innerHTML+=`<button class="gr-btn ${k==='jayyid'?'active':''}" onclick="window._hG='${k}';document.querySelectorAll('#hgr .gr-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${v}</button>`});loadHS()}
+async function loadHS(){const cid=parseInt($('hc')?.value);if(!cid)return;const cs=await db.classStudents.where('classId').equals(cid).toArray();const sel=$('hs');sel.innerHTML='<option value="">Pilih...</option>';for(const i of cs){const s=await db.students.get(i.studentId);if(s)sel.innerHTML+=`<option value="${s.id}">${s.name}</option>`}}
+async function saveH(){const sid=parseInt($('hs').value);if(!sid){snack('err','Pilih santri');return}const sn=parseInt($('hsu').value);const su=SURAH.find(s=>s.n===sn);await db.hafalanProgress.add({studentId:sid,surahNumber:sn,surahName:su?.name||'',ayatFrom:parseInt($('hf').value),ayatTo:parseInt($('hto').value),juz:su?.juz,type:$('ht').value,grade:window._hG,notes:$('hn').value,recordedAt:new Date().toISOString()});snack('ok','Disimpan!');closeSheet();render()}
+async function pgIqro(c){const data=await db.iqroProgress.orderBy('recordedAt').reverse().limit(30).toArray();c.innerHTML='<div class="m-card" id="il"></div>';const box=$('il');if(!data.length){box.innerHTML='<div class="empty"><span class="ei">📕</span><div class="et">Belum ada</div></div>';return}for(const h of data){const s=await db.students.get(h.studentId);box.innerHTML+=`<div class="li"><div class="li-icon av av-o">${ini(s?.name)}</div><div class="li-body"><div class="li-title">${s?.name||'-'}</div><div class="li-sub">Jilid ${h.jilid} Hal ${h.page}</div></div><span class="badge ${GC[h.grade]}">${h.grade}</span></div>`}}
+async function showIqroForm(){const cls=await db.classes.where('locationId').equals(U.locationId).toArray();openSheet('Input Iqro',`<div class="form-row"><div class="ff"><label>Kelas</label><select class="fi" id="ic" onchange="loadIS()">${cls.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div><div class="ff"><label>Santri</label><select class="fi" id="is2"></select></div></div><div class="form-row"><div class="ff"><label>Jilid</label><select class="fi" id="ij">${[1,2,3,4,5,6].map(j=>`<option value="${j}">Jilid ${j}</option>`).join('')}</select></div><div class="ff"><label>Halaman</label><input class="fi" type="number" id="ip" value="1"></div></div><div class="ff"><label>Nilai</label><div class="gr-row" id="igr"></div></div><div class="ff"><label>Catatan</label><textarea class="fi" id="in2" rows="2"></textarea></div>`,`<button class="btn btn-t" onclick="closeSheet()">Batal</button><button class="btn btn-p" onclick="saveI()">💾 Simpan</button>`);window._iG='lancar';const gb=$('igr');[{v:'lancar',l:'✅ Lancar'},{v:'cukup',l:'⚡ Cukup'},{v:'mengulang',l:'🔄 Ulang'}].forEach(g=>{gb.innerHTML+=`<button class="gr-btn ${g.v==='lancar'?'active':''}" onclick="window._iG='${g.v}';document.querySelectorAll('#igr .gr-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${g.l}</button>`});loadIS()}
+async function loadIS(){const cid=parseInt($('ic')?.value);if(!cid)return;const cs=await db.classStudents.where('classId').equals(cid).toArray();const sel=$('is2');sel.innerHTML='<option value="">Pilih...</option>';for(const i of cs){const s=await db.students.get(i.studentId);if(s)sel.innerHTML+=`<option value="${s.id}">${s.name}</option>`}}
+async function saveI(){const sid=parseInt($('is2').value);if(!sid){snack('err','Pilih santri');return}await db.iqroProgress.add({studentId:sid,jilid:parseInt($('ij').value),page:parseInt($('ip').value),grade:window._iG,notes:$('in2').value,recordedAt:new Date().toISOString()});snack('ok','Disimpan!');closeSheet();render()}
+async function pgProjects(c){const data=await db.projects.where('locationId').equals(U.locationId).toArray();c.innerHTML='<div class="m-card" id="pjl"></div>';const box=$('pjl');if(!data.length){box.innerHTML='<div class="empty"><span class="ei">📁</span><div class="et">Belum ada</div></div>';return}data.forEach(p=>{box.innerHTML+=`<div class="li"><div class="li-body"><div class="li-title">${p.title}</div><div class="li-sub">${p.status} · ${p.priority}</div></div><span class="badge ${SC[p.status]||'bg-gray'}">${p.status.replace('_',' ')}</span></div>`})}
+async function pgNotifs(c){const data=await db.notifications.orderBy('createdAt').reverse().toArray();c.innerHTML='<div class="m-card" id="nfl"></div>';const box=$('nfl');if(!data.length){box.innerHTML='<div class="empty"><span class="ei">🔔</span><div class="et">Belum ada</div></div>';return}data.forEach(n=>{box.innerHTML+=`<div class="li" onclick="markR(${n.id})"><div class="li-icon av av-o">🔔</div><div class="li-body"><div class="li-title">${n.title}</div><div class="li-sub">${n.message}</div></div></div>`})}
+async function markR(id){await db.notifications.update(id,{isRead:true});render()}
+
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  if(typeof Dexie==='undefined'){document.body.innerHTML='<div style="padding:40px;text-align:center"><h2>⚠️ Gagal Memuat</h2><p>Butuh internet saat pertama buka</p><a href="login.html">← Kembali</a></div>';return}
+  await seedDB();
+  if(!checkAuth())return;
+  renderNav();switchTab('home');
+});
+
+
+
+// ============================================================
+// HELP / TUTORIAL MODULE (FIXED)
+// ============================================================
+const HELP_ITEMS = [
+        {icon:'🏠',title:'Dashboard',desc:'Melihat ringkasan kelas dan jadwal hari ini.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Beranda</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Lihat jumlah kelas, santri, dan sesi hari ini</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Scroll ke bawah untuk jadwal hari ini</div></div>`},
+        {icon:'🏫',title:'Kelas Saya',desc:'Melihat daftar kelas yang diampu dan santri di dalamnya.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Kelas → chip Kelas Saya</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Lihat semua kelas yang Anda ampu</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Badge "Wali Kelas" menandakan Anda wali kelas tersebut</div></div>`},
+        {icon:'✅',title:'Input Absensi',desc:'Mencatat kehadiran santri setiap pertemuan.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Input → chip Absensi</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Tap ✅ (FAB) untuk mulai</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Pilih kelas → daftar santri muncul</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Tap tombol status per santri: ✅ Hadir, 📝 Izin, 🤒 Sakit, ❌ Alpha</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">5</div><div style="font-size:13px">Tap 💾 Simpan</div></div>`},
+        {icon:'🕌',title:'Input Hafalan',desc:'Mencatat progres hafalan santri per surat dan ayat.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Input → chip Hafalan</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Tap 📖 (FAB) untuk input baru</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Pilih kelas → santri</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Pilih jenis: Ziyadah (baru), Murajaah (ulang), Tasmi' (setoran)</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">5</div><div style="font-size:13px">Pilih surat, ayat dari-sampai</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">6</div><div style="font-size:13px">Pilih nilai → tambah catatan jika perlu</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">7</div><div style="font-size:13px">Tap 💾 Simpan</div></div>`},
+        {icon:'📕',title:'Input Iqro',desc:'Mencatat progres Iqro jilid dan halaman.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Input → chip Iqro</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Tap 📕 (FAB) untuk input baru</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Pilih kelas → santri → jilid (1-6) → halaman</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">4</div><div style="font-size:13px">Pilih nilai: Lancar/Cukup/Mengulang</div></div>`},
+        {icon:'📖',title:'Kurikulum',desc:'Melihat materi pembelajaran yang harus diajarkan.',steps:`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</div><div style="font-size:13px">Buka tab Kelas → chip Kurikulum</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</div><div style="font-size:13px">Lihat 7 kategori kurikulum</div></div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--outline-variant)"><div style="width:24px;height:24px;background:var(--brand-light);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">3</div><div style="font-size:13px">Tap materi untuk detail</div></div>`},
+];
+
+function showHelp(){
+  let listHtml='<div style="text-align:center;padding:8px 0 16px"><div style="font-size:40px;margin-bottom:8px">📚</div><div style="font-size:16px;font-weight:800">Bantuan & Tutorial</div><p style="font-size:12px;color:var(--on-surface-variant)">Tap topik untuk melihat panduan langkah demi langkah</p></div>';
+  HELP_ITEMS.forEach((h,i)=>{
+    listHtml+=`<div class="li" style="border-bottom:1px solid var(--outline-variant);cursor:pointer" onclick="showTutorial(${i})"><div class="li-icon av av-o" style="font-size:18px">${h.icon}</div><div class="li-body"><div class="li-title">${h.title}</div><div class="li-sub">${h.desc}</div></div><span style="color:var(--brand);font-size:14px;font-weight:700">›</span></div>`;
+  });
+  openSheet('📚 Bantuan',listHtml);
+}
+
+function showTutorial(idx){
+  const h=HELP_ITEMS[idx];if(!h)return;
+  // Close current sheet and open tutorial detail
+  closeSheet();
+  setTimeout(()=>{
+    openSheet(h.icon+' '+h.title,`
+      <div style="background:var(--brand-light);border-radius:var(--radius);padding:16px;margin-bottom:16px;text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">${h.icon}</div>
+        <div style="font-size:16px;font-weight:800">${h.title}</div>
+        <p style="font-size:13px;color:var(--on-surface-variant);margin-top:4px">${h.desc}</p>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--on-surface-variant);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📋 Langkah-langkah</div>
+      <div style="background:var(--surface-dim);border-radius:var(--radius);padding:4px 12px">
+        ${h.steps}
+      </div>
+    `,`<button class="btn btn-t" onclick="closeSheet();setTimeout(showHelp,200)">← Kembali</button><button class="btn btn-p" onclick="closeSheet()">Mengerti 👍</button>`);
+  },250);
+}
+
+
+</script>
+</body></html>
