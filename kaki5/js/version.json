@@ -1,0 +1,7 @@
+{
+  "version": "1.0.131",
+  "cacheBust": "v206",
+  "notes": [
+    "Tombol \"Pasang Aplikasi\" kini memberi feedback saat memasang (Memasang → Menginstal → Terpasang) dengan spinner; label \"Cek Data Online\" berganti jadi \"Diagnosa\"; baris versi dipindah & dirapatkan ke nama aplikasi."
+  ]
+}

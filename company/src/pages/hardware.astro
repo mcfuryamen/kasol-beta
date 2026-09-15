@@ -1,0 +1,398 @@
+---
+/**
+ * /hardware — katalog produk hardware (adopsi modul /shop kasol-v2).
+ * Data: site_content koleksi `hardware` (Control Center > Konten Web),
+ * fallback src/data/local.ts — shape ProductCatalogue v2.
+ * Interaksi vanilla (filter, modal detail, galeri) tanpa framework.
+ */
+import Base from '../layouts/Base.astro';
+import { site, hardware, hwCategoryLabel, projects, formatRupiah } from '../data/portfolio';
+
+const title = 'Supply Drop — Katalog Hardware Kasir | PT Mesin Kasir Solo';
+const description =
+  'Mesin kasir rakitan MKS: POS Android, PC touchscreen, printer thermal, scanner, cash drawer. Tahan banting, anti rewel, siap dihajar orderan ribuan kali. Order langsung via WhatsApp.';
+
+const wa = (text: string) => `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(text)}`;
+const waCard = (n: string) => wa(`Halo MKS, saya tertarik angkut *${n}*. Tolong info stok dan ongkir ke lokasi saya.`);
+const waBuy = (n: string) => wa(`Halo MKS, saya mau angkut *${n}*. Info total harga + ongkir ke lokasi saya.`);
+const waNego = (n: string) => wa(`Halo MKS, saya minat *${n}*, tapi mau nego tipis bisa?`);
+
+const physical = projects.filter((p) => p.category === 'PHYSICAL').slice(0, 3);
+
+const FILTERS = [
+  { key: 'ALL', label: 'Semua Arsenal' },
+  { key: 'ANDROID', label: 'POS Android' },
+  { key: 'PC', label: 'Desktop HQ' },
+  { key: 'PERIPHERALS', label: 'Aksesoris' },
+];
+
+// JSON-LD ItemList > Product (pola /shop kasol-v2)
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  itemListElement: hardware.map((p, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    item: {
+      '@type': 'Product',
+      name: p.name,
+      description: p.desc,
+      image: p.image,
+      sku: `MKS-SKU-${p.id}`,
+      brand: { '@type': 'Brand', name: 'MKS Hardware' },
+      offers: {
+        '@type': 'Offer',
+        price: p.price,
+        priceCurrency: 'IDR',
+        availability: 'https://schema.org/InStock',
+        itemCondition: 'https://schema.org/NewCondition',
+      },
+    },
+  })),
+};
+---
+<Base title={title} description={description}>
+  {/* ============ HERO ============ */}
+  <section class="hero hero-compact">
+    <div class="hero-bg">
+      <div class="orb-1"></div>
+      <div class="grid-lines"></div>
+    </div>
+    <div class="hero-inner">
+      <span class="hero-badge anim-fade">OFFICIAL STORE</span>
+      <h1 class="anim-fade anim-d1">Supply <span class="accent">Drop.</span></h1>
+      <p class="hero-sub anim-fade anim-d2" data-i18n="hw.heroSub">
+        Upgrade bisnismu pake equipment standar militer. Tahan banting, anti rewel,
+        siap dihajar orderan ribuan kali.
+      </p>
+    </div>
+  </section>
+
+  {/* ============ KATALOG ============ */}
+  <section class="block" id="katalog">
+    <div class="container">
+      <div class="hw-filter" role="tablist" aria-label="Filter kategori hardware">
+        {FILTERS.map((f, i) => (
+          <button
+            type="button"
+            class={`hw-chip${i === 0 ? ' active' : ''}`}
+            data-cat={f.key}
+            role="tab"
+            aria-selected={i === 0 ? 'true' : 'false'}
+            data-i18n={`hw.filter.${f.key}`}
+          >
+            {f.label}
+            <b>{f.key === 'ALL' ? hardware.length : hardware.filter((p) => p.category === f.key).length}</b>
+          </button>
+        ))}
+      </div>
+
+      <div class="hw-grid" id="hwGrid">
+        {hardware.map((p) => (
+          <article class="card hw-card" data-cat={p.category} id={`p${p.id}`}>
+            {p.tag && <span class="hw-tag">{p.tag}</span>}
+            <button type="button" class="hw-thumb" data-open={`hw-detail-${p.id}`} aria-label={`Detail ${p.name}`}>
+              <img src={p.image} alt={p.name} loading="lazy" width="400" height="300" />
+            </button>
+            <div class="hw-body">
+              <span class="type">{hwCategoryLabel[p.category] || p.category}</span>
+              <h3>{p.name}</h3>
+              <p class="price">{formatRupiah(p.price)}</p>
+              <p class="desc">{p.desc}</p>
+              <ul class="hw-specs">
+                {p.specs.slice(0, 3).map((s) => <li>{s}</li>)}
+              </ul>
+              <button type="button" class="hw-more" data-open={`hw-detail-${p.id}`} data-i18n="hw.more">Lihat Detail →</button>
+              <a class="btn btn-primary hw-cta" href={waCard(p.name)} target="_blank" rel="noopener">
+                <span data-i18n="hw.order">Angkut Via WA</span><span class="shine"></span>
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+      <p class="hw-empty" id="hwEmpty" hidden>Stok kategori ini lagi kosong, Bos. Cek kategori lain.</p>
+    </div>
+  </section>
+
+  {/* ============ BUKTI LAPANGAN ============ */}
+  {physical.length > 0 && (
+    <section class="block tint" id="instalasi">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker-pill" data-i18n="hw.lapanganKicker">Bukti Lapangan</span>
+          <h2 data-i18n="hw.lapanganTitle">Instalasi <span class="hl">Hardware.</span></h2>
+          <p class="sub" data-i18n="hw.lapanganSub">Mesin terpasang, tim ditraining, operasional jalan. Foto asli lapangan — bukan stok foto colongan.</p>
+        </div>
+        <div class="grid grid-3 proj-grid">
+          {physical.map((p) => (
+            <a class="card proj-card" href={`/portfolio/${p.slug}`}>
+              <div class="proj-thumb"><img src={p.image} alt={p.title} loading="lazy" width="800" height="450" /></div>
+              <span class="type">{p.tag} — {p.city}</span>
+              <h3>{p.title}</h3>
+              <p class="proj-desc">{p.desc}</p>
+              <span class="proj-more">Lihat Detail →</span>
+            </a>
+          ))}
+        </div>
+        <div class="hw-allproj">
+          <a class="btn btn-outline" href="/portfolio"><span data-i18n="hw.allProjects">Lihat Semua Project</span><span class="shine"></span></a>
+        </div>
+      </div>
+    </section>
+  )}
+
+  {/* ============ CTA ============ */}
+  <section class="block" style="padding-top: 0;">
+    <div class="container">
+      <div class="cta-final">
+        <h2 data-i18n="hw.ctaTitle">Bingung Pilih Arsenal?</h2>
+        <p data-i18n="hw.ctaSub">Consul gratis — ceritakan bentuk bisnis lo, gue rakitkan paket yang pas. Balik modal terukur.</p>
+        <a href={wa('Halo MKS, saya mau konsultasi paket mesin kasir buat bisnis saya.')} target="_blank" rel="noopener" class="btn btn-primary"><span data-i18n="hw.ctaBtn">Consul Gratis Via WA</span><span class="shine"></span></a>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ MODAL DETAIL (pola detail overlay v2) ============ */}
+  {hardware.map((p) => (
+    <div class="hw-modal" id={`hw-detail-${p.id}`} hidden role="dialog" aria-modal="true" aria-label={p.name}>
+      <div class="hw-modal-backdrop" data-close></div>
+      <div class="hw-modal-panel">
+        <button type="button" class="hw-modal-close" data-close aria-label="Tutup">&times;</button>
+        <div class="hw-modal-gallery">
+          <div class="hw-stage">
+            <img class="hw-stage-img" src={p.gallery[0] || p.image} alt={p.name} width="800" height="600" />
+            {p.gallery.length > 1 && (
+              <>
+                <button type="button" class="hw-nav hw-nav-prev" data-dir="-1" aria-label="Foto sebelumnya">‹</button>
+                <button type="button" class="hw-nav hw-nav-next" data-dir="1" aria-label="Foto berikutnya">›</button>
+              </>
+            )}
+          </div>
+          {p.gallery.length > 1 && (
+            <div class="hw-thumbs">
+              {p.gallery.map((g, gi) => (
+                <button type="button" class={`hw-thumb-btn${gi === 0 ? ' active' : ''}`} data-src={g} aria-label={`Foto ${gi + 1}`}>
+                  <img src={g} alt="" loading="lazy" width="120" height="90" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div class="hw-modal-info">
+          <div class="hw-modal-badges">
+            <span class="type">{hwCategoryLabel[p.category] || p.category}</span>
+            <span class="hw-stock">READY STOCK</span>
+          </div>
+          <h2>{p.name}</h2>
+          <p class="price">{formatRupiah(p.price)} <small>PER UNIT</small></p>
+          <div class="hw-modal-actions">
+            <a class="btn btn-primary" href={waBuy(p.name)} target="_blank" rel="noopener"><span data-i18n="hw.buy">Beli Sekarang</span><span class="shine"></span></a>
+            <a class="btn btn-outline" href={waNego(p.name)} target="_blank" rel="noopener"><span data-i18n="hw.nego">Nego Harga</span><span class="shine"></span></a>
+          </div>
+          <div class="hw-modal-block">
+            <h4 data-i18n="hw.worth">Kenapa Worth It?</h4>
+            <p>{p.review}</p>
+          </div>
+          <div class="hw-modal-phys">
+            <div><h4 data-i18n="hw.weight">Berat</h4><p>{p.weight}</p></div>
+            <div><h4 data-i18n="hw.dim">Dimensi</h4><p>{p.dimensions}</p></div>
+          </div>
+          <div class="hw-modal-block">
+            <h4 data-i18n="hw.specs">Spesifikasi Teknis</h4>
+            <ul>{p.specs.map((s) => <li>{s}</li>)}</ul>
+          </div>
+          <div class="hw-modal-block">
+            <h4 data-i18n="hw.inbox">Isi Paket</h4>
+            <ul>{p.inBox.map((s) => <li>{s}</li>)}</ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  ))}
+
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <script>
+    // ---- Filter kategori ----
+    const chips = Array.from(document.querySelectorAll('.hw-chip'));
+    const cards = Array.from(document.querySelectorAll('.hw-card'));
+    const empty = document.getElementById('hwEmpty');
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        chips.forEach((c) => { c.classList.toggle('active', c === chip); c.setAttribute('aria-selected', c === chip ? 'true' : 'false'); });
+        const cat = chip.getAttribute('data-cat');
+        let shown = 0;
+        cards.forEach((card) => {
+          const show = cat === 'ALL' || card.getAttribute('data-cat') === cat;
+          card.toggleAttribute('hidden', !show);
+          if (show) shown++;
+        });
+        if (empty) empty.hidden = shown > 0;
+      });
+    });
+
+    // ---- Modal detail + galeri ----
+    const openModal = (id) => {
+      const m = document.getElementById(id);
+      if (!m) return;
+      m.hidden = false;
+      document.body.style.overflow = 'hidden';
+    };
+    const closeModal = (m) => {
+      m.hidden = true;
+      document.body.style.overflow = '';
+    };
+    document.querySelectorAll('[data-open]').forEach((btn) => {
+      btn.addEventListener('click', () => openModal(btn.getAttribute('data-open') || ''));
+    });
+    document.querySelectorAll('.hw-modal').forEach((m) => {
+      m.querySelectorAll('[data-close]').forEach((el) => {
+        el.addEventListener('click', () => closeModal(m));
+      });
+      const img = m.querySelector('.hw-stage-img');
+      const thumbs = Array.from(m.querySelectorAll('.hw-thumb-btn'));
+      const step = (dir) => {
+        if (!img || thumbs.length === 0) return;
+        const cur = thumbs.findIndex((t) => t.classList.contains('active'));
+        const next = (cur + dir + thumbs.length) % thumbs.length;
+        thumbs[cur].classList.remove('active');
+        thumbs[next].classList.add('active');
+        img.src = thumbs[next].getAttribute('data-src') || '';
+      };
+      m.querySelectorAll('.hw-nav').forEach((nav) => {
+        nav.addEventListener('click', () => step(parseInt(nav.getAttribute('data-dir') || '1', 10)));
+      });
+      thumbs.forEach((t) => {
+        t.addEventListener('click', () => {
+          thumbs.forEach((x) => x.classList.remove('active'));
+          t.classList.add('active');
+          if (img) img.src = t.getAttribute('data-src') || '';
+        });
+      });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      document.querySelectorAll('.hw-modal:not([hidden])').forEach((m) => closeModal(m));
+    });
+  </script>
+</Base>
+
+<style>
+  /* ---- Filter bar ---- */
+  .hw-filter { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 32px; }
+  .hw-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--line-2); color: var(--text-2);
+    border-radius: 999px; padding: 10px 18px; cursor: pointer;
+    font-family: var(--font-body); font-size: 11px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .14em;
+    transition: all .18s ease;
+  }
+  .hw-chip b {
+    font-size: 10px; background: rgba(255, 95, 31, .12); color: var(--orange);
+    border-radius: 999px; padding: 2px 8px;
+  }
+  .hw-chip:hover { border-color: var(--orange); color: #fff; }
+  .hw-chip.active { background: var(--orange); border-color: var(--orange); color: #fff; box-shadow: var(--shadow-neon); }
+  .hw-chip.active b { background: rgba(255, 255, 255, .2); color: #fff; }
+
+  /* ---- Grid & kartu produk ---- */
+  .hw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .hw-card { position: relative; display: flex; flex-direction: column; padding: 0; overflow: hidden; transition: transform .18s ease, border-color .18s ease; }
+  .hw-card:hover { transform: translateY(-4px); border-color: var(--orange); }
+  .hw-tag {
+    position: absolute; top: 12px; right: 12px; z-index: 2;
+    background: #e11d48; color: #fff; font-size: 9.5px; font-weight: 800;
+    letter-spacing: .12em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px;
+    animation: hwPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes hwPulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+  .hw-thumb { display: block; width: 100%; border: none; padding: 0; cursor: pointer; background: #0a0a0a; }
+  .hw-thumb img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+  .hw-body { display: flex; flex-direction: column; flex: 1; padding: 20px; }
+  .hw-body h3 { font-size: 19px; margin: 8px 0 2px; }
+  .hw-body .price { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--orange); margin: 0 0 8px; }
+  .hw-body .desc { color: var(--text-2); font-size: 13.5px; line-height: 1.6; }
+  .hw-specs { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .hw-specs li { position: relative; padding-left: 16px; color: var(--text-2); font-size: 12.5px; }
+  .hw-specs li::before { content: '▪'; position: absolute; left: 0; color: var(--orange); }
+  .hw-more {
+    align-self: flex-start; background: none; border: none; cursor: pointer;
+    color: var(--orange); font-family: var(--font-body); font-size: 11px; font-weight: 800;
+    letter-spacing: .14em; text-transform: uppercase; padding: 0; margin-top: 14px;
+  }
+  .hw-more:hover { text-decoration: underline; }
+  .hw-cta { margin-top: 14px; width: 100%; }
+  .hw-empty { text-align: center; font-style: italic; color: var(--text-2); padding: 32px 0; }
+  .hw-allproj { text-align: center; margin-top: 36px; }
+
+  /* ---- Modal detail ---- */
+  .hw-modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  /* display:flex di atas mengalahkan atribut [hidden] UA — paksa tetap sembunyi */
+  .hw-modal[hidden] { display: none; }
+  .hw-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .8); backdrop-filter: blur(6px); }
+  .hw-modal-panel {
+    position: relative; z-index: 1; width: min(1040px, 100%); max-height: 90vh; overflow-y: auto;
+    background: var(--dark); border: 1px solid var(--line-2); border-radius: 20px;
+    display: grid; grid-template-columns: 3fr 2fr; gap: 0;
+  }
+  .hw-modal-close {
+    position: absolute; top: 14px; right: 14px; z-index: 3;
+    width: 38px; height: 38px; border-radius: 999px;
+    background: rgba(255, 255, 255, .06); border: 1px solid var(--line-2);
+    color: #fff; font-size: 20px; cursor: pointer; line-height: 1;
+  }
+  .hw-modal-close:hover { background: var(--orange); border-color: var(--orange); }
+  .hw-modal-gallery { padding: 24px; border-right: 1px solid var(--line); }
+  .hw-stage { position: relative; border-radius: 14px; overflow: hidden; background: #0a0a0a; }
+  .hw-stage-img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+  .hw-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 38px; height: 38px; border-radius: 999px; border: none; cursor: pointer;
+    background: rgba(0, 0, 0, .55); color: #fff; font-size: 20px; line-height: 1;
+  }
+  .hw-nav:hover { background: var(--orange); }
+  .hw-nav-prev { left: 12px; }
+  .hw-nav-next { right: 12px; }
+  .hw-thumbs { display: flex; gap: 10px; margin-top: 12px; }
+  .hw-thumb-btn { width: 76px; border: 2px solid transparent; border-radius: 10px; overflow: hidden; padding: 0; cursor: pointer; background: #0a0a0a; }
+  .hw-thumb-btn.active { border-color: var(--orange); }
+  .hw-thumb-btn img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+  .hw-modal-info { padding: 28px; }
+  .hw-modal-badges { display: flex; align-items: center; gap: 10px; }
+  .hw-stock {
+    background: rgba(34, 197, 94, .14); color: #4ade80; font-size: 9.5px; font-weight: 800;
+    letter-spacing: .12em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px;
+  }
+  .hw-modal-info h2 { font-size: 28px; margin: 12px 0 4px; }
+  .hw-modal-info > .price { font-family: var(--font-display); font-size: 30px; font-weight: 700; color: var(--orange); margin: 0 0 18px; }
+  .hw-modal-info > .price small { font-size: 11px; letter-spacing: .14em; color: var(--text-2); font-weight: 700; }
+  .hw-modal-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
+  .hw-modal-block { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px; }
+  .hw-modal-block h4, .hw-modal-phys h4 {
+    font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--orange); margin: 0 0 8px;
+  }
+  .hw-modal-block p { color: var(--text-2); font-size: 13.5px; line-height: 1.7; margin: 0; }
+  .hw-modal-block ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .hw-modal-block li { position: relative; padding-left: 16px; color: var(--text-2); font-size: 13px; }
+  .hw-modal-block li::before { content: '▪'; position: absolute; left: 0; color: var(--orange); }
+  .hw-modal-phys { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px; }
+  .hw-modal-phys > div { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .hw-modal-phys p { margin: 0; font-weight: 700; color: #fff; font-size: 14px; }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 900px) {
+    .hw-grid { grid-template-columns: repeat(2, 1fr); }
+    .hw-modal-panel { grid-template-columns: 1fr; max-height: 92vh; }
+    .hw-modal-gallery { border-right: none; border-bottom: 1px solid var(--line); }
+  }
+  @media (max-width: 640px) {
+    .hw-grid { grid-template-columns: 1fr; }
+    .hw-filter { gap: 8px; }
+    .hw-chip { padding: 9px 14px; font-size: 10px; }
+    .hw-modal { padding: 0; align-items: stretch; }
+    .hw-modal-panel { border-radius: 0; }
+  }
+</style>

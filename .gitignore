@@ -1,0 +1,131 @@
+# Node
+node_modules/
+*/node_modules/
+package-lock.json
+yarn.lock
+npm-debug.log*
+
+# Vercel
+.vercel
+*/.vercel
+*.json.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Build dist (jika ada)
+dist/
+build/
+out/
+
+# Test
+test/
+tests/
+__tests__/
+*.test.js
+*.spec.js
+
+# Astro
+.astro/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+*.temp
+*.cache
+
+# Generated files
+*.min.js
+*.min.css
+# Exceptions: keep the vendor lib required by PWAs (Dexie).
+# Without these negations, `*.min.js` ignores <app>/dexie.min.js and the
+# deployed app breaks (Dexie undefined). Per PWA yang load dexie WAJIB punya
+# pengecualiannya di sini. Lihat DEPLOYMENT.md "Aturan Penting".
+!kaki5/dexie.min.js
+!kaki5/js/supabase.min.js
+!rosok/dexie.min.js
+!rosok/js/supabase.min.js
+!control/dexie.min.js
+!retail/dexie.min.js
+# Pengecualian eksplisit: ikon backup lama yang sengaja di-track
+!kaki5/assets/icon-old-backup-*.png
+!kaki5/assets/icon-old.png
+.vercel
+.env*
+
+# ===== Proteksi root (added 2026-08-10) ? JANGAN commit =====
+.secure.env
+*.env
+mig.json
+mig2.json
+pb.json
+run_migration_salt.js
+generator-lisensi-universal.html
+nul
+
+# ===== Artefak backup/rusak (added 2026-08-10) =====
+*.bak
+*.backup
+*.backup*
+*.fixed
+*.fixed4
+*.test
+*.testfix
+*.iconvfixed
+*.latin1fix
+*.latin1fix2
+backup_*
+mojibake*
+*_archive/
+x.startsWith*
+x[1])*
+generator-lisensi-universal.html
+kasirsolo-kakilima-logo.png
+# Dev test harness (local-only, tidak di-track)
+kaki5/server.cjs
+kaki5/server.js
+kaki5/test_*.js
+kaki5/test_*.cjs
+kaki5/test-*.js
+kaki5/test-import.mjs
+
+# File sementara rename-only cleanup (workspace block hard-delete;
+# file .del/.bak.del adalah rename dari Remove-Item target).
+*.del
+.gitignore-extra*
+
+# File pesan commit sementara (git commit -F)
+.git-commit-msg*.txt
+kaki5/.git-commit-msg*.txt
+
+# Log Playwright MCP (dev-only, tidak di-track)
+.playwright-mcp/
+.zcode/
+.superdesign/tmp/

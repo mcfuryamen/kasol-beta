@@ -1,0 +1,15 @@
+{
+  "name": "kasir-solo-company",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 13131",
+    "build": "astro build",
+    "preview": "astro preview --port 13131"
+  },
+  "dependencies": {
+    "astro": "^5.12.0",
+    "zod": "^3.25.76"
+  }
+}

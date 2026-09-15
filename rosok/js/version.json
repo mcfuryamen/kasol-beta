@@ -1,0 +1,7 @@
+{
+  "version": "1.4.21",
+  "cacheBust": "v82",
+  "notes": [
+    "Tombol \"Pasang Aplikasi\" kini selalu tampil dan memberi feedback saat memasang (Memasang → Menginstal → Terpasang) plus panduan manual; baris versi dipindah & dirapatkan ke nama aplikasi."
+  ]
+}

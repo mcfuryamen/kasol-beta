@@ -1,0 +1,24 @@
+{
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/guru",
+      "destination": "/guru.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/wali",
+      "destination": "/wali.html"
+    },
+    {
+      "source": "/",
+      "destination": "/login.html"
+    }
+  ]
+}

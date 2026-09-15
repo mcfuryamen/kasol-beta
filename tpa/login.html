@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ea580c">
+<title>TPA Al-Hikmah — Taman Pendidikan Al-Quran</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕌</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;color:#0f172a;background:#fff;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+.ctr{max-width:1080px;margin:0 auto;padding:0 20px}
+
+/* Navbar */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;transition:box-shadow .3s}
+.nav.scrolled{box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.nav .inner{max-width:1080px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.nav .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px}
+.nav .logo-i{width:36px;height:36px;background:#ea580c;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
+.nav .links{display:flex;gap:4px;align-items:center}
+.nav .links a{padding:8px 14px;font-size:13px;font-weight:500;color:#475569;border-radius:8px;transition:all .15s}
+.nav .links a:hover{background:#f8fafc;color:#0f172a}
+.nav .links .btn-gate{background:#ea580c;color:#fff;font-weight:600;padding:8px 20px;border-radius:99px}
+.nav .links .btn-gate:hover{background:#c2410c}
+.menu-tog{display:none;border:none;background:none;font-size:24px;cursor:pointer;padding:8px}
+.mob-menu{display:none;position:fixed;inset:0;top:64px;background:#fff;z-index:99;flex-direction:column;padding:20px;gap:4px}
+.mob-menu.show{display:flex}
+.mob-menu a{padding:14px 16px;font-size:15px;font-weight:500;border-radius:10px;color:#475569}
+.mob-menu a:active{background:#f1f5f9}
+@media(max-width:768px){.nav .links{display:none}.menu-tog{display:block}}
+
+/* Hero */
+.hero{padding:120px 0 60px;background:linear-gradient(180deg,#fff7ed 0%,#fff 100%);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(234,88,12,.08),transparent 70%);border-radius:50%}
+.hero .inner{max-width:1080px;margin:0 auto;padding:0 20px;text-align:center}
+.hero .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:99px;font-size:12px;font-weight:600;color:#ea580c;margin-bottom:16px}
+.hero h1{font-size:clamp(28px,5vw,52px);font-weight:900;line-height:1.1;margin-bottom:16px}
+.hero h1 em{font-style:normal;color:#ea580c}
+.hero .sub{font-size:17px;color:#475569;margin-bottom:28px;max-width:640px;margin-left:auto;margin-right:auto}
+.hero .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-h{padding:14px 28px;border-radius:12px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-h.pri{background:#ea580c;color:#fff;box-shadow:0 4px 16px rgba(234,88,12,.3)}
+.btn-h.pri:hover{background:#c2410c;transform:translateY(-1px)}
+.btn-h.sec{background:#fff;color:#ea580c;border:2px solid #ea580c}
+.btn-h.sec:hover{background:#fff7ed}
+
+/* Stats */
+.stats-b{display:flex;justify-content:center;gap:48px;padding:40px 0;flex-wrap:wrap;background:#fff7ed}
+.sb-i{text-align:center}
+.sb-i .v{font-size:36px;font-weight:900;color:#ea580c}
+.sb-i .l{font-size:13px;color:#475569}
+
+/* Sections */
+.sec{padding:64px 0}.sec.alt{background:#f8fafc}
+.sec-h{text-align:center;margin-bottom:40px}
+.sec-h .ov{font-size:12px;font-weight:700;color:#ea580c;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.sec-h h2{font-size:28px;font-weight:800;margin-bottom:8px}
+.sec-h p{font-size:15px;color:#475569;max-width:580px;margin:0 auto}
+
+/* Visi Misi */
+.vm-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:600px){.vm-grid{grid-template-columns:1fr}}
+.vm-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px}
+.vm-card h3{font-size:18px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.vm-card ul{list-style:none;padding:0}
+.vm-card ul li{padding:8px 0;font-size:13px;color:#475569;border-bottom:1px solid #f1f5f9;display:flex;gap:8px}
+.vm-card ul li::before{content:'✦';color:#ea580c;font-weight:700}
+
+/* Program grid */
+.prog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.prog-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px;text-align:center;transition:all .2s}
+.prog-card:hover{border-color:#ea580c;transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.prog-card .p-icon{font-size:32px;margin-bottom:8px;display:block}
+.prog-card h4{font-size:14px;font-weight:700;margin-bottom:4px}
+.prog-card p{font-size:12px;color:#64748b}
+
+/* Pengajar */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+.team-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;text-align:center;transition:all .2s}
+.team-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.team-card .t-av{width:72px;height:72px;border-radius:50%;background:#fff7ed;color:#ea580c;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;margin:0 auto 12px}
+.team-card h4{font-size:15px;font-weight:700}
+.team-card .t-role{font-size:12px;color:#ea580c;font-weight:600}
+.team-card .t-spec{font-size:12px;color:#64748b;margin-top:2px}
+
+/* Galeri/Info */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.info-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px}
+.info-card h3{font-size:16px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.info-card p,.info-card div{font-size:13px;color:#475569;line-height:1.6}
+
+/* Contact */
+.ct-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.ct-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px;display:flex;align-items:center;gap:14px}
+.ct-card .ci{width:44px;height:44px;background:#fff7ed;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ct-card .cl{font-size:12px;color:#94a3b8}.ct-card .cv{font-size:14px;font-weight:600}
+
+/* Ekosistem login */
+.eco-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.eco-card{background:#fff;border:2px solid #e2e8f0;border-radius:20px;padding:28px;text-align:center;transition:all .25s;cursor:pointer;overflow:hidden}
+.eco-card:hover{border-color:#ea580c;box-shadow:0 8px 24px rgba(234,88,12,.12);transform:translateY(-4px)}
+.eco-card .e-em{font-size:48px;margin-bottom:12px;display:block}
+.eco-card h3{font-size:18px;font-weight:800;margin-bottom:6px}
+.eco-card p{font-size:13px;color:#475569;margin-bottom:16px}
+.eco-card .e-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 24px;background:#ea580c;color:#fff;border-radius:99px;font-weight:700;font-size:13px;transition:all .15s}
+.eco-card:hover .e-btn{background:#c2410c}
+
+/* Footer */
+.footer{background:#0f172a;color:#94a3b8;padding:32px 0;text-align:center;font-size:13px}
+.footer a{color:#ea580c;font-weight:600}
+
+/* Login Modal */
+.gate-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
+.gate-ov.show{opacity:1;pointer-events:auto}
+.gate-box{background:#fff;border-radius:24px;padding:32px;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(0,0,0,.2);transform:translateY(20px);transition:transform .3s;position:relative}
+.gate-ov.show .gate-box{transform:translateY(0)}
+.gate-logo{width:64px;height:64px;background:#ea580c;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px;box-shadow:0 4px 12px rgba(234,88,12,.3)}
+.ff{margin-bottom:14px}
+.ff label{display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.fi{width:100%;padding:12px 16px;border:1px solid #e2e8f0;border-radius:12px;font-size:15px;font-family:inherit;background:#fff;outline:none;transition:border .2s}
+.fi:focus{border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,.12)}
+select.fi{-webkit-appearance:menulist;appearance:menulist;cursor:pointer}
+.btn-sub{width:100%;padding:14px;background:#ea580c;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-sub:hover{background:#c2410c}
+.btn-sub:active{transform:scale(.98)}
+#gate-err{background:#fef2f2;color:#dc2626;padding:12px;border-radius:10px;font-size:13px;margin-bottom:12px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="nav" id="navbar">
+  <div class="inner">
+    <a href="#" class="logo"><div class="logo-i">🕌</div>TPA Al-Hikmah</a>
+    <div class="links">
+      <a href="#tentang">Tentang</a>
+      <a href="#program">Program</a>
+      <a href="#pengajar">Pengajar</a>
+      <a href="#pendaftaran">Pendaftaran</a>
+      <a href="#kontak">Kontak</a>
+      <a href="#" class="btn-gate" onclick="event.preventDefault();openGate()">🔐 Masuk Sistem</a>
+    </div>
+    <button class="menu-tog" onclick="document.getElementById('mob-menu').classList.toggle('show')">☰</button>
+  </div>
+</nav>
+<div class="mob-menu" id="mob-menu">
+  <a href="#tentang" onclick="closeMM()">Tentang</a>
+  <a href="#program" onclick="closeMM()">Program</a>
+  <a href="#pengajar" onclick="closeMM()">Pengajar</a>
+  <a href="#pendaftaran" onclick="closeMM()">Pendaftaran</a>
+  <a href="#kontak" onclick="closeMM()">Kontak</a>
+  <a href="#" style="background:#ea580c;color:#fff;text-align:center;border-radius:10px;font-weight:700;margin-top:8px" onclick="event.preventDefault();closeMM();openGate()">🔐 Masuk Sistem</a>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="inner">
+    <div class="badge">🕌 Taman Pendidikan Al-Quran</div>
+    <h1>Membentuk Generasi <em>Qurani</em> Berakhlak Mulia</h1>
+    <p class="sub">TPA Al-Hikmah hadir sebagai wadah pendidikan Al-Quran dan akhlak untuk anak-anak, dengan kurikulum komprehensif dan pengajar berdedikasi.</p>
+    <div class="btns">
+      <a href="#pendaftaran" class="btn-h pri">Daftarkan Anak Anda →</a>
+      <a href="#program" class="btn-h sec">Lihat Program ↓</a>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-b" id="stats-bar">
+  <div class="sb-i"><div class="v" id="st-santri">-</div><div class="l">Santri Aktif</div></div>
+  <div class="sb-i"><div class="v" id="st-guru">-</div><div class="l">Ustadz/Pengajar</div></div>
+  <div class="sb-i"><div class="v" id="st-kelas">-</div><div class="l">Kelas</div></div>
+  <div class="sb-i"><div class="v" id="st-tahun">2026</div><div class="l">Tahun Ajaran</div></div>
+</div>
+
+<!-- TENTANG -->
+<section class="sec" id="tentang">
+  <div class="ctr">
+    <div class="sec-h">
+      <div class="ov">Tentang Kami</div>
+      <h2>Profil TPA Al-Hikmah</h2>
+      <p>Lembaga pendidikan Al-Quran nonformal di bawah naungan yayasan, berkomitmen mencetak generasi yang cinta Al-Quran dan berakhlak mulia.</p>
+    </div>
+    <div class="vm-grid">
+      <div class="vm-card">
+        <h3>🎯 Visi</h3>
+        <p style="font-size:14px;color:#475569;line-height:1.7">Menjadi lembaga pendidikan Al-Quran terdepan yang melahirkan generasi Qurani, beriman, berilmu, dan berakhlak mulia, serta berkontribusi positif bagi masyarakat.</p>
+      </div>
+      <div class="vm-card">
+        <h3>🚀 Misi</h3>
+        <ul>
+          <li>Menyelenggarakan pembelajaran Al-Quran yang berkualitas dan menyenangkan</li>
+          <li>Menanamkan nilai-nilai akhlak dan adab Islam sejak dini</li>
+          <li>Membina santri agar mampu membaca, menghafal, dan memahami Al-Quran</li>
+          <li>Menyiapkan generasi yang istiqomah dalam beribadah</li>
+          <li>Membangun kerjasama dengan orang tua dalam pendidikan anak</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROGRAM / KURIKULUM -->
+<section class="sec alt" id="program">
+  <div class="ctr">
+    <div class="sec-h">
+      <div class="ov">Program Pembelajaran</div>
+      <h2>7 Pilar Kurikulum Kami</h2>
+      <p>Kurikulum komprehensif yang mencakup aspek baca-tulis Al-Quran, hafalan, pemahaman agama, dan pembentukan karakter.</p>
+    </div>
+    <div class="prog-grid">
+      <div class="prog-card"><span class="p-icon">📕</span><h4>Iqro / Baca Tulis</h4><p>Jilid 1-6, pengenalan huruf hijaiyah, makhorijul huruf, harakat</p></div>
+      <div class="prog-card"><span class="p-icon">🕌</span><h4>Hafalan Al-Quran</h4><p>Juz Amma, surat pilihan, ziyadah & murajaah harian</p></div>
+      <div class="prog-card"><span class="p-icon">📖</span><h4>Tajwid</h4><p>Hukum nun mati, mim mati, mad, waqaf, dan praktik tilawah</p></div>
+      <div class="prog-card"><span class="p-icon">🕋</span><h4>Fiqh Ibadah</h4><p>Thaharah, shalat, puasa, zakat — teori dan praktik</p></div>
+      <div class="prog-card"><span class="p-icon">💎</span><h4>Akhlak & Adab</h4><p>Adab harian, akhlak mulia, kisah teladan para sahabat</p></div>
+      <div class="prog-card"><span class="p-icon">🤲</span><h4>Doa Harian</h4><p>Doa sehari-hari, dzikir pagi-petang, wirid setelah shalat</p></div>
+      <div class="prog-card"><span class="p-icon">📜</span><h4>Sirah Nabi</h4><p>Sejarah Nabi Muhammad SAW dan Khulafaur Rasyidin</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PENGAJAR -->
+<section class="sec" id="pengajar">
+  <div class="ctr">
+    <div class="sec-h">
+      <div class="ov">Tim Pengajar</div>
+      <h2>Ustadz & Ustadzah Kami</h2>
+      <p>Pengajar berdedikasi dengan kompetensi di bidang Al-Quran dan pendidikan Islam.</p>
+    </div>
+    <div class="team-grid" id="team-grid">
+      <!-- Filled by JS from DB -->
+    </div>
+  </div>
+</section>
+
+<!-- INFO -->
+<section class="sec alt" id="pendaftaran">
+  <div class="ctr">
+    <div class="sec-h">
+      <div class="ov">Informasi</div>
+      <h2>Pendaftaran & Kegiatan</h2>
+    </div>
+    <div class="info-grid">
+      <div class="info-card">
+        <h3>📋 Syarat Pendaftaran</h3>
+        <div>
+          <p>1. Anak usia 4-15 tahun</p>
+          <p>2. Mengisi formulir pendaftaran</p>
+          <p>3. Fotokopi Kartu Keluarga</p>
+          <p>4. Pas foto 3x4 (2 lembar)</p>
+          <p>5. SPP bulanan: <strong>Rp 50.000</strong></p>
+        </div>
+      </div>
+      <div class="info-card">
+        <h3>⏰ Jadwal Belajar</h3>
+        <div>
+          <p><strong>Senin - Jumat</strong></p>
+          <p>Sesi 1: 15.30 - 17.00 WIB</p>
+          <p>Sesi 2: 18.30 - 20.00 WIB (opsional)</p>
+          <p style="margin-top:8px"><strong>Sabtu</strong></p>
+          <p>Kegiatan ekstrakurikuler & muroja'ah bersama</p>
+        </div>
+      </div>
+      <div class="info-card">
+        <h3>🏆 Kegiatan Tahunan</h3>
+        <div>
+          <p>• Wisuda Khatam Iqro & Al-Quran</p>
+          <p>• Lomba Tahfidz & Tartil</p>
+          <p>• Pesantren Kilat Ramadhan</p>
+          <p>• Peringatan Hari Besar Islam</p>
+          <p>• Study Tour/Rihlah Edukasi</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EKOSISTEM (Login Gate) -->
+<section class="sec" id="ekosistem">
+  <div class="ctr">
+    <div class="sec-h">
+      <div class="ov">Sistem Informasi</div>
+      <h2>Portal Digital TPA</h2>
+      <p>Akses sistem manajemen TPA sesuai peran Anda. Data terpusat dan terintegrasi.</p>
+    </div>
+    <div class="eco-grid">
+      <div class="eco-card" onclick="loginAs('admin')">
+        <span class="e-em">👑</span>
+        <h3>Admin / Kepala TPA</h3>
+        <p>Kelola seluruh data: santri, ustadz, kelas, keuangan, kurikulum, dan pengaturan sistem.</p>
+        <div class="e-btn">Masuk sebagai Admin →</div>
+      </div>
+      <div class="eco-card" onclick="loginAs('ustadz')">
+        <span class="e-em">👳</span>
+        <h3>Ustadz / Pengajar</h3>
+        <p>Input absensi, hafalan, iqro harian. Lihat kelas yang diampu, jadwal, dan kurikulum.</p>
+        <div class="e-btn">Masuk sebagai Guru →</div>
+      </div>
+      <div class="eco-card" onclick="loginAs('wali')">
+        <span class="e-em">👨‍👩‍👧</span>
+        <h3>Wali Santri</h3>
+        <p>Pantau progres anak: hafalan, iqro, kehadiran, dan status pembayaran SPP.</p>
+        <div class="e-btn">Masuk sebagai Wali →</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- KONTAK -->
+<section class="sec alt" id="kontak">
+  <div class="ctr">
+    <div class="sec-h">
+      <div class="ov">Hubungi Kami</div>
+      <h2>Informasi Kontak</h2>
+    </div>
+    <div class="ct-grid">
+      <div class="ct-card"><div class="ci">📞</div><div><div class="cl">WhatsApp</div><div class="cv">08816566935</div></div></div>
+      <div class="ct-card"><div class="ci">📍</div><div><div class="cl">Alamat</div><div class="cv" id="ct-addr">Jl. Masjid No. 1, Kampung Bahagia</div></div></div>
+      <div class="ct-card"><div class="ci">🌐</div><div><div class="cl">Website</div><div class="cv">kasirsolo.app</div></div></div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="ctr">
+    <p>© 2026 TPA Al-Hikmah — Di bawah naungan Yayasan Al-Hikmah</p>
+    <p style="margin-top:4px;font-size:11px">Dikelola dengan <a href="https://kasirsolo.app">Kasir Solo - TPA</a> oleh PT Mesin Kasir Solo</p>
+  </div>
+</footer>
+
+<!-- LOGIN GATE MODAL -->
+<div class="gate-ov" id="gate-ov" onclick="if(event.target===this)closeGate()">
+  <div class="gate-box">
+    <button onclick="closeGate()" style="position:absolute;top:16px;right:16px;border:none;background:none;font-size:20px;cursor:pointer;color:#94a3b8">✕</button>
+    <div class="gate-logo">🔐</div>
+    <h2 style="text-align:center;font-size:20px;font-weight:800;margin-bottom:4px">Masuk Sistem</h2>
+    <p style="text-align:center;font-size:13px;color:#475569;margin-bottom:20px">Akses portal sesuai peran Anda</p>
+    <div id="gate-err" class="hidden"></div>
+    <div class="ff">
+      <label>Masuk Sebagai</label>
+      <select class="fi" id="gate-role">
+        <option value="admin">👑 Admin / Kepala TPA</option>
+        <option value="ustadz">👳 Ustadz / Pengajar</option>
+        <option value="wali">👨‍👩‍👧 Wali Santri</option>
+      </select>
+    </div>
+    <div class="ff">
+      <label>Nama Anda</label>
+      <input class="fi" type="text" id="gate-name" placeholder="Ketik nama...">
+    </div>
+    <button class="btn-sub" onclick="doLogin()">Masuk →</button>
+    <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:16px">Powered by Kasir Solo - TPA</p>
+  </div>
+</div>
+
+<script src="https://unpkg.com/dexie@3.2.7/dist/dexie.min.js"></script>
+<script>if(typeof Dexie==='undefined')document.write('<script src="https://cdn.jsdelivr.net/npm/dexie@3.2.7/dist/dexie.min.js"><\/script>')</script>
+<script>
+'use strict';
+const db=new Dexie('KasirSoloTPA');
+db.version(1).stores({locations:'++id,name',students:'++id,locationId,isActive',teachers:'++id,locationId,isActive',guardians:'++id,locationId',classes:'++id,locationId',classStudents:'++id,classId,studentId',classTeachers:'++id,classId,teacherId,isPrimary',schedules:'++id,classId,teacherId,day',academicYears:'++id,locationId',curriculumCategories:'++id,locationId,name,sortOrder',curriculumMaterials:'++id,categoryId,title',classSessions:'++id,classId,teacherId,sessionDate',attendances:'++id,sessionId,studentId,status',hafalanProgress:'++id,studentId,surahNumber,type,grade,recordedAt',iqroProgress:'++id,studentId,jilid,page,grade,recordedAt',sppTypes:'++id,locationId,name,amount',sppBills:'++id,studentId,sppTypeId,billMonth,status,amount,paidAmount',payments:'++id,billId,studentId,amount,method,paidAt',cashFlows:'++id,locationId,type,category,amount,transactionDate',projects:'++id,locationId,title,status,priority',projectTasks:'++id,projectId,title,status',notifications:'++id,userId,type,title,isRead,createdAt',appSettings:'++id,locationId,key,value'});
+
+function setSession(s){localStorage.setItem('tpa_session',JSON.stringify(s))}
+function getSession(){try{return JSON.parse(localStorage.getItem('tpa_session'))}catch{return null}}
+
+window.addEventListener('scroll',()=>{document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>10)});
+function closeMM(){document.getElementById('mob-menu').classList.remove('show')}
+function openGate(){document.getElementById('gate-ov').classList.add('show')}
+function closeGate(){document.getElementById('gate-ov').classList.remove('show')}
+function loginAs(role){
+  document.getElementById('gate-role').value=role;
+  const names={admin:'Admin TPA',ustadz:'Ustadz Hasan',wali:'Bapak Ahmad'};
+  document.getElementById('gate-name').value=names[role]||'';
+  openGate();
+}
+
+async function doLogin(){
+  const role=document.getElementById('gate-role').value;
+  const name=document.getElementById('gate-name').value.trim();
+  if(!name){document.getElementById('gate-err').textContent='Nama harus diisi';document.getElementById('gate-err').classList.remove('hidden');return}
+  const locs=await db.locations.toArray();
+  if(!locs.length){document.getElementById('gate-err').textContent='Data belum siap, refresh halaman.';document.getElementById('gate-err').classList.remove('hidden');return}
+  setSession({name,role,locationId:locs[0].id,locationName:locs[0].name});
+  window.location.href={admin:'admin.html',ustadz:'guru.html',wali:'wali.html'}[role]||'admin.html';
+}
+
+// Load live stats from DB
+async function loadStats(){
+  try{
+    const loc=await db.locations.toArray();
+    if(!loc.length)return;
+    const lid=loc[0].id;
+    const sc=await db.students.where('locationId').equals(lid).filter(s=>s.isActive).count();
+    const tc=await db.teachers.where('locationId').equals(lid).count();
+    const cc=await db.classes.where('locationId').equals(lid).count();
+    document.getElementById('st-santri').textContent=sc;
+    document.getElementById('st-guru').textContent=tc;
+    document.getElementById('st-kelas').textContent=cc;
+
+    // Load teachers for team section
+    const teachers=await db.teachers.where('locationId').equals(lid).toArray();
+    const tg=document.getElementById('team-grid');
+    tg.innerHTML='';
+    if(!teachers.length){tg.innerHTML='<p style="color:#94a3b8;text-align:center;grid-column:1/-1">Data pengajar akan muncul setelah diinput di sistem admin.</p>';return}
+    teachers.forEach(t=>{
+      tg.innerHTML+=`<div class="team-card"><div class="t-av">${t.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div><h4>${t.name}</h4><div class="t-role">${t.gender==='L'?'Ustadz':'Ustadzah'}</div><div class="t-spec">${t.specialization||'Pengajar'}</div></div>`;
+    });
+
+    // Load address
+    if(loc[0].address)document.getElementById('ct-addr').textContent=loc[0].address;
+
+    // Prefill login
+    const s=getSession();
+    if(s){document.getElementById('gate-name').value=s.name;document.getElementById('gate-role').value=s.role}
+  }catch(e){console.warn(e)}
+}
+
+window.addEventListener('DOMContentLoaded',loadStats);
+</script>
+</body>
+</html>
