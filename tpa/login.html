@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masuk Sistem — TPA Al-Hikmah</title>
+<meta name="description" content="Halaman masuk sistem TPA Al-Hikmah. Akses portal sesuai peran Anda.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#7c2d12 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;color:#0f172a}
+.login-wrap{width:100%;max-width:420px}
+.brand{text-align:center;margin-bottom:24px;display:block;text-decoration:none}
+.brand .logo-i{width:64px;height:64px;background:#ea580c;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;box-shadow:0 8px 24px rgba(234,88,12,.4)}
+.brand h1{color:#fff;font-size:22px;font-weight:800}
+.brand p{color:#cbd5e1;font-size:13px;margin-top:4px}
+.card{background:#fff;border-radius:24px;padding:32px;box-shadow:0 24px 64px rgba(0,0,0,.35)}
+.card h2{font-size:20px;font-weight:800;text-align:center;margin-bottom:4px}
+.card .sub{text-align:center;font-size:13px;color:#475569;margin-bottom:20px}
+#gate-err{background:#fef2f2;color:#dc2626;padding:12px;border-radius:10px;font-size:13px;margin-bottom:12px}
+.ff{margin-bottom:14px}
+.ff label{display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.fi{width:100%;padding:12px 16px;border:1px solid #e2e8f0;border-radius:12px;font-size:15px;font-family:inherit;background:#fff;outline:none;transition:border .2s}
+.fi:focus{border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,.12)}
+select.fi{-webkit-appearance:menulist;appearance:menulist;cursor:pointer}
+.btn-sub{width:100%;padding:14px;background:#ea580c;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-sub:hover{background:#c2410c}
+.btn-sub:active{transform:scale(.98)}
+.quick-div{display:flex;align-items:center;gap:10px;margin:18px 0 12px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.quick-div::before,.quick-div::after{content:'';flex:1;height:1px;background:#e2e8f0}
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.quick-btn{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;padding:12px 8px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;cursor:pointer;font-family:inherit;text-align:center;transition:all .15s}
+.quick-btn:hover{border-color:#ea580c;background:#fff7ed;transform:translateY(-1px)}
+.quick-btn:active{transform:scale(.98)}
+.quick-btn .q-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.quick-btn .q-txt{flex:1;min-width:0}
+.quick-btn .q-txt b{display:block;font-size:13px;color:#0f172a}
+.quick-btn .q-txt span{display:block;font-size:11px;color:#64748b}
+.quick-btn .q-go{color:#ea580c;font-size:14px;font-weight:700}
+.q-admin .q-ico{background:#fef3c7}
+.q-ustadz .q-ico{background:#e0f2fe}
+.q-wali .q-ico{background:#dcfce7}
+.hidden{display:none!important}
+.back{display:block;text-align:center;margin-top:20px;color:#cbd5e1;font-size:13px;text-decoration:none;font-weight:600}
+.back:hover{color:#fff}
+.foot{text-align:center;margin-top:16px;font-size:11px;color:#64748b}
+.privacy{margin-top:16px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;overflow:hidden}
+.privacy summary{cursor:pointer;padding:12px 16px;font-size:13px;font-weight:700;color:#0f172a;list-style:none;display:flex;align-items:center;gap:8px}
+.privacy summary::-webkit-details-marker{display:none}
+.privacy summary::after{content:'▾';margin-left:auto;color:#94a3b8;transition:transform .2s}
+.privacy[open] summary::after{transform:rotate(180deg)}
+.privacy-body{padding:0 16px 14px;font-size:12px;color:#475569;line-height:1.6}
+.privacy-body p{margin-bottom:8px}
+.privacy-body p:last-child{margin-bottom:0}
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <a href="/" class="brand" title="Kembali ke Beranda">
+    <div class="logo-i">🕌</div>
+    <h1>TPA Al-Hikmah</h1>
+    <p>Taman Pendidikan Al-Quran</p>
+  </a>
+  <div class="card">
+    <h2>Masuk Sistem</h2>
+    <p class="sub">Akses portal sesuai peran Anda</p>
+    <div id="gate-err" class="hidden"></div>
+    <div class="ff">
+      <label for="gate-role">Masuk Sebagai</label>
+      <select class="fi" id="gate-role">
+        <option value="admin">👑 Admin / Kepala TPA</option>
+        <option value="ustadz">👳 Ustadz / Pengajar</option>
+        <option value="wali">👨‍👩‍👧 Wali Santri</option>
+      </select>
+    </div>
+    <div class="ff">
+      <label for="gate-name">Nama Anda</label>
+      <input class="fi" type="text" id="gate-name" placeholder="Ketik nama..." autocomplete="name">
+    </div>
+    <button class="btn-sub" onclick="doLogin()">Masuk →</button>
+        <div class="quick-div">atau login cepat</div>
+        <div class="quick-grid">
+          <button class="quick-btn q-admin" onclick="quickLogin('admin','Admin TPA')">
+            <div class="q-ico">👑</div>
+            <div class="q-txt"><b>Admin TPA</b><span>Kepala TPA</span></div>
+            <div class="q-go">→</div>
+          </button>
+          <button class="quick-btn q-ustadz" onclick="quickLogin('ustadz','Ustadz Hasan')">
+            <div class="q-ico">👳</div>
+            <div class="q-txt"><b>Ustadz Hasan</b><span>Pengajar</span></div>
+            <div class="q-go">→</div>
+          </button>
+          <button class="quick-btn q-wali" onclick="quickLogin('wali','Bapak Ahmad')">
+            <div class="q-ico">👨‍👩‍👧</div>
+            <div class="q-txt"><b>Bapak Ahmad</b><span>Wali Santri</span></div>
+            <div class="q-go">→</div>
+          </button>
+        </div>
+      </div>
+          <details class="privacy">
+            <summary>🔒 Kebijakan Privasi &amp; Perlindungan Data</summary>
+            <div class="privacy-body">
+              <p><b>Data yang dikumpulkan:</b> nama, NIS, tanggal lahir, alamat, telepon, data orang tua/wali, serta data pendidikan (hafalan, iqro, absensi, tagihan SPP).</p>
+              <p><b>Dasar pemrosesan:</b> persetujuan orang tua/wali (UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi, Pasal 20 &amp; 25). Data santri merupakan Data Pribadi spesifik sehingga wajib ada persetujuan tertulis/terekam.</p>
+              <p><b>Hak Anda:</b> mengakses, memperbaiki, mengekspor, dan meminta penghapusan permanen data. Ajukan melalui admin TPA.</p>
+              <p><b>Keamanan:</b> data disimpan secara lokal di perangkat Anda dan hanya diakses oleh pengguna berwenang sesuai peran.</p>
+            </div>
+          </details>
+          <a class="back" href="index.html">← Kembali ke Beranda</a>
+  <p class="foot">Powered by Kasir Solo - TPA</p>
+</div>
+
+<script type="module">
+  import { initLogin } from './pages/landing/login.js';
+  window.addEventListener('DOMContentLoaded', initLogin);
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}</script>
+</body>
+</html>

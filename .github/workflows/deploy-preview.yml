@@ -1,0 +1,39 @@
+name: Deploy Preview → kaki5.vercel.app
+
+on:
+  push:
+    branches: [preview]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Deploy to Vercel (Production)
+        run: |
+          vercel pull --yes --environment=production \
+            --token="$VERCEL_TOKEN" \
+            --scope="mcfury" \
+            --project="kaki5"
+          vercel deploy --yes --prod \
+            --token="$VERCEL_TOKEN" \
+            --scope="mcfury" \
+            --project="kaki5" \
+            --cwd="./kaki5"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Show deployment URL
+        run: echo "✅ Deployed to https://kaki5.vercel.app"

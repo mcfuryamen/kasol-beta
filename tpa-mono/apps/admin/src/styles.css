@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased text-gray-800;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "results": {
+    "MLogin": {
+      "r1": "Masuk sebagai Demo",
+      "r2": "BSBudi Santosoowner@demo.comPe"
+    },
+    "MDash": {
+      "innerW": 390,
+      "text": "Dashboard\nID\nDashboard\n\nSelamat datang, Budi Santoso!\n\nTutup Kas\n\nKas Sedang Akt",
+      "navExists": true,
+      "navVisible": true,
+      "asideExists": true,
+      "headerExists": true,
+      "mainPb": "76px",
+      "innerTextIncludesSelamat": true
+    },
+    "MDark": {
+      "htmlClass": "dark",
+      "isDark": true
+    },
+    "MReports": {
+      "innerW": 390,
+      "onReports": "moved",
+      "text": "Laporan\nID\nLaporan\n7 Hari\n14 Hari\n30 Hari\n\nTotal Pendapatan\n\nRp 183.150\n\nLaba Ko",
+      "navExists": true
+    },
+    "MPosBefore": {
+      "isKasRequired": false,
+      "click": "Kasir"
+    },
+    "MPosAfter": "Indomie GorengRp 3.500Stok 150 Pcs",
+    "MCart": {
+      "subtotal": true
+    },
+    "DLogin": true,
+    "DDash": {
+      "innerW": 1360,
+      "loggedIn": true,
+      "asideExists": true,
+      "asideRect": {},
+      "wrapClasses": "hidden lg:block",
+      "headerExists": true,
+      "bottomNavExists": true,
+      "bottomNavHeight": 0,
+      "chip": "Kas Aktif"
+    }
+  },
+  "errors": []
+}

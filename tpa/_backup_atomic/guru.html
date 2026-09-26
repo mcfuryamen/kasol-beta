@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="id" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#ea580c">
+  <title>Kasol TPA - Guru</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕌</text></svg>">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@firstname.lastname@example.org/tailwind.min.css">
+
+  <style>
+    :root {
+      --brand: #ea580c;
+      --brand-light: #fff7ed;
+      --brand-dark: #c2410c;
+      --surface: #ffffff;
+      --surface-dim: #f8fafc;
+      --surface-container: #f1f5f9;
+      --surface-variant: #e2e8f0;
+      --on-surface: #0f172a;
+      --on-surface-variant: #64748b;
+      --outline: #cbd5e1;
+      --outline-variant: #e2e8f0;
+      --error: #dc2626;
+      --error-bg: #fef2f2;
+      --success: #16a34a;
+      --success-bg: #f0fdf4;
+      --nav-h: 64px;
+      --bar-h: 56px;
+      --radius: 12px;
+      --radius-full: 9999px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08);
+      --shadow-md: 0 2px 8px rgba(0,0,0,.1);
+      --shadow-lg: 0 4px 16px rgba(0,0,0,.12);
+      --safe-b: env(safe-area-inset-bottom,0);
+      --sidebar-w: 260px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{height:100%;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,Inter,sans-serif;background:var(--surface-dim);color:var(--on-surface);font-size:14px;line-height:1.5;height:100%;overflow:hidden;-webkit-font-smoothing:antialiased}
+    .app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}
+    .app-header{background:var(--surface);padding:0 16px;height:var(--bar-h);display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;z-index:30}
+    .app-header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:var(--outline-variant)}
+    .header-inner{display:flex;align-items:center;width:100%;gap:12px}
+    .header-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+    .header-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+    .header-title{font-size:18px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--on-surface)}
+    .header-subtitle{font-size:11px;color:var(--on-surface-variant);font-weight:400;display:block}
+    .app-sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100%;background:var(--surface);border-right:1px solid var(--outline-variant);z-index:50;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1);overflow-y:auto}
+    .app-sidebar.open{transform:translateX(0)}
+    .sidebar-location{padding:16px 20px 12px;border-bottom:1px solid var(--outline-variant);display:flex;flex-direction:column;gap:2px}
+    .sidebar-nav{flex:1;padding:8px 0;overflow-y:auto}
+    .sidebar-link{display:flex;align-items:center;gap:12px;padding:12px 20px;color:var(--on-surface-variant);text-decoration:none;font-size:14px;font-weight:500;transition:all .15s;border:none;background:none;width:100%;text-align:left;cursor:pointer;font-family:inherit}
+    .sidebar-link:hover{background:var(--surface-container);color:var(--on-surface)}
+    .sidebar-link.active{background:var(--brand-light);color:var(--brand);font-weight:600}
+    .sidebar-link .ic{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+    .sidebar-footer{border-top:1px solid var(--outline-variant);padding:8px 0}
+    .sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:49;opacity:0;pointer-events:none;transition:opacity .3s}
+    .sidebar-overlay.show{opacity:1;pointer-events:auto}
+    .main-layout{display:flex;flex:1;overflow:hidden}
+    .main-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(3px + var(--nav-h) + var(--safe-b) + 16px)}
+    .page-section{padding:16px}
+    .page-header{margin-bottom:16px}
+    .page-title{font-size:20px;font-weight:700;color:var(--on-surface)}
+    .page-subtitle{font-size:13px;color:var(--on-surface-variant);margin-top:2px}
+    .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .stat-card{background:var(--surface);border-radius:var(--radius);padding:16px;border:1px solid var(--outline-variant);box-shadow:var(--shadow)}
+    .stat-card-inner{display:flex;align-items:center;gap:12px}
+    .stat-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+    .stat-icon.blue{background:#dbeafe;color:#2563eb}
+    .stat-icon.green{background:#dcfce7;color:#16a34a}
+    .stat-icon.yellow{background:#fef3c7;color:#d97706}
+    .stat-icon.purple{background:#f3e8ff;color:#9333ea}
+    .stat-label{font-size:11px;color:var(--on-surface-variant);font-weight:500;margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px}
+    .stat-value{font-size:24px;font-weight:700;color:var(--on-surface);line-height:1}
+    .section-title{font-size:16px;font-weight:700;color:var(--on-surface);margin-bottom:12px}
+    .class-card{background:var(--surface);border-radius:var(--radius);padding:16px;border:1px solid var(--outline-variant);margin-bottom:12px;box-shadow:var(--shadow)}
+    .class-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .class-card-title{font-size:15px;font-weight:600;color:var(--on-surface)}
+    .class-card-meta{font-size:12px;color:var(--on-surface-variant);display:flex;align-items:center;gap:4px}
+    .class-card-actions{display:flex;gap:8px;margin-top:12px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all .15s;text-decoration:none}
+    .btn-sm{padding:6px 12px;font-size:12px}
+    .btn-primary{background:var(--brand);color:#fff}
+    .btn-primary:hover{background:var(--brand-dark)}
+    .btn-outline{background:transparent;border:1px solid var(--outline);color:var(--on-surface)}
+    .btn-outline:hover{background:var(--surface-container)}
+    .empty-state{text-align:center;padding:48px 24px;color:var(--on-surface-variant)}
+    .empty-state .es-icon{font-size:48px;margin-bottom:12px;opacity:.4}
+    .empty-state .es-title{font-size:16px;font-weight:600;margin-bottom:4px;color:var(--on-surface)}
+    .empty-state .es-desc{font-size:13px}
+    .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--surface);border-top:1px solid var(--outline-variant);z-index:30;padding-bottom:var(--safe-b)}
+    .nav-list{display:flex;height:100%}
+    .nav-item{flex:1;display:flex}
+    .nav-item a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex:1;color:var(--on-surface-variant);text-decoration:none;font-size:10px;font-weight:500;transition:color .15s}
+    .nav-item a .nav-icon{font-size:20px}
+    .nav-item a.active{color:var(--brand)}
+    .nav-item a.active .nav-icon{transform:scale(1.1)}
+    .snack-bar{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b) + 8px);left:50%;transform:translateX(-50%) translateY(80px);background:#323232;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;z-index:100;transition:transform .3s cubic-bezier(.4,0,.2,1);white-space:nowrap;max-width:calc(100vw - 32px)}
+    .snack-bar.show{transform:translateX(-50%) translateY(0)}
+    .loading-spinner{display:flex;align-items:center;justify-content:center;padding:48px}
+    .spinner{width:32px;height:32px;border:3px solid var(--outline);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(min-width:768px){.main-content{padding:24px}.page-section{padding:24px}.stats-grid{grid-template-columns:repeat(4,1fr)}.class-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}}
+  </style>
+
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <!-- Header -->
+    <header class="app-header" id="header">
+      <div class="header-inner">
+        <div class="header-left">
+          <button id="menuBtn" style="background:none;border:none;cursor:pointer;padding:8px;font-size:20px;color:var(--on-surface)" aria-label="Menu">&#9776;</button>
+          <div>
+            <div class="header-title" id="headerTitle">Guru</div>
+            <span class="header-subtitle" id="headerSubtitle">Dashboard Ustadz/Ustadzah</span>
+          </div>
+        </div>
+        <div class="header-right" id="headerRight">
+          <button style="background:none;border:none;cursor:pointer;padding:8px;font-size:18px" aria-label="Notifications">&#128276;</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Sidebar -->
+    <nav class="app-sidebar" id="sidebar" role="navigation" aria-label="Main">
+      <div class="sidebar-location">
+        <span style="font-size:11px;color:var(--on-surface-variant);text-transform:uppercase;letter-spacing:.5px">Menu Guru</span>
+      </div>
+      <div class="sidebar-nav" id="sidebarNav">
+        <a href="#" class="sidebar-link active" data-route="">
+          <span class="ic">&#127968;</span> Beranda
+        </a>
+        <a href="#kelas" class="sidebar-link" data-route="kelas">
+          <span class="ic">&#128218;</span> Kelas
+        </a>
+        <a href="#absensi" class="sidebar-link" data-route="absensi">
+          <span class="ic">&#128203;</span> Absensi
+        </a>
+        <a href="#hafalan" class="sidebar-link" data-route="hafalan">
+          <span class="ic">&#128214;</span> Hafalan
+        </a>
+      </div>
+      <div class="sidebar-footer">
+        <button id="logoutBtn" class="sidebar-link" style="width:100%;color:var(--error)">
+          <span class="ic">&#128726;</span> Logout
+        </button>
+      </div>
+    </nav>
+    <span class="sidebar-overlay" id="sidebarOverlay" role="button" tabindex="0" aria-label="Close sidebar"></span>
+
+    <!-- Main Content -->
+    <main class="main-layout">
+      <div class="main-content" id="mainContent">
+        <div id="content"></div>
+      </div>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav" id="bottomNav" aria-label="Bottom navigation">
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a href="#" data-route="" class="active" aria-label="Beranda">
+            <span class="nav-icon">&#127968;</span>
+            <span>Beranda</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#kelas" data-route="kelas" aria-label="Kelas">
+            <span class="nav-icon">&#128218;</span>
+            <span>Kelas</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#absensi" data-route="absensi" aria-label="Absensi">
+            <span class="nav-icon">&#128203;</span>
+            <span>Absensi</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#hafalan" data-route="hafalan" aria-label="Hafalan">
+            <span class="nav-icon">&#128214;</span>
+            <span>Hafalan</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Snackbar -->
+  <div id="snackbar" class="snack-bar" role="status" aria-live="polite"></div>
+
+  <!-- Dexie DB -->
+  <!-- Dexie dimuat via import ES module di db/dexie.js (vendor lokal, offline-first) -->
+
+  <script type="module">
+    import { initDB } from './db/init.js';
+    import { getCurrentUser, requireLogin } from './services/auth.js';
+    import { Header } from './components/organisms/Header.js';
+    import { Sidebar, initSidebar } from './components/organisms/Sidebar.js';
+    import { PageHeader } from './components/organisms/PageHeader.js';
+    import { StatCardGrid } from './components/molecules/StatCard.js';
+    import { getTeacherDashboard } from './services/dashboard.js';
+    import { getTeacherClasses } from './services/class.js';
+    import { AttendanceCard } from './components/organisms/AttendanceCard.js';
+    import { HafalanCard } from './components/organisms/HafalanCard.js';
+
+    // Auth guard - redirect if not authenticated or not ustadz role
+    const user = (() => {
+      try {
+        if (!requireLogin()) return null;
+        const u = getCurrentUser();
+        if (!u || u.role !== 'ustadz') return null;
+        return u;
+      } catch(e) {
+        return null;
+      }
+    })();
+    if (!user) { window.location.href = 'index.html'; throw new Error('Not authenticated'); }
+
+    // DOM helpers
+    const el = (sel, ctx = document) => ctx.querySelector(sel);
+    const snack = (msg, duration = 3000) => {
+      const sb = el('#snackbar');
+      sb.textContent = msg;
+      sb.classList.add('show');
+      setTimeout(() => sb.classList.remove('show'), duration);
+    };
+
+    // Sidebar toggle
+    const sidebar = el('#sidebar');
+    const overlay = el('#sidebarOverlay');
+    const menuBtn = el('#menuBtn');
+
+    const openSidebar = () => { sidebar.classList.add('open'); overlay.classList.add('show'); document.body.style.overflow = 'hidden'; };
+    const closeSidebar = () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); document.body.style.overflow = ''; };
+    menuBtn?.addEventListener('click', openSidebar);
+    overlay?.addEventListener('click', closeSidebar);
+    el('#logoutBtn')?.addEventListener('click', () => { if (confirm('Yakin logout?')) { localStorage.clear(); window.location.href = 'index.html'; } });
+
+    // Active nav state
+    const updateActiveNav = (route) => {
+      document.querySelectorAll('.sidebar-link[data-route], .nav-item a[data-route]').forEach(link => {
+        const isActive = link.dataset.route === route;
+        link.classList.toggle('active', isActive);
+        if (link.tagName === 'A') link.setAttribute('aria-current', isActive ? 'page' : '');
+      });
+    };
+
+    // Render functions
+    const showLoading = (container) => { container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>'; };
+
+    const renderDashboard = async () => {
+      const main = el('#content');
+      showLoading(main);
+      try {
+        await initDB();
+        const user = getCurrentUser();
+        const dash = await getTeacherDashboard(user.id);
+        const classes = await getTeacherClasses();
+        main.innerHTML = `
+          <section class="page-section">
+            <div class="page-header">
+              <h1 class="page-title">Assalamu'alaikum, ${user.name || 'Ustadz/Ustadzah'}</h1>
+              <p class="page-subtitle">Semoga hari Anda berkah</p>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-card-inner">
+                  <div class="stat-icon blue">&#128218;</div>
+                  <div>
+                    <div class="stat-label">Jumlah Kelas</div>
+                    <div class="stat-value">${dash?.totalClasses ?? classes?.length ?? 0}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-inner">
+                  <div class="stat-icon green">&#128101;</div>
+                  <div>
+                    <div class="stat-label">Jumlah Siswa</div>
+                    <div class="stat-value">${dash?.totalStudents ?? 0}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-inner">
+                  <div class="stat-icon yellow">&#128203;</div>
+                  <div>
+                    <div class="stat-label">Kehadiran Hari Ini</div>
+                    <div class="stat-value">${dash?.todayAttendance ?? 0}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-inner">
+                  <div class="stat-icon purple">&#128214;</div>
+                  <div>
+                    <div class="stat-label">Hafalan Baru</div>
+                    <div class="stat-value">${dash?.recentHafalanCount ?? 0}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="page-section">
+            <h2 class="section-title">Kelas Saya</h2>
+            ${(classes && classes.length > 0) ? classes.map(c => `
+              <div class="class-card">
+                <div class="class-card-header">
+                  <div class="class-card-title">${c.name || 'Kelas ' + c.id}</div>
+                  <div class="class-card-meta">&#128101; ${c.studentCount || 0} siswa</div>
+                </div>
+                <div class="class-card-meta" style="margin-bottom:12px">&#128197; ${c.schedule || 'Jadwal belum diatur'}</div>
+                <div class="class-card-actions">
+                  <a href="#absensi" class="btn btn-primary btn-sm">&#128203; Absensi</a>
+                  <a href="#hafalan" class="btn btn-outline btn-sm">&#128214; Hafalan</a>
+                </div>
+              </div>
+            `).join('') : '<div class="empty-state"><div class="es-icon">&#128218;</div><div class="es-title">Belum ada kelas</div><div class="es-desc">Kelas akan muncul setelah diatur oleh admin</div></div>'}
+          </section>
+        `;
+      } catch(e) {
+        main.innerHTML = '<div class="page-section"><div class="empty-state"><div class="es-icon">&#9888;</div><div class="es-title">Gagal memuat</div><div class="es-desc">'+e.message+'</div></div></div>';
+      }
+    };
+
+    const renderKelas = async () => {
+      const main = el('#content');
+      showLoading(main);
+      try {
+        await initDB();
+        const classes = await getTeacherClasses();
+        main.innerHTML = `
+          <section class="page-section">
+            <div class="page-header">
+              <h1 class="page-title">Kelas Saya</h1>
+              <p class="page-subtitle">Daftar kelas yang Anda ampu</p>
+            </div>
+            ${(classes && classes.length > 0) ? classes.map(c => `
+              <div class="class-card">
+                <div class="class-card-header">
+                  <div class="class-card-title">${c.name || 'Kelas ' + c.id}</div>
+                  <span class="class-card-meta">&#128101; ${c.studentCount || 0} siswa</span>
+                </div>
+                <div class="class-card-meta" style="margin-top:4px">&#128197; ${c.schedule || 'Jadwal belum diatur'}</div>
+                <div class="class-card-actions" style="margin-top:16px">
+                  <a href="#absensi" class="btn btn-primary btn-sm">&#128203; Isi Absensi</a>
+                  <a href="#hafalan" class="btn btn-outline btn-sm">&#128214; Catat Hafalan</a>
+                </div>
+              </div>
+            `).join('') : '<div class="empty-state"><div class="es-icon">&#128218;</div><div class="es-title">Belum ada kelas</div><div class="es-desc">Hubungi admin untuk menambahkan kelas</div></div>'}
+          </section>
+        `;
+      } catch(e) {
+        main.innerHTML = '<div class="page-section"><div class="empty-state"><div class="es-icon">&#9888;</div><div class="es-title">Gagal memuat</div><div class="es-desc">'+e.message+'</div></div></div>';
+      }
+    };
+
+    const renderAbsensi = async () => {
+      const main = el('#content');
+      showLoading(main);
+      try {
+        await initDB();
+        const classes = await getTeacherClasses();
+        main.innerHTML = `
+          <section class="page-section">
+            <div class="page-header">
+              <h1 class="page-title">Absensi Siswa</h1>
+              <p class="page-subtitle">Catat kehadiran siswa hari ini</p>
+            </div>
+            ${(classes && classes.length > 0) ? classes.map(c => `
+              <div class="class-card">
+                <div class="class-card-header">
+                  <div class="class-card-title">${c.name || 'Kelas ' + c.id}</div>
+                  <span class="class-card-meta">${c.studentCount || 0} siswa</span>
+                </div>
+                <div class="class-card-actions" style="margin-top:12px">
+                  <button class="btn btn-primary btn-sm" onclick="alert('Fitur absensi untuk kelas ${c.id} akan segera hadir')">&#128203; Isi Absensi</button>
+                </div>
+              </div>
+            `).join('') : '<div class="empty-state"><div class="es-icon">&#128203;</div><div class="es-title">Tidak ada kelas</div><div class="es-desc">Ambil kelas terlebih dahulu</div></div>'}
+          </section>
+        `;
+      } catch(e) {
+        main.innerHTML = '<div class="page-section"><div class="empty-state"><div class="es-icon">&#9888;</div><div class="es-title">Gagal memuat</div><div class="es-desc">'+e.message+'</div></div></div>';
+      }
+    };
+
+    const renderHafalan = async () => {
+      const main = el('#content');
+      showLoading(main);
+      try {
+        await initDB();
+        const classes = await getTeacherClasses();
+        main.innerHTML = `
+          <section class="page-section">
+            <div class="page-header">
+              <h1 class="page-title">Catatan Hafalan</h1>
+              <p class="page-subtitle">Rekam progres hafalan siswa</p>
+            </div>
+            ${(classes && classes.length > 0) ? classes.map(c => `
+              <div class="class-card">
+                <div class="class-card-header">
+                  <div class="class-card-title">${c.name || 'Kelas ' + c.id}</div>
+                  <span class="class-card-meta">${c.studentCount || 0} siswa</span>
+                </div>
+                <div class="class-card-actions" style="margin-top:12px">
+                  <button class="btn btn-primary btn-sm" onclick="alert('Fitur hafalan untuk kelas ${c.id} akan segera hadir')">&#128214; Catat Hafalan</button>
+                </div>
+              </div>
+            `).join('') : '<div class="empty-state"><div class="es-icon">&#128214;</div><div class="es-title">Tidak ada kelas</div><div class="es-desc">Ambil kelas terlebih dahulu</div></div>'}
+          </section>
+        `;
+      } catch(e) {
+        main.innerHTML = '<div class="page-section"><div class="empty-state"><div class="es-icon">&#9888;</div><div class="es-title">Gagal memuat</div><div class="es-desc">'+e.message+'</div></div></div>';
+      }
+    };
+
+    // Hash routing
+    const handleRoute = async () => {
+      const hash = window.location.hash.replace('#', '') || '';
+      updateActiveNav(hash);
+      switch(hash) {
+        case 'kelas': await renderKelas(); break;
+        case 'absensi': await renderAbsensi(); break;
+        case 'hafalan': await renderHafalan(); break;
+        default: await renderDashboard();
+      }
+    };
+
+    window.addEventListener('hashchange', handleRoute);
+    // Module script berjalan setelah DOM siang (deferred), DOMContentLoaded sudah terlewat — panggil langsung
+    await handleRoute();
+  </script>
+</body>
+</html>

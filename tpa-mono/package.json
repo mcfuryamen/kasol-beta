@@ -1,0 +1,32 @@
+{
+  "name": "kasir-solo-tpa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kasir Solo - TPA: Manajemen TPA/TPQ/Madrasah Diniyah",
+  "author": "PT Mesin Kasir Solo <info@kasirsolo.app>",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev:admin": "turbo run dev --filter=@kasir-solo-tpa/admin",
+    "dev:guru": "turbo run dev --filter=@kasir-solo-tpa/guru",
+    "dev:wali": "turbo run dev --filter=@kasir-solo-tpa/wali",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "build:admin": "turbo run build --filter=@kasir-solo-tpa/admin",
+    "build:guru": "turbo run build --filter=@kasir-solo-tpa/guru",
+    "build:wali": "turbo run build --filter=@kasir-solo-tpa/wali",
+    "lint": "turbo run lint",
+    "preview": "turbo run preview",
+    "db:migrate": "supabase db push",
+    "db:seed": "supabase db seed",
+    "dev:portal": "turbo run dev --filter=@kasir-solo-tpa/portal",
+    "build:portal": "turbo run build --filter=@kasir-solo-tpa/portal"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.0",
+    "typescript": "^5.5.0"
+  },
+  "packageManager": "pnpm@9.6.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

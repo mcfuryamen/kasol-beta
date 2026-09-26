@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><meta charset="utf-8"><title>QA v168 tutorial</title></head>
+<body>
+<div id="bantuanContent"></div>
+<pre id="out"></pre>
+<script type="module">
+const out = [];
+const say = (s) => { out.push(s); document.getElementById('out').textContent = out.join('\n'); };
+try {
+  const m = await import('./js/bantuan.js');
+  say('modul: ' + Object.keys(m).sort().join(','));
+  m.initBantuan();
+  const host = document.getElementById('bantuanContent');
+  const cards = host.querySelectorAll('.card');
+  say('kartu: ' + cards.length);
+  const heads = [...host.querySelectorAll('[data-action="toggle-tutorial"]')];
+  say('head toggle: ' + heads.length);
+  say('panel: ' + host.querySelectorAll('[id^="tutorial-"]').length);
+  say('kosong? ' + (host.textContent.trim().length < 100));
+  // tidak ada <b> yang menggantung / HTML rusak: bandingkan jumlah <b> buka vs tutup
+  const raw = host.innerHTML;
+  const ob = (raw.match(/<b[ >]/g) || []).length, cb = (raw.match(/<\/b>/g) || []).length;
+  say('<b> buka=' + ob + ' tutup=' + cb);
+  const oi = (raw.match(/<i[ >]/g) || []).length, ci = (raw.match(/<\/i>/g) || []).length;
+  say('<i> buka=' + oi + ' tutup=' + ci);
+  // parser harus menghasilkan jumlah node yang sama dengan yang ditulis (tidak ada tag termakan)
+  say('li: ' + host.querySelectorAll('li').length + ' ol: ' + host.querySelectorAll('ol').length + ' ul: ' + host.querySelectorAll('ul').length);
+  // akordeon: buka panel 0, lalu panel 1 -> panel 0 harus tertutup
+  m.toggleTutorial('tutorial-0');
+  const p0 = document.getElementById('tutorial-0');
+  say('buka0: ' + (p0.style.display === 'block'));
+  m.toggleTutorial('tutorial-1');
+  say('auto-close0: ' + (document.getElementById('tutorial-0').style.display === 'none'));
+  say('buka1: ' + (document.getElementById('tutorial-1').style.display === 'block'));
+  m.toggleTutorial('tutorial-1');
+  say('tutup1: ' + (document.getElementById('tutorial-1').style.display === 'none'));
+  // judul tiap kartu
+  say('JUDUL: ' + [...host.querySelectorAll('.kfw700.kfs16')].map((e) => e.textContent).join(' | '));
+  say('SELESAI');
+} catch (e) {
+  say('ERROR: ' + (e && e.message ? e.message : String(e)));
+}
+</script>
+</body>
+</html>

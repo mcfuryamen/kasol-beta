@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<!-- BUILD-MODULAR-V1 · REDESIGN-V2 (shell Kaki5 dari proto2 + kontainer JS admin) -->
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>KASIRSOLO — Control Center</title>
+<meta name="description" content="Dashboard admin KASIRSOLO: kelola landing, leads, katalog, lisensi, dan klien.">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#EA5129">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Control Center">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="msapplication-TileColor" content="#EA5129">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=20260920a">
+<script src="dexie.min.js"></script>
+<script src="js/env-loader.js?v=20260920a"></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Langsung ke konten</a>
+
+<!-- ===================== APP SHELL (Native App Layout) ===================== -->
+<div id="app" class="app">
+
+  <!-- SIDEBAR (desktop only, collapsible) -->
+  <aside class="sidebar" id="sidebar" aria-label="Navigasi utama">
+    <div class="sidebar-brand">
+      <div class="brand-mark"><img src="assets/logo.png" alt="KASIRSOLO"></div>
+      <div class="brand-text">
+        <div class="brand-name">KASIRSOLO</div>
+        <div class="brand-sub">Control</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" id="sidebarNav">
+      <button class="nav-link active" data-screen="dashboard" aria-current="page">
+        <span class="nav-ic">▦</span><span class="nav-tx">Dashboard</span>
+      </button>
+      <button class="nav-link" data-screen="catalog">
+        <span class="nav-ic">◧</span><span class="nav-tx">Katalog</span>
+        <span class="nav-count" id="sideCountCatalog">0</span>
+      </button>
+      <button class="nav-link" data-screen="content">
+        <span class="nav-ic">✎</span><span class="nav-tx">Konten Web</span>
+      </button>
+      <button class="nav-link" data-screen="klien">
+        <span class="nav-ic">◍</span><span class="nav-tx">Klien</span>
+        <span class="nav-count" id="sideCountClients">0</span>
+      </button>
+      <button class="nav-link" data-screen="outreach">
+        <span class="nav-ic">↗</span><span class="nav-tx">Outreach</span>
+        <span class="nav-count" id="sideCountOutreach">0</span>
+      </button>
+      <button class="nav-link" data-screen="agents">
+        <span class="nav-ic">🤖</span><span class="nav-tx">Agent</span>
+        <span class="nav-count" id="sideCountAgents">0</span>
+      </button>
+      <button class="nav-link" data-screen="settings">
+        <span class="nav-ic">⚙</span><span class="nav-tx">Pengaturan</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="sync-chip" id="syncStatus">Tersinkron</div>
+      <button class="logout-btn" id="logoutBtn">Keluar</button>
+    </div>
+  </aside>
+
+  <!-- MAIN COLUMN -->
+  <div class="main-col">
+
+    <!-- MOBILE HEADER (mobile only, di atas content) -->
+    <header class="mobile-header">
+      <div class="mh-left">
+        <button class="mh-back" id="mhBackBtn" aria-label="Kembali" hidden>‹</button>
+        <div class="mh-logo"><img src="assets/logo.png" alt="KASIRSOLO"></div>
+      </div>
+      <div class="mh-center">
+        <h1 id="pageTitle-mobile" class="mh-title">Dashboard</h1>
+      </div>
+      <div class="mh-right">
+        <button class="icon-btn-sm" id="refreshBtn-mobile" title="Muat ulang data" onclick="window.refreshCurrentScreen()">⟳</button>
+      </div>
+    </header>
+
+    <!-- TOPBAR (desktop only) -->
+    <header class="topbar">
+      <button class="menu-toggle" aria-label="Buka menu" aria-expanded="false" aria-controls="sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-title">
+        <h1 id="pageTitle">Dashboard</h1>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="refreshBtn" title="Muat ulang data" onclick="window.refreshCurrentScreen()">⟳</button>
+        <div class="user-chip">
+          <div class="user-avatar">A</div>
+          <div class="user-meta">
+            <span class="user-name" id="bizNameHeader">Admin</span>
+            <span class="user-role">Marketing</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="content" id="main">
+
+      <!-- ============ DASHBOARD — papan komando ============ -->
+      <section class="screen active" id="screen-dashboard" aria-label="Dashboard">
+        <div class="db-hero" id="dbHero"></div>
+        <div class="db-funnel" id="dbFunnel"></div>
+
+        <div class="db-cols">
+          <div class="db-col-main">
+            <div class="panel">
+              <div class="panel-head"><h3 class="panel-t">Fokus Hari Ini</h3></div>
+              <div class="panel-body" id="dbFocus"></div>
+            </div>
+            <div id="dashboardAnalytics"></div>
+          </div>
+          <div class="db-col-side">
+            <div class="db-tiles" id="dbTiles"></div>
+            <div class="panel">
+              <div class="panel-head"><h3 class="panel-t">Aktivitas Terbaru</h3></div>
+              <div class="panel-body" id="recentActivityCard"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ KATALOG (Software | Hardware | Layanan) ============ -->
+      <section class="screen" id="screen-catalog" aria-label="Katalog">
+        <div class="content-tabs" id="catalogTabs" role="tablist" style="margin-bottom:10px">
+          <button type="button" class="content-tab active" data-ctab="software" role="tab" aria-selected="true">Software <span class="tab-n" id="catN-sw"></span></button>
+          <button type="button" class="content-tab" data-ctab="hardware" role="tab" aria-selected="false">Hardware <span class="tab-n" id="catN-hw"></span></button>
+          <button type="button" class="content-tab" data-ctab="layanan" role="tab" aria-selected="false">Layanan <span class="tab-n" id="catN-svc"></span></button>
+        </div>
+        <div class="cat-statusline" id="catStatusLine"></div>
+
+        <!-- ── Tab Software: aplikasi (tabel products, sinkron landing) ── -->
+        <div id="catViewSoftware">
+          <div class="panel catalog-table-wrap" id="catalogTableWrap">
+            <div class="table-scroll">
+              <table class="data-table catalog-table">
+                <thead>
+                  <tr>
+                    <th aria-label="Ikon"></th>
+                    <th>Aplikasi</th>
+                    <th>Kategori</th>
+                    <th>Harga</th>
+                    <th>Kuota</th>
+                    <th>Status</th>
+                    <th>Domain</th>
+                    <th style="text-align:right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="catalogTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="oc-list" id="catalogList"></div>
+          <div class="empty-state" id="catalogEmpty" hidden>
+            <div class="empty-ic">◧</div>
+            <div class="empty-t">Belum ada aplikasi</div>
+            <div class="empty-d">Tambah aplikasi pertama untuk ditampilkan di landing page.</div>
+          </div>
+
+          <!-- Floating action button (Tambah Aplikasi) -->
+          <button class="fab" id="fabCatalog" onclick="openCatalogPage()" aria-label="Tambah aplikasi" title="Tambah aplikasi">＋</button>
+        </div>
+
+        <!-- ── Tab Hardware: site_content.hardware (dipakai halaman /hardware company) ── -->
+        <div id="catViewHardware" hidden>
+          <div class="panel catalog-table-wrap" id="hwTableWrap">
+            <div class="table-scroll">
+              <table class="data-table catalog-table">
+                <thead>
+                  <tr>
+                    <th aria-label="Foto"></th>
+                    <th>Produk</th>
+                    <th>Kategori</th>
+                    <th>Harga</th>
+                    <th>Tag</th>
+                    <th style="text-align:right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="hwTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="oc-list" id="hwCardList"></div>
+          <div class="empty-state" id="hwEmpty" hidden>
+            <div class="empty-ic">◧</div>
+            <div class="empty-t">Belum ada produk hardware</div>
+            <div class="empty-d">Tambah produk hardware — tampil di halaman /hardware kasirsolo.com.</div>
+          </div>
+          <button class="fab" id="fabHw" onclick="openHwPage()" aria-label="Tambah hardware" title="Tambah hardware">＋</button>
+        </div>
+
+        <!-- ── Tab Layanan: site_content.services (section Jasa Digital company) ── -->
+        <div id="catViewLayanan" hidden>
+          <div class="panel catalog-table-wrap" id="svcTableWrap">
+            <div class="table-scroll">
+              <table class="data-table catalog-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Layanan</th>
+                    <th>Subtitle</th>
+                    <th style="text-align:right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="svcTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="oc-list" id="svcCardList"></div>
+          <div class="empty-state" id="svcEmpty" hidden>
+            <div class="empty-ic">◧</div>
+            <div class="empty-t">Belum ada layanan</div>
+            <div class="empty-d">Tambah layanan — tampil di section Jasa Digital kasirsolo.com.</div>
+          </div>
+          <button class="fab" id="fabSvc" onclick="openSvcPage()" aria-label="Tambah layanan" title="Tambah layanan">＋</button>
+        </div>
+
+        <!-- Halaman edit katalog (flip page — menggantikan daftar saat item diklik) -->
+        <div id="catalogEditPage" hidden></div>
+      </section>
+
+      <!-- ============ KONTEN WEBSITE (CMS kasirsolo.com) ============ -->
+      <section class="screen" id="screen-content" aria-label="Konten Website">
+        <div class="panel">
+          <div class="panel-head">
+            <h3 class="panel-t">Konten Website — kasirsolo.com</h3>
+            <span class="muted" id="contentSyncInfo">…</span>
+          </div>
+        </div>
+        <div class="content-tabs" id="contentTabs" role="tablist" style="margin-bottom:10px"></div>
+        <div id="contentBody"><p class="muted">Memuat konten…</p></div>
+      </section>
+
+      <!-- ============ KLIEN ============ -->
+      <section class="screen" id="screen-klien" aria-label="Klien">
+        <div id="clientsList">
+          <div class="oc-pin">
+            <div class="oc-toolbar">
+              <input class="search" id="clientsSearch" aria-label="Cari outlet" placeholder="Cari nama / WA / wilayah / unit">
+              <select class="select" id="clientsAppFilter" aria-label="Filter aplikasi">
+                <option value="">Semua App</option>
+                <option value="kaki5">Kaki Lima</option>
+                <option value="rosok">Rosok</option>
+                <option value="gerobak">Gerobak</option>
+                <option value="retail">Retail</option>
+              </select>
+            </div>
+            <div class="oc-chips" id="clientsChips" role="group" aria-label="Filter status pipeline"></div>
+          </div>
+
+          <!-- Tabel klien (desktop) — pola katalog -->
+          <div class="panel clients-table-wrap" id="clientsTableWrap">
+            <div class="table-scroll">
+              <table class="data-table clients-table">
+                <thead>
+                  <tr>
+                    <th aria-label="Ikon"></th>
+                    <th>Klien</th>
+                    <th>Aplikasi</th>
+                    <th>Status</th>
+                    <th>Wilayah</th>
+                    <th>Kuota</th>
+                    <th>Terlihat</th>
+                    <th style="text-align:right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="clientsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Kartu klien (mobile) — dense rows ala native -->
+          <div class="oc-list" id="clientsCardList"></div>
+          <div class="empty-state" id="clientsEmpty" hidden>
+            <div class="empty-ic">◍</div>
+            <div class="empty-t">Belum ada klien</div>
+            <div class="empty-d">Data klien muncul otomatis saat aplikasi klien pertama kali terhubung.</div>
+          </div>
+        </div>
+
+        <!-- Halaman detail klien (flip page — menggantikan daftar saat kartu diklik) -->
+        <div id="clientDetailPage" hidden></div>
+      </section>
+
+      <!-- ============ OUTREACH (Klien Lama) — workbench native-style ============ -->
+      <section class="screen" id="screen-outreach" aria-label="Outreach Klien Lama">
+        <div class="oc-pin">
+          <div class="oc-toolbar">
+            <input class="search" id="outreachSearch" aria-label="Cari kontak" placeholder="Cari nama / nomor / alamat">
+            <select class="select" id="outreachSource" aria-label="Filter sumber kontak"></select>
+            <button class="icon-btn" onclick="importOutreachCsvClick()" title="Impor CSV" aria-label="Impor CSV">⤒</button>
+            <input type="file" id="outreachImportFile" accept=".csv,text/csv" class="hidden" hidden>
+            <button class="icon-btn" onclick="exportOutreachCsv()" title="Ekspor CSV" aria-label="Ekspor CSV">⤓</button>
+          </div>
+          <div class="oc-chips" id="outreachChips" role="group" aria-label="Filter status kampanye"></div>
+        </div>
+
+        <div class="oc-statline" id="outreachStatline"></div>
+
+        <div class="oc-list" id="outreachCardList"></div>
+        <div class="empty-state" id="outreachEmpty" hidden>
+          <div class="empty-ic">↗</div>
+          <div class="empty-t">Belum ada kontak outreach</div>
+          <div class="empty-d">Impor CSV klien lama untuk memulai kampanye reaktivasi.</div>
+        </div>
+      </section>
+
+      <!-- ============ AGENT — review draft AI (runner lokal) ============ -->
+      <section class="screen" id="screen-agents" aria-label="Agent AI">
+        <div class="oc-pin">
+          <div class="oc-statline" id="agentStatline"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3 class="panel-t">👥 Agents</h3></div>
+          <div class="panel-body" id="agentListBody"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3 class="panel-t">⚙️ Global &amp; Follow-up</h3></div>
+          <div class="panel-body" id="agentConfigBody"></div>
+        </div>
+      </section>
+
+      <!-- ============ PENGATURAN ============ -->
+      <section class="screen" id="screen-settings" aria-label="Pengaturan">
+        <div class="content-tabs" id="settingsTabs" role="tablist" style="margin-bottom:12px">
+          <button type="button" class="content-tab active" data-stab="umum" role="tab" aria-selected="true">Umum</button>
+          <button type="button" class="content-tab" data-stab="pembayaran" role="tab" aria-selected="false">Pembayaran</button>
+          <button type="button" class="content-tab" data-stab="data" role="tab" aria-selected="false">Data</button>
+        </div>
+
+        <!-- ── Umum: identitas usaha ── -->
+        <div id="setViewUmum">
+          <div class="panel">
+            <div class="panel-head"><h3 class="panel-t">Info Usaha</h3></div>
+            <div class="panel-body">
+              <div class="field-grid-2">
+                <div class="field"><label class="field-label" for="setBizName">Nama Usaha</label><input id="setBizName"></div>
+                <div class="field"><label class="field-label" for="setBizTag">Tagline</label><input id="setBizTag"></div>
+              </div>
+              <div class="field"><label class="field-label" for="setBizAddr">Alamat</label><input id="setBizAddr"></div>
+              <div class="field-grid-2">
+                <div class="field"><label class="field-label" for="setBizPhone">Telepon</label><input id="setBizPhone" inputmode="tel"></div>
+                <div class="field"><label class="field-label" for="setBizEmail">Email</label><input id="setBizEmail" type="email"></div>
+              </div>
+              <div class="field-grid-2">
+                <div class="field"><label class="field-label" for="setBizWa">WhatsApp</label><input id="setBizWa" inputmode="tel"></div>
+                <div class="field"><label class="field-label" for="setBizIg">Instagram</label><input id="setBizIg" placeholder="@kasirsolo"></div>
+              </div>
+              <div class="btn-block-row panel-foot"><button class="btn btn-primary" onclick="saveBizSettings()">Simpan Info</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Pembayaran kaki5 ── -->
+        <div id="setViewPembayaran" hidden>
+          <div class="panel payment-settings-panel">
+            <div class="panel-head">
+              <div>
+                <h3 class="panel-t">Pembayaran Kaki5</h3>
+                <p class="panel-sub">Info ini tampil di layar pembelian lisensi Kaki5.</p>
+              </div>
+              <span class="settings-status" id="paymentSettingsStatus">Belum diatur</span>
+            </div>
+            <div class="panel-body">
+              <div class="field-grid-2">
+                <div class="field">
+                  <label class="field-label" for="setQrisUpload">Upload gambar QRIS merchant</label>
+                  <input id="setQrisUpload" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="qrisUploadHint">
+                  <small id="qrisUploadHint" class="field-hint">PNG, JPG, atau WebP — maksimal 5 MB. File disimpan aman di storage QRIS.</small>
+                  <div id="qrisUploadPreview" class="qris-upload-preview" hidden></div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="setQrisUrl">URL gambar QRIS (opsional)</label>
+                  <input id="setQrisUrl" type="url" placeholder="https://.../qris.png">
+                </div>
+                <div class="field">
+                  <label class="field-label" for="setBankName">Nama bank</label>
+                  <input id="setBankName" placeholder="Contoh: BCA">
+                </div>
+                <div class="field">
+                  <label class="field-label" for="setAccountNumber">Nomor rekening</label>
+                  <input id="setAccountNumber" inputmode="numeric" placeholder="Nomor rekening bisnis">
+                </div>
+                <div class="field field-span-2">
+                  <label class="field-label" for="setAccountName">Nama pemilik rekening</label>
+                  <input id="setAccountName" placeholder="Nama sesuai rekening">
+                </div>
+              </div>
+              <div class="payment-settings-note">Kosongkan jika belum siap. Kaki5 akan menampilkan preview demo dan mencegah pengiriman bukti pembayaran palsu.</div>
+              <div class="btn-block-row panel-foot"><button class="btn btn-primary" onclick="savePaymentSettings()">Simpan Pembayaran</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Data: backup & reset ── -->
+        <div id="setViewData" hidden>
+          <div class="panel">
+            <div class="panel-head"><h3 class="panel-t">Backup &amp; Reset</h3></div>
+            <div class="panel-body">
+              <div class="row-actions">
+                <button class="btn btn-outline btn-sm" onclick="exportAdminBackup()">⤓ Ekspor Backup</button>
+                <label class="btn btn-ghost btn-sm">⤒ Impor Backup<input type="file" id="adminImportFile" accept="application/json" class="hidden" onchange="importAdminBackup(event)" hidden></label>
+                <button class="btn btn-danger btn-sm" onclick="confirmResetAdminData()">⟲ Reset Data</button>
+              </div>
+              <div class="mt16 hint">Backup mencakup: produk lisensi, serial, referral, katalog (landing), leads, dan pengaturan.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- BOTTOM NAVBAR (mobile native-style, 5 menu vital) -->
+  <nav class="bottom-nav" id="bottomNav" aria-label="Navigasi bawah">
+    <div class="bottom-nav-inner">
+      <button class="bnav-item active" data-screen="dashboard" aria-current="page">
+        <span class="bnav-ic">▦</span>
+        <span class="bnav-tx">Dashboard</span>
+      </button>
+      <button class="bnav-item" data-screen="catalog">
+        <span class="bnav-ic">◧</span>
+        <span class="bnav-tx">Katalog</span>
+      </button>
+      <button class="bnav-item" data-screen="klien">
+        <span class="bnav-ic"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></span>
+        <span class="bnav-tx">Klien</span>
+      </button>
+      <button class="bnav-item" data-screen="outreach">
+        <span class="bnav-ic"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></span>
+        <span class="bnav-tx">Outreach</span>
+      </button>
+      <button class="bnav-item" id="bnavMore" onclick="openMoreMenu()">
+        <span class="bnav-ic">≡</span>
+        <span class="bnav-tx">Lainnya</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MOBILE OVERLAY -->
+  <div class="scrim" id="sidebarOverlay" aria-hidden="true"></div>
+</div>
+
+<!-- ===================== SHEETS / MODALS ===================== -->
+
+
+<!-- ONBOARDING (first run) -->
+<div class="overlay" id="sheetOnboarding" onclick="event.target===this&&closeSheet('sheetOnboarding')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="text-center mb6"><img id="onbLogo" src="assets/logo.png" class="logo-lg" alt="logo"></div>
+    <div class="sheet-title text-center"><span>Selamat Datang! 👋</span></div>
+    <p class="muted-note text-center">Konfigurasi admin marketing untuk pertama kali.</p>
+    <div class="field"><label class="field-label" for="onbBizName">Nama Usaha</label><input type="text" id="onbBizName" placeholder="Contoh: PT Mesin Kasir Solo"></div>
+    <div class="field"><label class="field-label" for="onbOwnerName">Nama Admin</label><input type="text" id="onbOwnerName" placeholder="Contoh: Budi Santoso"></div>
+    <div class="field"><label class="field-label" for="onbPhone">No. Telepon Admin</label><input type="tel" id="onbPhone" placeholder="08xxxxxxxxxx"></div>
+    <button class="btn btn-primary mt12" onclick="finishAdminOnboarding()">🚀 Mulai Pakai Admin</button>
+  </div>
+</div>
+
+<!-- Lead Detail Modal -->
+<div class="overlay" id="sheetLeadDetail" onclick="event.target===this&&closeSheet('sheetLeadDetail')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>Detail Lead</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetLeadDetail')">✕</span></div>
+    <div id="leadDetailBody"></div>
+  </div>
+</div>
+
+<!-- Outreach Detail Modal -->
+<div class="overlay" id="sheetOutreachDetail" onclick="event.target===this&&closeOutreachDetail()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title sheet-title-flush"><span id="outreachSheetTitle">Detail Kontak</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeOutreachDetail()">✕</span></div>
+    <div id="outreachDetailBody"></div>
+  </div>
+</div>
+
+
+
+<!-- SHEET: AGENT DETAIL (review draft AI) -->
+<div class="overlay" id="sheetAgentDetail" onclick="event.target===this&&closeAgentDetail()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title sheet-title-flush"><span id="agentSheetTitle">Detail Agent</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeAgentDetail()">✕</span></div>
+    <div id="agentDetailBody"></div>
+  </div>
+</div>
+
+<!-- SHEET: MORE MENU (Konten Web, Pengaturan, Agent) -->
+<div class="overlay" id="sheetMoreMenu" onclick="event.target===this&&closeSheet('sheetMoreMenu')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title"><span>Menu Lainnya</span><span class="sheet-close" role="button" aria-label="Tutup" onclick="closeSheet('sheetMoreMenu')">✕</span></div>
+    <div class="more-menu-list">
+      <button class="more-menu-item" onclick="switchScreen('content'); closeSheet('sheetMoreMenu');">
+        <span class="mmi-ic">✎</span>
+        <div class="mmi-text">
+          <div class="mmi-title">Konten Web</div>
+          <div class="mmi-desc">Edit CMS kasirsolo.com</div>
+        </div>
+        <span class="mmi-arrow">›</span>
+      </button>
+      <button class="more-menu-item" onclick="switchScreen('agents'); closeSheet('sheetMoreMenu');">
+        <span class="mmi-ic">🤖</span>
+        <div class="mmi-text">
+          <div class="mmi-title">Agent AI</div>
+          <div class="mmi-desc">Review draft otomatis</div>
+        </div>
+        <span class="mmi-arrow">›</span>
+      </button>
+      <button class="more-menu-item" onclick="switchScreen('settings'); closeSheet('sheetMoreMenu');">
+        <span class="mmi-ic">⚙</span>
+        <div class="mmi-text">
+          <div class="mmi-title">Pengaturan</div>
+          <div class="mmi-desc">Konfigurasi app & backup</div>
+        </div>
+        <span class="mmi-arrow">›</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast-host" role="status" aria-live="polite"></div>
+
+<!-- APP MODULE -->
+<script type="module" src="js/app.js?v=20260920a"></script>
+</body>
+</html>

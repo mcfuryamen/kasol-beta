@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "project": {
+    "projectId": "ddc2a259-a165-477a-9db2-3beba59bda53",
+    "title": "Porto \u2014 Portofolio Kasir Solo (MKS Tactical)",
+    "canvas": "https://superdesign.dev/teams/6121742b-afb3-4d40-8114-f3dfbfd6e319/projects/ddc2a259-a165-477a-9db2-3beba59bda53"
+  },
+  "brandAssets": {
+    "logo": {
+      "assetKey": "brand-kasirsolo-logo.png",
+      "source": "kasirsolo-logo.png",
+      "sha256": "448849836ac485a4b227b537403fcfb9535160707b8237d2f10953e5eced153d",
+      "publicUrl": "https://vgbujcuwptvheqijyjbe.supabase.co/storage/v1/object/public/hmac-uploads/projects/ddc2a259-a165-477a-9db2-3beba59bda53/brand-assets/brand-kasirsolo-logo.png/kasirsolo-logo.png"
+    }
+  },
+  "targets": {
+    "porto-home-desktop": {
+      "kind": "existing-redesign",
+      "activeDraftId": "a9b3951d-14a9-4562-b1f7-0c02af34c83d",
+      "preview": "https://p.superdesign.dev/draft/a9b3951d-14a9-4562-b1f7-0c02af34c83d",
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        ".superdesign/init/theme.md",
+        ".superdesign/init/components.md",
+        ".superdesign/init/routes.md"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "d7e36434d82ddb1ca2995702916ae283f79784f7d1d75da09dcb4eb79ee5e4a7",
+        ".superdesign/init/theme.md": "dedc86c9ee816d7880f36936a9fe9189f5c2190202bd565131e302d635dadfed",
+        ".superdesign/init/components.md": "7e316b303c0cbd73c962b4453bd63721c028fb34aff0e9d3e155bba45ab1b63a",
+        ".superdesign/init/routes.md": "376a34b218a48faf8e565239c56601c6ac588ef8e0f6496af7cc41388315e530"
+      },
+      "logoVerified": true
+    },
+    "porto-home-mobile-native": {
+      "kind": "existing-redesign-mobile",
+      "activeDraftId": "be0c63ee-e8fa-4eb2-b0e7-0fce8c7e565b",
+      "preview": "https://p.superdesign.dev/draft/be0c63ee-e8fa-4eb2-b0e7-0fce8c7e565b",
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        ".superdesign/init/theme.md",
+        ".superdesign/init/components.md",
+        ".superdesign/init/routes.md"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "d7e36434d82ddb1ca2995702916ae283f79784f7d1d75da09dcb4eb79ee5e4a7",
+        ".superdesign/init/theme.md": "dedc86c9ee816d7880f36936a9fe9189f5c2190202bd565131e302d635dadfed",
+        ".superdesign/init/components.md": "7e316b303c0cbd73c962b4453bd63721c028fb34aff0e9d3e155bba45ab1b63a",
+        ".superdesign/init/routes.md": "376a34b218a48faf8e565239c56601c6ac588ef8e0f6496af7cc41388315e530"
+      },
+      "logoVerified": true
+    }
+  }
+}

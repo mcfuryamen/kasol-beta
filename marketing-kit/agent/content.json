@@ -1,0 +1,117 @@
+{
+  "catatan": "Queue konten FB Page 14 hari (turunan kit 01/02/03). Format slot: t=teks, l=1 agent nempel urlUtama otomatis. Slot mengikuti slotsAktif di config.json (ramp-up: minggu 1 cuma 19:00).",
+  "hari": [
+    {
+      "script": "S1",
+      "posts": {
+        "09:00": { "t": "Pertanyaan buat yang jualan: sehari rata-rata berapa transaksi lo catat? Yang jujur, jawabanmu di komen. 😄", "l": 0 },
+        "12:30": { "t": "Warung lo bisa punya kasir kayak minimarket — cukup HP, gak perlu beli mesin. Tinggal tap barang, totalnya jalan sendiri. Coba gratis.", "l": 1 },
+        "19:00": { "t": "Cari kasir buat usaha kecil yang gak ribet? Ini dia: install di HP, input barang, langsung jualan. Sekali bayar, bukan langganan.", "l": 1 }
+      }
+    },
+    {
+      "script": "S2",
+      "posts": {
+        "09:00": { "t": "Coba jawab: bulan lalu untung lo berapa? Yang bisa jawab pasti angkanya, biasanya jarang. 😅", "l": 0 },
+        "12:30": { "t": "Untung sering ilang diam-diam? Biasanya gara-gara catatan yang gak kelihatan. Di sini tiap hari kelihatan otomatis, tanpa ngecek manual.", "l": 1 },
+        "19:00": { "t": "Catat jualan di buku karbol: kertas ilang, sobek, basah — data ikut hilang. Catat di HP, aman.", "l": 1 }
+      }
+    },
+    {
+      "script": "S3",
+      "posts": {
+        "09:00": { "t": "Tutup buku warung lo berapa lama? 3 menit atau 3 jam? Komen angka jujurnya.", "l": 0 },
+        "12:30": { "t": "Tiap malem tinggal tap satu tombol: uang masuk, keluar, laba — keliatan semua. Tutup buku 3 menit, bukan 3 jam.", "l": 1 },
+        "19:00": { "t": "Capek jualan seharian, ngecek laporan 10 menit lagi = begadang. Pakai yang 3 menit.", "l": 1 }
+      }
+    },
+    {
+      "script": "S4",
+      "posts": {
+        "09:00": { "t": "Setahun gue bikin aplikasi kasir sendiri. Niatnya satu: biar pedagang kecil gak harus mahal-mahal. Ceritanya gue lanjutin di sini.", "l": 0 },
+        "12:30": { "t": "Dev solo bikin aplikasi satu tahun penuh: sendiri, revisi sendiri, deploy sendiri. Kaki5 hasil akhirnya. Prosesnya gue dokumenterin di sini — yang jujur, bukan yang manis.", "l": 1 },
+        "19:00": { "t": "Lo pernah bikin sesuatu satu tahun tanpa putus? Komen apa yang lo selesain. Gue baru mau lewat garis finish. 🙌", "l": 0 }
+      }
+    },
+    {
+      "script": "S5",
+      "posts": {
+        "09:00": { "t": "Modal 500 rebu, jualan 800. Untung berapa? Kebanyakan pedagang cuma tau omzetnya, gak tau untungnya.", "l": 0 },
+        "12:30": { "t": "Gak cukup tau omzet. Yang penting untungnya — dan di sini itu kelihatan otomatis tiap hari.", "l": 1 },
+        "19:00": { "t": "Laporan harian yang jelas: yang masuk, yang keluar, yang jadi laba. Buat yang pusing ngecek tiap malem.", "l": 1 }
+      }
+    },
+    {
+      "script": "S6",
+      "posts": {
+        "09:00": { "t": "HP Android lama lo masih nyala? Mungkin masih bisa jadi mesin kasir. Beneran.", "l": 0 },
+        "12:30": { "t": "Gak perlu beli mesin kasir jutaan. HP seadanya udah cukup buat kasir yang rapi.", "l": 1 },
+        "19:00": { "t": "Budget usaha kecil lebih baik buat stok, bukan buat beli mesin. Kasir pakai HP yang udah lo punya.", "l": 1 }
+      }
+    },
+    {
+      "script": "S7",
+      "posts": {
+        "09:00": { "t": "Lo jualan di area sinyalnya gimana? Yang 1 bar, ngaceng dong! 👇", "l": 0 },
+        "12:30": { "t": "Internet mati, jualan jalan terus. Ini jalan total offline — data aman di HP, backup otomatis pas online.", "l": 1 },
+        "19:00": { "t": "Nunggu internet buat catat jualan? Jangan. Catatnya jalan tanpa internet.", "l": 1 }
+      }
+    },
+    {
+      "script": "S8",
+      "posts": {
+        "09:00": { "t": "Awal bulan semangat catat di buku. Akhir bulan? Coretannya gak kebaca sendiri. Kenal? 😅", "l": 0 },
+        "12:30": { "t": "Beda catat kertas vs pakai app? Kelihatan. Yang gak kelihatan, gak bisa diperbaiki.", "l": 1 },
+        "19:00": { "t": "Akhir bulan, mau tau untung yang beneran? Mulai catat di yang rapi.", "l": 1 }
+      }
+    },
+    {
+      "script": "S9",
+      "posts": {
+        "09:00": { "t": "Yang jualan di GoFood/GrabFood: harga online lo sama dengan harga warung? Atau beda? Komen.", "l": 0 },
+        "12:30": { "t": "Harga ojol beda sama harga warung? Di sini udah diatur otomatis — tiap transaksi masuk dengan harga yang bener, gak perlu mikir.", "l": 1 },
+        "19:00": { "t": "Buat yang jualan makanan online: biar untung ojol gak ilang, catatnya harus bener. Ini solusinya.", "l": 1 }
+      }
+    },
+    {
+      "script": "S10",
+      "posts": {
+        "09:00": { "t": "User pertama yang beneran bayar aplikasi gue. Momen kayak gini yang bikin sebulan begadang worth it.", "l": 0 },
+        "12:30": { "t": "Bukan cuma buat-buatan — aplikasi ini kepake beneran tiap hari. Mau jadi user berikutnya?", "l": 1 },
+        "19:00": { "t": "Segera gue post cerita user pertama gue. Pertanyaan apa yang mau lo tanyain soal punya aplikasi sendiri? Komen dulu.", "l": 0 }
+      }
+    },
+    {
+      "script": "S11",
+      "posts": {
+        "09:00": { "t": "Pertanyaan jujur: kalo HP lo ilang, data jualan lo ikut ilang juga? 😬", "l": 0 },
+        "12:30": { "t": "HP hilang bukan berarti data warung hilang. Backup otomatis ke cloud — HP ganti, data balik.", "l": 1 },
+        "19:00": { "t": "Data jualan itu aset. Jangan taruh di satu HP doang.", "l": 1 }
+      }
+    },
+    {
+      "script": "S12",
+      "posts": {
+        "09:00": { "t": "'Aplikasi kasir mah mahal, ribet, lagi butuh internet.' — lo pernah denger juga? Gue jawab satu-satu di post berikutnya.", "l": 0 },
+        "12:30": { "t": "5 ketakutan soal app kasir, gue jawab jujur: (1) Mahal? Sekali bayar, bukan langganan. (2) Ribet? Setup 5 menit. (3) Internet? Jalan offline total. (4) Data? Di HP lo + backup cloud. (5) Gak bisa isi? Bisa dibantu input.", "l": 1 },
+        "19:00": { "t": "Ada alasan lain yang bikin lo males pakai app kasir? Komen — yang paling sering nanya, gue jawab di post.", "l": 0 }
+      }
+    },
+    {
+      "script": "S13",
+      "posts": {
+        "09:00": { "t": "Gak perlu daftar ribet, gak perlu input data banyak. Lima menit, lo udah bisa cobain kasir ini.", "l": 0 },
+        "12:30": { "t": "Cara mulainya: buka link, install ke HP, input satu barang, langsung jualan. Trial gratis.", "l": 1 },
+        "19:00": { "t": "Udah tau tapi males mulai? Mulai dari yang lima menit dulu.", "l": 1 }
+      }
+    },
+    {
+      "script": "S14",
+      "posts": {
+        "09:00": { "t": "14 hari dokumenterin jualan aplikasi gue sendiri. Besok ada recap jujur: angkanya, yang kena, yang gak.", "l": 0 },
+        "12:30": { "t": "Recap 14 hari: yang konsisten posting, menang pelan-pelan. Lo jualan apa? Komen — siapa tau gue bikinin sesuatu buat lo.", "l": 1 },
+        "19:00": { "t": "Terima kasih buat yang udah mampir dua minggu ini. Next: 14 hari kedua dengan konten lebih nembak. Follow biar gak ilang.", "l": 1 }
+      }
+    }
+  ]
+}

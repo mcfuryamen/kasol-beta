@@ -1,0 +1,68 @@
+{
+  "results": {
+    "login": true,
+    "mobileDashboard": {
+      "bottomNavVisible": true,
+      "bottomNavBtns": [
+        "Dashboard",
+        "Kasir",
+        "Produk",
+        "Laporan",
+        "Menu"
+      ],
+      "sidebarHiddenOnMobile": true,
+      "headerPt": "0px",
+      "mainPb": "76px",
+      "innerW": 390
+    },
+    "openSheet": "Menu",
+    "sheetItems": [
+      "Dashboard",
+      "Kasir",
+      "Produk",
+      "Stok",
+      "Supplier",
+      "Pelanggan",
+      "Keuangan",
+      "Promo",
+      "Laporan",
+      "Staf",
+      "Pengaturan",
+      "Lisensi & Aktivasi",
+      "Mode Gelap",
+      "Keluar"
+    ],
+    "toReports": "Laporan",
+    "reportsOk": {
+      "sheetClosed": true,
+      "isReports": true
+    },
+    "toPos": "Kasir",
+    "posNavHidden": true,
+    "kasRequiredScreen": true,
+    "kasStep1": "Buka Kas Sekarang",
+    "kasModalOpen": true,
+    "kasStep2": "Buka Kas",
+    "shiftActive": true,
+    "posMobileGrid": 25,
+    "addItem": "Indomie GorengRp 3.500Stok 150 Pcs",
+    "cartState": {
+      "subtotal": true,
+      "totalText": ""
+    },
+    "openSheetHeader": "no-match",
+    "darkToggle": "no-root",
+    "darkState": "dark-off",
+    "darkStateBack": "dark-off",
+    "desktop": {
+      "innerW": 1360,
+      "sidebarExists": false,
+      "sidebarDisplay": null,
+      "sidebarWidth": null,
+      "wrapDisplay": null,
+      "bottomNavHidden": true,
+      "chip": null
+    }
+  },
+  "errors": []
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile Test</title>
+<style>
+  body { margin: 0; font-family: Arial, sans-serif; }
+  .test-result { padding: 20px; border: 1px solid #ccc; margin: 10px; }
+  .pass { background: #d4edda; color: #155724; }
+  .fail { background: #f8d7da; color: #721c24; }
+  .viewport-info { background: #e7f3ff; padding: 10px; margin: 10px; }
+</style>
+</head>
+<body>
+<div class="viewport-info">
+  <h2>Viewport: <span id="vp"></span></h2>
+</div>
+
+<div id="results"></div>
+
+<script>
+// Display current viewport
+document.getElementById('vp').textContent = window.innerWidth + 'x' + window.innerHeight;
+
+// Test results
+const results = [];
+const burger = document.querySelector('.burger');
+const navCta = document.querySelector('.nav-cta');
+const mobileMenu = document.querySelector('.mobile-menu');
+
+// Check if elements exist
+if (burger) {
+  const burgerStyle = window.getComputedStyle(burger);
+  const isVisible = burgerStyle.display !== 'none';
+  results.push({
+    name: 'Burger Button Exists',
+    pass: true,
+    detail: `display: ${burgerStyle.display}`
+  });
+  results.push({
+    name: 'Burger Visibility (should be flex at ≤980px)',
+    pass: window.innerWidth <= 980 ? isVisible : !isVisible,
+    detail: `display: ${burgerStyle.display}, viewport: ${window.innerWidth}px`
+  });
+} else {
+  results.push({ name: 'Burger Button Exists', pass: false, detail: 'NOT FOUND' });
+}
+
+if (navCta) {
+  const ctaStyle = window.getComputedStyle(navCta);
+  const isVisible = ctaStyle.display !== 'none';
+  results.push({
+    name: 'CTA Button "Coba Gratis" Exists',
+    pass: true,
+    detail: `display: ${ctaStyle.display}`
+  });
+  results.push({
+    name: 'CTA Visibility (should hide at ≤620px)',
+    pass: window.innerWidth <= 620 ? !isVisible : isVisible,
+    detail: `display: ${ctaStyle.display}, viewport: ${window.innerWidth}px`
+  });
+} else {
+  results.push({ name: 'CTA Button Exists', pass: false, detail: 'NOT FOUND' });
+}
+
+// Check parent of burger
+if (burger) {
+  const parent = burger.parentElement;
+  results.push({
+    name: 'Burger Parent is NAV (not nav-cta)',
+    pass: parent.tagName === 'NAV',
+    detail: `Parent: <${parent.tagName} class="${parent.className}">`
+  });
+}
+
+// Display results
+const resultsDiv = document.getElementById('results');
+results.forEach(r => {
+  const div = document.createElement('div');
+  div.className = `test-result ${r.pass ? 'pass' : 'fail'}`;
+  div.innerHTML = `<strong>${r.pass ? '✓' : '✗'} ${r.name}</strong><br><small>${r.detail}</small>`;
+  resultsDiv.appendChild(div);
+});
+</script>
+</body>
+</html>

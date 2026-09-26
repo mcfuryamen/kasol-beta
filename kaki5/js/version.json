@@ -1,0 +1,7 @@
+{
+  "version": "1.0.136",
+  "cacheBust": "v211",
+  "notes": [
+    "Perbaikan tampilan: banner status kuota sekarang tampil rapi (sebelumnya tombolnya bocor keluar layar ketika status Habis)."
+  ]
+}

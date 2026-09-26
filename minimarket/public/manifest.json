@@ -1,0 +1,13 @@
+{
+  "name": "Kasir Solo - Minimarket",
+  "short_name": "KasirMini",
+  "description": "Aplikasi POS untuk Minimarket",
+  "theme_color": "#F97316",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": [
+    { "src": "logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

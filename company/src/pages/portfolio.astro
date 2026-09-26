@@ -1,0 +1,71 @@
+---
+import Base from '../layouts/Base.astro';
+import { site, projects, categoryLabel } from '../data/portfolio';
+
+const title = 'Jejak Perang — Portfolio Proyek | PT Mesin Kasir Solo';
+const description =
+  'Bukti otentik instalasi mesin kasir & sistem digital: kafe, toko ritel, sekolah, sampai franchise 50+ cabang. Foto asli lapangan, bukan colongan.';
+
+const physical = projects.filter((p) => p.category === 'PHYSICAL');
+const digital = projects.filter((p) => p.category === 'DIGITAL');
+---
+<Base title={title} description={description}>
+  <section class="hero hero-compact">
+    <div class="hero-bg">
+      <div class="orb-1"></div>
+      <div class="grid-lines"></div>
+    </div>
+    <div class="hero-inner">
+      <span class="hero-badge anim-fade" data-i18n="por.badge">Jejak Perang</span>
+      <h1 class="anim-fade anim-d1" data-i18n="por.heroTitle">Bukan Kaleng-<span class="accent">Kaleng.</span></h1>
+      <p class="hero-sub anim-fade anim-d2" data-i18n="por.heroSub">
+        Bukti otentik instalasi Mesin Kasir Solo dan sistem digital yang dikerjakan.
+        Foto asli lapangan, klien nyata. Cek sendiri.
+      </p>
+    </div>
+  </section>
+
+  <section class="block" id="arsenal">
+    <div class="container">
+      {[
+        { key: 'PHYSICAL', list: physical, note: 'Mesin terpasang, training tim, operasional jalan.' },
+        { key: 'DIGITAL', list: digital, note: 'Web, sistem manajemen, dan optimasi yang dikerjakan dari nol.' },
+      ].map(({ key, list, note }) => (
+        <div class="portfolio-group">
+          <div class="section-head">
+            <span class="kicker-pill">{categoryLabel[key]}</span>
+            <h2>{list.length} Proyek <span class="hl" data-i18n={key === 'PHYSICAL' ? 'por.terpasang' : 'por.dikerjakan'}>{key === 'PHYSICAL' ? 'Terpasang.' : 'Dikerjakan.'}</span></h2>
+            <p class="sub" data-i18n={key === 'PHYSICAL' ? 'por.notePhysical' : 'por.noteDigital'}>{note}</p>
+          </div>
+          <div class="grid grid-3 proj-grid">
+            {list.map((p) => (
+              <a class="card proj-card" href={`/portfolio/${p.slug}`}>
+                <div class="proj-thumb"><img src={p.image} alt={p.title} loading="lazy" width="800" height="450" /></div>
+                <span class="type">{p.tag} — {p.city}</span>
+                <h3>{p.title}</h3>
+                <p class="proj-desc">{p.desc}</p>
+                {(p.value || p.duration) && (
+                  <div class="proj-meta">
+                    {p.value && <span><b>{p.value}</b></span>}
+                    {p.duration && <span>{p.duration}</span>}
+                  </div>
+                )}
+                <span class="proj-more" data-i18n="por.more">Lihat Detail →</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="block" style="padding-top: 0;">
+    <div class="container">
+      <div class="cta-final">
+        <h2 data-i18n="por.ctaTitle">Mau Bisnis Lo Masuk Sini?</h2>
+        <p data-i18n="por.ctaSub">Jangan cuma jadi penonton kesuksesan orang lain. Giliran lo yang di-upgrade sistemnya.</p>
+        <a href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener" class="btn btn-primary"><span data-i18n="por.ctaBtn">Mulai Proyek Baru</span><span class="shine"></span></a>
+      </div>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,23 @@
+﻿function hitungKembalian() {
+  const total = calculateTotal(cart, getOjolPlatform(), orderType);
+  let bayarValue = document.getElementById('bayarInput').value.replace(/\D/g, '');
+  const bayar = bayarValue ? parseInt(bayarValue) : 0;
+  hitungKembalianUI(total, bayar);
+}
+
+export function formatBayarInput() {
+  formatBayarInputUI();
+  hitungKembalian();
+}
+
+export function setNominalBayar(nominal) {
+  setNominalBayarUI(nominal);
+  hitungKembalian();
+}
+
+// ---- Simpan penjualan (DB + DOM) ----
+export async function simpanPenjualan(cetakJuga = false) {
+  const items = Object.values(cart).filter(c => c.qty > 0);
+  if (items.length === 0) { showToast('Keranjang kosong!', 'error'); return; }
+
+  // 

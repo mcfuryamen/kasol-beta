@@ -1,0 +1,42 @@
+kaki5 v1.0.99 (v167): gerbang "buka kas dulu" tidak bisa lagi lolos diam-diam
+
+Gejala dilaporkan pemilik: status kas tertutup dan Pengaturan mengaku fitur kas
+aktif, tapi kios tetap bisa langsung jualan tanpa diminta modal awal.
+
+Diagnosa (harness baca-saja, nol penulisan data): settings.fiturKas bernilai "0"
+dan kasShift hanya berisi satu baris status 'tutup'. Gerbang pos.js:529 bekerja
+BENAR - ia memang dilewati karena saklar membaca '0'. Yang bohong adalah
+tampilan Pengaturan. Tiga celah ditutup:
+
+1. kas.js fiturKasAktif() kini membaca DB tiap dipanggil (:48), bukan "baca
+   sekali lalu cache seumur hidup". IndexedDB dipakai bersama antar tab/jendela
+   pada satu origin, jadi cache apa pun pasti bisa menyimpang dan membuka
+   gerbang diam-diam. _fiturKas tetap jadi fallback saat baca gagal; belum
+   pernah baca sama sekali = AKTIF (gagal baca tidak pernah membuka gerbang).
+2. settings.ui.js: saklar disinkronkan dari DB di AWAL loadSettings() lewat
+   syncFeatureSwitches() (:35, dipanggil :52), sebelum pullCloudProfileIfOnline()
+   yang tidak punya timeout. Sebelumnya blok itu ada di baris 66-78, sehingga
+   jaringan menggantung atau satu lemparan membuat index.html:240-241 tetap
+   menampilkan checked + teks "transaksi diblok kalau kas belum dibuka" padahal
+   DB sudah '0'.
+3. saveFiturKas() membandingkan kehendak user dengan nilai TERSIMPAN (:143,
+   early-return :154), bukan cache modul. Guard lama bisa membatalkan
+   penulisan saklar sendiri: saklar terlihat ON, DB tetap '0'. Sekarang baca
+   gagal menghasilkan null dan early-return dilewati.
+
+Bump 1.0.98/v166 -> 1.0.99/v167 pada enam slot sinkron: version.js APP_VERSION +
+CACHE_BUST, version.json version + cacheBust + notes, sw.js CACHE_NAME + komentar
+header, index.html ?v=.
+
+Dokumen ikut diselaraskan karena perbaikan menggeser baris (kas.js +7,
+settings.ui.js +24, sw.js +9): DEVELOPER.md tabel §7 + daftar gerbang jadi 7 titik
++ tabel kunci settings, AGENTS.md aturan #10 dan rujukan sw.js, README.md 6
+rujukan kas.js, DESIGN.md, REGRESSION-CHECKLIST.md (tabel enam slot + 3 item
+guardrail baru), CHANGELOG.md.
+
+Verifikasi: test-imports (46 modul, 0 gagal), test-dynamic-imports (0 gagal),
+test-css-drift, test-db-migrations, test-shim hijau. test-html-refs,
+test-data-actions, test-modules tetap pada kegagalan baseline lama - tidak ada
+kegagalan baru. Facade utuh (settings.js:38 masih me-re-export saveFiturKas).
+329 rujukan file:baris di dokumen, 0 di luar rentang. Harness pasca-perbaikan
+melaporkan "JUALAN HARUSNYA DIBLOKIR".

@@ -1,0 +1,231 @@
+# Control Center — Ringkasan Proyek
+
+Dashboard internal untuk mengelola seluruh ekosistem KASIRSOLO — pipeline klien (konsolidasi leads), katalog aplikasi, lisensi, dan pengaturan shop.
+
+> ⚠️ **Arah Arsitektur Cloud (2026):** Admin adalah pintu ke **Lapisan Meta/CRM**
+> (Supabase). Sistem lisensi akan melakukan **generate + validasi via Supabase**,
+> menggantikan pendekatan offline saat ini. Lihat **`../CLOUD-ROADMAP.md`** untuk
+> roadmap 3 lapisan & Dashboard Hub.
+
+---
+
+## 📋 Informasi Dasar
+
+| Item | Detail |
+|------|--------|
+| **Nama** | Control Center — KASIRSOLO |
+| **Tipe** | Modular Vanilla ESM SPA (Single Page Application) |
+| **Bahasa** | Indonesia |
+| **Deployment** | Vercel (manual push, no GitHub Actions) |
+| **Arsitektur** | 3-layer: Entry → State/Data → Core/UI/Utils |
+| **Storage** | Abstraction layer (localStorage → Supabase ready) |
+| **Auth** | Simple password gate (password: `admin123`) |
+| **Theme** | Orange (kaki5) + Dark sidebar + Card-based UI |
+| **Responsive** | 4 tier: HP (<768) / Tablet (768-1023) / Desktop (≥1024) / Large (≥1440) |
+
+---
+
+## 🎯 Tujuan
+
+Control Center berfungsi sebagai **pusat kontrol** untuk owner dan tim KASIRSOLO:
+
+1. **Melihat statistik** — 6 KPI: Total Leads 👥, Deal 🤝, Aplikasi Aktif 📦, Potensial Revenue 💰, Lead Baru 🆕, Konversi 📈
+2. **Mengelola Klien (CRM)** — profil outlet dari aplikasi klien (onboarding + update profil) di tabel `clients` Supabase, search/filter, generate lisensi per klien
+3. **Mengelola katalog** — CRUD aplikasi yang tampil di shop (card actions: Edit/Hapus, sheet form `.field-grid`)
+4. **Generate lisensi** — membuat serial aktivasi untuk klien (HMAC-SHA256, product registry, generate/verify)
+5. **Mengatur pengaturan** — info usaha (field-grid 2 kolom tablet/desktop), shop config, backup/restore
+
+---
+
+## 🏗️ Struktur Aplikasi
+
+```
+control/
+├── docs/                    # Dokumentasi (file ini)
+├── index.html              # Entry point (~430 baris, no inline styles)
+├── style.css               # Design system (~940 baris, 4-tier responsive)
+├── js/
+│   ├── app.js              # Entry: boot, routing, screen switching
+│   ├── app-state.js        # State management (STATE, setState, getState)
+│   ├── storage.js          # Storage abstraction (localStorage → Supabase ready)
+│   ├── utils.js            # escapeHtml, formatRupiah, formatDate, showToast
+│   ├── toast.js            # Toast notification system
+│   ├── auth.js             # doLogin, doLogout, checkAuth
+│   ├── navigation.js       # showScreen, sidebar/bottomnav handling
+│   ├── dashboard.js        # 6 KPI cards + bar charts + empty states
+│   ├── clients.js          # CRM: pipeline satu-tabel + UI List/Kanban (leads.js & pembelian.js dihapus)
+│   ├── catalog.js          # Card grid + actions + sheet modal (.field-grid)
+│   ├── license-ui.js       # Product registry + Generate/Verify + Reference code
+│   ├── license-core.js     # Pure HMAC-SHA256 (no DOM, no side-effects)
+│   └── settings.js         # Business/Shop forms + backup/restore/reset
+├── vercel.json             # Vercel config (rewrites to index.html)
+├── manifest.json           # PWA manifest
+├── sw.js                   # Service Worker
+└── .vercelignore           # Vercel ignore rules
+```
+
+---
+
+## 📐 5 Modul Utama
+
+### 1. Dashboard / Overview
+
+Menampilkan ringkasan data bisnis (6 KPI gradient cards):
+
+| KPI | Icon | Metrik |
+|-----|------|--------|
+| Total Pipeline | 👥 | `clients.length` |
+| Deal | 🤝 | status = "aktif" |
+| Aplikasi Aktif | 📦 | catalog.length / max 8 |
+| Potensial Revenue | 💰 | Σ harga × klien |
+| Klien Baru | 🆕 | status = "baru" |
+| Konversi | 📈 | Aktif / Total × 100% |
+
+- **Bar Charts**: Leads per Aplikasi + Leads per Status (horizontal, proportional)
+- **Empty states**: pakai `hidden` attribute (bukan inline style)
+
+### 2. Klien (CRM) Management
+
+Tabel interaktif untuk mengelola profil outlet dari aplikasi klien (onboarding + update profil):
+- **Kolom**: Nama Usaha, Device Code, Aplikasi, Nama Pemilik, No. WhatsApp, Wilayah, Status Aktif
+- **Toolbar**: Search real-time (nama/device/WA/wilayah) + Filter aplikasi dropdown
+- **Actions**: Generate lisensi per klien (device code auto-fill), Edit profil, Hapus (konfirmasi)
+- **Stats**: Total Outlet, Aktif 30 hari, Per Aplikasi, Sebaran Wilayah
+- **Empty state**: `hidden` attribute + semantic classes
+
+*Catatan: Leads dari shop sekarang di-handle via onboarding & update profil di aplikasi klien → satu tabel `clients` di Supabase.*
+
+### 3. Katalog Management
+
+CRUD untuk aplikasi di shop:
+- **Card grid responsif**: HP 1 kolom, Tablet 2, Desktop 3, Large 4
+- **Card actions**: Edit (buka sheet modal) + Hapus (konfirmasi)
+- **Sheet modal**: `.field-grid` (1 kolom HP, 2 kolom tablet/desktop) + `.field-span-2` untuk textarea
+- **Form fields**: Ikon (emoji), Nama, Deskripsi, Kategori, Harga, Hot badge
+- **Empty state**: konsisten dengan Leads (class `.empty-icon` + `hidden`)
+
+### 4. Lisensi (Generate & Verify)
+
+Modul untuk penerbitan lisensi device-bound:
+- **Product Registry**: Daftar produk dengan prefix & salt (grid responsif 3-tier)
+- **Generate Serial**: Pilih produk + Device Code + Expiry → Serial HMAC-SHA256 (auto-format device code)
+- **Verify Serial**: Pilih produk + Serial + Device Code (opsional) → validasi HMAC + device match
+- **Reference Code**: Generate blok kode JS universal untuk disalin ke aplikasi klien
+- **Backup/Restore**: Export/import product registry JSON
+
+> **Arah: generate + validasi via Supabase** (Lapisan Meta/CRM) — memungkinkan
+> revoke/reset lisensi terpusat. Saat ini masih offline sampai `control/` sinkron ke
+> Supabase. Detail: `04-license-system.md` & `../CLOUD-ROADMAP.md`.
+
+### 5. Pengaturan
+
+Form untuk mengontrol konten shop + backup:
+- **Info Usaha** (`.field-grid` 2 kolom tablet/desktop): Nama Usaha, Tagline, Alamat, Telepon, Email, WhatsApp, Instagram
+- **Shop Config** (`.field-grid` 2 kolom): Hero Title, Hero Description (span-2), CTA Button Text
+- **Backup & Restore**: Export Backup Admin (JSON), Import Backup Admin (file input)
+- **Bantuan & Dukungan**: Contact strip (WhatsApp + Email)
+- **Lainnya**: Hapus Semua Data Admin (konfirmasi ganda)
+- **Submit handler**: Simpan ke STATE + storage + toast notifikasi
+
+---
+
+## 💾 Data & Storage
+
+### Tahap Awal (localStorage)
+
+| Key | Sumber | Penulis | Pembaca |
+|-----|--------|---------|---------|
+| `kasirsolo:catalog` | Control Center → Shop | Control Center | Shop |
+| `kasirsolo:settings` | Control Center → Shop | Control Center | Shop |
+| `kasirsolo:stats` | Shop → Control Center | Shop (visit) | Control Center |
+| `kasirsolo_license_products_v3` | Admin only | Admin | Admin |
+
+### Tahap Lanjut (Supabase) — Lapisan Meta/CRM
+
+| Tabel | Fungsi |
+|-------|--------|
+| `users` | Multi-user dengan RLS (owner & tim) |
+| `businesses` | Data bisnis klien / unit |
+| `clients` | Profil outlet (onboarding + update profil app klien) — **dedupe by unit_id** |
+| `products` | Katalog aplikasi |
+| `settings` | Pengaturan shop |
+| `licenses` | Serial, device code, HMAC, expiry, **status (active/expired/revoked)** — generate & validasi |
+| `stats` | Kunjungan & analytics |
+
+> Jalur **Data Bisnis** (transaksi klien) dan **Dashboard Hub** termasuk Lapisan B,
+> bukan bagian dari admin. Lihat `../CLOUD-ROADMAP.md`.
+
+---
+
+## 🔐 Keamanan
+
+| Aspek | Saat Ini | Rencana |
+|-------|----------|---------|
+| **Auth** | ⏸️ Password hardcoded `admin123` — **DI-SKIP sementara** (keputusan 2026-08-10). Agent jangan ubah sampai pemilik beresin (auth Supabase + RLS). JWT secret sudah di env hermes. |
+| **Data** | localStorage (local only) | Supabase (cloud, encrypted) |
+| **Multi-user** | Single user | RLS policies (owner write, team read) |
+| **Lisensi** | HMAC-SHA256 + device-bound | Sama, tapi validasi via cloud |
+
+> ⚠️ **Peringatan:** Password saat ini hardcoded di source code. Untuk produksi,
+> ganti dengan sistem autentikasi yang lebih kuat.
+
+---
+
+## 📁 Struktur File (Updated)
+
+```\ncontrol/\n├── docs/\n│   ├── 00-ekosistem.md\n│   ├── 01-overview.md          # (file ini)\n│   ├── 02-architecture.md\n│   ├── 03-data-schema.md\n│   ├── 04-license-system.md\n│   ├── 05-design-system.md\n│   ├── 06-product-features.md\n│   └── 07-setup-deploy.md\n├── index.html                  # Entry point, no inline styles\n├── style.css                   # Design system, 4-tier responsive\n├── js/\n│   ├── app.js                  # Entry: boot + routing\n│   ├── app-state.js            # State management\n│   ├── storage.js              # Storage abstraction\n│   ├── utils.js                # Utilities\n│   ├── toast.js                # Toast system\n│   ├── auth.js                 # Auth gate\n│   ├── navigation.js           # Screen switching\n│   ├── dashboard.js            # Dashboard module\n│   ├── clients.js              # Klien (CRM) module\n│   ├── catalog.js              # Catalog module\n│   ├── license-ui.js           # License UI module\n│   ├── license-core.js         # Pure HMAC core\n│   └── settings.js             # Settings module\n├── vercel.json\n├── manifest.json\n├── sw.js\n└── .vercelignore\n```
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# 1. Buka di browser (butuh HTTP server untuk ESM modules)
+cd admin
+python3 -m http.server 8083
+# Buka http://127.0.0.1:8083
+
+# 2. Masukkan password: admin123
+
+# 3. Navigasi menggunakan bottom nav (HP) atau sidebar (Desktop)
+#    - Dashboard: 6 KPI + bar charts
+#    - Katalog: kelola aplikasi shop
+#    - Lisensi: generate/verifikasi serial
+#    - Klien: Outlet (CRM) + tab Leads (pendaftar trial)
+#    - Pengaturan: atur info usaha, shop, backup
+```
+
+---
+
+## 🔄 Perubahan Terbaru (2026-08-08)
+
+- **Pipeline konsolidasi satu-tabel `clients` (2026-08-11)**: tabel `leads` & `pembelian` di-DROP. Seluruh funnel kini digarap di tabel `clients` (baru → dihubungi → tertarik → menunggu_verifikasi → aktif/batal), ditampilkan lewat layar **Klien** dengan toggle **List** (kartu + dropdown status) & **Kanban** (6 kolom pipeline, drag-drop) — `js/clients.js` (`PIPELINE_STAGES`, `renderKanban()`, `switchClientView()`, `updateClientStatus()`), `js/leads.js` & `js/pembelian.js` dihapus. Verifikasi pembayaran = stage `menunggu_verifikasi`.
+- **Fix clients.js bugs**: 3 header `apikey: *** Authorization` → `apikey: key, Authorization: 'Bearer ' + key`
+- **Sync 4-level wilayah (desa)**: `sync.js`, `settings.js`, `clients.js` include `desa_id`, `desa`
+- **Smart Gate 2-langkah onboarding**: Step 1 nama usaha → Step 2 S&K (Batal/Setuju)
+- **PWA Install Detection**: `pwa.js` auto-detect installed PWA, no banner jika sudah terpasang
+- **Custom Period Laporan**: Tab "Custom" dengan date picker mulai-selesai
+- **Supabase Access Token (Hermes Env)**: Migration otomatis via Management API
+- **Update dokumentasi**: CONTEXT.md, 08-supabase-integration.md, 01-overview.md, 00-ekosistem.md, kaki5 README.md, kaki5 DEVELOPER.md
+
+---
+
+## 🔄 Perubahan Terbaru (2026-08-06)
+
+- **Full modular ESM refactor**: dari monolith `index.html` → 12 file JS modular
+- **3-layer architecture**: Entry (`app.js`) → State/Data (`app-state.js`, `storage.js`) → Core/UI/Utils
+- **Storage abstraction**: `storage.js` siap untuk Supabase (interface tetap sama)
+- **Adopted kaki5 design system**: orange theme, bottom nav, sheet modal, card-based UI
+- **Gerobak KPI**: 6 metrik gradient cards (👥🤝📦💰🆕📈) + bar charts
+- **4 device tiers**: HP (<768) / Tablet (768-1023) / Desktop (≥1024) / Large (≥1440)
+- **All inline styles removed** → CSS utility classes (`.mt12`, `.field-grid`, `.input-mono`, `.hidden` attr, dll)
+- **Catalog**: card actions, sheet form `.field-grid`/`.field-span-2`, empty-state `hidden`
+- **Settings**: field IDs reconciled, form wrapper, submit handler (STATE+storage+toast)
+- **Leads**: 5-col table aligned, empty-state `hidden`
+- **License**: product registry responsive grid 3-tier, generate/verify forms
+- **Sheets/Modals**: `.open` + `.show` support, desktop center modal, mobile bottom-sheet
+- **GitHub Actions workflows removed** — deploy via local mirror only
+
+---
+
+*Control Center — KASIRSOLO by PT Mesin Kasir Solo*

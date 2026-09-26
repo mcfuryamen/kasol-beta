@@ -1,0 +1,25 @@
+{
+  "slotsSemua": ["09:00", "12:30", "19:00"],
+  "slotsAktif": ["19:00"],
+  "tanggalMulai": "2026-09-14",
+  "urlUtama": "https://kaki5.kasirsolo.com",
+  "waCta": "",
+  "maxPostPerRun": 2,
+  "maxAutoReplyPerRun": 6,
+  "pollKomenMaxPost": 5,
+  "templates": {
+    "minat": [
+      "Halo kak 👍 Ini Kasir Solo — kasir HP buat PKL & usaha kecil. Sekali bayar (gak langganan), jalan offline total, ada harga ojol + backup cloud. Coba gratis: https://kaki5.kasirsolo.com",
+      "Hai kak, ini aplikasinya ya: kasir di HP buat jualan kecil-kecilan, offline-friendly, sekali beli selamanya. Silakan dicoba: https://kaki5.kasirsolo.com",
+      "Halo! Boleh banget dicoba — di situ langsung jalan, gak perlu daftar ribet. Sekali bayar, gak ada langganan bulanan. https://kaki5.kasirsolo.com",
+      "Salam kak! Ini kan kasir HP yang jalan tanpa internet — aman buat area sinyal jelek. Ada fitur harga ojol buat yang sering jual online. https://kaki5.kasirsolo.com"
+    ],
+    "apresiasi": [
+      "Makasih kak! 🙏",
+      "Sip kak, makasih banyak! 😊",
+      "Thanks kak! Semoga laris jualan ya 🙌"
+    ],
+    "draftNegosiasi": "Halo kak, santai aja tanya-tanya 😊 Aplikasinya sekali bayar (bukan langganan) dan bisa dicoba gratis dulu, linknya di post. Biar pas, kakak jualan apa?",
+    "draftLain": "Halo kak, makasih udah mampir! Ada yang mau ditanyakan soal aplikasinya? (Ini kasir HP buat usaha kecil — sekali bayar, offline aman.)"
+  }
+}
