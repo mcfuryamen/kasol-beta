@@ -1,0 +1,12 @@
+# Vercel ignore rules
+node_modules
+*.log
+.DS_Store
+Thumbs.db
+*.md
+docs/
+# Rahasia — jangan pernah deploy file env lokal (service role key, dsb.)
+.env*
+*.backup*
+# Generated — nilai dari Vercel env build, TIDAK boleh pakai file workspace
+js/env-loader.js

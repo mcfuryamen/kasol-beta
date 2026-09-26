@@ -1,0 +1,37 @@
+{
+  "mState": {
+    "innerW": 800,
+    "innerH": 600,
+    "aside": false,
+    "header": false,
+    "nav": false,
+    "text": "Kasir Solo\n\nMinimarket\n\nSolusi POS untuk Minimarket Modern\n\nMODE DEMO AKTIF\n\nGun"
+  },
+  "dState": {
+    "innerW": 1360,
+    "aside": false,
+    "asideDisplay": null,
+    "asideW": null,
+    "wrapDisplay": null,
+    "wrapClasses": null,
+    "header": false,
+    "text": "Kasir Solo\n\nMinimarket\n\nSolusi POS untuk Minimarket Modern\n\nMODE DEMO AKTIF\n\nGun"
+  },
+  "openMenu": null,
+  "darkClick": null,
+  "darkState": "dark-off",
+  "darkBack": null,
+  "darkBackState": "dark-off",
+  "errors": [
+    "NAV: http://127.0.0.1:5180/",
+    "click:demoBtn: find is not a function",
+    "click:demoUser: find is not a function",
+    "loginSteps: null / null",
+    "loggedIn: false",
+    "NAV: http://127.0.0.1:5180/",
+    "afterMobileWait: innerW=390",
+    "click:menuBtn: find is not a function",
+    "click:modeGelap: find is not a function",
+    "click:modeTerang: find is not a function"
+  ]
+}

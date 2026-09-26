@@ -1,0 +1,264 @@
+---
+/**
+ * /visi-misi — halaman Visi & Misi (referensi desain: mock "Peta Perang Kita").
+ * Konten statis brand (bukan CMS) — visi, misi harian, DNA, kutipan founder.
+ */
+import Base from '../layouts/Base.astro';
+import { site, about } from '../data/portfolio';
+
+const founderName = (about?.founder?.name || 'Amin Maghfuri').toUpperCase();
+
+const title = 'Visi & Misi — PT Mesin Kasir Solo';
+const description =
+  'Visi & misi PT Mesin Kasir Solo: jadi benteng pertahanan digital #1 buat UMKM Indonesia — misi harian, DNA tim, dan prinsip yang gue tanam di tiap produk.';
+
+const misi = [
+  {
+    no: '01',
+    title: 'Hancurin Mitos Mahal',
+    desc: 'Teknologi canggih gak harus bikin kantong bolong. Gue hadirin mesin kasir & software enterprise dengan harga rakyat.',
+  },
+  {
+    no: '02',
+    title: 'Edukasi Sampai Pinter',
+    desc: 'Gue bikin klien paham data itu apa. Lo gak cuma dibekalin alat, tapi juga diajari cara baca data bisnis.',
+  },
+  {
+    no: '03',
+    title: 'Inovasi Gak Ada Matinya',
+    desc: 'SIBOS & QALAM bakal terus gue update. Lo gak perlu pusing mikirin software, biar itu urusan gue.',
+  },
+  {
+    no: '04',
+    title: 'Support Tanpa Drama',
+    desc: 'Kalo alat rusak, gue yang pusing. Bukan lo. Tim teknis gue siap backup biar jualan lo gak keganggu.',
+  },
+];
+
+const dna = [
+  {
+    icon: 'shield',
+    color: '#f97316',
+    title: 'Jujur Harga Mati',
+    desc: 'Gue gak bakal jual barang yang gak lo butuhin cuma demi komisi. Kalo barang jelek, gue bilang jelek. Titik. Berani nomor satu.',
+  },
+  {
+    icon: 'trend',
+    color: '#3b82f6',
+    title: 'Mental Baja',
+    desc: 'Berdiri sejak 2015, lolos badai covid & server down berulang. Pengalaman itulah yang bikin mental tim gue baja.',
+  },
+  {
+    icon: 'monitor',
+    color: '#22c55e',
+    title: 'Anti Sambat',
+    desc: 'Dapet masalah jangan ngeluh — cari solusi. Error? Diberesin. Desain? Dipbenahi. Fix it, jangan nyerah.',
+  },
+  {
+    icon: 'users',
+    color: '#a855f7',
+    title: 'Lo Bosnya',
+    desc: 'Gue ikut sedih kalo bisnis lo rancu. Bisnis lo mati, bisnis gue ikut mati. Jadi gue bakal mati-matian bikin lo sukses.',
+  },
+  {
+    icon: 'zap',
+    color: '#ef4444',
+    title: 'Sat Set Wat Wet',
+    desc: 'Bisnis itu balapan. Gue kerja cepat — chat dibalas kilat, pengiriman disikat, support sat-set.',
+  },
+  {
+    icon: 'globe',
+    color: '#14b8a6',
+    title: 'Jangka Panjang',
+    desc: 'Gue gak cari hit and run. Gue mau nemenin lo dari toko kecil sampai punya cabang di mana-mana.',
+  },
+];
+
+const ICONS: Record<string, string> = {
+  shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  trend: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  monitor: '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+};
+---
+<Base title={title} description={description}>
+  {/* ============ HERO ============ */}
+  <section class="hero hero-compact">
+    <div class="hero-bg">
+      <div class="orb-1"></div>
+      <div class="grid-lines"></div>
+    </div>
+    <div class="hero-inner">
+      <span class="hero-badge anim-fade" data-i18n="visi.badge">Peta Perang Kita</span>
+      <h1 class="anim-fade anim-d1" data-i18n="visi.heroTitle">Mimpi Gede &amp; <span class="accent">Kerja Keras.</span></h1>
+      <p class="hero-sub anim-fade anim-d2" data-i18n="visi.heroSub">
+        Gue gak bangun PT Mesin Kasir Solo cuma buat cari untung receh. Gue punya
+        misi buat nyelametin ribuan UMKM dari kebangkrutan karena buta data.
+      </p>
+    </div>
+  </section>
+
+  {/* ============ VISI ============ */}
+  <section class="block" id="visi">
+    <div class="container">
+      <div class="visi-card">
+        <div class="visi-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+        </div>
+        <div class="visi-body">
+          <span class="visi-label" data-i18n="visi.label">VISI GUE (THE DREAM)</span>
+          <p class="visi-quote" data-i18n="visi.quote">
+            "Menjadi Benteng Pertahanan Digital #1 buat UMKM Indonesia. Gue mau
+            liat warung kecil punya sistem secanggih minimarket modern, tanpa
+            harus bayar mahal."
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ MISI HARIAN ============ */}
+  <section class="block tint" id="misi">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker-pill" data-i18n="visi.misiKicker">Misi Harian (The Grind)</span>
+        <h2 data-i18n="visi.misiTitle">Empat Hal Yang <span class="hl">Gue Grind.</span></h2>
+        <p class="sub" data-i18n="visi.misiSub">INI YANG TIM GUE KERJAIN TIAP HARI BUAT LO:</p>
+      </div>
+      <div class="grid grid-2 misi-grid">
+        {misi.map((m) => (
+          <article class="card misi-card">
+            <span class="misi-no">{m.no}</span>
+            <div>
+              <h3 data-i18n={`visi.m${misi.indexOf(m) + 1}T`}>{m.title}</h3>
+              <p data-i18n={`visi.m${misi.indexOf(m) + 1}D`}>{m.desc}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* ============ DNA GUE ============ */}
+  <section class="block" id="dna">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill">Premium Arsenal</span>
+        <h2 data-i18n="visi.dnaTitle">DNA <span class="hl">GUE</span></h2>
+        <p class="sub" data-i18n="visi.dnaSub">Prinsip jalanan yang gue tanam ke semua anak buah gue.</p>
+      </div>
+      <div class="grid grid-3 dna-grid">
+        {dna.map((d) => (
+          <article class="card dna-card">
+            <div class="dna-icon" style={`--ic:${d.color}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={ICONS[d.icon]} />
+            </div>
+            <h3 data-i18n={`visi.d${dna.indexOf(d) + 1}T`}>{d.title}</h3>
+            <p data-i18n={`visi.d${dna.indexOf(d) + 1}D`}>{d.desc}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* ============ KUTIPAN FOUNDER ============ */}
+  <section class="block tint" id="kutipan">
+    <div class="container">
+      <div class="quote-big">
+        <h2 data-i18n="visi.quoteBig">GUE GAK JUAL ALAT SULAP,<br />GUE JUAL <span class="hl">SENJATA PERANG</span>."</h2>
+      </div>
+      <div class="quote-card">
+        <p>
+          "Di PT Mesin Kasir Solo, gue percaya satu hal: Bisnis tanpa data itu
+          judi. Tugas gue adalah pastikan lo pegang kartu As (Sistem &amp; Data)
+          biar selalu menang di pasar."
+        </p>
+        <span class="quote-by">— {founderName}, FOUNDER</span>
+      </div>
+      <div class="center" style="margin-top:36px">
+        <a class="btn btn-primary" href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener"><span data-i18n="visi.ctaBtn">Kenalan Sama Founder</span><span class="shine"></span></a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  /* ---- Kartu Visi (gradasi oranye ala mock) ---- */
+  .visi-card {
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; gap: 24px;
+    background: linear-gradient(110deg, var(--orange) 0%, #ff8a3d 55%, #ff5f1f 100%);
+    border-radius: 20px; padding: 34px 38px;
+    box-shadow: 0 18px 60px rgba(255, 95, 31, .25);
+  }
+  .visi-card::after {
+    content: ''; position: absolute; right: -60px; bottom: -90px;
+    width: 260px; height: 260px; border-radius: 50%;
+    border: 34px solid rgba(255, 255, 255, .12); pointer-events: none;
+  }
+  .visi-icon {
+    flex: 0 0 auto; width: 64px; height: 64px; border-radius: 16px;
+    background: #fff; color: var(--orange);
+    display: grid; place-items: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+  }
+  .visi-body { min-width: 0; position: relative; z-index: 1; }
+  .visi-label {
+    display: block; color: rgba(255, 255, 255, .85);
+    font-size: 10.5px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .visi-quote {
+    margin: 0; color: #fff; font-weight: 700;
+    font-size: clamp(17px, 2.2vw, 22px); line-height: 1.55;
+  }
+
+  /* ---- Misi bernomor ---- */
+  .misi-card { display: flex; gap: 18px; align-items: flex-start; }
+  .misi-card h3 { margin: 0 0 6px; }
+  .misi-card p { margin: 0; color: var(--text-2); font-size: 13.5px; line-height: 1.7; }
+  .misi-no {
+    flex: 0 0 auto; font-family: var(--font-display);
+    font-size: 30px; font-weight: 700; line-height: 1;
+    color: transparent; -webkit-text-stroke: 1.5px rgba(255, 95, 31, .55);
+  }
+
+  /* ---- DNA ---- */
+  .dna-card h3 { margin: 14px 0 6px; font-size: 17px; }
+  .dna-card p { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.7; }
+  .dna-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    display: grid; place-items: center;
+    color: var(--ic);
+    background: color-mix(in srgb, var(--ic) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ic) 32%, transparent);
+  }
+
+  /* ---- Kutipan founder ---- */
+  .quote-big { text-align: center; margin-bottom: 36px; }
+  .quote-big h2 {
+    font-size: clamp(28px, 4.6vw, 46px); font-weight: 700;
+    letter-spacing: -.02em; color: #fff; line-height: 1.25; margin: 0;
+  }
+  .quote-card {
+    max-width: 720px; margin: 0 auto; text-align: center;
+    background: rgba(255, 143, 31, .07);
+    border: 1px solid rgba(255, 143, 31, .28);
+    border-radius: 16px; padding: 26px 30px;
+  }
+  .quote-card p {
+    margin: 0 0 12px; font-style: italic;
+    color: var(--text); font-size: 14.5px; line-height: 1.8;
+  }
+  .quote-by {
+    color: var(--orange); font-size: 10.5px; font-weight: 800;
+    letter-spacing: .16em; text-transform: uppercase;
+  }
+
+  @media (max-width: 640px) {
+    .visi-card { flex-direction: column; align-items: flex-start; padding: 26px; }
+    .misi-grid { gap: 14px; }
+  }
+</style>

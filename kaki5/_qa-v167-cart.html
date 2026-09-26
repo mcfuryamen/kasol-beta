@@ -1,0 +1,148 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QA v167c — Keranjang 2 kolom</title>
+<link rel="stylesheet" href="css/style.css?qa=v167d">
+<style>
+  html,body{margin:0;padding:0;background:#222}
+  #rep,#sum{font:12px/1.5 ui-monospace,Consolas,monospace;color:#ddd;background:#111;padding:10px;white-space:pre-wrap;margin:0}
+  .qa-host{position:static!important;display:block!important;opacity:1!important;visibility:visible!important;
+           transform:none!important;height:auto!important;min-height:0!important;padding:0!important;
+           max-height:none!important;overflow:visible!important;justify-content:flex-start!important}
+  .qa-host .modal{max-height:none!important;overflow:visible!important;width:100%!important}
+  .qa-narrow{max-width:390px;margin:0 auto}
+</style>
+</head>
+<body>
+<div class="modal-overlay show qa-host" id="host">
+  <div class="modal">
+    <div class="modal-title">🛒 Keranjang (QA — desktop)</div>
+    <div id="cartItems"></div>
+  </div>
+</div>
+<div class="modal-overlay show qa-host qa-narrow" id="host2">
+  <div class="modal">
+    <div class="modal-title">🛒 Keranjang (QA — HP 390px)</div>
+    <div id="cartItems2"></div>
+  </div>
+</div>
+<pre id="sum">ringkasan...</pre>
+<pre id="rep">memuat...</pre>
+<script>
+// Markup disalin persis dari renderCartModal() js/pos.ui.js (v167 rev.2).
+const rp = document.getElementById('rep');
+const L = [];
+const say = s => { L.push(s); rp.textContent = L.join('\n'); };
+const tag = (n, q, h) => `<span class="topping-tag">+ ${n} <b>×${q}</b> <span class="kgray">Rp ${(h*q).toLocaleString('id-ID')}</span></span>`;
+
+function row(o) {
+  const toppingTags = o.toppings && o.toppings.length
+    ? '<div class="cart-topping-tags">' + o.toppings.map(t => tag(t[0], t[1], t[2])).join('') + '</div>' : '';
+  return `<div class="cart-item" data-menu-id="${o.id}">
+      <div class="cart-main">
+        <div class="cart-name">${o.nama}${o.badge || ''} <span class="cart-name-price" title="Harga satuan">${o.satuan}</span></div>
+        ${toppingTags}
+        ${o.note ? `<div class="cart-item-note">📝 ${o.note}</div>` : ''}
+      </div>
+      <div class="cart-side">
+        <div class="qty-control">
+          <button class="qty-btn" data-action="change-qty" data-menu-id="${o.id}" data-delta="-1">−</button>
+          <input type="number" class="qty-val" value="${o.qty}" min="1" max="999">
+          <button class="qty-btn" data-action="change-qty" data-menu-id="${o.id}" data-delta="1">+</button>
+        </div>
+        <div class="cart-price">${o.subtotal}</div>
+      </div>
+    </div>`;
+}
+const DATA = [
+  { id: 1, nama: 'Nasi Goreng Spesial Jumbo', qty: 2, satuan: 'Rp 5.000', subtotal: 'Rp 10.000',
+    toppings: [['Telur Dadar',2,5000],['Kerupuk Udang',1,2000],['Sate Ayam',2,3500],['Es Teh Manis Jumbo',1,4000]],
+    note: 'pedas level 3, tanpa sayur, telur di luar' },
+  { id: 2, nama: 'Kopi Susu', qty: 1, satuan: 'Rp 8.000', subtotal: 'Rp 8.000', toppings: [] },
+  { id: 3, nama: 'Mie Ayam Bakso Komplit Extra Pedas Level Maknyus', qty: 3, satuan: 'Rp 12.000', subtotal: 'Rp 36.000',
+    badge: '<span class="badge-titipan">Titipan</span>',
+    toppings: [['Telur Rebus',1,2500],['Pangsit Goreng 5 pcs',2,6000]] }
+];
+document.getElementById('cartItems').innerHTML = DATA.map(row).join('');
+document.getElementById('cartItems2').innerHTML = DATA.map(row).join('');
+// ?desk=1 → hanya host desktop; ?hp=1 → hanya host 390px. Dua host yang
+// ditumpuk vertikal bikin screenshot jadi frame komposit (overlay .modal-overlay
+// tetap position:fixed), jadi untuk bukti visual pakai salah satu saja.
+if (/[?&]desk=1/.test(location.search)) document.getElementById('host2').style.display = 'none';
+if (/[?&]hp=1/.test(location.search)) document.getElementById('host').style.display = 'none';
+
+requestAnimationFrame(() => {
+  let pass = 0, fail = 0;
+  const ok = m => { pass++; say('OK   ' + m); };
+  const bad = m => { fail++; say('FAIL ' + m); };
+  const chk = (c, m) => c ? ok(m) : bad(m);
+  const r = el => el.getBoundingClientRect();
+  const R = n => Math.round(n * 10) / 10;
+  const midY = el => r(el).top + r(el).height / 2;
+
+  for (const [label, host] of [['DESKTOP', 'host'], ['HP-390', 'host2']]) {
+    const modal = r(document.querySelector('#' + host + ' .modal'));
+    say(`\n===== ${label} | modal ${R(modal.width)}px =====`);
+    document.querySelectorAll('#' + host + ' .cart-item').forEach((item, i) => {
+      const card = r(item);
+      const main = item.querySelector('.cart-main');
+      const side = item.querySelector('.cart-side');
+      const name = item.querySelector('.cart-name');
+      const satuan = item.querySelector('.cart-name-price');
+      const tags = item.querySelector('.cart-topping-tags');
+      const note = item.querySelector('.cart-item-note');
+      const qty = item.querySelector('.qty-control');
+      const sub = item.querySelector('.cart-price');
+      say(`--- item ${i+1} tinggi=${R(card.height)}px | main ${R(r(main).width)}px | side ${R(r(side).width)}px ---`);
+      say(`  name   L=${R(r(name).left)} R=${R(r(name).right)} top=${R(r(name).top)} h=${R(r(name).height)}`);
+      say(`  satuan L=${R(r(satuan).left)} R=${R(r(satuan).right)} top=${R(r(satuan).top)}`);
+      if (tags) say(`  tags   L=${R(r(tags).left)} R=${R(r(tags).right)} W=${R(r(tags).width)}/${R(r(main).width)} scrollW=${tags.scrollWidth} clientW=${tags.clientWidth}`);
+      if (note) say(`  note   L=${R(r(note).left)} R=${R(r(note).right)} top=${R(r(note).top)}`);
+      say(`  qty    L=${R(r(qty).left)} R=${R(r(qty).right)} top=${R(r(qty).top)}`);
+      say(`  sub    L=${R(r(sub).left)} R=${R(r(sub).right)} top=${R(r(sub).top)} bottom=${R(r(sub).bottom)}`);
+
+      // KOLOM: kiri & kanan terpisah, tidak saling menindih
+      chk(r(main).right <= r(side).left + 0.5, `  item ${i+1}: kolom kiri & kanan tidak menindih (celah ${R(r(side).left - r(main).right)}px)`);
+      chk(Math.abs(r(main).left - card.left) < 0.5, `  item ${i+1}: kolom kiri rata tepi kartu`);
+      chk(Math.abs(r(side).right - card.right) < 0.5, `  item ${i+1}: kolom kanan rata tepi kanan kartu`);
+      // BARIS 1: nama + harga menu SEBARIS
+      chk(r(satuan).top >= r(name).top - 1 && r(satuan).bottom <= r(name).bottom + 1,
+          `  item ${i+1}: harga menu sebaris dengan nama (di dalam blok nama)`);
+      chk(r(satuan).left > r(name).left, `  item ${i+1}: harga menu di kanan teks nama`);
+      // KOLOM KANAN: qty di ATAS, subtotal di BAWAH
+      chk(Math.abs(r(qty).top - card.top) < 14, `  item ${i+1}: qty di atas baris (Δ${R(r(qty).top - card.top)}px dari tepi kartu)`);
+      chk(r(sub).top >= r(qty).bottom - 1, `  item ${i+1}: subtotal di bawah qty (Δ${R(r(sub).top - r(qty).bottom)}px)`);
+      chk(Math.abs(r(sub).bottom - card.bottom) < 14, `  item ${i+1}: subtotal mendasar ke bawah baris (Δ${R(card.bottom - r(sub).bottom)}px)`);
+      chk(Math.abs(r(sub).right - card.right) < 2, `  item ${i+1}: subtotal rata kanan`);
+      chk(Math.abs(r(qty).right - card.right) < 2, `  item ${i+1}: qty rata kanan`);
+      // BARIS 2: topping di bawah nama, selebar kolom kiri, tidak terpotong
+      if (tags) {
+        chk(r(tags).top >= r(name).bottom - 1, `  item ${i+1}: topping di baris bawah nama`);
+        chk(Math.abs(r(tags).width - r(main).width) < 1.5, `  item ${i+1}: topping selebar kolom kiri (${R(r(tags).width)}/${R(r(main).width)}px)`);
+        chk(tags.scrollWidth <= tags.clientWidth + 1, `  item ${i+1}: topping tidak terpotong (${tags.scrollWidth} ≤ ${tags.clientWidth})`);
+        chk(r(tags).right <= card.right + 0.5, `  item ${i+1}: topping tidak masuk kolom kanan`);
+      }
+      // BARIS 3: catatan di bawah topping
+      if (note && tags) chk(r(note).top >= r(tags).bottom - 1, `  item ${i+1}: catatan di baris bawah topping`);
+      if (note) chk(note.scrollWidth <= note.clientWidth + 1, `  item ${i+1}: catatan tidak terpotong (${note.scrollWidth} ≤ ${note.clientWidth})`);
+      // nama tidak terpotong
+      chk(name.scrollWidth <= name.clientWidth + 1, `  item ${i+1}: nama tidak terpotong (${name.scrollWidth} ≤ ${name.clientWidth})`);
+      chk(card.right <= modal.right + 0.5 && card.left >= modal.left - 0.5, `  item ${i+1}: kartu di dalam modal`);
+    });
+    const items = [...document.querySelectorAll('#' + host + ' .cart-item')];
+    for (let i = 0; i < items.length - 1; i++) {
+      chk(r(items[i+1]).top >= r(items[i]).bottom - 1, `${label}: item ${i+1}→${i+2} tidak tumpang tindih`);
+    }
+    say(`  TOTAL tinggi 3 item = ${R(items.reduce((s, el) => s + r(el).height, 0))}px`);
+  }
+  say(`\n=== ${pass} PASS / ${fail} FAIL ===`);
+  say('RESULT ' + (fail ? 'FAIL' : 'PASS'));
+  document.getElementById('sum').textContent =
+    'RESULT ' + (fail ? 'FAIL' : 'PASS') + ' — ' + pass + ' PASS / ' + fail + ' FAIL\n' +
+    (fail ? L.filter(x => x.startsWith('FAIL')).join('\n') : 'tidak ada FAIL');
+});
+</script>
+</body>
+</html>

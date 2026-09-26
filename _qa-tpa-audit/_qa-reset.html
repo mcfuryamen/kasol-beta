@@ -1,0 +1,9 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QA reset</title>
+<style>body{font-family:ui-monospace,Consolas,monospace;padding:16px;background:#0f172a;color:#e2e8f0}</style></head>
+<body><div id="o">deleting…</div>
+<script src="https://unpkg.com/dexie@3.2.7/dist/dexie.min.js"></script>
+<script>
+Dexie.delete('KasirSoloTPA').then(()=>Dexie.exists('KasirSoloTPA')).then(ex=>{
+  document.getElementById('o').textContent='KasirSoloTPA deleted. exists='+ex;
+}).catch(e=>{document.getElementById('o').textContent='ERR '+e;});
+</script></body></html>
