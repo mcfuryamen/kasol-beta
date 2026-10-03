@@ -156,7 +156,7 @@ textarea{resize:vertical;min-height:70px;}
 .modal-head h2{font-size:16px;margin:0;}
 .modal-close{background:var(--surface-2);border:none;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;}
 
-.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:30px;font-size:13px;font-weight:700;z-index:100;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:opacity .2s, bottom .2s;}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:30px;font-size:13px;font-weight:700;z-index:620;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:opacity .2s, bottom .2s;}
 .toast.show{opacity:1;bottom:130px;}
 
 .cart-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
@@ -166,10 +166,11 @@ textarea{resize:vertical;min-height:70px;}
 .pay-chip{padding:9px 14px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;}
 .pay-chip.active{background:var(--brand-gradient);color:#fff;border-color:transparent;}
 
-.locked-screen{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;}
-.locked-screen.hidden{display:none;}
-.lock-card{background:#fff;border-radius:24px;padding:26px 22px;max-width:400px;width:100%;box-shadow:var(--shadow-lg);text-align:center;}
-.lock-card .ic{font-size:44px;margin-bottom:6px;}
+/* Banner "Lengkapi Profil" ala kaki5 (onboarding 2026-10-03) — overlay
+   center-immersive NON-blocking: bisa ditutup, app tetap berjalan. */
+.profile-banner{position:fixed;inset:0;z-index:520;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(43,29,20,.35);}
+.profile-banner.show{display:flex;}
+.profile-banner .card{max-width:400px;width:100%;}
 
 .progress-track{display:flex;justify-content:space-between;position:relative;margin:18px 0 6px;}
 .progress-track::before{content:"";position:absolute;top:13px;left:20px;right:20px;height:3px;background:var(--border);z-index:0;}
@@ -232,7 +233,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0;}
     <div class="row" id="headerDefault">
       <div class="brand-mark">🧺</div>
       <div>
-        <div class="brand-name">Kasir Solo</div>
+        <div class="brand-name" id="brandName">Kasir Solo</div>
         <div class="brand-sub">Laundry &amp; Cuci Kiloan</div>
       </div>
       <div class="header-actions">
@@ -386,6 +387,19 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <h3>ℹ️ Tentang</h3>
         <p class="muted">Kasir Solo - Laundry<br>Oleh PT Mesin Kasir Solo<br>WhatsApp: 08816566935<br>Email: owner.kasirsolo@gmail.com</p>
       </div>
+      <div class="card">
+        <h3>📜 Syarat &amp; Ketentuan</h3>
+        <div class="muted" style="font-size:12px;line-height:1.65;">
+          <p><b>1. Penggunaan.</b> Aplikasi Kasir Solo - Laundry disediakan oleh PT Mesin Kasir Solo untuk membantu operasional usaha laundry Anda.</p>
+          <p><b>2. Data Anda.</b> Semua data usaha tersimpan di perangkat ini (offline). Jaga perangkat Anda dan lakukan Backup rutin dari menu Pengaturan.</p>
+          <p><b>3. Gratis &amp; Lisensi.</b> Masa gratis memberi 100 transaksi per bulan. Untuk pemakaian tanpa batas kuota, beli lisensi langsung dari aplikasi (QRIS/transfer) — diverifikasi admin PT Mesin Kasir Solo.</p>
+          <p><b>4. Larangan.</b> Dilarang menjual, menyebarkan, atau membongkar aplikasi tanpa izin tertulis dari PT Mesin Kasir Solo.</p>
+          <p><b>5. Dukungan.</b> Bantuan teknis via WhatsApp 08816566935.</p>
+        </div>
+        <div id="tcAcceptRow" style="margin-top:10px;">
+          <button class="btn btn-primary btn-sm" style="width:100%;" onclick="acceptTC()">✓ Saya Setuju</button>
+        </div>
+      </div>
     </section>
 
   </main>
@@ -450,8 +464,18 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0;}
     <div class="modal" id="modalBox"></div>
   </div>
 
-  <!-- LICENSE GATE — onboarding 2 langkah (WA → S&K), diisi dinamis -->
-  <div class="locked-screen hidden" id="licenseGate"></div>
+  <!-- BANNER LENGKAPI PROFIL (ala kaki5 — onboarding non-blocking) -->
+  <div class="profile-banner" id="profileBanner">
+    <div class="card" style="text-align:center;padding:24px 22px;">
+      <div style="font-size:40px;line-height:1;margin-bottom:8px;">🏪</div>
+      <h2 style="margin:0 0 6px;">Lengkapi Profil Usaha</h2>
+      <p class="muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.5;">Isi nama, WhatsApp, dan alamat supaya data cloud perangkat ini rapi dan identitasmu aman.</p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" style="width:auto;flex:0 0 auto;" onclick="dismissProfileBanner()">✕ Nanti</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="openProfileModal()">Lengkapi Sekarang</button>
+      </div>
+    </div>
+  </div>
 
   <div class="toast" id="toast"></div>
 </div>
@@ -621,73 +645,49 @@ function toast(msg){
    LISENSI — modul kaki5 DIADOPSI penuh (js/license.logic|ui|sync.js +
    js/quota.offline.js + js/purchase.js + shim db/helpers/modal/version/
    sync/settings + bootstrap js/laundry-license.js).
-   Bagian ini hanya menyisakan: gate onboarding (WA → S&K), gerbang kuota
-   untuk POS, jembatan window.LaundryCore, dan banner/kontak.
+   Bagian ini hanya menyisakan: onboarding non-blocking ala kaki5 (banner
+   profil + header dinamis), gerbang kuota untuk POS, jembatan window.
+   LaundryCore, dan banner/kontak.
    ========================================================= */
 const APP_TITLE = 'Kasir Solo - Laundry';
 const WA_ADMIN = '628816566935';
 const APP_TYPE = 'laundry';
 
-let gateStep = 'wa';
-async function renderLicenseGate(){
-  const gate = document.getElementById('licenseGate');
-  if(!gate) return;
-  let status = 'none';
-  try { if (window.LicenseAPI) status = (await window.LicenseAPI.getLicenseStatus()).status; } catch(_){ }
-  if (status !== 'none'){ gate.classList.add('hidden'); gate.innerHTML = ''; return; }
-  gate.classList.remove('hidden');
-  gate.innerHTML = gateStep === 'wa' ? gateWaHtml() : gateTcHtml();
+/* ---------- ONBOARDING ala kaki5 (2026-10-03): TANPA gate blocking ----------
+   status 'none' → auto startTrial via modul (js/laundry-license.js);
+   profil dilengkapi lewat banner non-blocking; S&K konsen non-blocking
+   (tcAcceptedAt) di kartu Pengaturan. */
+function applyHeaderBizName(){
+  const el = document.getElementById('brandName');
+  if (el) el.textContent = (DB.settings.namaToko || '').trim() || 'Kasir Solo';
 }
-function gateWaHtml(){
-  return `<div class="lock-card" style="text-align:left;">
-    <div style="text-align:center;margin-bottom:6px;">
-      <div class="ic">🧺</div>
-      <h2 style="margin:0;">Kasir Solo — Laundry</h2>
-      <p class="muted" style="margin:6px 0 0;">Masukkan nomor WhatsApp aktif untuk mulai gratis.</p>
-    </div>
-    <label>Nomor WhatsApp</label>
-    <input type="tel" id="gateWa" placeholder="cth: 081234567890" inputmode="tel" value="${escapeHtml(DB.settings.wa||'')}">
+function checkProfileNotification(){
+  const banner = document.getElementById('profileBanner');
+  if (!banner) return;
+  const incomplete = !(DB.settings.wa || '').trim() || !(DB.settings.alamat || '').trim();
+  banner.classList.toggle('show', incomplete);
+}
+function dismissProfileBanner(){ const b = document.getElementById('profileBanner'); if (b) b.classList.remove('show'); }
+function openProfileModal(){
+  openModal(`
+    <div class="modal-head"><h2>🏪 Lengkapi Profil Usaha</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Nama Laundry</label><input type="text" id="pbNama" value="${escapeHtml(DB.settings.namaToko||'')}">
+    <label>No. WhatsApp</label><input type="tel" id="pbWA" value="${escapeHtml(DB.settings.wa||'')}" placeholder="cth: 081234567890" inputmode="tel">
+    <label>Alamat</label><textarea id="pbAlamat" placeholder="cth: Jl. Merdeka No. 12, Solo">${escapeHtml(DB.settings.alamat||'')}</textarea>
     <div class="btn-row" style="margin-top:14px;">
-      <button class="btn btn-primary" onclick="gateProceedToTC()">🚀 Mulai Gratis</button>
+      <button class="btn btn-primary" onclick="saveProfileFromModal()">Simpan Profil</button>
     </div>
-    <p class="muted" style="margin-top:10px;font-size:11.5px;text-align:center;">Gratis 100 transaksi/bulan. Tanpa kartu kredit.</p>
-  </div>`;
+  `);
 }
-function gateTcHtml(){
-  return `<div class="lock-card" style="text-align:left;max-height:86vh;overflow-y:auto;">
-    <h2 style="text-align:center;margin-bottom:8px;">Syarat &amp; Ketentuan</h2>
-    <div class="muted" style="font-size:12.5px;line-height:1.65;text-align:left;">
-      <p><b>1. Penggunaan.</b> Aplikasi ${APP_TITLE} disediakan oleh PT Mesin Kasir Solo untuk membantu operasional usaha laundry Anda.</p>
-      <p><b>2. Data Anda.</b> Semua data usaha tersimpan di perangkat ini (offline). Jaga perangkat Anda dan lakukan Backup rutin dari menu Pengaturan.</p>
-      <p><b>3. Gratis &amp; Lisensi.</b> Masa gratis memberi 100 transaksi per bulan. Untuk pemakaian tanpa batas kuota, beli lisensi langsung dari aplikasi (QRIS/transfer) — diverifikasi admin PT Mesin Kasir Solo.</p>
-      <p><b>4. Larangan.</b> Dilarang menjual, menyebarkan, atau membongkar aplikasi tanpa izin tertulis dari PT Mesin Kasir Solo.</p>
-      <p><b>5. Dukungan.</b> Bantuan teknis via WhatsApp 08816566935.</p>
-    </div>
-    <div class="btn-row" style="margin-top:14px;">
-      <button class="btn btn-secondary" style="flex:0 0 auto;width:auto;" onclick="gateBackToWa()">🔙 Batal</button>
-      <button class="btn btn-primary" style="flex:1;" onclick="gateAcceptTC()">✓ Setuju &amp; Lanjut</button>
-    </div>
-  </div>`;
-}
-function gateProceedToTC(){
-  const el = document.getElementById('gateWa');
-  const wa = (el ? el.value : '').trim().replace(/[\s-]/g,'');
+function saveProfileFromModal(){
+  const wa = (document.getElementById('pbWA').value || '').trim().replace(/[\s-]/g,'');
   if(!/^(\+?62|0)8[1-9][0-9]{6,11}$/.test(wa)){ toast('Nomor WhatsApp tidak valid'); return; }
+  DB.settings.namaToko = document.getElementById('pbNama').value.trim() || 'Laundry Saya';
   DB.settings.wa = wa;
-  saveDB();
-  gateStep = 'tc';
-  renderLicenseGate();
-}
-function gateBackToWa(){ gateStep = 'wa'; renderLicenseGate(); }
-async function gateAcceptTC(){
-  try { if (window.LicenseAPI) await window.LicenseAPI.startTrial(); } catch(_){ }
-  gateStep = 'wa';
-  ensureSyncedProfile(true);   /* jalur user-intent: nomor WA baru diisi di gate */
-
-  renderLicenseGate();
-  if (window._ksr_updateTrialChip) window._ksr_updateTrialChip();
-  renderView('dashboard');
-  toast('Selamat! Kuota gratis aktif 🎉');
+  DB.settings.alamat = document.getElementById('pbAlamat').value.trim();
+  saveDB(); closeModal(); dismissProfileBanner(); applyHeaderBizName();
+  ensureSyncedProfile(true);   /* jalur user-intent: profil boleh menimpa cloud */
+  toast('Profil disimpan — terima kasih! 🎉');
 }
 
 /* Gerbang transaksi POS: lisensi aktif ATAU sisa kuota > 0 (modul kaki5) */
@@ -1304,12 +1304,15 @@ function fillSettingsForm(){
   document.getElementById('setNamaToko').value = DB.settings.namaToko||'';
   document.getElementById('setAlamat').value = DB.settings.alamat||'';
   document.getElementById('setWA').value = DB.settings.wa||'';
+  applyHeaderBizName();
+  if (window._ksr_tcState) window._ksr_tcState();
 }
 function saveSettings(){
   DB.settings.namaToko = document.getElementById('setNamaToko').value.trim();
   DB.settings.alamat = document.getElementById('setAlamat').value.trim();
   DB.settings.wa = document.getElementById('setWA').value.trim();
   saveDB(); toast('Pengaturan disimpan');
+  applyHeaderBizName();
   ensureSyncedProfile(true);   /* jalur user-intent: profil boleh menimpa cloud */
 }
 /* ---------- BACKUP & RESTORE — validasi sebelum pulih; lisensi TIDAK ikut file ---------- */
@@ -1406,9 +1409,13 @@ function applyBackup(d){
    ========================================================= */
 function init(){
   seedIfEmpty();
+  applyHeaderBizName();
   renderView('dashboard');
-  /* Lisensi/gate dirender oleh modul kaki5 (js/laundry-license.js) setelah siap */
-  window.addEventListener('laundry-license-ready', () => renderLicenseGate());
+  /* Onboarding ala kaki5 & S&K ditangani modul (js/laundry-license.js) setelah siap */
+  window.addEventListener('laundry-license-ready', () => {
+    checkProfileNotification();
+    if (window._ksr_tcState) window._ksr_tcState();
+  });
 }
 init();
 </script>

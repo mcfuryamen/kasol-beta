@@ -6,10 +6,11 @@
 //   • boot sequence standar ekosistem: ensureUnitId → reanchor → sync →
 //     verify serial-bound → push profil → gate → realtime + interval 60 dtk
 import { setLicenseRefs, checkLicenseGate, enforceRevoked, renderLicenseInfoCard, updateTrialChip, hideQuotaBanner, openLicenseSheet as openLicenseSheetFromUI } from './license.ui.js';
-import { syncLicenseStatus, reanchorUnitId, verifyAndAssignSerial } from './license.sync.js';
-import { startTrial, incrementTxCount, isLicensed, getLicenseStatus, getUnitId, ensureUnitId, getDeviceCode, getLicense, getLicense as getLicenseState } from './license.logic.js';
+import { syncLicenseStatus, reanchorUnitId, verifyAndAssignSerial, fetchLicenseStatusFromCloud } from './license.sync.js';
+import { startTrial, incrementTxCount, isLicensed, getLicenseStatus, getUnitId, ensureUnitId, getDeviceCode, getLicense, getLicense as getLicenseState, persistCloudLicense } from './license.logic.js';
 import { openPurchaseSheet as modOpenPurchaseSheet, pollLicenseStatus, subscribeToLicenseUpdates } from './purchase.js';
-import { migrateLegacyLicenseState } from './db.js';
+import { migrateLegacyLicenseState, setSetting, getSetting } from './db.js';
+import { showToast } from './helpers.js';
 
 /* ---- wrappers untuk POS laundry (index.html) ---- */
 async function canCreateTx(){
@@ -118,10 +119,20 @@ async function boot(){
       await verifyAndAssignSerial(lic.serial, unitId).catch(() => { /* self-healing opsional */ });
     }
   } catch (_){ }
+  // ONBOARDING ala kaki5 (2026-10-03): TANPA gate blocking. status 'none'
+  // → (a) cek cloud: lisensi aktif → persist lokal (continueKnownDevice);
+  // (b) selain itu auto startTrial — tier gratis kuota langsung aktif.
+  // Profil dilengkapi lewat banner non-blocking (checkProfileNotification).
   try {
-    /* Push profil menunggu onboarding selesai (S&K + nomor WA) — pola kaki5:
-       baris clients lahir saat onboarding/aktivasi, bukan saat gate masih terbuka. */
-    const st = await getLicenseStatus();
+    let st = await getLicenseStatus();
+    if (st.status === 'none') {
+      try {
+        const cloud = await fetchLicenseStatusFromCloud();
+        if (cloud && cloud.license_status === 'aktif') await persistCloudLicense(cloud);
+      } catch (_){ /* offline — startTrial tetap */ }
+      await startTrial();
+      st = await getLicenseStatus();
+    }
     if (st.status !== 'none'){
       const { ensureSynced } = await import('./sync.js');
       await ensureSynced({ silent: true });
@@ -148,7 +159,24 @@ async function boot(){
       checkLicenseGate().catch(() => {});
     }
   });
-  // Sinyal ke index.html: status lisensi siap (gate boleh dirender)
+  // Konsen S&K non-blocking ala kaki5 (2026-10-03): catat tcAcceptedAt,
+  // baris "✓ Saya Setuju" disembunyikan; disegarkan tiap Pengaturan dibuka.
+  window._ksr_acceptTC = async () => {
+    try { await setSetting('tcAcceptedAt', new Date().toISOString()); } catch (_){ }
+    const row = document.getElementById('tcAcceptRow');
+    if (row) row.style.display = 'none';
+    showToast('✅ Terima kasih — persetujuan tersimpan', 'success', 3000);
+  };
+  window._ksr_tcState = async () => {
+    let accepted = false;
+    try { accepted = !!await getSetting('tcAcceptedAt', null); } catch (_){ }
+    const row = document.getElementById('tcAcceptRow');
+    if (row) row.style.display = accepted ? 'none' : 'block';
+  };
+  window.acceptTC = window._ksr_acceptTC;
+  try { window._ksr_tcState(); } catch (_){ }
+  try { if (window.checkProfileNotification) window.checkProfileNotification(); } catch (_){ }
+  // Sinyal ke index.html: status lisensi siap (banner profil boleh dirender)
   window.dispatchEvent(new Event('laundry-license-ready'));
 }
 
