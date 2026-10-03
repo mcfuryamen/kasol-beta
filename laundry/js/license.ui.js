@@ -68,6 +68,7 @@ export function licenseStatusHtml(st) {
   const used = Math.max(0, quota - remaining);
   const pct = quota > 0 ? Math.min(100, Math.max(4, Math.round((remaining / quota) * 100))) : 0;
   const adj = Number(st.txAdjust) || 0;
+  const badgeHtml = `<span class="badge ${habis ? 'red' : (remaining <= 10 ? 'orange' : 'green')}">${habis ? 'Habis bulan ini' : 'Sisa ' + remaining + ' transaksi'}</span>`;
   // Warna bar kuota dimiliki style.css (.license-progress): v160 (komentar
   // browser #1 & #2) = ISI hijau di atas track oranye. Jangan pasang override
   // inline di sini lagi — v151 pernah begitu dan warnanya jadi tidak konsisten.
@@ -77,10 +78,10 @@ export function licenseStatusHtml(st) {
       <div class="license-header">
         <div class="license-icon">🎁</div>
         <div class="license-title">Kuota Transaksi Gratis</div>
-        <span class="badge ${habis ? 'red' : (remaining <= 10 ? 'orange' : 'green')}">${habis ? 'Habis bulan ini' : 'Sisa ' + remaining + ' transaksi'}</span>
       </div>
       <div class="license-description">Setiap bulan kamu dapat <b>${quota} transaksi</b> gratis tanpa batas waktu — kuota segar lagi di awal bulan. Terpakai <b>${used}</b> bulan ini${adj ? ' · termasuk bonus admin ' + (adj > 0 ? '+' : '') + adj : ''}.</div>
       <div class="license-progress"><span style="width:${pct}%;animation:none"></span></div>
+      <div class="kmt8">${badgeHtml}</div>
     </div>
     <div class="license-actions license-actions-row" style="grid-template-columns:1fr">
       <button class="btn btn-primary" data-action="open-purchase-sheet">💳 Beli Lisensi</button>
