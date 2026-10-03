@@ -744,14 +744,84 @@ async function reportSyncError(stage, err){
     await sb.from('sync_errors').insert({ unit_id: unitId, app_type: APP_TYPE, stage, error: String((err&&err.message)||err).slice(0,500), user_agent: navigator.userAgent||'' });
   } catch(_){ }
 }
+/* ===== P2 paritas kaki5 (2026-10-03): keandalan push profil =====
+   state sync lokal synced/pending + verifiedAt TTL 24h (self-heal) +
+   pendingIntent force/backfill + retry loop 5 menit; meta perangkat di
+   payload (browser/os/device_type/user_agent, getDeviceInfo); pipeline seed
+   source app-* + status 'baru' solo baris baru; readback verify — tulis yang
+   tak terbaca (RLS dibuang) ditandai pending, bukan sukses palsu. */
+const SYNC_STATE_KEY = 'ksldry_sync_state_v1';
+const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
+const SYNC_RETRY_MS = 5 * 60 * 1000;
+function getDeviceInfo(){
+  const ua = String(navigator.userAgent || '');
+  const uaLower = ua.toLowerCase();
+  let browser = 'Lainnya';
+  if (ua.includes('Edg/') || uaLower.includes('edg/')) browser = 'Edge';
+  else if (ua.includes('OPR/') || uaLower.includes('opr/')) browser = 'Opera';
+  else if (ua.includes('SamsungBrowser')) browser = 'Samsung Internet';
+  else if (uaLower.includes('firefox')) browser = 'Firefox';
+  else if (ua.includes('CriOS') || uaLower.includes('crios')) browser = 'Chrome (iOS)';
+  else if (ua.includes('Chrome/')) browser = 'Chrome';
+  else if (ua.includes('Safari/') && !uaLower.includes('chrome')) browser = 'Safari';
+  else if (ua.includes('wv') || uaLower.includes('webview')) browser = 'WebView';
+  let os = 'Lainnya';
+  if (/windows nt/i.test(ua)) os = 'Windows';
+  else if (/android/i.test(ua)) os = 'Android';
+  else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
+  else if (/mac os x/i.test(ua)) os = 'macOS';
+  else if (/linux/i.test(ua)) os = 'Linux';
+  const isTablet = /ipad/i.test(ua) ||
+    (/android/i.test(ua) && !/mobile/i.test(ua)) ||
+    (navigator.maxTouchPoints > 1 && /tablet/i.test(ua)) ||
+    (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
+  const isMobile = !isTablet && (/mobile/i.test(ua) || /iphone|ipod|android.*mobile|iemobile|blackberry|opera mini/i.test(uaLower));
+  return { browser, os, deviceType: isTablet ? 'tablet' : (isMobile ? 'mobile' : 'desktop'), userAgent: ua.slice(0, 500) };
+}
+function readSyncState(){ try { return JSON.parse(localStorage.getItem(SYNC_STATE_KEY) || '{}') || {}; } catch (_){ return {}; } }
+function writeSyncState(st){ try { localStorage.setItem(SYNC_STATE_KEY, JSON.stringify(st)); } catch (_){ } }
+async function serverRowExists(sb, unitId){
+  const { data, error } = await sb.from('clients').select('unit_id').eq('unit_id', unitId).maybeSingle();
+  if (error) throw error;
+  return !!data;
+}
+let _syncRetryTimer = null;
+function startSyncRetryLoop(){
+  if (_syncRetryTimer) return;
+  _syncRetryTimer = setInterval(() => {
+    try {
+      if (!navigator.onLine) return;
+      const st = readSyncState();
+      if (st.status === 'pending'){ ensureSyncedProfile(st.pendingIntent === 'force'); }
+    } catch (_){}
+  }, SYNC_RETRY_MS);
+}
 async function ensureSyncedProfile(force){
+  let stage = 'session';
   try {
     const sb = getSupabaseClient();
-    if (!sb) return { offline:true };
+    if (!sb || !navigator.onLine) return { offline:true };
     if (!(DB.settings.namaToko||'').trim()) return { needProfile:true };
     const unitId = window.LicenseAPI ? await window.LicenseAPI.getUnitId() : null;
     if (!unitId) return { offline:true };
     const deviceCode = window.LicenseAPI ? await window.LicenseAPI.getDeviceCode() : '';
+
+    // Self-heal state (T29 paritas kaki5): flag 'synced' hanya cache — bila
+    // belum diverifikasi >24h, cek baris ke server; hilang = push ulang.
+    if (!force){
+      const st = readSyncState();
+      if (st.status === 'synced'){
+        const vAt = st.verifiedAt ? new Date(st.verifiedAt).getTime() : 0;
+        if (Date.now() - vAt < VERIFY_TTL_MS) return { ok:true, reason:'already-synced' };
+        try {
+          if (await serverRowExists(sb, unitId)){
+            writeSyncState(Object.assign(readSyncState(), { verifiedAt: new Date().toISOString() }));
+            return { ok:true, reason:'already-synced' };
+          }
+        } catch (e){ await reportSyncError('verify', e); }
+      }
+    }
+
     const auth = await (async () => {
       try {
         const { data } = await sb.auth.getSession();
@@ -766,9 +836,10 @@ async function ensureSyncedProfile(force){
         return anon && anon.user ? anon.user.id : null;
       } catch(_){ return null; }
     })();
-    if (!auth) return { offline:true };
-    const { data, error } = await sb.from('clients').select('unit_id').eq('unit_id', unitId).eq('app_type', APP_TYPE).maybeSingle();
-    if (error) return { offline:true };
+    if (!auth) throw new Error('auth session gagal');
+
+    const dev = getDeviceInfo();
+    try { DB.settings.deviceInfo = dev; } catch (_){}
     const payload = {
       unit_id: unitId, app_type: APP_TYPE, device_code: deviceCode,
       install_id: (DB.license && DB.license.installId) || null,
@@ -778,17 +849,56 @@ async function ensureSyncedProfile(force){
       kabkota_id: DB.settings.kabkotaId || '', kabkota: DB.settings.kabkota || '',
       kecamatan_id: DB.settings.kecamatanId || '', kecamatan: DB.settings.kecamatan || '',
       desa_id: DB.settings.desaId || '', desa: DB.settings.desa || '',
-      alamat_detail: DB.settings.alamat || '', last_seen: new Date().toISOString()
+      alamat_detail: DB.settings.alamat || '', last_seen: new Date().toISOString(),
+      browser: dev.browser, os: dev.os, device_type: dev.deviceType, user_agent: dev.userAgent
     };
-    if (!data){
+    try { saveDB(); } catch (_){ }
+
+    // Klaim device dulu — RLS hybrid: device_known men-SET user_id = anon ini.
+    stage = 'claim';
+    const { error: claimErr } = await sb.rpc('device_known', {
+      p_unit_id: unitId, p_device_code: deviceCode, p_app_type: APP_TYPE
+    });
+    if (claimErr) throw claimErr;
+
+    // Push: non-force = backfill-only (baris ada → TIDAK disentuh; cloud tetap
+    // sumber kebenaran); force (form profil) = update penuh + user_id.
+    stage = 'write';
+    const { data: existing } = await sb.from('clients').select('unit_id').eq('unit_id', unitId).eq('app_type', APP_TYPE).maybeSingle();
+    let upErr = null;
+    if (existing){
+      if (force){
+        const upd = await sb.from('clients').update(Object.assign({}, payload, { user_id: auth })).eq('unit_id', unitId).eq('app_type', APP_TYPE);
+        upErr = upd.error;
+      }
+    } else {
       const ins = await sb.from('clients').insert(Object.assign({}, payload, { user_id: auth, first_seen: new Date().toISOString() }));
-      if (ins.error){ reportSyncError('profile-insert', ins.error); return { error: ins.error }; }
-    } else if (force){
-      const upd = await sb.from('clients').update(Object.assign({}, payload, { user_id: auth })).eq('unit_id', unitId).eq('app_type', APP_TYPE);
-      if (upd.error){ reportSyncError('profile-update', upd.error); return { error: upd.error }; }
+      upErr = ins.error;
     }
+    if (upErr) throw upErr;
+
+    // Pipeline seed ala kaki5: source app-* + status 'baru' solo baris baru —
+    // status yang sudah dimajukan admin di Control tidak pernah di-reset.
+    try {
+      const { data: cur } = await sb.from('clients').select('status, source').eq('unit_id', unitId).eq('app_type', APP_TYPE).maybeSingle();
+      const needSeed = !cur || !cur.status || cur.status === '' || cur.status === null;
+      if (needSeed) await sb.from('clients').update({ source: 'app-' + APP_TYPE, status: 'baru' }).eq('unit_id', unitId).eq('app_type', APP_TYPE);
+      else if (!cur.source) await sb.from('clients').update({ source: 'app-' + APP_TYPE }).eq('unit_id', unitId).eq('app_type', APP_TYPE);
+    } catch (_lead){ /* pipeline seed non-kritikel */ }
+
+    stage = 'readback';
+    if (!(await serverRowExists(sb, unitId))) throw new Error('baris tidak terbaca setelah tulis (RLS?)');
+    writeSyncState({ status:'synced', syncedAt: new Date().toISOString(), verifiedAt: new Date().toISOString(), recentErrors: [] });
     return { ok:true };
-  } catch(e){ reportSyncError('profile', e); return { offline:true }; }
+  } catch(e){
+    const message = String((e && e.message) || e);
+    const st = readSyncState();
+    const errs = Array.isArray(st.recentErrors) ? st.recentErrors : [];
+    errs.unshift({ stage, message, at: new Date().toISOString() });
+    writeSyncState({ status:'pending', pendingIntent: force ? 'force' : 'backfill', lastError: message, lastStage: stage, lastTryAt: new Date().toISOString(), recentErrors: errs.slice(0, 5) });
+    await reportSyncError(stage, e);
+    return { ok:false, error: message };
+  }
 }
 
 /* Jembatan untuk shim modul (js/db.js, js/sync.js, js/settings.js) */
@@ -1533,6 +1643,7 @@ function init(){
   seedIfEmpty();
   applyHeaderBizName();
   renderView('dashboard');
+  startSyncRetryLoop();   /* P2: pending profil dicoba ulang tiap 5 menit selama online */
   /* Onboarding ala kaki5 & S&K ditangani modul (js/laundry-license.js) setelah siap */
   window.addEventListener('laundry-license-ready', () => {
     checkProfileNotification();

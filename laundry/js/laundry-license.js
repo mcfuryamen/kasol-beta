@@ -157,6 +157,8 @@ async function boot(){
   window.addEventListener('online', async () => {
     try { await syncLicenseStatus(); } catch (_){ }
     try { await checkLicenseGate(); } catch (_){ }
+    // P2 paritas kaki5: kembali online → push profil nunggu (backfill-only).
+    try { (await import('./sync.js')).ensureSynced({ silent: true }); } catch (_){ }
   });
   window.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible'){
