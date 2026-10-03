@@ -642,7 +642,12 @@ function renderView(view){
   if(view==='pelanggan') renderPelangganList();
   if(view==='supplier') renderSupplierList();
   if(view==='laporan') renderLaporan();
-  if(view==='settings') fillSettingsForm();
+  if(view==='settings'){
+    fillSettingsForm();
+    /* P1 paritas kaki5: tiap buka Pengaturan tarik profil cloud dulu
+       (non-silent — gagal muncul toast); baris di-refresh oleh pull. */
+    if (window._ksr_pullProfile) window._ksr_pullProfile(false);
+  }
   checkProfileNotification();
 }
 

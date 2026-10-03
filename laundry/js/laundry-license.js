@@ -11,6 +11,7 @@ import { startTrial, incrementTxCount, isLicensed, getLicenseStatus, getUnitId, 
 import { openPurchaseSheet as modOpenPurchaseSheet, pollLicenseStatus, subscribeToLicenseUpdates } from './purchase.js';
 import { migrateLegacyLicenseState, setSetting, getSetting } from './db.js';
 import { showToast } from './helpers.js';
+import { pullCloudProfileIfOnline } from './sync.js';
 
 /* ---- wrappers untuk POS laundry (index.html) ---- */
 async function canCreateTx(){
@@ -98,6 +99,7 @@ async function boot(){
   window._ksr_renderLicenseInfoCard = async () => { try { await renderLicenseInfoCard(); } catch (_){ } };
   window._ksr_enforceRevoked = async () => { try { await enforceRevoked(); } catch (_){ } };
   window._ksr_pollLicenseStatus = (unitId) => { try { pollLicenseStatus(unitId); } catch (_){ } };
+  window._ksr_pullProfile = (silent = true) => { try { return pullCloudProfileIfOnline(silent); } catch (_){ return Promise.resolve(); } };
   window.openLicenseSheet = openLicenseSheet;
   window.openPurchaseSheet = openPurchaseSheet;
   window.LicenseAPI = {
@@ -134,6 +136,9 @@ async function boot(){
       st = await getLicenseStatus();
     }
     if (st.status !== 'none'){
+      // P1 paritas kaki5 (2026-10-03): tarik profil cloud dulu di boot
+      // (device baru/install ulang tidak kehilangan profil), baru backfill.
+      try { await pullCloudProfileIfOnline(); } catch (_){ /* non-kritikel */ }
       const { ensureSynced } = await import('./sync.js');
       await ensureSynced({ silent: true });
     }
