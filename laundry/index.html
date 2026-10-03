@@ -469,11 +469,8 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0;}
     <div class="card" style="text-align:center;padding:24px 22px;">
       <div style="font-size:40px;line-height:1;margin-bottom:8px;">🏪</div>
       <h2 style="margin:0 0 6px;">Lengkapi Profil Usaha</h2>
-      <p class="muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.5;">Isi nama, WhatsApp, dan alamat supaya data cloud perangkat ini rapi dan identitasmu aman.</p>
-      <div class="btn-row">
-        <button class="btn btn-secondary" style="width:auto;flex:0 0 auto;min-height:0;padding:12px;" onclick="go('settings')">⚙️ Ke Pengaturan</button>
-        <button class="btn btn-primary" style="flex:1;" onclick="openProfileModal()">Lengkapi Sekarang</button>
-      </div>
+      <p class="muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.5;">Isi nama, WhatsApp, dan alamat di halaman <b>Pengaturan</b> supaya data cloud perangkat ini rapi dan identitasmu aman.</p>
+      <button class="btn btn-primary" onclick="go('settings')">⚙️ Lengkapi di Pengaturan</button>
     </div>
   </div>
 
@@ -656,8 +653,9 @@ const APP_TYPE = 'laundry';
 
 /* ---------- ONBOARDING ala kaki5 (2026-10-03): TANPA gate blocking ----------
    status 'none' → auto startTrial via modul (js/laundry-license.js);
-   profil dilengkapi lewat banner non-blocking; S&K konsen non-blocking
-   (tcAcceptedAt) di kartu Pengaturan. */
+   banner "Lengkapi Profil" = KUNCI: semua halaman terkunci kecuali
+   Pengaturan; SATU CTA → go('settings') — form profil cuma ada di sana;
+   S&K konsen non-blocking (tcAcceptedAt) di kartu Pengaturan. */
 function applyHeaderBizName(){
   const el = document.getElementById('brandName');
   if (el) el.textContent = (DB.settings.namaToko || '').trim() || 'Kasir Solo';
@@ -671,28 +669,6 @@ function checkProfileNotification(){
   const incomplete = !(DB.settings.wa || '').trim() || !(DB.settings.alamat || '').trim();
   const atSettings = !!(document.getElementById('view-settings') && document.getElementById('view-settings').classList.contains('active'));
   banner.classList.toggle('show', incomplete && !atSettings);
-}
-function openProfileModal(){
-  openModal(`
-    <div class="modal-head"><h2>🏪 Lengkapi Profil Usaha</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <label>Nama Laundry</label><input type="text" id="pbNama" value="${escapeHtml(DB.settings.namaToko||'')}">
-    <label>No. WhatsApp</label><input type="tel" id="pbWA" value="${escapeHtml(DB.settings.wa||'')}" placeholder="cth: 081234567890" inputmode="tel">
-    <label>Alamat</label><textarea id="pbAlamat" placeholder="cth: Jl. Merdeka No. 12, Solo">${escapeHtml(DB.settings.alamat||'')}</textarea>
-    <div class="btn-row" style="margin-top:14px;">
-      <button class="btn btn-primary" onclick="saveProfileFromModal()">Simpan Profil</button>
-    </div>
-  `);
-}
-function saveProfileFromModal(){
-  const wa = (document.getElementById('pbWA').value || '').trim().replace(/[\s-]/g,'');
-  if(!/^(\+?62|0)8[1-9][0-9]{6,11}$/.test(wa)){ toast('Nomor WhatsApp tidak valid'); return; }
-  DB.settings.namaToko = document.getElementById('pbNama').value.trim() || 'Laundry Saya';
-  DB.settings.wa = wa;
-  DB.settings.alamat = document.getElementById('pbAlamat').value.trim();
-  saveDB(); closeModal(); applyHeaderBizName();
-  const _b = document.getElementById('profileBanner'); if (_b) _b.classList.remove('show');
-  ensureSyncedProfile(true);   /* jalur user-intent: profil boleh menimpa cloud */
-  toast('Profil disimpan — terima kasih! 🎉');
 }
 
 /* Gerbang transaksi POS: lisensi aktif ATAU sisa kuota > 0 (modul kaki5) */
