@@ -370,7 +370,7 @@ let _pollTimer = null;
 
 export async function pollLicenseStatus(unitId) {
   let attempts = 0;
-  const maxAttempts = 60; // 5 minutes (30s intervals)
+  const maxAttempts = 60; // 30 menit (30 dtk × 60) — aksi verifikasi admin bisa lama
   if (_pollTimer) { clearTimeout(_pollTimer); _pollTimer = null; }
 
   const check = async () => {

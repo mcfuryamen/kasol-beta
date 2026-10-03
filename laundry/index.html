@@ -1199,11 +1199,13 @@ function openOrderDetail(id){
 }
 function setPayStatus(p){
   const o = DB.orders.find(x=>x.id===window.__currentOrderId);
+  if(!o) return;   /* guard: detail order stale pasca-restore */
   o.statusBayar = p; saveDB(); openOrderDetail(o.id);
   toast('Status pembayaran: '+PAY_LABELS[p]);
 }
 function setOrderStatus(st){
   const o = DB.orders.find(x=>x.id===window.__currentOrderId);
+  if(!o) return;   /* guard: detail order stale pasca-restore */
   o.status = st;
   if(st==='diambil' && !o.tanggalSelesai) o.tanggalSelesai = Date.now();
   saveDB(); openOrderDetail(o.id); renderDashboard();
@@ -1278,6 +1280,9 @@ function saveProduk(id){
     data.minStok = Number(document.getElementById('pfMinStok').value)||0;
   }
   if(!data.nama){ toast('Nama wajib diisi'); return; }
+  /* P3: validasi harga/stok negatif */
+  if(data.hargaBeli < 0 || data.hargaJual < 0){ toast('Harga tidak boleh negatif'); return; }
+  if(kategori==='produk' && (data.stok < 0 || data.minStok < 0)){ toast('Stok tidak boleh negatif'); return; }
   if(id){ Object.assign(DB.products.find(x=>x.id===id), data); }
   else { DB.products.push(Object.assign({id:uid('p')}, data)); }
   saveDB(); closeModal(); renderProdukList(); toast('Data disimpan');
@@ -1318,8 +1323,12 @@ function savePurchase(){
   const pid = document.getElementById('puProduk').value;
   const p = DB.products.find(x=>x.id===pid);
   if(!p){ toast('Pilih produk dahulu'); return; }
-  const qty = Number(document.getElementById('puQty').value)||1;
-  const harga = Number(document.getElementById('puHarga').value)||p.hargaBeli;
+  const qty = Number(document.getElementById('puQty').value)||0;
+  const rawH = document.getElementById('puHarga').value;
+  let harga = rawH.trim() === '' ? p.hargaBeli : (Number(rawH)||0);
+  /* P3: qty negatif/zero bikin stok berkurang & total minus — blok */
+  if(qty <= 0){ toast('Jumlah tidak valid (min. 1)'); return; }
+  if(harga < 0){ toast('Harga tidak valid (min. 0)'); return; }
   p.stok += qty; p.hargaBeli = harga;
   const supId = document.getElementById('puSupplier').value;
   const sup = DB.suppliers.find(x=>x.id===supId);
@@ -1420,10 +1429,21 @@ function renderLaporan(){
   document.getElementById('lapPiutang').textContent = fmtRp(piutang);
 
   const counter = {};
-  orders.forEach(o=>o.items.forEach(it=>{ counter[it.nama]=(counter[it.nama]||0)+ (it.tipe==='kiloan'?it.qty:it.qty); }));
-  const top = Object.entries(counter).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  document.getElementById('lapTopLayanan').innerHTML = top.length ? top.map(([nama,qty])=>`
-    <div class="total-row"><span>${escapeHtml(nama)}</span><span>${Math.round(qty*10)/10}</span></div>`).join('') : `<p class="muted">Belum ada data order.</p>`;
+  /* P3: kiloan ⇒ kg, satuan/produk ⇒ pcs — tak dicampur kedua ukuran */
+  orders.forEach(o=>o.items.forEach(it=>{
+    const e = counter[it.nama] = counter[it.nama] || { kg:0, pcs:0 };
+    if (it.tipe === 'kiloan') e.kg += Number(it.qty) || 0; else e.pcs += Number(it.qty) || 0;
+  }));
+  const score = e => Math.max(e.kg, e.pcs);
+  const fmtQty = e => {
+    const parts = [];
+    if (e.kg) parts.push((Math.round(e.kg*10)/10).toLocaleString('id-ID') + ' kg');
+    if (e.pcs) parts.push(e.pcs + ' pcs');
+    return parts.join(' · ');
+  };
+  const top = Object.entries(counter).sort((a,b)=>score(b[1])-score(a[1])).slice(0,5);
+  document.getElementById('lapTopLayanan').innerHTML = top.length ? top.map(([nama,e])=>`
+    <div class="total-row"><span>${escapeHtml(nama)}</span><span>${fmtQty(e)}</span></div>`).join('') : `<p class="muted">Belum ada data order.</p>`;
 
   const tipis = DB.products.filter(p=>p.kategori==='produk' && p.stok<=p.minStok);
   document.getElementById('lapStokTipis').innerHTML = tipis.length ? tipis.map(p=>`
@@ -1630,6 +1650,9 @@ function applyBackup(d){
     DB.settings = { namaToko:String(d.settings.namaToko||''), alamat:String(d.settings.alamat||''), wa:String(d.settings.wa||'') };
   }
   DB.nomorCounter = null; // dihitung ulang dari data yang dipulihkan
+  /* P3: pasca-restore, cart/detail stale bisa rujuk produk yang sudah tak ada */
+  cart = []; renderCartBar();
+  window.__currentOrderId = null;
   saveDB();
   renderView('dashboard');
   if (window._ksr_updateTrialChip) window._ksr_updateTrialChip();
