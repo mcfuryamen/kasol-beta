@@ -166,6 +166,20 @@ textarea{resize:vertical;min-height:70px;}
 .pay-chip{padding:9px 14px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;}
 .pay-chip.active{background:var(--brand-gradient);color:#fff;border-color:transparent;}
 
+/* Baris profil ala kaki5 (form Data Usaha: tiap field = baris + modal edit) */
+.setting-item{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--border);cursor:pointer;}
+.setting-item:last-child{border-bottom:none;}
+.setting-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.kbg-orange{background:var(--warning-bg);color:var(--warning);}
+.kbg-green{background:var(--success-bg);color:var(--success);}
+.kbg-blue{background:var(--info-bg);color:var(--info);}
+.kbg-purple{background:var(--c-stok-bg);color:var(--c-stok);}
+.setting-info{flex:1;min-width:0;}
+.s-title{font-size:12.5px;font-weight:700;color:var(--ink);}
+.s-title .kreq{color:var(--danger);}
+.s-desc{font-size:12px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.setting-arrow{color:var(--ink-faint);font-size:18px;flex-shrink:0;}
+
 /* Banner "Lengkapi Profil" ala kaki5 (onboarding 2026-10-03) — overlay
    center-immersive NON-blocking: bisa ditutup, app tetap berjalan. */
 .profile-banner{position:fixed;inset:0;z-index:520;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(43,29,20,.35);}
@@ -361,10 +375,26 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0;}
     <section class="view" id="view-settings">
       <div class="card">
         <h3>🏪 Data Usaha</h3>
-        <label>Nama Laundry</label><input type="text" id="setNamaToko">
-        <label>Alamat</label><textarea id="setAlamat"></textarea>
-        <label>No. WhatsApp</label><input type="text" id="setWA">
-        <div class="btn-row" style="margin-top:12px;"><button class="btn btn-primary" onclick="saveSettings()">Simpan</button></div>
+        <div class="setting-item" onclick="openNameModal()">
+          <div class="setting-icon kbg-orange">🏪</div>
+          <div class="setting-info"><div class="s-title">Nama Usaha <span class="kreq">*</span></div><div class="s-desc" id="settingName">—</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" onclick="openOwnerModal()">
+          <div class="setting-icon kbg-purple">👤</div>
+          <div class="setting-info"><div class="s-title">Nama Pemilik <span class="kreq">*</span></div><div class="s-desc" id="settingOwner">—</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" onclick="openWaModal()">
+          <div class="setting-icon kbg-green">💬</div>
+          <div class="setting-info"><div class="s-title">Nomor WhatsApp <span class="kreq">*</span></div><div class="s-desc" id="settingWa">—</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" onclick="openAlamatModal()">
+          <div class="setting-icon kbg-blue">📍</div>
+          <div class="setting-info"><div class="s-title">Alamat <span class="kreq">*</span></div><div class="s-desc" id="settingAlamat">—</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
       </div>
       <div class="card">
         <h3>🔐 Lisensi</h3>
@@ -512,7 +542,9 @@ function defaultLicense(){
 function defaultDB(){
   return {
     version: 2,
-    settings:{ namaToko:'Laundry Saya', alamat:'', wa:'' },
+    settings:{ namaToko:'Laundry Saya', namaPemilik:'', alamat:'', wa:'',
+               provinsiId:'', provinsi:'', kabkotaId:'', kabkota:'',
+               kecamatanId:'', kecamatan:'', desaId:'', desa:'' },
     products:[], customers:[], suppliers:[],
     orders:[], purchases:[],
     nomorCounter:null,
@@ -666,7 +698,7 @@ function applyHeaderBizName(){
 function checkProfileNotification(){
   const banner = document.getElementById('profileBanner');
   if (!banner) return;
-  const incomplete = !(DB.settings.wa || '').trim() || !(DB.settings.alamat || '').trim();
+  const incomplete = !(DB.settings.namaPemilik || '').trim() || !(DB.settings.wa || '').trim() || (!(DB.settings.kabkota || '').trim() && !(DB.settings.alamat || '').trim());
   const atSettings = !!(document.getElementById('view-settings') && document.getElementById('view-settings').classList.contains('active'));
   banner.classList.toggle('show', incomplete && !atSettings);
 }
@@ -735,7 +767,12 @@ async function ensureSyncedProfile(force){
     const payload = {
       unit_id: unitId, app_type: APP_TYPE, device_code: deviceCode,
       install_id: (DB.license && DB.license.installId) || null,
-      nama_usaha: DB.settings.namaToko || '', no_whatsapp: DB.settings.wa || '',
+      nama_usaha: DB.settings.namaToko || '', nama_pemilik: DB.settings.namaPemilik || '',
+      no_whatsapp: DB.settings.wa || '',
+      provinsi_id: DB.settings.provinsiId || '', provinsi: DB.settings.provinsi || '',
+      kabkota_id: DB.settings.kabkotaId || '', kabkota: DB.settings.kabkota || '',
+      kecamatan_id: DB.settings.kecamatanId || '', kecamatan: DB.settings.kecamatan || '',
+      desa_id: DB.settings.desaId || '', desa: DB.settings.desa || '',
       alamat_detail: DB.settings.alamat || '', last_seen: new Date().toISOString()
     };
     if (!data){
@@ -1281,20 +1318,119 @@ function renderLaporan(){
 /* =========================================================
    PENGATURAN
    ========================================================= */
+/* ---------- DATA USAHA ala kaki5: baris profil → modal edit per field ---------- */
+function regionSummaryText(){
+  const p = DB.settings;
+  const parts = [p.desa, p.kecamatan, p.kabkota, p.provinsi].filter(v => v && String(v).trim()).join(', ');
+  const detail = (p.alamat || '').trim();
+  if (!parts && !detail) return '—';
+  return parts ? (detail ? detail + ' — ' + parts : parts) : detail;
+}
 function fillSettingsForm(){
-  document.getElementById('setNamaToko').value = DB.settings.namaToko||'';
-  document.getElementById('setAlamat').value = DB.settings.alamat||'';
-  document.getElementById('setWA').value = DB.settings.wa||'';
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = (v||'').trim() || '—'; };
+  set('settingName', DB.settings.namaToko);
+  set('settingOwner', DB.settings.namaPemilik);
+  set('settingWa', DB.settings.wa);
+  set('settingAlamat', regionSummaryText());
   applyHeaderBizName();
   if (window._ksr_tcState) window._ksr_tcState();
 }
-function saveSettings(){
-  DB.settings.namaToko = document.getElementById('setNamaToko').value.trim();
-  DB.settings.alamat = document.getElementById('setAlamat').value.trim();
-  DB.settings.wa = document.getElementById('setWA').value.trim();
-  saveDB(); toast('Pengaturan disimpan');
-  applyHeaderBizName();
-  ensureSyncedProfile(true);   /* jalur user-intent: profil boleh menimpa cloud */
+async function syncProfileAfterSave(label){
+  try {
+    const res = await ensureSyncedProfile(true);   /* jalur user-intent: profil boleh menimpa cloud */
+    if (res && res.ok) toast('✅ ' + label + ' disimpan & tersinkron!');
+    else toast('⚠️ ' + label + ' disimpan lokal — gagal sinkron.');
+  } catch (_) { toast('⚠️ ' + label + ' disimpan lokal — gagal sinkron.'); }
+}
+function openNameModal(){
+  openModal(`
+    <div class="modal-head"><h2>🏪 Nama Usaha</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Ketik nama usaha kamu</label>
+    <input type="text" id="inputNamaUsaha" value="${escapeHtml(DB.settings.namaToko||'')}" placeholder="Contoh: Cuci Kiloan Berkah">
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveNamaUsaha()">💾 Simpan</button>
+    </div>`);
+}
+async function saveNamaUsaha(){
+  const nama = (document.getElementById('inputNamaUsaha').value || '').trim();
+  if(!nama){ toast('Nama tidak boleh kosong!'); return; }
+  DB.settings.namaToko = nama;
+  saveDB(); closeModal(); fillSettingsForm(); applyHeaderBizName();
+  await syncProfileAfterSave('Nama usaha');
+}
+function openOwnerModal(){
+  openModal(`
+    <div class="modal-head"><h2>👤 Nama Pemilik</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Siapa nama pemilik usaha?</label>
+    <input type="text" id="inputOwner" value="${escapeHtml(DB.settings.namaPemilik||'')}" placeholder="Contoh: Pak Joko">
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveOwner()">💾 Simpan</button>
+    </div>`);
+}
+async function saveOwner(){
+  const owner = (document.getElementById('inputOwner').value || '').trim();
+  if(!owner){ toast('Nama pemilik tidak boleh kosong!'); return; }
+  DB.settings.namaPemilik = owner;
+  saveDB(); closeModal(); fillSettingsForm();
+  await syncProfileAfterSave('Nama pemilik');
+}
+function openWaModal(){
+  openModal(`
+    <div class="modal-head"><h2>💬 Nomor WhatsApp</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Nomor WhatsApp kamu</label>
+    <input type="tel" id="inputWa" value="${escapeHtml(DB.settings.wa||'')}" placeholder="Contoh: 0812-3456-7890" inputmode="tel">
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveWa()">💾 Simpan</button>
+    </div>`);
+}
+async function saveWa(){
+  const raw = (document.getElementById('inputWa').value || '').trim().replace(/[\s-]/g,'');
+  if(!/^(\+?62|0)8[1-9][0-9]{6,11}$/.test(raw)){ toast('Nomor WhatsApp tidak valid'); return; }
+  DB.settings.wa = raw;
+  saveDB(); closeModal(); fillSettingsForm();
+  await syncProfileAfterSave('Nomor WhatsApp');
+}
+let alamatRegion = {};
+function openAlamatModal(){
+  const p = DB.settings;
+  alamatRegion = {
+    provinsi_id: p.provinsiId || '', provinsi: p.provinsi || '',
+    kabkota_id:  p.kabkotaId  || '', kabkota:  p.kabkota  || '',
+    kecamatan_id:p.kecamatanId|| '', kecamatan:p.kecamatan|| '',
+    desa_id:     p.desaId     || '', desa:     p.desa     || ''
+  };
+  openModal(`
+    <div class="modal-head"><h2>📍 Alamat</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Provinsi</label><select id="alamatProvinsi" disabled><option value="">—</option></select>
+    <label>Kota / Kabupaten</label><select id="alamatKabkota" disabled><option value="">—</option></select>
+    <label>Kecamatan</label><select id="alamatKecamatan" disabled><option value="">—</option></select>
+    <label>Desa / Kelurahan</label><select id="alamatDesa" disabled><option value="">—</option></select>
+    <label>Detail Alamat (jalan, no. rumah) *</label>
+    <input type="text" id="inputAlamat" value="${escapeHtml(p.alamat||'')}" placeholder="Contoh: Jl. Merdeka No. 10, Solo">
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveAlamat()">💾 Simpan</button>
+    </div>`);
+  if (window.setupRegionPicker){
+    window.setupRegionPicker({ provSel:'alamatProvinsi', kabSel:'alamatKabkota', kecSel:'alamatKecamatan', desaSel:'alamatDesa', state: alamatRegion });
+  } else {
+    toast('⚠️ Pilih wilayah sedang dimuat — buka kembali sebentar lagi');
+  }
+}
+async function saveAlamat(){
+  const detail = (document.getElementById('inputAlamat').value || '').trim();
+  if(!detail){ toast('Detail alamat tidak boleh kosong!'); return; }
+  const r = alamatRegion, p = DB.settings;
+  p.alamat = detail;
+  p.provinsiId = r.provinsi_id; p.provinsi = r.provinsi;
+  p.kabkotaId  = r.kabkota_id;  p.kabkota  = r.kabkota;
+  p.kecamatanId= r.kecamatan_id;p.kecamatan= r.kecamatan;
+  p.desaId     = r.desa_id;     p.desa     = r.desa;
+  saveDB(); closeModal(); fillSettingsForm();
+  await syncProfileAfterSave('Alamat');
 }
 /* ---------- BACKUP & RESTORE — validasi sebelum pulih; lisensi TIDAK ikut file ---------- */
 const BACKUP_MAX_ROWS = 20000;
@@ -1401,5 +1537,6 @@ function init(){
 init();
 </script>
 <script type="module" src="js/laundry-license.js"></script>
+<script type="module" src="js/region-loader.js"></script>
 </body>
 </html>

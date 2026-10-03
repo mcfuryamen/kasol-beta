@@ -44,6 +44,14 @@ export async function pullCloudProfileTo(cloud){
     if (cloud.no_whatsapp != null) db.settings.wa = String(cloud.no_whatsapp || '');
     if (cloud.alamat_detail != null) db.settings.alamat = String(cloud.alamat_detail || '');
     if (cloud.nama_pemilik != null) db.settings.namaPemilik = String(cloud.nama_pemilik || '');
+    if (cloud.provinsi != null) db.settings.provinsi = String(cloud.provinsi || '');
+    if (cloud.provinsi_id != null) db.settings.provinsiId = String(cloud.provinsi_id || '');
+    if (cloud.kabkota != null) db.settings.kabkota = String(cloud.kabkota || '');
+    if (cloud.kabkota_id != null) db.settings.kabkotaId = String(cloud.kabkota_id || '');
+    if (cloud.kecamatan != null) db.settings.kecamatan = String(cloud.kecamatan || '');
+    if (cloud.kecamatan_id != null) db.settings.kecamatanId = String(cloud.kecamatan_id || '');
+    if (cloud.desa != null) db.settings.desa = String(cloud.desa || '');
+    if (cloud.desa_id != null) db.settings.desaId = String(cloud.desa_id || '');
     c.saveDB();
     if (typeof c.fillSettingsForm === 'function') c.fillSettingsForm();
   } catch (_){ /* non-kritikel */ }
