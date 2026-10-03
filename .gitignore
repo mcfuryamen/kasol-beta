@@ -135,3 +135,6 @@ cmdline-tools.zip
 # user-data-dir puppeteer-core (minimarket/qa-shots/profile) — IndexedDB persist
 # antar run & file binary besar; screenshot PNG tetap di-track, profile JANGAN.
 minimarket/qa-shots/profile/
+
+# Vendor laundry (negasi *.min.js — pola kaki5/rosok; hilang = app rusak diam)
+!laundry/js/supabase.min.js
