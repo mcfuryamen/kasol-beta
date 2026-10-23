@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="UTF-8"><title>QA probe: Dexie schema conflict</title>
+<style>body{font-family:ui-monospace,Consolas,monospace;font-size:12px;padding:16px;background:#0f172a;color:#e2e8f0;white-space:pre-wrap}
+.ok{color:#4ade80}.bad{color:#f87171}.warn{color:#fbbf24}h1{font-size:15px}</style></head>
+<body><div id="out">running...</div>
+<script src="https://unpkg.com/dexie@3.2.7/dist/dexie.min.js"></script>
+<script>
+'use strict';
+const out=[];
+const say=(m,c)=>{out.push(`<span class="${c||''}">${m}</span>`);document.getElementById('out').innerHTML=out.join('\n');};
+
+// Schema EXACTLY as declared in login.html (line 366)
+const LOGIN_STORES={locations:'++id,name',students:'++id,locationId,isActive',teachers:'++id,locationId,isActive',guardians:'++id,locationId',classes:'++id,locationId',classStudents:'++id,classId,studentId',classTeachers:'++id,classId,teacherId,isPrimary',schedules:'++id,classId,teacherId,day',academicYears:'++id,locationId',curriculumCategories:'++id,locationId,name,sortOrder',curriculumMaterials:'++id,categoryId,title',classSessions:'++id,classId,teacherId,sessionDate',attendances:'++id,sessionId,studentId,status',hafalanProgress:'++id,studentId,surahNumber,type,grade,recordedAt',iqroProgress:'++id,studentId,jilid,page,grade,recordedAt',sppTypes:'++id,locationId,name,amount',sppBills:'++id,studentId,sppTypeId,billMonth,status,amount,paidAmount',payments:'++id,billId,studentId,amount,method,paidAt',cashFlows:'++id,locationId,type,category,amount,transactionDate',projects:'++id,locationId,title,status,priority',projectTasks:'++id,projectId,title,status',notifications:'++id,userId,type,title,isRead,createdAt',appSettings:'++id,locationId,key,value'};
+
+// Schema EXACTLY as declared in admin.html / guru.html / wali.html (line 203-220)
+const APP_STORES={locations:'++id,name',users:'++id,role,locationId,name',students:'++id,locationId,guardianId,nis,name,gender,isActive',teachers:'++id,locationId,name,gender,isActive',guardians:'++id,locationId,name,phone',classes:'++id,locationId,name,level,isActive',classStudents:'++id,classId,studentId',classTeachers:'++id,classId,teacherId,isPrimary',schedules:'++id,classId,teacherId,day',academicYears:'++id,locationId,name,isActive',curriculumCategories:'++id,locationId,name,sortOrder',curriculumMaterials:'++id,categoryId,title',classSessions:'++id,classId,teacherId,sessionDate',attendances:'++id,sessionId,studentId,status',hafalanProgress:'++id,studentId,teacherId,surahNumber,type,grade,recordedAt',iqroProgress:'++id,studentId,teacherId,jilid,page,grade,recordedAt',sppTypes:'++id,locationId,name,amount',sppBills:'++id,studentId,sppTypeId,billMonth,status,amount,paidAmount',payments:'++id,billId,studentId,amount,method,paidAt',cashFlows:'++id,locationId,type,category,amount,transactionDate',projects:'++id,locationId,title,status,priority',projectTasks:'++id,projectId,title,status',notifications:'++id,userId,type,title,isRead,createdAt',appSettings:'++id,locationId,key,value'};
+
+function mk(stores){const d=new Dexie('KasirSoloTPA');d.version(1).stores(stores);return d;}
+
+async function indexesOf(d,table){
+  try{await d.open();}catch(e){return ['<open failed: '+e.name+'>'];}
+  const idb=d.idbdb;
+  const tx=idb.transaction([table],'readonly');
+  const st=tx.objectStore(table);
+  return Array.from(st.indexNames);
+}
+
+async function probe(label, firstStores, secondStores){
+  say('\n================ '+label+' ================','warn');
+  await Dexie.delete('KasirSoloTPA').catch(e=>say('pre-delete: '+e,'warn'));
+  say('DB wiped before scenario: '+(await Dexie.exists('KasirSoloTPA')===false?'yes':'NO'),'ok');
+  const a=mk(firstStores);
+  await a.open().catch(e=>say('open A failed: '+e,'bad'));
+  say('DB created/verified by first page. version='+a.verno);
+  a.close();
+
+  const b=mk(secondStores);
+  await b.open().catch(e=>say('open B failed: '+e,'bad'));
+  const idx=await indexesOf(b,'students');
+  say('students indexes actually installed: '+JSON.stringify(idx), idx.includes('guardianId')?'ok':'bad');
+  say('users store exists in IDB: '+b.idbdb.objectStoreNames.contains('users'), b.idbdb.objectStoreNames.contains('users')?'ok':'bad');
+
+  // The real query wali.html:323 and admin.html:432 perform
+  try{await b.students.where('guardianId').equals(1).toArray();say("students.where('guardianId') -> OK",'ok');}
+  catch(e){say("students.where('guardianId') -> THROWS "+e.name+': '+e.message,'bad');}
+
+  // The real query admin.html:382 filter + nis search relies on locationId (present in both)
+  try{await b.students.where('locationId').equals(1).toArray();say("students.where('locationId') -> OK",'ok');}
+  catch(e){say("students.where('locationId') -> THROWS "+e.message,'bad');}
+
+  b.close();
+}
+
+(async()=>{
+  say('PROBE: two different db.version(1) schemas on the SAME IndexedDB name "KasirSoloTPA"');
+  await probe('SCENARIO 1 — login.html opens FIRST (site root "/" -> login.html)', LOGIN_STORES, APP_STORES);
+  await probe('SCENARIO 2 — admin.html opens FIRST', APP_STORES, LOGIN_STORES);
+  say('\nDONE');
+})();
+</script></body></html>

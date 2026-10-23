@@ -1,0 +1,7 @@
+kaki5 v1.0.97 (v164-v165): satu jalur pencatatan uang, kolom Tanggal + edit catatan, polish form Catat
+
+- v164: modal "Catat Kas Manual" dobel dihapus — Beranda mendelegasi ke form Laporan; metodeBayar per catatan (tunai/QRIS/transfer) sehingga hanya tunai menggeser laci; kategori non-usaha (Setor Bank, Modal Tambahan) dikecualikan dari Laba; hitungLaba jadi satu rumus untuk Beranda/Laporan/tutup buku; blok Dompet Digital di layar Tutup Kas; IndexedDB v8 (migrasi tabel kas -> pengeluaran); backup payload v4
+
+- v165: kolom Tanggal di form Catat (nomor BLJ/MSK + waktu ikut tanggal, ditolak untuk masa depan, dikonfirmasi bila tahun sudah ditutup buku); jalur EDIT catatan lewat tombol "Ubah Catatan" di modal rincian dengan form & aturan yang sama; label metode jadi "Ambil dari?" / "Masuk ke?"; font form Catat proporsional 16px; kartu Tutup Buku Tahunan pindah ke paling bawah Laporan; hapusExpense selalu refresh view kas
+
+- QA: 59 unit test kas.logic.js + 65 checker statis v164 + 88 checker statis v165 (0 fail)

@@ -1,0 +1,106 @@
+---
+import Base from '../../layouts/Base.astro';
+import { site, cities, projects, projectsForCity, cityInfo } from '../../data/portfolio';
+
+export function getStaticPaths() {
+  return cities.map((c) => ({ params: { slug: c.slug }, props: { city: c } }));
+}
+
+const { city } = Astro.props;
+const info = cityInfo[city.slug] ?? { intro: '', landmark: '' };
+const local = projectsForCity(city.slug);
+const shown = local.length > 0 ? local : projects.slice(0, 6);
+const isKandang = city.type === 'Kandang';
+
+const title = `Jual Mesin Kasir di ${city.name} — Gratis Instalasi & Training | KASIRSOLO`;
+const description = isKandang
+  ? `Distributor mesin kasir Android & Windows di ${city.name}. Paket siap pakai + software kasir offline-first, gratis instalasi dan training oleh tim langsung.`
+  : `Pengiriman paket mesin kasir ke ${city.name} + support remote prioritas dan instalasi terjadwal. Software kasir offline-first, garansi servis.`;
+
+const waText = encodeURIComponent(`Halo founder, saya dari ${city.name} — mau tanya paket mesin kasir.`);
+
+const breadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Beranda', item: `${Astro.site}` },
+    { '@type': 'ListItem', position: 2, name: 'Area Layanan', item: `${Astro.site}#jangkauan` },
+    { '@type': 'ListItem', position: 3, name: city.name, item: new URL(`/kota/${city.slug}`, Astro.site).toString() },
+  ],
+};
+---
+<Base title={title} description={description}>
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumb)} />
+
+  <section class="hero hero-compact">
+    <div class="hero-bg">
+      <div class="orb-1"></div>
+      <div class="grid-lines"></div>
+    </div>
+    <div class="hero-inner">
+      <span class="hero-badge anim-fade">{isKandang ? 'Area Kandang — On-Site Penuh' : 'Area Ekspansi — Kirim & Remote'}</span>
+      <h1 class="anim-fade anim-d1">Mesin Kasir di<br /><span class="accent">{city.name}.</span></h1>
+      <p class="hero-sub anim-fade anim-d2">{info.intro}</p>
+      <div class="hero-cta anim-fade anim-d3">
+        <a href={`https://wa.me/${site.whatsapp}?text=${waText}`} target="_blank" rel="noopener" class="btn btn-primary btn-hero">Konsultasi Gratis<span class="shine"></span></a>
+        <a href="/#hardware" class="btn btn-outline btn-hero">Lihat Paket & Harga</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="layanan-kota">
+    <div class="container">
+      <div class="city-promise">
+        <div class="promise-card">
+          <span class="type">Yang Lo Dapat</span>
+          <ul class="promise-list">
+            <li>Paket mesin kasir {isKandang ? 'dipasang & diuji langsung di lokasi lo' : 'dikirim tersegel + panduan instalasi video terpandu'}</li>
+            <li>Training tim kasir sampai mandiri {isKandang ? '(on-site, gratis)' : '(via video call, gratis)'}</li>
+            <li>Software kasir {isKandang ? 'sudah terisi contoh produk lo' : 'offline-first, jalan di HP / tablet lo'}</li>
+            <li>Support teknis 24/7 via WhatsApp founder</li>
+          </ul>
+        </div>
+        <div class="promise-card">
+          <span class="type">Jangkauan di {city.name}</span>
+          <p class="promise-landmark">{info.landmark}</p>
+          <p class="promise-note">{isKandang
+            ? 'Tim kami berbasis di Kartasura — respons on-site area ini paling cepat.'
+            : 'Instalasi on-site terjadwal per kloter untuk proyek di atas Rp 5 juta; di bawah itu full remote terpandu.'}</p>
+          <a href="/#jangkauan" class="proj-more">Semua area layanan →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block tint" id="proyek-kota">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker-pill">{local.length > 0 ? `${local.length} Proyek Selesai` : 'Proyek Terdekat'}</span>
+        {local.length > 0
+          ? <h2>Sudah Berjalan di <span class="hl">{city.name}.</span></h2>
+          : <h2>Yang Sudah Kami Kerjakan <span class="hl">di Sekitar Sini.</span></h2>}
+        {local.length === 0 && <p class="sub">Belum ada proyek tercatat di {city.name} — ini yang sudah jalan di kota-kota lain. Slot on-site {city.name} bulan ini masih dibuka.</p>}
+      </div>
+      <div class="grid grid-3 proj-grid">
+        {shown.slice(0, 6).map((p) => (
+          <a class="card proj-card" href={`/portfolio/${p.slug}`}>
+            <div class="proj-thumb"><img src={p.image} alt={p.title} loading="lazy" width="800" height="450" /></div>
+            <span class="type">{p.tag} — {p.city}</span>
+            <h3>{p.title}</h3>
+            <span class="proj-more">Lihat Detail →</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top: 0;">
+    <div class="container">
+      <div class="cta-final">
+        <h2>Buka Usaha di {city.name}? Siapin Kasirnya Dulu.</h2>
+        <p>Konsultasi gratis langsung dengan founder. Ceritain usahanya, kami rakitin solusinya.</p>
+        <a href={`https://wa.me/${site.whatsapp}?text=${waText}`} target="_blank" rel="noopener" class="btn btn-primary">Chat dari {city.name}<span class="shine"></span></a>
+      </div>
+    </div>
+  </section>
+</Base>

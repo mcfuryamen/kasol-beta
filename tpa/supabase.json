@@ -1,0 +1,31 @@
+{
+  "project_id": "ozsjflxfkbcygbuxgwyf",
+  "api": {
+    "port": 54321,
+    "schemas": ["public", "auth"],
+    "max_rows": 10000
+  },
+  "db": {
+    "port": 54322,
+    "shadow_port": 54323
+  },
+  "studio": {
+    "port": 54324
+  },
+  "inbucket": {
+    "port": 54325
+  },
+  "vector": {
+    "port": 54326
+  },
+  "functions": [
+    {
+      "id": "identity-approve-recovery",
+      "import_map": "./supabase/functions/import_map.json"
+    },
+    {
+      "id": "identity-complete-recovery",
+      "import_map": "./supabase/functions/import_map.json"
+    }
+  ]
+}
