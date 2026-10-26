@@ -1,0 +1,436 @@
+---
+/**
+ * Halaman link referral — `/r/<kode>`.
+ * =============================================================================
+ * Static hosting, jadi kodenya dibaca di sisi klien:
+ *   1. dari query string `?code=MKS-XXXX` (hasil rewrite Vercel, lihat vercel.json)
+ *   2. fallback: parse sendiri dari `location.pathname` (`/r/MKS-XXXX`)
+ *
+ * Halaman ini buat pihak yang DIREKOMENDASIKAN (calon pembeli lisensi).
+ * Isinya: kode referral, form ambil diskon, pilihan aplikasi.
+ *
+ * Alur klaim (Fase 2 — 26/10/2026):
+ *   Isi nama + WhatsApp → RPC `partner_claim_referral` → refereenya dapat kode
+ *   voucher diskon, mitranya dapat poin (ledger + hold 7/30 hari).
+ *   Redeem kode saat pembelian di dalam aplikasi = Fase 3 (app klien).
+ */
+import Base from '../layouts/Base.astro';
+import { site, products, formatRupiah } from '../data/site';
+
+const title = 'Kode Referral Mitra — Diskon Lisensi Pertama | PT Mesin Kasir Solo';
+const description =
+  'Pakai kode referral mitra untuk dapat diskon lisensi pertama aplikasi kasir Kasir Solo. Satu kode berlaku untuk semua aplikasi.';
+---
+
+<Base title={title} description={description}>
+  <section class="block mr-page">
+    <div class="container">
+      <div class="mr-wrap">
+
+        <span class="kicker-pill" data-i18n="m.refTitle">Lo Dapet Kode Referral</span>
+        <h1><span data-i18n="m.refTitle">Lo Dapet Kode Referral</span></h1>
+        <p class="sub" data-i18n="m.refSub">
+          Pakai kode ini buat dapet diskon lisensi pertama lo.
+        </p>
+
+        {/* ---- Kode ---- */}
+        <div class="mr-code-card">
+          <span class="mr-code-label" data-i18n="m.refCode">Kode referral</span>
+          <code class="mr-code" id="mrCode">—</code>
+          <button class="btn btn-outline mr-btn" id="mrCopy" type="button">
+            <span id="mrCopyLabel" data-i18n="m.refCopy">Salin</span>
+            <span id="mrCopyOk" data-i18n="m.pSalinOk" hidden>Tersalin!</span>
+          </button>
+          <p class="mr-dari" id="mrDariRow" hidden>
+            <span data-i18n="m.refDari">Dipanggil oleh</span>: <b id="mrDari">—</b>
+          </p>
+        </div>
+
+        {/* ---- Kode invalid ---- */}
+        <div class="mr-invalid" id="mrInvalid" hidden>
+          <h2 data-i18n="m.refInvalid">Kodenya belum valid</h2>
+          <p data-i18n="m.refInvalidSub">
+            Cek lagi linknya. Kalau masih nggak jalan, minta kode langsung ke mitranya.
+          </p>
+          <a class="btn btn-primary mr-btn" href="/">
+            <span data-i18n="m.refMasuk">Lihat Program Mitra</span><span class="shine"></span>
+          </a>
+        </div>
+
+        {/* ---- Form klaim diskon ---- */}
+        <div class="mr-klaim" id="mrKlaim">
+          <h2 data-i18n="m.claimTitle">Ambil kode diskon lo</h2>
+          <p class="mr-klaim-sub" data-i18n="m.claimSub">
+            Isi nama + WhatsApp, kode diskon lo langsung jadi. Sekalian masuk ke program mitra yang
+            manggil lo.
+          </p>
+          <form class="mr-klaim-form" id="mrClaimForm" novalidate>
+            <label class="mr-klaim-field">
+              <span data-i18n="m.claimNama">Nama</span>
+              <input type="text" name="nama" required placeholder="Nama lo" data-i18n-ph="m.claimNamaPh" />
+            </label>
+            <label class="mr-klaim-field">
+              <span data-i18n="m.claimWa">Nomor WhatsApp</span>
+              <input type="tel" name="wa" required placeholder="628xxxxxxxxxx" data-i18n-ph="m.claimWaPh" />
+            </label>
+            <label class="mr-klaim-field">
+              <span data-i18n="m.claimKota">Kota</span>
+              <input type="text" name="kota" placeholder="Kota lo" data-i18n-ph="m.claimKotaPh" />
+            </label>
+            <label class="mr-klaim-field">
+              <span data-i18n="m.claimApp">Produk yang mau dibeli</span>
+              <select name="app">
+                <option value="*" data-i18n="m.claimAppSemua">Semua aplikasi</option>
+                {products.map((p) => <option value={p.appType}>{p.name}</option>)}
+              </select>
+            </label>
+            <button class="btn btn-primary mr-btn" type="submit">
+              <span data-i18n="m.claimBtn">Ambil kode diskon</span><span class="shine"></span>
+            </button>
+          </form>
+          <p class="mr-alert" id="mrAlert" hidden></p>
+          <p class="mr-alert mr-alert-ok" id="mrSudah" data-i18n="m.claimSudah" hidden>
+            Kode lo udah kepake. Simpan ya.
+          </p>
+        </div>
+
+        {/* ---- Hasil klaim ---- */}
+        <div class="mr-hasil" id="mrHasil" hidden>
+          <h2 data-i18n="m.claimOkTitle">Kode diskon lo jadi!</h2>
+          <div class="mr-hasil-box">
+            <span class="mr-code-label" data-i18n="m.claimVoucher">Kode diskon lo</span>
+            <code class="mr-code mr-code-voucher" id="mrVoucher">—</code>
+            <button class="btn btn-outline mr-btn" id="mrVoucherCopy" type="button">
+              <span id="mrVoucherCopyLabel" data-i18n="m.refCopy">Salin</span>
+              <span id="mrVoucherCopyOk" data-i18n="m.pSalinOk" hidden>Tersalin!</span>
+            </button>
+          </div>
+          <ul class="mr-hasil-list">
+            <li><span data-i18n="m.claimValue">Nilai diskon</span><b id="mrNilai">—</b></li>
+            <li><span data-i18n="m.claimMin">Minimal belanja</span><b id="mrMin">—</b></li>
+            <li><span data-i18n="m.claimExpiry">Berlaku sampai</span><b id="mrExp">—</b></li>
+          </ul>
+          <p class="mr-note" data-i18n="m.claimNote">
+            Simpan kode ini. Tunjukin ke tim kasir pas mau beli lisensi — diskon langsung kepotong
+            dari harga.
+          </p>
+        </div>
+
+        {/* ---- Pilih aplikasi ---- */}
+        <div class="mr-pilih" id="mrPilih">
+          <h2 data-i18n="m.refPilih">Pilih aplikasinya</h2>
+          <div class="mr-apps">
+            {products.map((p) => (
+              <article class="mr-app">
+                <div class="mr-app-head">
+                  <h3>{p.name}</h3>
+                  <span class="mr-app-price">{formatRupiah(p.price)}</span>
+                </div>
+                <p>{p.blurb}</p>
+                <a class="btn btn-primary mr-btn mr-app-cta" href={`${site.mainSite}/#aplikasi`} data-app={p.appType}>
+                  <span data-i18n="m.refCta">Ambil Diskon</span><span class="shine"></span>
+                </a>
+              </article>
+            ))}
+          </div>
+          <p class="mr-note" data-i18n="m.refNote">
+            Kodenya kepake otomatis waktu lo redeem di dalam aplikasi. Satu kode buat semua aplikasi.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .mr-page { padding-top: 92px; }
+  .mr-wrap { max-width: 880px; margin: 0 auto; text-align: center; }
+  .mr-wrap h1 {
+    margin: 14px 0 12px; font-size: clamp(28px, 4.6vw, 44px);
+    color: #fff; line-height: 1.1; letter-spacing: -.02em;
+  }
+  .mr-wrap .sub {
+    margin: 0 auto; max-width: 620px;
+    color: var(--text-2); font-size: 16px; line-height: 1.7;
+  }
+
+  /* ---- Kartu kode ---- */
+  .mr-code-card {
+    margin: 30px auto 0; max-width: 520px;
+    border: 1px dashed rgba(255, 95, 31, .45); border-radius: 20px;
+    background: rgba(255, 95, 31, .06); padding: 26px 24px 22px;
+  }
+  .mr-code-label {
+    display: block; font-size: 11px; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--text-3);
+  }
+  .mr-code {
+    display: block; margin: 12px 0 18px;
+    font-family: var(--font-display); font-size: clamp(26px, 6vw, 40px);
+    font-weight: 700; letter-spacing: .1em; color: var(--orange);
+    overflow-wrap: anywhere;
+  }
+  .mr-code-voucher { font-size: clamp(22px, 5vw, 32px); }
+  .mr-btn { height: 52px; padding: 0 24px; font-size: 12.5px; }
+  .mr-dari {
+    margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--line-2);
+    color: var(--text-2); font-size: 13px;
+  }
+  .mr-dari b { color: var(--text); }
+
+  /* ---- Invalid ---- */
+  .mr-invalid {
+    margin: 30px auto 0; max-width: 560px;
+    border: 1px solid rgba(248, 113, 113, .28); border-radius: 20px;
+    background: rgba(248, 113, 113, .06); padding: 30px 24px;
+  }
+  .mr-invalid h2 { margin: 0 0 10px; font-size: 19px; color: #f87171; }
+  .mr-invalid p { margin: 0 0 20px; color: var(--text-2); font-size: 14px; line-height: 1.7; }
+
+  /* ---- Klaim diskon ---- */
+  .mr-klaim { margin: 40px auto 0; max-width: 620px; text-align: left; }
+  .mr-klaim h2 {
+    margin: 0 0 10px; font-size: clamp(19px, 3vw, 24px); color: #fff; text-align: center;
+  }
+  .mr-klaim-sub {
+    margin: 0 auto 22px; max-width: 520px; text-align: center;
+    color: var(--text-2); font-size: 13.5px; line-height: 1.7;
+  }
+  .mr-klaim-form {
+    display: grid; gap: 12px;
+    border: 1px solid var(--line-2); border-radius: 18px;
+    background: var(--card); padding: 22px 20px;
+  }
+  .mr-klaim-field { display: block; }
+  .mr-klaim-field > span {
+    display: block; margin-bottom: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-2);
+  }
+  .mr-klaim-field input,
+  .mr-klaim-field select {
+    width: 100%; padding: 12px 14px;
+    border-radius: 11px; border: 1px solid var(--line-2);
+    background: rgba(0, 0, 0, .28); color: var(--text);
+    font-family: inherit; font-size: 14.5px;
+  }
+  .mr-klaim-field input:focus,
+  .mr-klaim-field select:focus {
+    outline: none; border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(255, 95, 31, .16);
+  }
+  .mr-klaim-field input::placeholder { color: rgba(255, 255, 255, .32); }
+  .mr-klaim-form .mr-btn { width: 100%; margin-top: 6px; }
+  .mr-alert {
+    margin: 14px 0 0; padding: 12px 14px;
+    border: 1px solid rgba(248, 113, 113, .3); border-radius: 12px;
+    background: rgba(248, 113, 113, .08); color: #fca5a5;
+    font-size: 13px; line-height: 1.6;
+  }
+  .mr-alert-ok {
+    border-color: rgba(74, 222, 128, .3);
+    background: rgba(74, 222, 128, .08); color: #86efac;
+  }
+
+  /* ---- Hasil klaim ---- */
+  .mr-hasil { margin: 40px auto 0; max-width: 560px; }
+  .mr-hasil h2 {
+    margin: 0 0 18px; font-size: clamp(19px, 3vw, 24px); color: #fff; text-align: center;
+  }
+  .mr-hasil-box {
+    border: 1px dashed rgba(255, 95, 31, .45); border-radius: 18px;
+    background: rgba(255, 95, 31, .06); padding: 22px 20px 18px; text-align: center;
+  }
+  .mr-hasil-list {
+    list-style: none; margin: 18px 0 0; padding: 16px 18px;
+    border: 1px solid var(--line-2); border-radius: 14px; background: var(--card);
+    display: grid; gap: 10px; text-align: left;
+  }
+  .mr-hasil-list li {
+    display: flex; justify-content: space-between; gap: 14px;
+    font-size: 13.5px; color: var(--text-2);
+  }
+  .mr-hasil-list b { color: var(--text); }
+
+  /* ---- Pilih aplikasi ---- */
+  .mr-pilih { margin-top: 46px; }
+  .mr-pilih h2 {
+    margin: 0 0 22px; font-size: clamp(20px, 3vw, 26px); color: #fff;
+  }
+  .mr-apps {
+    display: grid; grid-template-columns: 1fr; gap: 14px; text-align: left;
+  }
+  @media (min-width: 560px) {
+    .mr-apps { grid-template-columns: repeat(2, 1fr); }
+  }
+  .mr-app {
+    border: 1px solid var(--line-2); border-radius: 18px;
+    background: var(--card); padding: 22px 20px;
+    display: flex; flex-direction: column;
+  }
+  .mr-app-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; margin-bottom: 8px;
+  }
+  .mr-app h3 { margin: 0; font-size: 18px; color: #fff; }
+  .mr-app-price {
+    font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--orange);
+  }
+  .mr-app p {
+    margin: 0 0 18px; flex: 1;
+    color: var(--text-2); font-size: 13.5px; line-height: 1.65;
+  }
+  .mr-app-cta { width: 100%; }
+  .mr-note {
+    margin: 22px auto 0; max-width: 620px;
+    color: var(--text-2); font-size: 13px; line-height: 1.7;
+  }
+
+  @media (max-width: 640px) {
+    .mr-page { padding-top: 64px; }
+    .mr-code-card { padding: 22px 18px 18px; }
+  }
+</style>
+
+<script>
+  import { claimReferral } from '../lib/api';
+  import { formatRupiah } from '../data/site';
+
+  const $ = (id: string) => document.getElementById(id);
+
+  /** Ambil kode dari query string, fallback ke path `/r/<kode>`. */
+  function readCode(): string {
+    const q = new URLSearchParams(location.search).get('code');
+    if (q && q.trim()) return q.trim();
+    const m = location.pathname.match(/\/r\/([^/]+)/);
+    return m && m[1] ? decodeURIComponent(m[1]) : '';
+  }
+
+  async function copyText(text: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+      } catch {
+        /* abaikan */
+      }
+      ta.remove();
+    }
+  }
+
+  const code = readCode();
+  const adaKode = Boolean(code);
+
+  $('mrCode')!.textContent = adaKode ? code : '—';
+  $('mrPilih')!.hidden = !adaKode;
+  $('mrInvalid')!.hidden = adaKode;
+  $('mrKlaim')!.hidden = !adaKode;
+
+  const by = new URLSearchParams(location.search).get('by');
+  if (by && by.trim()) {
+    $('mrDari')!.textContent = by.trim();
+    $('mrDariRow')!.hidden = false;
+  }
+
+  if (adaKode) {
+    const btn = $('mrCopy') as HTMLButtonElement;
+    const lbl = $('mrCopyLabel') as HTMLElement;
+    const lblOk = $('mrCopyOk') as HTMLElement;
+    btn.addEventListener('click', async () => {
+      await copyText(code);
+      lbl.hidden = true;
+      lblOk.hidden = false;
+      setTimeout(() => {
+        lbl.hidden = false;
+        lblOk.hidden = true;
+      }, 1800);
+    });
+
+    /* ---- Form klaim diskon ---- */
+    const claimForm = $('mrClaimForm') as HTMLFormElement | null;
+
+    /* ---- Kartu aplikasi: pilih produk buat form klaim ---- */
+    const appSelect = claimForm?.querySelector('[name="app"]') as HTMLSelectElement | null;
+    document.querySelectorAll<HTMLAnchorElement>('[data-app]').forEach((a) => {
+      a.addEventListener('click', () => {
+        const val = a.getAttribute('data-app');
+        if (val && appSelect) appSelect.value = val;
+      });
+    });
+    claimForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(claimForm);
+      const get = (k: string) => String(fd.get(k) || '').trim();
+      const nama = get('nama');
+      const wa = get('wa');
+      if (!nama || !wa) {
+        claimForm.querySelector('[name="nama"]')?.focus();
+        return;
+      }
+
+      const btn = claimForm.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+      btn?.setAttribute('disabled', '');
+
+      const res = await claimReferral({
+        code,
+        nama,
+        wa,
+        kota: get('kota'),
+        appType: get('app'),
+      });
+
+      btn?.removeAttribute('disabled');
+
+      const alertEl = $('mrAlert') as HTMLElement | null;
+      const sudahEl = $('mrSudah') as HTMLElement | null;
+
+      if (!res) {
+        if (alertEl) {
+          alertEl.textContent = 'Gagal menghubungi server. Coba lagi ya.';
+          alertEl.hidden = false;
+        }
+        return;
+      }
+      if (!res.ok) {
+        if (alertEl) {
+          alertEl.textContent = res.reason || 'Gagal ambil diskon.';
+          alertEl.hidden = false;
+        }
+        return;
+      }
+      if (res.already) {
+        if (sudahEl) sudahEl.hidden = false;
+        claimForm.hidden = true;
+        return;
+      }
+
+      // Sukses → panel hasil
+      $('mrVoucher')!.textContent = res.voucherCode || '—';
+      $('mrNilai')!.textContent = formatRupiah(res.discount || 0);
+      $('mrMin')!.textContent = formatRupiah(res.minPurchase || 0);
+      $('mrExp')!.textContent = res.expiresAt || '—';
+      $('mrHasil')!.hidden = false;
+      claimForm.hidden = true;
+
+      const vBtn = $('mrVoucherCopy') as HTMLButtonElement;
+      const vLbl = $('mrVoucherCopyLabel') as HTMLElement;
+      const vOk = $('mrVoucherCopyOk') as HTMLElement;
+      vBtn.addEventListener('click', async () => {
+        await copyText(res.voucherCode || '');
+        vLbl.hidden = true;
+        vOk.hidden = false;
+        setTimeout(() => {
+          vLbl.hidden = false;
+          vOk.hidden = true;
+        }, 1800);
+      });
+    });
+  }
+</script>

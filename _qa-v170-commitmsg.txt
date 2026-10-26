@@ -1,0 +1,68 @@
+kaki5 v170 / 1.0.102: modal Buka Kas jadi gerbang sejati + tema gradasi rosok
+
+Lima komentar browser (2026-09-05) + instruksi "adopsi warna tema gradasi dari
+aplikasi rosok". 17 file (8 kode + 6 dokumen + 3 slot versi).
+
+Gerbang Buka Kas (komentar #1)
+- index.html: #bukaKasModal -> .modal-center (tengah, tinggi ikut isi), tombol
+  "Batal" + .modal-handle dihapus, hint "ketik 0 kalau laci kosong" ditambahkan.
+- modal.js: NO_ESCAPE_CLOSE -> HARD_GATE_OVERLAYS (diekspor) = lockOverlay +
+  updateOverlay + bukaKasModal. Satu daftar untuk Escape, closeAllModals(),
+  klik backdrop/navbar (app.js), dan navigation.js. Sebelumnya tiap jalur punya
+  daftar sendiri dan bukaKasModal tidak masuk salah satunya -> gerbang bisa
+  dilewati lewat Escape.
+- app.js: case 'close-buka-kas' + wiring closeBukaKasModal dicabut (fungsi tetap
+  diekspor, dipakai internal bukaKas() setelah shift tersimpan).
+- kas.js: bukaKas() menolak submit saat input kosong - kosong != 0.
+
+Saklar form menu (komentar #2 #3 #4)
+- menu.js: syncStokVisibility() mengosongkan #menuStok; syncOjolVisibility() dan
+  syncToppingVisibility() memanggil render*Rows([]) -> baris hilang dari DOM,
+  bukan display:none. saveMenu() membaca ulang pakaiOjol/pakaiTopping dari
+  saklar sebagai jaring kedua di jalur tulis.
+
+Tema gradasi rosok (komentar #5 + instruksi teks)
+- style.css: token baru --grad, --grad-green, --grad-red, --grad-kpi-orange,
+  --shadow-brand; --grad-blue ditulis ulang. Dipasang di .app-header,
+  .btn-primary/-green/-red/-orange, .fab, .cat-tab.active, .nav-item.active::before,
+  pemilih tanggal, .prof-banner-card, .btn-extend, .cart-bar-inner, .held-fab,
+  .held-name-badge, .badge-titipan, .toggle-slider:checked, 6 kartu .stat-card.kbg-*,
+  dan banner install PWA (pwa.js).
+- Yang diambil POLA rosok (135 derajat, permukaan terisi = gradien), bukan hue:
+  kaki5 tetap oranye. Stop dibalik gelap->terang supaya teks putih lolos kontras
+  (rosok menaruh stop terang di 0%, ~2,1-2,3:1). --primary tetap #D6501C =
+  --brand-dark rosok, jadi 67 pemakaian warna teks/border tidak ikut berubah.
+- Pengecualian: .btn-wa tetap hijau gelap solid (permintaan pemilik 2026-09-04);
+  18 .setting-icon tetap pastel karena aturan KPI memakai selector gabungan
+  .stat-card.kbg-*; chip kecil dan warna teks/pastel tetap solid.
+- index.html: kartu Bantuan -> card-hero-blue; #todayIncomeHint melepas
+  color:var(--text3) inline yang mengalahkan stylesheet.
+
+Dokumentasi (6 file, semua tertinggal di v167)
+- CHANGELOG.md: entri v170 + rujukan blok sw.js diperbarui.
+- README.md: tabel versi + baris Tema, fitur Menu/Jualan/Kas/Bantuan, rujukan
+  kas.js & app.js, ?v=, footer.
+- DESIGN.md: status v170, catatan gerbang kas non-lisensi, rujukan
+  license-progress & license.js, 3 baris riwayat keputusan.
+- docs/DEVELOPER.md: rujukan boot/dispatcher/wire-map/kas.js diselaraskan ke
+  baris nyata, tabel HARD_GATE, konfirmasi baseline v170.
+- docs/REGRESSION-CHECKLIST.md: 2 kelas regresi baru (nilai disembunyikan,
+  gerbang ada jalan keluar), checklist tema, tabel 6 slot versi, bukti rilis
+  jadi 5 jalur + peringatan URL beta.
+- AGENTS.md: aturan baru "modal gerbang = satu daftar gate" (renumber 1-11),
+  rujukan sw.js/pos.js/kas.js/CHANGELOG diperbaiki, bukti rilis 5 jalur.
+
+Verifikasi
+- test-css-drift PASSED 839 rule (833 + 6 blok KPI), SW cache sinkron;
+  test-imports / test-dynamic-imports / test-db-migrations / test-shim hijau;
+  test-data-actions & test-html-refs merah PERSIS baseline (orphan #posCatTabs,
+  MISSING add-ojol-row/remove-ojol-row, 4 DEAD case) - bukan regresi rilis ini.
+- Audit rujukan dokumen: 375 file:baris, 0 di luar rentang, 5 UNRES lintas-repo
+  (baseline).
+- QA Browser localhost:8086: tiga saklar diuji end-to-end lewat UI (item uji
+  dibuat lalu dihapus lagi, data user kembali semula), 0 error console; gradasi
+  terlihat di Beranda/Menu/Jualan/Bantuan/Pengaturan; tile ikon Pengaturan tetap
+  pastel; konten terhidang memuat app.js?v=170, CACHE_NAME v170, close-buka-kas=0.
+
+Bump 6 slot: version.js:7,18 | version.json:2,3 + notes | sw.js:4 + blok 7-184 +
+CACHE_NAME:186 | index.html:1014

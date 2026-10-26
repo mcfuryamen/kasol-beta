@@ -1,0 +1,209 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#ea580c">
+  <title>Dashboard Wali - TPA</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ðŸ•Œ</text></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f3f4f6; }
+    .hash-link { cursor: pointer; }
+    .hash-link:hover { opacity: 0.8; }
+    .student-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .progress-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #10b981, #34d399); border-radius: 4px; transition: width 0.5s ease; }
+    .attendance-high { color: #10b981; }
+    .attendance-medium { color: #f59e0b; }
+    .attendance-low { color: #ef4444; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-in { animation: fadeIn 0.4s ease forwards; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div id="app" class="flex min-h-screen">
+    <aside id="sidebar-container" class="w-64 bg-gradient-to-b from-orange-800 to-orange-900 text-white min-h-screen fixed left-0 top-0 z-30"></aside>
+    <div class="flex-1 ml-64">
+      <header id="header-container" class="bg-white shadow-sm fixed top-0 right-0 left-64 z-20"></header>
+      <main id="main-content" class="pt-20 p-6"></main>
+    </div>
+  </div>
+<script type="module">
+    import { initDB } from "./db/init.js";
+    import { getCurrentUser, requireLogin } from "./services/auth.js";
+    import { Header } from "./components/organisms/Header.js";
+    import { Sidebar, initSidebar } from "./components/organisms/Sidebar.js";
+    import { PageHeader } from "./components/organisms/PageHeader.js";
+    import { StatCardGrid } from "./components/molecules/StatCard.js";
+    import { getGuardianDashboard } from "./services/dashboard.js";
+    import { getGuardianChildren } from "./services/student.js";
+
+    let currentUser = null;
+    let dashboardData = null;
+    let childrenData = [];
+
+    async function init() {
+      try {
+        await initDB();
+        if (!requireLogin()) throw new Error("auth");
+        currentUser = getCurrentUser();
+        if (!currentUser || currentUser.role !== "wali") throw new Error("auth");
+        document.getElementById("header-container").appendChild(Header({ user: currentUser }));
+        await initSidebar("wali");
+        const sb = Sidebar({ activeHref: "wali.html" });
+        sb.classList.add("open");
+        document.getElementById("sidebar-container").appendChild(sb);
+        setupHashRouting();
+        loadContent();
+        window.addEventListener("hashchange", loadContent);
+      } catch (error) {
+        console.error("Initialization error:", error);
+        if (error.message === "Unauthorized" || error.message === "Forbidden" || error.message.includes("auth")) {
+          window.location.href = "index.html";
+        }
+      }
+    }
+
+    function setupHashRouting() {
+      if (!window.location.hash) window.location.hash = "#anak";
+    }
+
+    async function loadContent() {
+      const hash = window.location.hash || "#anak";
+      const mainContent = document.getElementById("main-content");
+      try {
+        if (!dashboardData) [dashboardData, childrenData] = await Promise.all([getGuardianDashboard(currentUser.guardianId), getGuardianChildren()]);
+        switch(hash) {
+          case "#anak": renderChildrenList(mainContent); break;
+          case "#hafalan": renderHafalanDetails(mainContent); break;
+          case "#pembayaran": renderPaymentInfo(mainContent); break;
+          default: renderChildrenList(mainContent);
+        }
+      } catch (error) {
+        console.error("Error loading content:", error);
+        mainContent.innerHTML = '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"><p><strong>Error:</strong> Gagal memuat data.</p></div>';
+      }
+    }
+
+    function getInitials(name) {
+      if (!name) return "??";
+      const parts = name.split(" ");
+      return parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+    }
+
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(amount);
+    }
+    function renderChildrenList(container) {
+      const stats = dashboardData?.stats || {};
+      container.innerHTML = `<div class="animate-in">
+        ${PageHeader({ title: "Dashboard Wali", subtitle: "Pantau perkembangan anak-anak Anda" }).outerHTML}
+        <div class="mt-6">
+        ${StatCardGrid({ stats: [
+          { title: "Jumlah Anak", value: childrenData.length || 0, icon: "ðŸ‘¥", color: "blue" },
+          { title: "Total Hafalan", value: stats.totalHafalan || 0, icon: "ðŸ“–", color: "green" },
+          { title: "Tagihan Tertunda", value: formatCurrency(stats.tagihanTertunda || 0), icon: "ðŸ’°", color: "yellow" },
+          { title: "Rata-rata Kehadiran", value: (stats.rataKehadiran || 0) + "%", icon: "ðŸ“…", color: "purple" }
+        ]}).outerHTML}
+        </div><div class="mt-8"><div class="flex border-b border-gray-200">
+        <button onclick="window.location.hash='#anak'" class="hash-link px-6 py-3 font-medium text-orange-600 border-b-2 border-orange-600"><i class="fas fa-users mr-2"></i>Daftar Anak</button>
+        <button onclick="window.location.hash='#hafalan'" class="hash-link px-6 py-3 font-medium text-gray-500 hover:text-gray-700"><i class="fas fa-book-quran mr-2"></i>Detail Hafalan</button>
+        <button onclick="window.location.hash='#pembayaran'" class="hash-link px-6 py-3 font-medium text-gray-500 hover:text-gray-700"><i class="fas fa-money-bill-wave mr-2"></i>Pembayaran</button>
+        </div></div><div class="mt-6"><h3 class="text-lg font-semibold text-gray-800 mb-4">Daftar Anak</h3>
+        ${childrenData.length === 0
+          ? `<div class="bg-white rounded-lg shadow p-6 text-center text-gray-500"><i class="fas fa-user-friends text-4xl mb-3 text-gray-300"></i><p>Belum ada data anak.</p></div>`
+          : `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">` + childrenData.map((child, i) => renderStudentCard(child, i)).join("") + `</div>`}
+        </div></div>`;
+    }
+
+    function renderStudentCard(student, index) {
+      const att = student.attendancePercentage || 0;
+      const attClass = att >= 90 ? "attendance-high" : att >= 75 ? "attendance-medium" : "attendance-low";
+      const hafalanProgress = student.hafalanProgress || 0;
+      return `<div class="student-card bg-white rounded-lg shadow p-5 transition-all duration-300 animate-in" style="animation-delay:${(index * 0.1)}s">
+        <div class="flex items-start justify-between mb-4">
+        <div class="flex items-center">
+        <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold text-lg">${getInitials(student.name)}</div>
+        <div class="ml-3"><h4 class="font-semibold text-gray-800">${(student.name || "Nama tidak tersedia")}</h4>
+        <p class="text-sm text-gray-500">${(student.class || "Belum ada kelas")}</p></div></div>
+        <span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded">${(student.level || "A")}</span></div>
+        <div class="space-y-3">
+        <div><div class="flex justify-between text-sm mb-1"><span class="text-gray-600"><i class="fas fa-calendar-check mr-1"></i>Kehadiran</span><span class="font-medium ${attClass}">${att}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${att}%"></div></div></div>
+        <div><div class="flex justify-between text-sm mb-1"><span class="text-gray-600"><i class="fas fa-book-quran mr-1"></i>Hafalan</span><span class="font-medium text-green-600">${hafalanProgress}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${hafalanProgress}%"></div></div></div>
+        <div class="flex justify-between pt-2 border-t border-gray-100"><div class="text-center"><p class="text-lg font-bold">${(student.hafalanJuz || 0)}</p><p class="text-xs text-gray-500">Juz</p></div><div class="text-center"><p class="text-lg font-bold">${(student.hafalanSurat || 0)}</p><p class="text-xs text-gray-500">Surat</p></div><div class="text-center"><p class="text-lg font-bold">${(student.missedDays || 0)}</p><p class="text-xs text-gray-500">Absen</p></div></div></div>
+        <button onclick="window.location.hash='#hafalan'" class="hash-link w-full mt-4 bg-orange-50 text-orange-600 py-2 rounded-lg text-sm font-medium hover:bg-orange-100 transition-colors"><i class="fas fa-eye mr-1"></i>Lihat Detail</button></div>`;
+    }
+
+    function renderHafalanDetails(container) {
+      container.innerHTML = `<div class="animate-in">
+        ${PageHeader({ title: "Detail Hafalan", subtitle: "Pantau hafalan anak-anak Anda" }).outerHTML}
+        <div class="mt-6"><div class="flex border-b border-gray-200">
+        <button onclick="window.location.hash='#anak'" class="hash-link px-6 py-3 font-medium text-gray-500 hover:text-gray-700"><i class="fas fa-users mr-2"></i>Daftar Anak</button>
+        <button onclick="window.location.hash='#hafalan'" class="hash-link px-6 py-3 font-medium text-orange-600 border-b-2 border-orange-600"><i class="fas fa-book-quran mr-2"></i>Detail Hafalan</button>
+        <button onclick="window.location.hash='#pembayaran'" class="hash-link px-6 py-3 font-medium text-gray-500 hover:text-gray-700"><i class="fas fa-money-bill-wave mr-2"></i>Pembayaran</button>
+        </div></div><div class="mt-6">
+        ${childrenData.length === 0 ? `<div class="bg-white rounded-lg shadow p-6 text-center text-gray-500"><i class="fas fa-book-quran text-4xl mb-3 text-gray-300"></i><p>Belum ada data hafalan.</p></div>`
+          : `<div class="space-y-4">` + childrenData.map((child, i) => renderHafalanCard(child, i)).join("") + `</div>`}
+        </div></div>`;
+    }
+
+    function renderHafalanCard(child, index) {
+      const recentHafalan = child.recentHafalan || [];
+      let hafalanItems = "";
+      if (recentHafalan.length > 0) {
+        hafalanItems = recentHafalan.slice(0, 3).map(item =>
+          `<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2">
+          <span class="text-sm text-gray-700">${(item.surat || "Surat")}</span>
+          <span class="text-xs text-gray-500">${(item.tanggal || "-")}</span>
+          <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">${(item.status || "Selesai")}</span></div>`
+        ).join("");
+      } else {
+        hafalanItems = `<p class="text-sm text-gray-400 italic">Belum ada hafalan terbaru.</p>`;
+      }
+      return `<div class="bg-white rounded-lg shadow p-5 animate-in" style="animation-delay:${(index * 0.1)}s">
+        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center">
+        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold">${getInitials(child.name)}</div>
+        <div class="ml-3"><h4 class="font-semibold text-gray-800">${(child.name || "Nama tidak tersedia")}</h4>
+        <p class="text-sm text-gray-500">${(child.class || "Kelas umum")}</p></div></div>
+        <div class="text-right"><p class="text-2xl font-bold text-green-600">${(child.hafalanProgress || 0)}%</p><p class="text-xs text-gray-500">Progress</p></div></div>
+        <div class="grid grid-cols-3 gap-4 mb-4">
+        <div class="bg-gray-50 rounded-lg p-3 text-center"><p class="text-xl font-bold">${(child.hafalanJuz || 0)}</p><p class="text-xs text-gray-500">Juz Dihafal</p></div>
+        <div class="bg-gray-50 rounded-lg p-3 text-center"><p class="text-xl font-bold">${(child.hafalanSurat || 0)}</p><p class="text-xs text-gray-500">Surat Selesai</p></div>
+        <div class="bg-gray-50 rounded-lg p-3 text-center"><p class="text-xl font-bold">${(child.sisaJuz || 30 - (child.hafalanJuz || 0))}</p><p class="text-xs text-gray-500">Juz Sisa</p></div></div>
+        <div class="progress-bar mb-4"><div class="progress-fill" style="width:${(child.hafalanProgress || 0)}%"></div></div>
+        <h5 class="text-sm font-medium text-gray-700 mb-2">Hafalan Terbaru:</h5>${hafalanItems}</div>`;
+    }
+
+    function renderPaymentInfo(container) {
+      const pendingBills = dashboardData?.pendingBills || [];
+      let billsHtml = "";
+      if (pendingBills.length > 0) {
+        billsHtml = `<div class="space-y-4">` + pendingBills.map(bill =>
+          `<div class="bg-white rounded-lg shadow p-5">
+          <div class="flex justify-between items-start mb-3">
+          <div><h4 class="font-semibold text-gray-800">${(bill.description || "Tagihan")}</h4>
+          <p class="text-sm text-gray-500">${(bill.studentName || "")}</p></div>
+          <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm font-medium rounded">${(bill.status || "Tertunda")}</span></div>
+          <div class="flex justify-between items-center">
+          <p class="text-lg font-bold text-red-600">${formatCurrency(bill.amount || 0)}</p>
+          <p class="text-sm text-gray-500">Jatuh tempo: ${(bill.dueDate || "-")}</p></div></div>`
+        ).join("") + `</div>`;
+      } else {
+        billsHtml = `<div class="bg-white rounded-lg shadow p-6 text-center text-gray-500"><i class="fas fa-check-circle text-4xl mb-3 text-green-300"></i><p>Tidak ada tagihan tertunda.</p></div>`;
+      }
+      container.innerHTML = `<div class="animate-in">
+        ${PageHeader({ title: "Pembayaran", subtitle: "Kelola tagihan dan pembayaran" }).outerHTML}
+        <div class="mt-6"><div class="flex border-b border-gray-200">
+        <button onclick="window.location.hash='#anak'" class="hash-link px-6 py-3 font-medium text-gray-500 hover:text-gray-700"><i class="fas fa-users mr-2"></i>Daftar Anak</button>
+        <button onclick="window.location.hash='#hafalan'" class="hash-link px-6 py-3 font-medium text-gray-500 hover:text-gray-700"><i class="fas fa-book-quran mr-2"></i>Detail Hafalan</button>
+        <button onclick="window.location.hash='#pembayaran'" class="hash-link px-6 py-3 font-medium text-orange-600 border-b-2 border-orange-600"><i class="fas fa-money-bill-wave mr-2"></i>Pembayaran</button>
+        </div></div><div class="mt-6">${billsHtml}</div></div>`;
+    }
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.astro/
+
+.env
+.env.local
+.env*.local
+
+.vercel
+
+# contoh env tetap ikut repo
+!.env.example

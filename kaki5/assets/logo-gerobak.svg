@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Logo Kasir Solo Kaki Lima (draft 2) — gerobak kaki lima: kanopi awan + bodi + roda.
+       Full-bleed persegi (aman semua mask). PNG set lama TIDAK disentuh sampai accuan pemilik. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F5821F"/>
+      <stop offset="0.55" stop-color="#D6501C"/>
+      <stop offset="1" stop-color="#B04018"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- kanopi gerobak: bergaris putih dengan tepi scallop -->
+  <path d="M84 96 H428 V132 A57.3 57.3 0 0 1 313.3 132 A57.3 57.3 0 0 1 198.6 132 A57.3 57.3 0 0 1 84 132 Z" fill="#FFFFFF"/>
+  <path d="M84 96 H198.6 V132 A57.3 57.3 0 0 1 84 132 Z" fill="#FFFFFF" opacity="0.85"/>
+  <path d="M313.3 96 H428 V132 A57.3 57.3 0 0 1 313.3 132 Z" fill="#FFFFFF" opacity="0.85"/>
+  <!-- tiang kanopi -->
+  <rect x="104" y="150" width="18" height="52" rx="9" fill="#FFFFFF"/>
+  <rect x="390" y="150" width="18" height="52" rx="9" fill="#FFFFFF"/>
+  <!-- bodi gerobak -->
+  <rect x="112" y="200" width="288" height="140" rx="28" fill="#FFFFFF"/>
+  <!-- laci meja gerobak -->
+  <rect x="148" y="240" width="216" height="16" rx="8" fill="#B04018" opacity="0.45"/>
+  <!-- gagang dorong -->
+  <rect x="46" y="216" width="70" height="18" rx="9" fill="#FFFFFF"/>
+  <!-- roda -->
+  <circle cx="256" cy="386" r="50" fill="none" stroke="#FFFFFF" stroke-width="22"/>
+  <circle cx="256" cy="386" r="12" fill="#FFFFFF"/>
+</svg>

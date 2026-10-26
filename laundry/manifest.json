@@ -1,0 +1,32 @@
+{
+  "name": "Kasir Solo - Laundry",
+  "short_name": "KasirLaundry",
+  "description": "Manajemen order, pelanggan, stok, dan laporan usaha laundry.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#FBF7F1",
+  "theme_color": "#F97316",
+  "orientation": "portrait-primary",
+  "lang": "id",
+  "categories": ["business", "finance"],
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

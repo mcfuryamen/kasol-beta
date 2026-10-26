@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Logo Kasir Solo Kaki Lima (draft) — tenda warung + mangkuk uap, gradasi brand kaki5.
+       Full-bleed persegi (aman semua mask). PNG set lama TIDAK disentuh sampai accuan pemilik. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F5821F"/>
+      <stop offset="0.55" stop-color="#D6501C"/>
+      <stop offset="1" stop-color="#B04018"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- tenda warung: kanopi dengan tepi scallop -->
+  <path d="M76 104 H436 V138 A45 45 0 0 1 346 138 A45 45 0 0 1 256 138 A45 45 0 0 1 166 138 A45 45 0 0 1 76 138 Z" fill="#FFFFFF"/>
+  <!-- uap mangkuk -->
+  <path d="M212 206 q-14 22 0 44 M256 200 q-14 24 0 48 M300 206 q-14 22 0 44" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" fill="none" opacity="0.9"/>
+  <!-- mangkuk -->
+  <path d="M140 292 H372 A116 116 0 0 1 256 408 A116 116 0 0 1 140 292 Z" fill="#FFFFFF"/>
+  <rect x="228" y="408" width="56" height="20" rx="8" fill="#FFFFFF"/>
+</svg>

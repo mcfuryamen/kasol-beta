@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lisensi Test</title><link rel="stylesheet" href="style.css"></head><body>
+<div id="app"><section class="screen active" id="screen-pengaturan"><div class="section-label">Lisensi Aplikasi</div><div class="mt12" id="licenseInfoCard"></div></section></div><script type="module">import { SETTINGS, setSetting, getSetting } from './app-state.js';
+import { setLaporanPeriode, renderLaporan } from './laporan.js';
+import { setLicenseRefs, renderLicenseInfoCard } from './license.js';
+
+// Simulated SETTINGS dari DB
+async function seed(){
+  await setSetting('deviceCode', 'TEST-TEST');
+  await setSetting('extensionsUsed', 0);
+  await setSetting('trialStart', new Date().toISOString());
+  await setSetting('licenseStatus', 'active');
+  await setSetting('licenseExpiry', '12'); // 12 bulan
+  await setSetting('licenseActivatedAt', new Date().toISOString());
+}
+seed().then(()=>{ setLicenseRefs({ updateTrialChip: ()=>{}, renderLicenseInfoCard: ()=>{} }); renderLicenseInfoCard(); console.log('render complete'); }).catch(e=>console.error(e));
+</script></body></html>

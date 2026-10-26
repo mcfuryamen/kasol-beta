@@ -1,0 +1,17 @@
+-- STAGE 2 PROPOSAL — kaki5 Storage bucket `backups`
+-- REVIEW ONLY: do not apply to production without confirming the target project,
+-- existing bucket configuration, clients ownership model, and staging evidence.
+-- Repository currently has no canonical storage.objects policy migration.
+--
+-- Required invariants:
+--   1. bucket `backups` is private.
+--   2. object name starts with the authenticated unit_id followed by '/'.
+--   3. unit_id belongs to auth.uid() through public.clients.user_id.
+--   4. list, read, insert, update, and delete are limited to that prefix.
+--   5. cross-unit paths are denied for every operation.
+--
+-- The exact policy SQL must be generated and reviewed against the target
+-- Supabase schema before execution; this file intentionally contains no DDL.
+-- Verify with SELECT-only checks against storage.buckets, storage.objects,
+-- pg_policies, and public.clients, then run authenticated own-unit and
+-- cross-unit smoke tests on disposable staging fixtures.

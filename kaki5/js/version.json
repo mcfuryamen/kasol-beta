@@ -1,0 +1,8 @@
+{
+  "version": "1.0.138-beta.1",
+  "cacheBust": "v213",
+  "notes": [
+    "Stage 7: hardening signature backup lokal, integritas envelope cloud, binding unit, dan validasi storage path.",
+    "Kandidat beta: guard restore unsigned/legacy, signature invalid, tamper payload, dan cross-unit ditolak."
+  ]
+}

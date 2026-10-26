@@ -1,0 +1,7 @@
+{
+  "version": "1.0.1",
+  "cacheBust": "v2",
+  "notes": [
+    "Pembaruan aplikasi dan pemulihan backup kini lebih aman dengan verifikasi integritas."
+  ]
+}

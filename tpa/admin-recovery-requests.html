@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#ea580c">
+<title>Permintaan Pemulihan — TPA Admin</title>
+<style>
+:root{
+  --brand:#ea580c;--brand-light:#fff7ed;--brand-dark:#c2410c;
+  --surface:#ffffff;--surface-dim:#f8fafc;--surface-container:#f1f5f9;--surface-variant:#e2e8f0;
+  --on-surface:#0f172a;--on-surface-variant:#475569;--outline:#cbd5e1;--outline-variant:#e2e8f0;
+  --error:#dc2626;--error-bg:#fef2f2;--success:#16a34a;--success-bg:#f0fdf4;
+  --info:#2563eb;--info-bg:#eff6ff;--warning:#d97706;--warning-bg:#fffbeb;
+  --radius:12px;--shadow-md:0 2px 8px rgba(0,0,0,.1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--surface-dim);color:var(--on-surface);font-size:14px;line-height:1.5}
+.hidden{display:none!important}
+
+.container{max-width:800px;margin:0 auto;padding:16px}
+.header{margin-bottom:24px}
+.header h1{font-size:24px;font-weight:700;margin-bottom:8px}
+.header p{color:var(--on-surface-variant);font-size:13px}
+
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar button{padding:8px 12px;border:1px solid var(--outline);border-radius:var(--radius);background:var(--surface);color:var(--on-surface);cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
+.filter-bar button.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+.request-list{display:flex;flex-direction:column;gap:12px}
+.request-card{background:var(--surface);border:1px solid var(--outline-variant);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-md)}
+.request-card.pending{border-left:4px solid var(--warning)}
+.request-card.verified{border-left:4px solid var(--success)}
+.request-card.expired{border-left:4px solid var(--error)}
+
+.card-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:12px}
+.card-header h3{font-size:16px;font-weight:700}
+.status-badge{display:inline-block;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;text-transform:uppercase}
+.status-badge.pending{background:var(--warning-bg);color:var(--warning)}
+.status-badge.verified{background:var(--success-bg);color:var(--success)}
+.status-badge.expired{background:var(--error-bg);color:var(--error)}
+
+.card-info{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;font-size:13px}
+.info-item{display:flex;flex-direction:column}
+.info-label{color:var(--on-surface-variant);font-size:11px;text-transform:uppercase;font-weight:600;margin-bottom:2px}
+.info-value{color:var(--on-surface);font-weight:600}
+
+.card-actions{display:flex;gap:8px;margin-top:12px;border-top:1px solid var(--outline-variant);padding-top:12px}
+.btn{flex:1;padding:10px 12px;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand-dark)}
+.btn-secondary{background:var(--surface-container);color:var(--on-surface)}
+.btn-secondary:hover{background:var(--outline-variant)}
+.btn-danger{background:var(--error-bg);color:var(--error)}
+.btn-danger:hover{background:var(--error);color:#fff}
+
+.empty{text-align:center;padding:48px 24px;color:var(--on-surface-variant)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal{background:var(--surface);border-radius:var(--radius);padding:24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:12px}
+.modal p{color:var(--on-surface-variant);margin-bottom:16px;font-size:13px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.modal-actions button{padding:10px 16px;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.modal-actions .btn-secondary{background:var(--surface-container);color:var(--on-surface)}
+.modal-actions .btn-primary{background:var(--brand);color:#fff}
+
+.snack{position:fixed;bottom:20px;right:20px;background:#1f2937;color:#fff;padding:12px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;z-index:200;animation:slideUp .3s ease-out}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+
+@media(min-width:768px){.request-card{padding:20px}.card-info{grid-template-columns:1fr 1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🔐 Permintaan Pemulihan</h1>
+    <p>Kelola permintaan pemulihan akun dari pengguna</p>
+  </div>
+
+  <div class="filter-bar">
+    <button class="active" onclick="filterByStatus('all')">Semua</button>
+    <button onclick="filterByStatus('pending')">⏳ Menunggu</button>
+    <button onclick="filterByStatus('verified')">✅ Disetujui</button>
+    <button onclick="filterByStatus('expired')">❌ Kadaluarsa</button>
+  </div>
+
+  <div class="request-list" id="request-list">
+    <div class="empty">
+      <div class="empty-icon">📋</div>
+      <div style="font-weight:700;margin-bottom:4px">Tidak ada permintaan</div>
+      <div>Belum ada permintaan pemulihan saat ini</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Approve -->
+<div class="modal-overlay hidden" id="approve-modal">
+  <div class="modal">
+    <h2>Setujui Permintaan?</h2>
+    <p>Pengguna akan menerima kode persetujuan untuk menyelesaikan pemulihan akun.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Batal</button>
+      <button class="btn-primary" onclick="approveRequest()">Setujui</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Reject -->
+<div class="modal-overlay hidden" id="reject-modal">
+  <div class="modal">
+    <h2>Tolak Permintaan?</h2>
+    <p>Permintaan pemulihan ini akan dihapus dan pengguna harus membuat permintaan baru.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Batal</button>
+      <button class="btn-danger" onclick="rejectRequest()">Tolak</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentFilter = 'all';
+let currentChallengeId = null;
+let recoveryService = null;
+
+// Initialize recovery service
+async function initRecoveryService() {
+  // In real app, import the recovery service here
+  // For now, mock the service
+  recoveryService = {
+    getPendingChallenges: async () => {
+      // Mock data for demo
+      return [
+        {
+          challengeId: 'chal-001',
+          phone: '+6281234567890',
+          method: 'admin_approval',
+          status: 'pending',
+          createdAt: new Date(Date.now() - 3600000).toISOString(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          attemptsRemaining: 3
+        },
+        {
+          challengeId: 'chal-002',
+          phone: '+6289876543210',
+          method: 'admin_approval',
+          status: 'verified',
+          createdAt: new Date(Date.now() - 7200000).toISOString(),
+          expiresAt: new Date(Date.now() + 1800000).toISOString(),
+          attemptsRemaining: 2
+        }
+      ];
+    },
+    approveChallenge: async (challengeId) => {
+      console.log('Approving challenge:', challengeId);
+      return { success: true };
+    },
+    rejectChallenge: async (challengeId) => {
+      console.log('Rejecting challenge:', challengeId);
+      return { success: true };
+    }
+  };
+  
+  loadRequests();
+}
+
+async function loadRequests() {
+  try {
+    const challenges = await recoveryService.getPendingChallenges();
+    renderRequests(challenges);
+  } catch (error) {
+    console.error('Failed to load requests:', error);
+    showSnack('Gagal memuat permintaan');
+  }
+}
+
+function renderRequests(challenges) {
+  const list = document.getElementById('request-list');
+  
+  let filtered = challenges;
+  if (currentFilter !== 'all') {
+    filtered = challenges.filter(c => c.status === currentFilter);
+  }
+  
+  if (filtered.length === 0) {
+    list.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">📋</div>
+        <div style="font-weight:700;margin-bottom:4px">Tidak ada permintaan</div>
+        <div>Tidak ada permintaan dengan status: ${currentFilter}</div>
+      </div>
+    `;
+    return;
+  }
+  
+  list.innerHTML = filtered.map(challenge => `
+    <div class="request-card ${challenge.status}">
+      <div class="card-header">
+        <h3>Permintaan dari ${maskPhone(challenge.phone)}</h3>
+        <span class="status-badge ${challenge.status}">
+          ${challenge.status === 'pending' ? '⏳ Menunggu' : 
+            challenge.status === 'verified' ? '✅ Disetujui' : '❌ Kadaluarsa'}
+        </span>
+      </div>
+      
+      <div class="card-info">
+        <div class="info-item">
+          <div class="info-label">ID Challenge</div>
+          <div class="info-value">${challenge.challengeId}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Metode</div>
+          <div class="info-value">${challenge.method}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Percobaan Tersisa</div>
+          <div class="info-value">${challenge.attemptsRemaining}/5</div>
+        </div>
+      </div>
+      
+      <div class="card-info">
+        <div class="info-item">
+          <div class="info-label">Dibuat</div>
+          <div class="info-value">${new Date(challenge.createdAt).toLocaleString('id-ID')}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Kadaluarsa</div>
+          <div class="info-value">${new Date(challenge.expiresAt).toLocaleString('id-ID')}</div>
+        </div>
+      </div>
+      
+      ${challenge.status === 'pending' ? `
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="showApproveModal('${challenge.challengeId}')">✅ Setujui</button>
+          <button class="btn btn-secondary" onclick="showRejectModal('${challenge.challengeId}')">❌ Tolak</button>
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+function filterByStatus(status) {
+  currentFilter = status;
+  document.querySelectorAll('.filter-bar button').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.includes(status) || (status === 'all' && btn.textContent === 'Semua'));
+  });
+  loadRequests();
+}
+
+function showApproveModal(challengeId) {
+  currentChallengeId = challengeId;
+  document.getElementById('approve-modal').classList.remove('hidden');
+}
+
+function showRejectModal(challengeId) {
+  currentChallengeId = challengeId;
+  document.getElementById('reject-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+  currentChallengeId = null;
+}
+
+async function approveRequest() {
+  if (!currentChallengeId) return;
+  
+  try {
+    await recoveryService.approveChallenge(currentChallengeId);
+    closeModal();
+    showSnack('Permintaan berhasil disetujui');
+    loadRequests();
+  } catch (error) {
+    console.error('Failed to approve:', error);
+    showSnack('Gagal menyetujui permintaan');
+  }
+}
+
+async function rejectRequest() {
+  if (!currentChallengeId) return;
+  
+  try {
+    await recoveryService.rejectChallenge(currentChallengeId);
+    closeModal();
+    showSnack('Permintaan berhasil ditolak');
+    loadRequests();
+  } catch (error) {
+    console.error('Failed to reject:', error);
+    showSnack('Gagal menolak permintaan');
+  }
+}
+
+function maskPhone(phone) {
+  return phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1****$3');
+}
+
+function showSnack(msg) {
+  const snack = document.createElement('div');
+  snack.className = 'snack';
+  snack.textContent = msg;
+  document.body.appendChild(snack);
+  setTimeout(() => snack.remove(), 3000);
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', initRecoveryService);
+</script>
+
+</body>
+</html>

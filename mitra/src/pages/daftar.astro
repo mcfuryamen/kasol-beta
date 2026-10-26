@@ -1,0 +1,87 @@
+---
+/**
+ * Halaman pendaftaran mitra.
+ * Form sementara kirim ke WhatsApp (Fase 2 → RPC `partner_register`).
+ */
+import Base from '../layouts/Base.astro';
+import FormDaftar from '../components/FormDaftar.astro';
+
+const title = 'Daftar Jadi Mitra — Program Mitra Kasir Solo';
+const description =
+  'Daftar jadi mitra Kasir Solo. Nama, nomor WhatsApp, kota. Dua menit selesai, nggak perlu punya lisensi buat mulai nawarin.';
+
+const setelah = [
+  'Kode referral lo terbit seketika — nggak perlu nunggu, nggak perlu antre approval.',
+  'Link portal mitra langsung tampil di layar lo. Simpan baik-baik.',
+  'Share kodenya. Tiap penjualan lewat kode itu kehitung sebagai referral lo.',
+];
+---
+
+<Base title={title} description={description}>
+  <section class="block mt-daftar">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="m.daftarBadge">Pendaftaran</span>
+        <h2 data-i18n="m.daftarTitle">Jadi <span class="hl">Mitra</span></h2>
+        <p class="sub" data-i18n="m.daftarSub">
+          Isi formnya, klik kirim, dan kode referral + link portal lo langsung jadi. Nggak perlu chat
+          dulu.
+        </p>
+      </div>
+
+      <FormDaftar />
+
+      <div class="mt-after">
+        <h3 data-i18n="m.daftarAfterTitle">Habis Daftar, Terus Apa?</h3>
+        <ol>
+          {setelah.map((s, i) => (
+            <li>
+              <span class="mt-after-n">{i + 1}</span>
+              <p data-i18n={`m.daftarAfter${i + 1}`}>{s}</p>
+            </li>
+          ))}
+        </ol>
+        <a class="mt-after-back" href="/">
+          <span data-i18n="m.daftarKembali">← Balik ke program</span>
+        </a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .mt-daftar { padding-top: 84px; }
+  .mt-after {
+    max-width: 760px; margin: 44px auto 0;
+    border: 1px solid var(--line-2); border-radius: 20px;
+    background: var(--card); padding: 32px 26px;
+  }
+  .mt-after h3 {
+    margin: 0 0 20px; font-size: 19px; text-align: center;
+  }
+  .mt-after ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .mt-after li {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 14px 16px;
+    border: 1px solid var(--line-2); border-radius: 14px;
+    background: rgba(0, 0, 0, .18);
+  }
+  .mt-after-n {
+    flex-shrink: 0;
+    width: 26px; height: 26px; border-radius: 8px;
+    display: grid; place-items: center;
+    background: var(--orange); color: #fff;
+    font-size: 13px; font-weight: 800;
+  }
+  .mt-after p { margin: 0; color: var(--text-2); font-size: 14.5px; line-height: 1.6; }
+  .mt-after-back {
+    display: block; margin-top: 22px; text-align: center;
+    color: var(--text-2); font-size: 13.5px; text-decoration: none;
+  }
+  .mt-after-back:hover { color: var(--orange); }
+
+  @media (max-width: 640px) {
+    .mt-daftar { padding-top: 56px; }
+    .mt-after { padding: 24px 18px; }
+  }
+</style>
