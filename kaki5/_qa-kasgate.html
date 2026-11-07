@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>QA — Diagnosa Gerbang Kas (BACA-SAJA)</title>
+<!-- db.js memakai global Dexie, bukan impor npm -->
+<script src="dexie.min.js"></script>
+<style>
+  body { font: 13px/1.5 ui-monospace, Consolas, monospace; padding: 12px; background:#0f1115; color:#e6e6e6; }
+  h1 { font-size: 15px; margin: 0 0 10px; }
+  pre { background:#171a21; border:1px solid #2a2f3a; border-radius:6px; padding:10px; white-space:pre-wrap; word-break:break-word; }
+  .ok { color:#5ddc7e; } .bad { color:#ff6b6b; } .warn { color:#ffc857; }
+  .k { color:#8ab4ff; }
+</style>
+</head>
+<body>
+<h1>Diagnosa Gerbang Kas — TIDAK ADA PENULISAN DATA</h1>
+<div id="out"><pre>memuat…</pre></div>
+<script type="module">
+const out = document.getElementById('out');
+const L = [];
+const say = (s) => { L.push(s); out.innerHTML = '<pre>' + L.join('\n') + '</pre>'; };
+const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const fmt = (ms) => ms ? new Date(Number(ms)).toLocaleString('id-ID') : '(null)';
+
+try {
+  const DBM = await import('./js/db.js');
+  const DB = DBM.DB;
+  say('DB terbuka: <span class="k">' + esc(DB.name) + '</span>  v' + esc(DB.verno));
+
+  // ── 1. Semua baris settings yang relevan ──────────────────────────────
+  const settings = await DB.settings.toArray();
+  say('\n<b>── 1. Tabel `settings` (' + settings.length + ' baris) ──</b>');
+  for (const s of settings) {
+    const hot = /kas|pay|fitur/i.test(s.key);
+    say((hot ? '<span class="warn">' : '') + '  ' + esc(s.key).padEnd(22) + ' = ' + esc(JSON.stringify(s.value)) + (hot ? '</span>' : ''));
+  }
+  const fk = settings.find(s => s.key === 'fiturKas');
+  say('  <b>fiturKas tersimpan:</b> ' + (fk ? esc(JSON.stringify(fk.value)) : '<span class="warn">(TIDAK ADA BARIS → default "1" = AKTIF)</span>'));
+
+  // ── 2. Semua baris kasShift ───────────────────────────────────────────
+  const shifts = await DB.kasShift.toArray();
+  say('\n<b>── 2. Tabel `kasShift` (' + shifts.length + ' baris) ──</b>');
+  if (!shifts.length) say('  <span class="warn">(kosong)</span>');
+  for (const s of shifts) {
+    const buka = s.status === 'buka';
+    say('  ' + (buka ? '<span class="bad">' : '<span class="ok">') +
+        '  id=' + esc(s.id) + ' status=' + esc(JSON.stringify(s.status)) +
+        ' buka=' + esc(fmt(s.waktuBuka)) + ' tutup=' + esc(fmt(s.waktuTutup)) + '</span>');
+  }
+  const rowsBuka = shifts.filter(s => s.status === 'buka');
+  say('  <b>baris status==="buka":</b> ' + (rowsBuka.length
+        ? '<span class="bad">' + rowsBuka.length + ' → ' + esc(JSON.stringify(rowsBuka.map(s => s.id))) + '</span>'
+        : '<span class="ok">0</span>'));
+  // Nilai status yang tidak lazimi (mis. 'Buka', ' buka', true)
+  const aneh = shifts.filter(s => s.status !== 'buka' && s.status !== 'tutup');
+  if (aneh.length) say('  <span class="bad">!! status TAK LAZIM: ' + esc(JSON.stringify(aneh.map(s => ({id:s.id, status:s.status, tipe: typeof s.status})))) + '</span>');
+
+  // ── 3. Evaluasi gerbang POS persis seperti pos.js ─────────────────────
+  const kas = await import('./js/kas.js');
+  const aktif = await kas.fiturKasAktif();
+  const shiftGerbang = await kas.getOpenShift();
+  say('\n<b>── 3. Evaluasi gerbang `pos.js:529` ──</b>');
+  say('  fiturKasAktif()   = ' + (aktif ? '<span class="bad">true  (gerbang AKTIF)</span>' : '<span class="ok">false (gerbang DILEWATI → boleh jualan)</span>'));
+  say('  getOpenShift()    = ' + (shiftGerbang ? '<span class="bad">id ' + esc(shiftGerbang.id) + ' (gerbang LULUS → boleh jualan)</span>' : '<span class="ok">null (gerbang MEMBLOKIR)</span>'));
+  const akanBlokir = aktif && !shiftGerbang;
+  say('\n  <b>KEPUTUSAN GERBANG:</b> ' + (akanBlokir
+        ? '<span class="ok">JUALAN HARUSNYA DIBLOKIR</span>'
+        : '<span class="bad">JUALAN DILULUSKAN — ini penjelasan gejala lo</span>'));
+
+  // ── 4. Penjualan terakhir: apakah ada yang lolos tanpa shift? ─────────
+  const sales = await DB.penjualan.orderBy('waktu').reverse().limit(8).toArray();
+  say('\n<b>── 4. Delapan `penjualan` terakhir ──</b>');
+  for (const s of sales) {
+    say('  waktu=' + esc(fmt(s.waktu)) + '  status=' + esc(s.status || 'completed') +
+        '  nomor=' + esc(s.nomor || '-') + '  total=' + esc(s.totalHarga) +
+        '  shiftId=' + esc(JSON.stringify(s.shiftId ?? s.kasShiftId ?? '(kolom tidak ada)')));
+  }
+  const cols = sales.length ? Object.keys(sales[0]).sort() : [];
+  say('\n  kolom penjualan: ' + esc(cols.join(', ')));
+
+  // ── 5. Apakah simpanPenjualan benar-benar punya gerbang? ──────────────
+  const posSrc = await (await fetch('js/pos.js?cb=' + Date.now(), { cache: 'no-store' })).text();
+  const i = posSrc.indexOf('async function simpanPenjualan');
+  say('\n<b>── 5. Sumber `js/pos.js` yang disajikan server ──</b>');
+  say('  panjang=' + posSrc.length + ' B   simpanPenjualan di offset ' + i);
+  if (i >= 0) {
+    const seg = posSrc.slice(i, i + 900).split('\n').slice(0, 22);
+    for (const ln of seg) say('    ' + esc(ln));
+  }
+  say('\n<b>SELESAI — tidak ada satu baris pun yang ditulis.</b>');
+} catch (e) {
+  say('<span class="bad">ERROR: ' + esc(e && e.stack || e) + '</span>');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,466 @@
+---
+/**
+ * Landing Program Mitra — app `mitra/` (mitra.kasirsolo.com).
+ *
+ * CATATAN ISTILAH (penting, jangan dibalik):
+ *   - "Mitra" di PROGRAM INI = orang yang ngar rekomendasi. Bisa klien yang juga
+ *     mau nambah rekomendasi, bisa afiliasi/reseller yang fokus jualan.
+ *   - "Mitra Mesin Kasir" di beranda = sebutan buat PENGGUNA APLIKASI (klien).
+ *   Dua makna itu beda konteks; halaman ini tegas menjelaskan biar ga salah paham.
+ *
+ * Narasi ini dipindah dari `company/src/pages/mitra.astro` TANPA diubah isinya —
+ * sumber kebenaran narasi: docs/ADR-VOUCHER-REFERRAL.md §14.4.
+ * Perubahan st: CTA daftar → /daftar, form pakai komponen <FormDaftar />,
+ * plus section baru "Portal Mitra" (alasannya app ini terpisah).
+ */
+import Base from '../layouts/Base.astro';
+import FormDaftar from '../components/FormDaftar.astro';
+
+const title = 'Program Mitra — Dapatkan Komisi dari Setiap Rekomendasi | PT Mesin Kasir Solo';
+const description =
+  'Daftar jadi mitra Kasir Solo: lo cuma nunjuk, mereka beli, lo dapet komisi. Tanpa modal, tanpa stok. Mereka juga dapat diskon lisensi pertama.';
+
+const keunggulan = [
+  {
+    icon: 'wallet',
+    title: 'Tanpa Modal, Tanpa Stok',
+    desc: 'Lo cuma buka WhatsApp buat share kode. Nggak ada modal awal, nggak ada barang yang harus distok, nggak ada yang harus lo kirim. Kalau nggak ada yang beli, lo nggak rugi apa-apa.',
+  },
+  {
+    icon: 'chart',
+    title: 'Komisi Kehitung Otomatis',
+    desc: 'Begitu ada yang beli lisensi lewat kode lo, komisi lo langsung nongol. Lo bisa cek sendiri: berapa orang yang daftar, berapa yang jadi bayar, berapa komisinya.',
+  },
+  {
+    icon: 'cash',
+    title: 'Tarik ke Bank, atau Potong Lisensi',
+    desc: 'Komisi lo bisa ditarik ke rekening, atau dipotongin buat harga lisensi sendiri. Silakan pilih yang paling masuk akal buat lo.',
+  },
+];
+
+const langkah = [
+  {
+    n: '01',
+    title: 'Daftar',
+    desc: 'Nama, nomor WhatsApp, kota. Dua menit selesai. Lo nggak harus punya lisensi untuk mulai nawarin.',
+  },
+  {
+    n: '02',
+    title: 'Dapet Kode Lo',
+    desc: 'Begitu WhatsApp lo terverifikasi, kode referral lo terbit. Sekalian lo dapat template share biar tinggal kirim, tanpa nulis ulang.',
+  },
+  {
+    n: '03',
+    title: 'Share, Kumpulin Komisi',
+    desc: 'Kirim ke grup WhatsApp, toko, atau tetangga yang butuh kasir. Yang beli lewat kode lo, komisi lo masuk. Nggak ada batas berapa kali.',
+  },
+];
+
+const faq = [
+  {
+    q: 'Beneran nggak butuh modal?',
+    a: 'Bener. Nggak ada modal awal, nggak ada stok, nggak ada pengiriman. Lo cuma nunjukin aplikasi kami ke orang lain. Kalau nggak ada yang beli, lo nggak kehilangan apa-apa.',
+  },
+  {
+    q: 'Kalau orang yang gue tunjuk ternyata nggak beli?',
+    a: 'Kode lo tetap aman dan nggak hangus — masih bisa dipakai ke siapa aja. Cuma orang itu nggak dihitung sebagai penjualan lo, jadi komisi buat dia nggak ada. Sisa kode lo tetap jalan.',
+  },
+  {
+    q: 'Gimana cara komisi-nya cair?',
+    a: 'Komisi lo masuk ke saldo dan diakumulasi, tapi lamanya beda tergantung status lo. Kalau lo punya lisensi — jadi klien yang sekalian ngasih rekomendasi — komisi bisa payout per 7 hari. Kalau lo fokus referensi doank tanpa lisensi sama sekali, komisi masuk per 30 hari. Request pencairan, minimal Rp 50.000, langsung gue transfer ke rekening lo.',
+  },
+  {
+    q: 'Satu kode bisa buat semua aplikasi?',
+    a: 'Bisa. Satu kode referral lo berlaku buat seluruh aplikasi kasir kami. Jadi lo cuma share satu link, dan siapa pun yang beli lewat situ tetep nambah komisi lo.',
+  },
+];
+
+const banding = [
+  { l: 'Komisi dari tiap penjualan', r: 'Diskon lisensi pertamanya' },
+  { l: 'Kode referral pribadi', r: 'Aktivasi lisensi langsung, tanpa nunggu' },
+  { l: 'Riwayat & saldo bisa lo cek sendiri', r: 'Bayar sekali, pakai seumur hidup' },
+  { l: 'Bisa ditarik ke bank atau dipotong lisensi', r: 'Support WhatsApp, nempel di satu tempat' },
+];
+
+const portalFitur = [
+  {
+    title: 'Kode Lo',
+    desc: 'Satu kode buat semua aplikasi. Tinggal salin, kirim ke WhatsApp.',
+  },
+  {
+    title: 'Poin & Saldo',
+    desc: 'Lihat poin yang siap ditarik sama poin yang masih nunggu siklus payout.',
+  },
+  {
+    title: 'Ajukan Pencairan',
+    desc: 'Request pencairan tiap siklus selesai. Minimal Rp 50.000, transfer langsung ke rekening lo.',
+  },
+];
+
+const ICONS: Record<string, string> = {
+  wallet:
+    '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
+  chart: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+  cash:
+    '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+};
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
+---
+
+<Base title={title} description={description}>
+  <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+
+  {/* ============ HERO ============ */}
+  <section class="hero hero-compact" id="program">
+    <div class="hero-bg">
+      <div class="orb-1"></div>
+      <div class="grid-lines"></div>
+    </div>
+    <div class="hero-inner">
+      <span class="hero-badge anim-fade" data-i18n="mitra.heroBadge">Program Mitra</span>
+      <h1 class="anim-fade anim-d1" data-i18n="mitra.heroTitle">
+        Lo Nunjuk, Dia Beli, <span class="accent">Lo Dapet Komisi.</span>
+      </h1>
+      <p class="hero-sub anim-fade anim-d2" data-i18n="mitra.heroSub">
+        Lo nggak perlu jualan barang, nggak perlu stok, nggak perlu modal. Cuma kasih tau siapa aja
+        yang butuh kasir — mereka dapat diskon, lo dapat komisi yang bisa ditarik.
+      </p>
+      <div class="hero-cta anim-fade anim-d3">
+        <a class="btn btn-primary btn-hero" href="/daftar">
+          <span data-i18n="mitra.heroCta">Daftar Jadi Mitra</span><span class="shine"></span>
+        </a>
+        <a class="btn btn-outline btn-hero" href="#cara">
+          <span data-i18n="mitra.heroCta2">Cara Kerjainya</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ KEUNGGULAN ============ */}
+  <section class="block" id="kenapa">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="mitra.whyBadge">Kenapa Worth It</span>
+        <h2 data-i18n="mitra.whyTitle">Lo Cuma <span class="hl">Nunjuk</span>, Bukan Jual Barang</h2>
+        <p class="sub" data-i18n="mitra.whySub">
+          Nggak ada stok yang harus distok, nggak ada modal yang keluar, nggak ada barang yang harus
+          dikirim. Cuma rekomendasi — dan itu balik modal lo sendiri.
+        </p>
+      </div>
+      <div class="grid grid-3">
+        {keunggulan.map((u, i) => (
+          <article class="card">
+            <div class="icon-tile">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={ICONS[u.icon]} />
+            </div>
+            <h3 data-i18n={`mitra.adv${i + 1}T`}>{u.title}</h3>
+            <p data-i18n={`mitra.adv${i + 1}D`}>{u.desc}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* ============ DUA-DUANYA MENANG ============ */}
+  <section class="block" id="dua-duanya">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="mitra.winBadge">Dua-duanya Menang</span>
+        <h2 data-i18n="mitra.winTitle">Bukan <span class="hl">Zero-Sum</span></h2>
+        <p class="sub" data-i18n="mitra.winSub">
+          Bukan rebutan — bukan satu orang untung sementara yang lain rugi. Begitu satu orang
+          beli lisensi lewat kode lo, dia dapat diskon dan lo dapat komisi. Dua-duanya untung:
+          lo nambah satu penjualan, dan komisinya langsung masuk ke saldo lo.
+        </p>
+      </div>
+      <div class="mt-vs">
+        <div class="mt-vs-col mt-vs-lo">
+          <div class="mt-vs-head" data-i18n="mitra.winYou">Buat Lo (Mitra)</div>
+          <ul>
+            {banding.map((b, i) => (
+              <li><span data-i18n={`mitra.winL${i + 1}`}>{b.l}</span></li>
+            ))}
+          </ul>
+        </div>
+        <div class="mt-vs-col mt-vs-them">
+          <div class="mt-vs-head" data-i18n="mitra.winThem">Buat Mereka (Calon Pembeli)</div>
+          <ul>
+            {banding.map((b, i) => (
+              <li><span data-i18n={`mitra.winR${i + 1}`}>{b.r}</span></li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ CARA KERJA ============ */}
+  <section class="block" id="cara">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="mitra.stepsBadge">Tiga Langkah</span>
+        <h2 data-i18n="mitra.stepsTitle">Gampang <span class="hl">Banget</span></h2>
+        <p class="sub" data-i18n="mitra.stepsSub">Dua menit daftar, sisanya tinggal share kode.</p>
+      </div>
+      <div class="grid grid-3">
+        {langkah.map((l, i) => (
+          <article class="card mt-step">
+            <span class="mt-num">{l.n}</span>
+            <h3 data-i18n={`mitra.step${i + 1}T`}>{l.title}</h3>
+            <p data-i18n={`mitra.step${i + 1}D`}>{l.desc}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* ============ FAQ ============ */}
+  <section class="block" id="faq">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="mitra.faqBadge">Pertanyaan Umum</span>
+        <h2 data-i18n="mitra.faqTitle">Lo <span class="hl">Penasaran</span>?</h2>
+        <p class="sub" data-i18n="mitra.faqSub">Yang paling sering ditanyain sebelum daftar.</p>
+      </div>
+      <div class="mt-faq">
+        {faq.map((f, i) => (
+          <details class="mt-faq-item" name="mitra-faq">
+            <summary><span data-i18n={`mitra.faq${i + 1}Q`}>{f.q}</span></summary>
+            <p data-i18n={`mitra.faq${i + 1}A`}>{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* ============ KLARIFIKASI ISTILAH ============ */}
+  <section class="block mt-clear" id="arti-mitra">
+    <div class="container">
+      <div class="mt-clear-box">
+        <h2 data-i18n="mitra.clearTitle">Biar Nggak <span class="hl">Salah Paham</span></h2>
+        <ul class="mt-clear-list">
+          <li data-i18n="mitra.clearL1">
+            <b>Di program ini</b> — mitra = orang yang ngar rekomendasi. Nggak harus punya lisensi:
+            bisa afiliasi/reseller yang fokus jualan, bisa juga klien yang sekalian merekomendasikan.
+          </li>
+          <li data-i18n="mitra.clearL2">
+            <b>Di beranda</b> — “Mitra Mesin Kasir” = sebutan buat orang yang memakai aplikasi kasir
+            kami.
+          </li>
+        </ul>
+        <p class="mt-clear-note" data-i18n="mitra.clearNote">
+          Dua-duanya boleh. Lo bisa pakai aplikasinya sendiri, dan tetap ngar rekomendasi buat komisi.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ PORTAL MITRA ============ */}
+  <section class="block" id="portal">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="m.portalBadge">Portal Mitra</span>
+        <h2 data-i18n="m.portalTitle">Semuanya Ada di <span class="hl">Satu Dashboard</span></h2>
+        <p class="sub" data-i18n="m.portalSub">
+          Kode lo, saldo lo, riwayat pencairan lo — semuanya di satu tempat. Nggak perlu chat founder
+          tiap mau cek.
+        </p>
+      </div>
+      <div class="grid grid-3 mt-portal-grid">
+        {portalFitur.map((f, i) => (
+          <article class="card mt-portal-card">
+            <span class="mt-portal-num">0{i + 1}</span>
+            <h3 data-i18n={`m.portalF${i + 1}T`}>{f.title}</h3>
+            <p data-i18n={`m.portalF${i + 1}D`}>{f.desc}</p>
+          </article>
+        ))}
+      </div>
+      <div class="mt-portal-cta">
+        <a class="btn btn-primary btn-hero" href="/portal">
+          <span data-i18n="m.portalCta">Buka Portal Mitra</span><span class="shine"></span>
+        </a>
+        <p class="mt-portal-note" data-i18n="m.portalNote">
+          Portalnya sekarang masih pakai data contoh.Begitu database-nya hidup, semua jadi asli —
+          kode lo, saldo lo, riwayat pencairan lo.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ FORM PENDAFTARAN ============ */}
+  <section class="block" id="daftar">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill" data-i18n="mitra.formBadge">Pendaftaran</span>
+        <h2 data-i18n="mitra.formTitle">Daftar <span class="hl">Sekarang</span></h2>
+        <p class="sub" data-i18n="mitra.formSub">
+          Isi formnya, klik kirim, dan WhatsApp lo kebuka dengan pesan yang udah keisi. Tinggal
+          kirim, beres.
+        </p>
+      </div>
+      <FormDaftar />
+    </div>
+  </section>
+</Base>
+
+<style>
+  /* ---- Ritme vertikal antar section ----
+     Semua jarak pakai 1 token: --sp-section = clamp(64px, 7vw, 104px).
+     - jarak konten antar section = 2 × token (202px @1440 · 128px @863 · 128px @390)
+     - jarak header -> hero = 1 × token
+     - jarak section terakhir -> footer = 2 × token
+     Jadi semuanya naik/turun mengikuti lebar layar, bukan angka mati. */
+  section.block { padding-block: var(--sp-section); }
+  /* Header-nya `position: fixed` setinggi --header-h, jadi hero harus mulai
+     jauh di bawahnya. Padding atas = tinggi header + 1 token → jarak dari
+     header sama dengan 1 token, bukan sisa ruang random. */
+  section.hero-compact .hero-inner {
+    padding-top: calc(var(--header-h) + var(--sp-section));
+    padding-bottom: var(--sp-section);
+  }
+  .section-head { margin-bottom: calc(var(--sp-section) * 0.58); }
+  /* Jarak section terakhir ke footer ikut token yang sama (bukan 96px
+     free-form) → gap penutup = 2 × token, sama kayak antar section. */
+  :global(.site-footer) { margin-top: var(--sp-section); }
+
+  /* ---- Kartu langkah bernomor ---- */
+  .mt-step { position: relative; overflow: hidden; }
+  .mt-num {
+    position: absolute; top: 14px; right: 18px;
+    font-size: 44px; font-weight: 800; line-height: 1;
+    color: rgba(255, 95, 31, .16); letter-spacing: -.03em;
+  }
+  .mt-step h3 { position: relative; margin: 10px 0 8px; font-size: 20px; }
+
+  /* ---- Tabel dua-duanya menang ---- */
+  .mt-vs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    max-width: 900px; margin: 0 auto;
+  }
+  .mt-vs-col {
+    border: 1px solid var(--line-2); border-radius: 18px;
+    background: var(--card); padding: 26px 24px;
+  }
+  .mt-vs-lo { border-color: rgba(255, 95, 31, .35); }
+  .mt-vs-them { border-color: rgba(56, 189, 248, .28); }
+  .mt-vs-head {
+    font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    margin-bottom: 16px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .mt-vs-lo .mt-vs-head { color: var(--orange); }
+  .mt-vs-them .mt-vs-head { color: #7dd3fc; }
+  .mt-vs-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 13px; }
+  .mt-vs-col li {
+    position: relative; padding-left: 24px;
+    color: var(--text-2); font-size: 14px; line-height: 1.55;
+  }
+  .mt-vs-col li::before {
+    content: ''; position: absolute; left: 0; top: 7px;
+    width: 9px; height: 9px; border-radius: 3px;
+    background: var(--orange);
+  }
+  .mt-vs-them li::before { background: #38bdf8; }
+
+  /* ---- FAQ ---- */
+  .mt-faq { max-width: 820px; margin: 0 auto; display: grid; gap: 12px; }
+  .mt-faq-item {
+    border: 1px solid var(--line-2); border-radius: 16px;
+    background: var(--card); overflow: hidden;
+    transition: border-color .2s;
+  }
+  .mt-faq-item[open] { border-color: rgba(255, 95, 31, .35); }
+  .mt-faq-item summary {
+    cursor: pointer; list-style: none;
+    padding: 18px 22px;
+    font-size: 15.5px; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  }
+  .mt-faq-item summary::-webkit-details-marker { display: none; }
+  .mt-faq-item summary::after {
+    content: '+'; font-size: 22px; line-height: 1; font-weight: 400;
+    color: var(--orange); flex-shrink: 0; transition: transform .2s;
+  }
+  .mt-faq-item[open] summary::after { content: '\2212'; }
+  .mt-faq-item p {
+    margin: 0; padding: 0 22px 20px;
+    color: var(--text-2); font-size: 14px; line-height: 1.75;
+  }
+
+  /* ---- Box klarifikasi istilah ---- */
+  .mt-clear-box {
+    max-width: 860px; margin: 0 auto;
+    border: 1px solid var(--line-2); border-radius: 20px;
+    background: var(--card); padding: 44px 28px;
+    text-align: center;
+  }
+  .mt-clear-box h2 { margin: 0 0 14px; font-size: clamp(20px, 3vw, 28px); }
+  .mt-clear-box h2 .hl { color: var(--orange); }
+  .mt-clear-box p { margin: 0 auto; max-width: 640px; color: var(--text-2); font-size: 14.5px; line-height: 1.75; }
+  .mt-clear-box b { color: var(--text); }
+  .mt-clear-list {
+    list-style: none; margin: 22px auto 0; padding: 0; max-width: 660px;
+    display: grid; gap: 12px; text-align: left;
+  }
+  .mt-clear-list li {
+    position: relative; padding: 16px 18px 16px 46px;
+    border: 1px solid var(--line-2); border-radius: 14px;
+    background: rgba(0, 0, 0, .18);
+    color: var(--text-2); font-size: 14.5px; line-height: 1.7;
+  }
+  .mt-clear-list li::before {
+    content: ''; position: absolute; left: 20px; top: 24px;
+    width: 10px; height: 10px; border-radius: 3px; background: var(--orange);
+  }
+  .mt-clear-box p.mt-clear-note {
+    margin: 20px auto 0; max-width: 660px;
+    font-size: 13.5px; line-height: 1.7;
+  }
+
+  /* ---- Section portal ---- */
+  .mt-portal-grid { margin-top: 8px; }
+  .mt-portal-card { position: relative; overflow: hidden; }
+  .mt-portal-num {
+    position: absolute; top: 14px; right: 18px;
+    font-size: 40px; font-weight: 800; line-height: 1;
+    color: rgba(56, 189, 248, .18); letter-spacing: -.03em;
+  }
+  .mt-portal-card h3 { position: relative; margin: 10px 0 8px; font-size: 20px; }
+  .mt-portal-card p { position: relative; }
+  .mt-portal-cta { text-align: center; margin-top: max(24px, calc(var(--sp-section) * 0.34)); }
+  .mt-portal-cta .btn-hero { display: inline-flex; }
+  .mt-portal-note {
+    margin: 16px auto 0; max-width: 620px;
+    color: var(--text-2); font-size: 13px; line-height: 1.7;
+  }
+
+  @media (max-width: 640px) {
+    .mt-clear-box { padding: 32px 20px; }
+    .mt-vs { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- FAQ: akordeon eksklusif — satu yang terbuka, yang lain auto-close -->
+<script>
+  const faqBox = document.querySelector('.mt-faq');
+  faqBox?.addEventListener(
+    'toggle',
+    (e) => {
+      const el = e.target;
+      if (!el || el.tagName !== 'DETAILS' || !el.open) return;
+      faqBox.querySelectorAll('details[open]').forEach((d) => {
+        if (d !== el) d.open = false;
+      });
+    },
+    true
+  );
+</script>

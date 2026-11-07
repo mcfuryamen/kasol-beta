@@ -1,0 +1,1 @@
+{"query":"select kode_produk, name, description, icon, price_label, tx_quota from public.products where visible = true order by kode_produk;"}

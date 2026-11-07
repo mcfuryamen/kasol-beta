@@ -1,0 +1,9 @@
+{
+  "version": "1.0.140-beta.1",
+  "cacheBust": "v215",
+  "notes": [
+    "\"Lanjut tanpa akun\" kini lewat URL khusus yang di-generate dari dashboard Akun Kasol (situs mitra) — gerbang login kaki5 tidak lagi menampilkan tombol tersebut.",
+    "Membuka URL khusus itu langsung memakai aplikasi sebagai Pemilik perangkat; bypass diingat di perangkat, dan masuk akun tetap bisa kapan saja lewat Pengaturan › Akun & Peran.",
+    "Form daftar akun in-page di gerbang tetap tersedia."
+  ]
+}

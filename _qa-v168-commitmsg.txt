@@ -1,0 +1,34 @@
+kaki5 v168 / 1.0.100: modul Bantuan ditulis ulang mengikuti kode nyata
+
+js/bantuan.js (+426/-115, 656 baris). Tidak ada perubahan logika aplikasi.
+
+11 -> 17 tutorial. Topik baru: Buka & Tutup Kas (saklar, modal awal, selisih
+fisik-sistem, dompet digital, "Catat Kas"), Tahan Pesanan, Stok/Topping/Harga
+Ojol, Metode Pembayaran & Foto Bukti, Pengeluaran & PEMASUKAN, Tutup Buku
+Tahunan, Menu Titipan (Konsinyasi) & Retur.
+
+Klaim basi dibuang (bukan disunting):
+- layar onboarding + "Mulai Masa Percobaan" (gate dihapus app.js:245)
+- "Setuju & Lanjut" -> nyata "Saya Setuju" / "Nanti Saja"
+- chip "TRIAL" -> nyata GRATIS/LISENSI + "n trx" / Habis / Aktif / Dicabut
+- seluruh blok "Tambah 1 Hari Gratis (Berbagi)" (fitur dicabut)
+- "Kirim Bukti Pembayaran" -> "Lampirkan Bukti Pembayaran" -> "Kirim Sekarang"
+
+Label UI dikoreksi ke teks asli: tab Menu (bukan "Makanan"), kategori
+Makanan/Minuman/Snack/Lainnya/Titipan (tanpa Jajanan), Dine-in/Take-away/Ojol
+(tanpa "Biasa"), tombol "Bayar" (bukan "Simpan"), 8 jenis pengeluaran (bukan 5),
+"Biaya Usaha" + "Riwayat Transaksi" di Laporan, kartu "Perangkat" (bukan
+section "Printer Bluetooth"), "Pasang Aplikasi" (bukan "Instal").
+Typo Bluettooth & Routin-routin diperbaiki. Bug indentasi toggleTutorial dirapi.
+
+Verifikasi:
+- audit otomatis 471 label dikutip tutorial vs index.html+js/*.js -> 464 lolos,
+  7 sisanya jalur navigasi komposit (dicek manual, semua ada)
+- harness render: 17 kartu, akordeon berfungsi, tag <b> seimbang 423/423
+- test-imports 45/45, test-dynamic-imports 23/23, css-drift/db-migrations/shim
+  hijau; html-refs/data-actions/modules tetap merah baseline lama
+- audit dokumen: 331 rujukan file:baris, 0 di luar rentang, 0 tak terselesaikan
+
+Bump 6 slot sinkron: version.js APP_VERSION+CACHE_BUST, version.json
+version+cacheBust+notes, sw.js CACHE_NAME+header+blok riwayat, index.html ?v=.
+Rujukan sw.js:7-142 -> 7-147 di CHANGELOG ikut digeser (+5 baris komentar).

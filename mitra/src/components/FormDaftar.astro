@@ -1,0 +1,421 @@
+---
+/**
+ * Form pendaftaran mitra (dipakai di landing `/` dan `/daftar`).
+ *
+ * Alur (Fase 2 — 26/10/2026):
+ *   1. Submit → RPC `partner_register` (lihat ADR §5)
+ *      → mitra LANGSUNG aktif, dapet kode referral + token portal.
+ *   2. Panel sukses nampilin kode + link portal (bisa disalin / dikirim ke WA).
+ *   3. Kalau RPC-nya belum ada / jaringan gagal → fallback ke WhatsApp kayak
+ *      sebelumnya, jadi pendaftaran lo nggak hilang.
+ *
+ * CATATAN: nggak ada pilihan produk. Kode referral mitra berlaku untuk
+ * SELURUH produk Kasir Solo (ADR §14.2 — satu kode, satu link untuk di-share).
+ */
+---
+
+<form class="mt-form" id="mitraForm" novalidate>
+  <div class="mt-grid">
+    <label class="mt-field">
+      <span data-i18n="mitra.fNama">Nama</span>
+      <input type="text" name="nama" required placeholder="Nama lo" data-i18n-ph="mitra.fNamaPh" />
+    </label>
+    <label class="mt-field">
+      <span data-i18n="mitra.fWa">Nomor WhatsApp</span>
+      <input type="tel" name="wa" required placeholder="628xxxxxxxxxx" data-i18n-ph="mitra.fWaPh" />
+    </label>
+    <label class="mt-field">
+      <span data-i18n="mitra.fKota">Kota</span>
+      <input type="text" name="kota" placeholder="Kota lo" data-i18n-ph="mitra.fKotaPh" />
+    </label>
+    <label class="mt-field">
+      <span data-i18n="mitra.fKodeRef">Kode Referal (opsional)</span>
+      <input
+        type="text"
+        name="kode_ref"
+        placeholder="MKS-XXXXXX"
+        data-i18n-ph="mitra.fKodeRefPh"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <small class="mt-field-note" data-i18n="mitra.fKodeRefNote"
+        >Punya kode dari mitra yang ngajak lo? Masukin — dia dapet komisi, lo dapet
+        diskon buat pembelian pertama.</small
+      >
+    </label>
+  </div>
+  <label class="mt-field">
+    <span data-i18n="mitra.fCatatan">Catatan (opsional)</span>
+    <textarea name="catatan" rows="3" placeholder="Cerita dikit — kenapa lo mau gabung program ini?" data-i18n-ph="mitra.fCatatanPh"></textarea>
+  </label>
+  <button class="btn btn-primary btn-hero mt-submit" type="submit">
+    <span data-i18n="mitra.fSubmit">Kirim Pendaftaran</span><span class="shine"></span>
+  </button>
+  <p class="mt-note" data-i18n="mitra.fNote">
+    Pendaftaran langsung masuk ke database — kode referral &amp; link portal lo jadi dalam hitungan
+    detik, tanpa perlu chat dulu. Satu kode berlaku buat <b>seluruh produk</b> Kasir Solo. Detailnya
+    juga terkirim ke WhatsApp kami biar kami tahu.
+  </p>
+</form>
+
+{/* ---- Panel sukses (kode referral + link portal) ---- */}
+<div class="mt-sukses" id="mtSukses" hidden>
+  <span class="kicker-pill" data-i18n="mitra.regOkBadge">Berhasil</span>
+  <h3 data-i18n="mitra.regOkTitle">Lo resmi jadi mitra</h3>
+  <p class="mt-sukses-sub" data-i18n="mitra.regOkSub">
+    Kode referral lo udah jadi, dan berlaku buat <b>seluruh produk</b> Kasir Solo. Share ke siapa
+    aja — tiap orang yang beli lewat kode lo kehitung komisi lo.
+  </p>
+
+  <div class="mt-sukses-box">
+    <span class="mt-sukses-label" data-i18n="mitra.regCodeLabel">Kode referral lo</span>
+    <code class="mt-sukses-kode" id="mtKode">—</code>
+    <button class="btn btn-outline mt-btn-kecil" id="mtSalin" type="button">
+      <span id="mtSalinLabel" data-i18n="mitra.regCopy">Salin kode</span>
+      <span id="mtSalinOk" data-i18n="mitra.regCopyOk" hidden>Tersalin!</span>
+    </button>
+  </div>
+
+  <div class="mt-sukses-box">
+    <span class="mt-sukses-label" data-i18n="mitra.regLinkLabel">Link portal mitra lo</span>
+    <code class="mt-sukses-link" id="mtLink">—</code>
+    <div class="mt-sukses-aksi">
+      <a class="btn btn-primary mt-btn-kecil" id="mtLinkBtn" href="#">
+        <span data-i18n="mitra.regOpenPortal">Buka portal</span><span class="shine"></span>
+      </a>
+      <button class="btn btn-outline mt-btn-kecil" id="mtKirimWa" type="button">
+        <span data-i18n="mitra.regSendWa">Kirim ke WhatsApp gue</span>
+      </button>
+    </div>
+  </div>
+
+  {/* ---- Voucher diskon dari kode referal (cuma kalau kodenya diisi) ---- */}
+  <div class="mt-sukses-box mt-ref-box" id="mtRefBox" hidden>
+    <span class="mt-sukses-label" data-i18n="mitra.refVoucherLabel"
+      >Kode diskon buat pembelian pertama lo</span
+    >
+    <code class="mt-sukses-kode" id="mtRefKode">—</code>
+    <p class="mt-ref-meta" id="mtRefMeta" data-i18n="mitra.refMeta">
+      {'Diskon {d} · minimal belanja {m} · berlaku s.d. {e}'}
+    </p>
+    <button class="btn btn-outline mt-btn-kecil" id="mtRefSalin" type="button">
+      <span id="mtRefSalinLabel" data-i18n="mitra.regCopy">Salin kode</span>
+      <span id="mtRefSalinOk" data-i18n="mitra.regCopyOk" hidden>Tersalin!</span>
+    </button>
+  </div>
+
+  <p class="mt-note mt-ref-warn" id="mtRefWarn" hidden>
+    <span id="mtRefWarnText" data-i18n="mitra.refInvalid"
+      >Kode referalnya nggak kepake — tapi pendaftaran lo tetap berhasil.</span
+    >
+  </p>
+
+  <p class="mt-note" data-i18n="mitra.regNote">
+    Simpan link portal lo baik-baik — itu akses lo ke kode, poin, sama pencairan.
+  </p>
+  <p class="mt-note" data-i18n="mitra.regNoteWA">
+    Detail pendaftaran juga terkirim ke WhatsApp kami, biar kami tahu dan bisa bantu lo kalau ada
+    masalah.
+  </p>
+</div>
+
+<style>
+  .mt-form {
+    max-width: 760px; margin: 0 auto;
+    border: 1px solid var(--line-2); border-radius: 20px;
+    background: var(--card); padding: 32px 26px;
+  }
+  .mt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .mt-field { display: block; margin-bottom: 16px; }
+  .mt-field > span {
+    display: block; margin-bottom: 7px;
+    font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-2);
+  }
+  .mt-field input,
+  .mt-field select,
+  .mt-field textarea {
+    width: 100%;
+    padding: 13px 15px;
+    border-radius: 12px;
+    border: 1px solid var(--line-2);
+    background: rgba(0, 0, 0, .28);
+    color: var(--text);
+    font-family: inherit; font-size: 14.5px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .mt-field textarea { resize: vertical; }
+  .mt-field input:focus,
+  .mt-field select:focus,
+  .mt-field textarea:focus {
+    outline: none;
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(255, 95, 31, .16);
+  }
+  .mt-field input::placeholder,
+  .mt-field textarea::placeholder { color: rgba(255, 255, 255, .32); }
+  .mt-submit { width: 100%; margin-top: 4px; }
+  .mt-note { margin: 16px 0 0; text-align: center; font-size: 12.5px; line-height: 1.65; color: var(--text-2); }
+  .mt-field-note {
+    display: block; margin-top: 8px;
+    font-size: 11.5px; font-weight: 500; line-height: 1.5;
+    color: var(--text-3);
+  }
+  .mt-ref-meta { margin: 10px 0 14px; font-size: 13px; color: var(--text-2); }
+  .mt-ref-warn { color: #ffb37a; }
+  .mt-ref-box { border-color: rgba(255, 95, 31, .55); }
+
+  /* ---- Panel sukses ---- */
+  .mt-sukses {
+    max-width: 760px; margin: 22px auto 0;
+    border: 1px solid rgba(255, 95, 31, .38); border-radius: 20px;
+    background: rgba(255, 95, 31, .07); padding: 30px 26px;
+    text-align: center;
+  }
+  .mt-sukses h3 {
+    margin: 12px 0 10px; font-size: clamp(20px, 3vw, 26px); color: #fff;
+  }
+  .mt-sukses-sub {
+    margin: 0 auto 22px; max-width: 560px;
+    color: var(--text-2); font-size: 14px; line-height: 1.7;
+  }
+  .mt-sukses-box {
+    margin: 0 auto 14px; max-width: 540px;
+    border: 1px dashed rgba(255, 95, 31, .4); border-radius: 16px;
+    background: rgba(0, 0, 0, .22); padding: 18px 18px 16px;
+  }
+  .mt-sukses-label {
+    display: block; font-size: 11px; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--text-3);
+  }
+  .mt-sukses-kode {
+    display: block; margin: 10px 0 12px;
+    font-family: var(--font-display); font-size: clamp(24px, 5vw, 34px);
+    font-weight: 700; letter-spacing: .09em; color: var(--orange);
+    overflow-wrap: anywhere;
+  }
+  .mt-sukses-link {
+    display: block; margin: 10px 0 14px;
+    font-size: 13px; color: var(--text); word-break: break-all;
+  }
+  .mt-sukses-aksi { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .mt-btn-kecil { height: 44px; padding: 0 18px; font-size: 12px; }
+
+  @media (max-width: 640px) {
+    .mt-grid { grid-template-columns: 1fr; gap: 0; }
+    .mt-form { padding: 24px 18px; }
+    .mt-sukses { padding: 24px 18px; }
+  }
+</style>
+
+<script>
+  import { registerPartner, claimReferral, type ClaimResult } from '../lib/api';
+  import { site, formatRupiah } from '../data/site';
+  import { EN } from '../i18n/dictionary';
+
+  const $ = (id: string) => document.getElementById(id);
+  const form = $('mitraForm') as HTMLFormElement | null;
+
+  /** Teks sesuai bahasa aktif (EN override kalau ada di kamus). */
+  const t = (key: string, idText: string): string => {
+    const lang = document.documentElement.lang === 'en' ? 'en' : 'id';
+    return lang === 'en' && EN[key] ? EN[key] : idText;
+  };
+
+  /** Isi template {x} dengan nilainya. */
+  const fill = (tpl: string, vars: Record<string, string>): string =>
+    tpl.replace(/\{(\w+)\}/g, (_m, key: string) => vars[key] ?? '');
+
+  /** Salin teks ke clipboard (fallback execCommand). */
+  async function copyText(text: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+      } catch {
+        /* abaikan */
+      }
+      ta.remove();
+    }
+  }
+
+  /** Hasil klaim kode referal terakhir (dipakai buat render + salin). */
+  let lastClaim: ClaimResult | null = null;
+
+  /** Tampilin hasil klaim: voucher diskon (sukses) atau catatan (nggak kepake). */
+  function renderClaim(): void {
+    const claim = lastClaim;
+    const box = $('mtRefBox');
+    const warn = $('mtRefWarn');
+    const warnText = $('mtRefWarnText');
+
+    if (!claim || !claim.ok || claim.already) {
+      if (warn) warn.hidden = false;
+      if (warnText) {
+        if (claim?.already) {
+          warnText.textContent = claim.reason || '';
+        } else if (claim?.reason) {
+          warnText.textContent = `${t(
+            'mitra.refInvalid',
+            'Kode referalnya nggak kepake — tapi pendaftaran lo tetap berhasil.'
+          )} (${claim.reason})`;
+        } else {
+          warnText.textContent = t(
+            'mitra.refInvalid',
+            'Kode referalnya nggak kepake — tapi pendaftaran lo tetap berhasil.'
+          );
+        }
+      }
+      return;
+    }
+
+    const kode = $('mtRefKode');
+    const meta = $('mtRefMeta');
+    if (kode) kode.textContent = claim.voucherCode || '—';
+    if (meta) {
+      meta.textContent = fill(
+        t('mitra.refMeta', 'Diskon {d} · minimal belanja {m} · berlaku s.d. {e}'),
+        {
+          d: formatRupiah(claim.discount || 0),
+          m: formatRupiah(claim.minPurchase || 0),
+          e: claim.expiresAt || '-',
+        }
+      );
+    }
+    if (box) box.hidden = false;
+  }
+
+  // Ganti bahasa → render ulang teks dinamis (detail voucher + catatan).
+  window.addEventListener('mks:lang', () => {
+    if (lastClaim) renderClaim();
+  });
+
+  // Tombol salin voucher diskon.
+  $('mtRefSalin')?.addEventListener('click', async () => {
+    await copyText(lastClaim?.voucherCode || '');
+    const lbl = $('mtRefSalinLabel');
+    const ok = $('mtRefSalinOk');
+    if (lbl) lbl.hidden = true;
+    if (ok) ok.hidden = false;
+    setTimeout(() => {
+      if (lbl) lbl.hidden = false;
+      if (ok) ok.hidden = true;
+    }, 1800);
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const get = (k: string) => String(fd.get(k) || '').trim();
+    const nama = get('nama');
+    const wa = get('wa');
+    // Kode referal (opsional) — huruf besar, tanpa spasi.
+    const kodeRef = get('kode_ref').toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    if (!nama || !wa) {
+      form.querySelector('[name="nama"]')?.focus();
+      alert('Nama dan nomor WhatsApp wajib diisi.');
+      return;
+    }
+
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+    btn?.setAttribute('disabled', '');
+
+    // Popup dibuka sinkron di dalam event klik, kalau tidak diblokir browser.
+    const win = window.open('about:blank', '_blank');
+
+    const res = await registerPartner({
+      nama,
+      wa,
+      kota: get('kota'),
+      catatan: get('catatan'),
+    });
+
+    // Kode referal (kalau diisi): mitra yang ngajak dapat 5 poin, pendaftar
+    // dapat voucher diskon buat pembelian pertamanya. Pendaftaran TETAP sukses
+    // walau kodenya nggak valid — cuma vouchernya nggak jadi.
+    if (res?.ok && kodeRef) {
+      lastClaim = await claimReferral({
+        code: kodeRef,
+        nama,
+        wa,
+        kota: get('kota'),
+        appType: '*',
+      });
+      renderClaim();
+    }
+
+    btn?.removeAttribute('disabled');
+
+    // Gagal / RPC belum ada → fallback ke WhatsApp, biar pendaftaran nggak hilang.
+    if (!res || !res.ok) {
+      const teks = [
+        'Halo MKS, gue mau daftar jadi Mitra.',
+        '',
+        `Nama: ${nama}`,
+        `WhatsApp: ${wa}`,
+        `Kota: ${get('kota') || '-'}`,
+        kodeRef ? `Kode referal: ${kodeRef}` : '',
+        get('catatan') ? `Catatan: ${get('catatan')}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const waUrl = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(teks)}`;
+      if (win) win.location.href = waUrl;
+      else window.open(waUrl, '_blank');
+      if (res?.reason) alert(res.reason);
+      return;
+    }
+
+    win?.close();
+
+    // Sukses → panel kode + link portal
+    const portalUrl = `${location.origin}/portal?t=${encodeURIComponent(res.portalToken || '')}`;
+    const kode = $('mtKode') as HTMLElement;
+    const link = $('mtLink') as HTMLElement;
+    const linkBtn = $('mtLinkBtn') as HTMLAnchorElement;
+    if (kode) kode.textContent = res.code || '—';
+    if (link) link.textContent = portalUrl;
+    if (linkBtn) linkBtn.href = portalUrl;
+
+    form.hidden = true;
+    const sukses = $('mtSukses');
+    if (sukses) sukses.hidden = false;
+
+    // Tombol salin kode
+    const salin = $('mtSalin') as HTMLButtonElement | null;
+    const salinLbl = $('mtSalinLabel') as HTMLElement | null;
+    const salinOk = $('mtSalinOk') as HTMLElement | null;
+    salin?.addEventListener('click', async () => {
+      await copyText(res.code || '');
+      if (salinLbl) salinLbl.hidden = true;
+      if (salinOk) salinOk.hidden = false;
+      setTimeout(() => {
+        if (salinLbl) salinLbl.hidden = false;
+        if (salinOk) salinOk.hidden = true;
+      }, 1800);
+    });
+
+    // Kirim link portal ke WhatsApp sendiri
+    $('mtKirimWa')?.addEventListener('click', () => {
+      const pesan = [
+        'Hai MKS, gue mitra program kasir.',
+        '',
+        `Kode gue: ${res.code}`,
+        `Portal gue: ${portalUrl}`,
+        '',
+        'Cek di https://mitra.kasirsolo.com',
+      ].join('\n');
+      window.open(
+        `https://wa.me/${encodeURIComponent(wa.replace(/\D/g, ''))}?text=${encodeURIComponent(pesan)}`,
+        '_blank'
+      );
+    });
+  });
+</script>

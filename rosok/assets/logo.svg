@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Logo Kasir Solo Rosok (draft) — timbangan gantung pengepul, gradasi brand rosok.
+       Full-bleed persegi (aman semua mask). PNG set lama TIDAK disentuh sampai accuan pemilik. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FDBA5C"/>
+      <stop offset="0.55" stop-color="#F5821F"/>
+      <stop offset="1" stop-color="#D6501C"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- kait atas -->
+  <path d="M256 56 a26 26 0 1 1 26 -26" stroke="#FFFFFF" stroke-width="18" fill="none" stroke-linecap="round" transform="translate(0,26)"/>
+  <rect x="244" y="84" width="24" height="30" rx="8" fill="#FFFFFF"/>
+  <!-- badan timbangan / dial -->
+  <circle cx="256" cy="238" r="112" fill="#FFFFFF" opacity="0.16"/>
+  <circle cx="256" cy="238" r="112" fill="none" stroke="#FFFFFF" stroke-width="26"/>
+  <path d="M256 238 L322 172" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="256" cy="238" r="18" fill="#FFFFFF"/>
+  <!-- link bawah + wadah -->
+  <rect x="244" y="356" width="24" height="26" rx="8" fill="#FFFFFF"/>
+  <path d="M168 436 H344 L316 396 H196 Z" fill="#FFFFFF"/>
+</svg>

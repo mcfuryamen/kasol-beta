@@ -1,0 +1,317 @@
+<!-- KASIR ROSOK — MANUAL SMOKE TEST CHECKLIST
+     Phase 2: Verify all 10 core flows work correctly
+     Date: August 1, 2026
+     Status: Ready for testing
+-->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasir Rosok — Smoke Test Checklist</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { color: #F5821F; margin-bottom: 10px; font-size: 28px; }
+    .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
+    .test-group { 
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #F5821F;
+    }
+    .test-group h2 { 
+      color: #2B2420;
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    .test-item {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      padding: 10px;
+      background: #fafafa;
+      border-radius: 6px;
+    }
+    .test-item input[type="checkbox"] {
+      margin-right: 12px;
+      margin-top: 3px;
+      cursor: pointer;
+      width: 18px;
+      height: 18px;
+    }
+    .test-item label {
+      flex: 1;
+      cursor: pointer;
+      color: #2B2420;
+      font-size: 14px;
+    }
+    .test-item input[type="checkbox"]:checked + label {
+      color: #3F8C52;
+      text-decoration: line-through;
+    }
+    .test-item.critical { border-left: 3px solid #D2483A; }
+    .test-item.critical input:checked + label { color: #D2483A; }
+    .notes {
+      background: #FFF8EF;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 15px;
+      font-size: 13px;
+      color: #6B5F54;
+      border-left: 3px solid #F5821F;
+    }
+    .summary {
+      background: linear-gradient(135deg, #FDBA5C, #F5821F, #D6501C);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 30px;
+      text-align: center;
+    }
+    .summary h3 { font-size: 16px; margin-bottom: 10px; }
+    .summary p { font-size: 14px; opacity: 0.9; }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 4px;
+      margin: 15px 0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: white;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .status { 
+      font-size: 12px; 
+      color: rgba(255,255,255,0.8);
+      text-align: right;
+    }
+    button {
+      background: #F5821F;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    button:hover { background: #D6501C; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🔧 Kasir Rosok — Smoke Test</h1>
+  <p class="subtitle">Phase 2: Verify Phase 1 fixes work in all core flows</p>
+
+  <!-- Test Group 1: Core Flows -->
+  <div class="test-group">
+    <h2>1️⃣ Core Application Flows</h2>
+    
+    <div class="test-item">
+      <input type="checkbox" id="t1">
+      <label for="t1"><strong>App Startup</strong> — Open app → Settings load correctly, trial chip shows in header</label>
+    </div>
+    <div class="test-item">
+      <input type="checkbox" id="t2">
+      <label for="t2"><strong>Dashboard</strong> — Navigate to Dashboard tab → Stat cards render (Kas, Stok, Beli, Jual, Laba)</label>
+    </div>
+    <div class="test-item critical">
+      <input type="checkbox" id="t3">
+      <label for="t3"><strong>[FIX] Switch Satuan</strong> — Click satuan tabs (kg/ons/kuintal) → UI updates reactively, no console errors</label>
+    </div>
+    <div class="test-item">
+      <input type="checkbox" id="t4">
+      <label for="t4"><strong>Kasir (POS) Screen</strong> — Navigate to Kasir tab → Category grid renders with prices</label>
+    </div>
+    <div class="test-item">
+      <input type="checkbox" id="t5">
+      <label for="t5"><strong>Add Transaksi</strong> — Click kategori → timbang form shows, keypad works, add to cart</label>
+    </div>
+
+    <div class="notes">
+      💡 <strong>Note:</strong> Satuan switch is the primary fix from Phase 1. Watch for state updates and no "Assignment to constant variable" errors.
+    </div>
+  </div>
+
+  <!-- Test Group 2: Category Management -->
+  <div class="test-group">
+    <h2>2️⃣ Category Management (Bug #4 Validation)</h2>
+    
+    <div class="test-item critical">
+      <input type="checkbox" id="t6">
+      <label for="t6"><strong>[CRITICAL] Add Kategori — Valid</strong> → Harga beli: 5000, Harga jual: 8000 → ACCEPT ✓</label>
+    </div>
+    <div class="test-item critical">
+      <input type="checkbox" id="t7">
+      <label for="t7"><strong>[CRITICAL] Add Kategori — Invalid</strong> → Harga beli: 8000, Harga jual: 5000 → REJECT with toast ✓</label>
+    </div>
+    <div class="test-item">
+      <input type="checkbox" id="t8">
+      <label for="t8"><strong>Kategori List</strong> — Navigate to Stok tab → Categories render with stok kg</label>
+    </div>
+
+    <div class="notes">
+      🔴 <strong>Critical:</strong> Bug #4 validation prevents user from entering rugi (loss) prices. Must reject invalid input.
+    </div>
+  </div>
+
+  <!-- Test Group 3: State Management -->
+  <div class="test-group">
+    <h2>3️⃣ State Management (Phase 1 Fixes)</h2>
+    
+    <div class="test-item critical">
+      <input type="checkbox" id="t9">
+      <label for="t9"><strong>[FIX] loadSettingsIntoState()</strong> — App loads settings from DB, no console errors</label>
+    </div>
+    <div class="test-item critical">
+      <input type="checkbox" id="t10">
+      <label for="t10"><strong>[FIX] loadKategori()</strong> — Stok screen loads kategori, no "Assignment to constant" errors</label>
+    </div>
+    <div class="test-item">
+      <input type="checkbox" id="t11">
+      <label for="t11"><strong>Create Transaksi</strong> → Cart updates reactively after adding items</label>
+    </div>
+
+    <div class="notes">
+      ⚙️ <strong>Technical:</strong> Watch DevTools console for any "Assignment to constant variable" errors. Phase 1 fixes should prevent these.
+    </div>
+  </div>
+
+  <!-- Test Group 4: Data Persistence -->
+  <div class="test-group">
+    <h2>4️⃣ Data Persistence & Navigation</h2>
+    
+    <div class="test-item">
+      <input type="checkbox" id="t12">
+      <label for="t12"><strong>Riwayat Screen</strong> → List transaksi shows, filter works (filter tabs click)</label>
+    </div>
+    <div class="test-item">
+      <input type="checkbox" id="t13">
+      <label for="t13"><strong>Laporan Screen</strong> → Charts render, date filter works, sticky tabs stay visible</label>
+    </div>
+    <div class="test-item">
+      <input type="checkbox" id="t14">
+      <label for="t14"><strong>Settings Screen</strong> → Profil usaha fields load, bisa edit nama</label>
+    </div>
+
+    <div class="notes">
+      📊 <strong>Note:</strong> Laporan sticky tabs is cosmetic. Main focus: chart rendering and filter reactivity.
+    </div>
+  </div>
+
+  <!-- Test Group 5: License & PWA -->
+  <div class="test-group">
+    <h2>5️⃣ License & PWA Features</h2>
+    
+    <div class="test-item">
+      <input type="checkbox" id="t15">
+      <label for="t15"><strong>License Chip</strong> → Click trial chip in header → license sheet shows, days remaining correct</label>
+    </div>
+    <div class="test-item">
+      <input type="checkbox" id="t16">
+      <label for="t16"><strong>Install PWA</strong> → (Chrome) Menu → Install app → App installs as standalone</label>
+    </div>
+    <div class="test-item">
+      <input type="checkbox" id="t17">
+      <label for="t17"><strong>Service Worker</strong> → (DevTools) Application tab → Service Worker registered & active</label>
+    </div>
+
+    <div class="notes">
+      🔐 <strong>Note:</strong> PWA install is optional. Service Worker should show "active" status in DevTools.
+    </div>
+  </div>
+
+  <!-- Test Group 6: Error Handling -->
+  <div class="test-group">
+    <h2>6️⃣ Error Handling & Console</h2>
+    
+    <div class="test-item critical">
+      <input type="checkbox" id="t18">
+      <label for="t18"><strong>Console Errors</strong> → Open DevTools Console → NO red errors (warnings OK)</label>
+    </div>
+    <div class="test-item critical">
+      <input type="checkbox" id="t19">
+      <label for="t19"><strong>No "Assignment to constant" errors</strong> → Phase 1 fix validation</label>
+    </div>
+    <div class="test-item">
+      <input type="checkbox" id="t20">
+      <label for="t20"><strong>Network Tab</strong> → All assets load (html, js, css, images, fonts)</label>
+    </div>
+
+    <div class="notes">
+      🐛 <strong>Critical:</strong> "Assignment to constant variable" means state mutation bypass. Must not appear.
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary">
+    <h3>Test Progress</h3>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <p><span id="checkedCount">0</span> / <span id="totalCount">20</span> checks completed</p>
+    <div class="status" id="statusText">0%</div>
+    <button onclick="resetTests()">Reset All</button>
+  </div>
+</div>
+
+<script>
+  const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+  const totalCount = checkboxes.length;
+  document.getElementById('totalCount').textContent = totalCount;
+
+  function updateProgress() {
+    const checked = Array.from(checkboxes).filter(c => c.checked).length;
+    const percent = Math.round((checked / totalCount) * 100);
+    
+    document.getElementById('checkedCount').textContent = checked;
+    document.getElementById('progressFill').style.width = percent + '%';
+    document.getElementById('statusText').textContent = percent + '%';
+    
+    // Save to localStorage
+    localStorage.setItem('smokeTestProgress', JSON.stringify(
+      Array.from(checkboxes).map(c => ({ id: c.id, checked: c.checked }))
+    ));
+  }
+
+  // Load progress from localStorage
+  function loadProgress() {
+    const saved = localStorage.getItem('smokeTestProgress');
+    if (saved) {
+      const data = JSON.parse(saved);
+      data.forEach(item => {
+        const cb = document.getElementById(item.id);
+        if (cb) cb.checked = item.checked;
+      });
+    }
+  }
+
+  function resetTests() {
+    if (confirm('Reset all checks?')) {
+      checkboxes.forEach(c => c.checked = false);
+      localStorage.removeItem('smokeTestProgress');
+      updateProgress();
+    }
+  }
+
+  checkboxes.forEach(cb => {
+    cb.addEventListener('change', updateProgress);
+  });
+
+  // Initialize
+  loadProgress();
+  updateProgress();
+</script>
+</body>
+</html>

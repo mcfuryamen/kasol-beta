@@ -1,0 +1,176 @@
+---
+/**
+ * /rekrutmen — halaman karir (referensi desain: mock "Join The Resistance").
+ * Konten statis brand: DNA tim, larangan masuk, posisi tempur (belum buka lowongan).
+ */
+import Base from '../layouts/Base.astro';
+import { site } from '../data/portfolio';
+
+const title = 'Rekrutmen — Gabung Barisan | PT Mesin Kasir Solo';
+const description =
+  'PT Mesin Kasir Solo gak cari karyawan — gue cari partner perjuangan. Lihat DNA tim, larangan masuk, dan jalur rekrutmen spontan lewat WhatsApp.';
+
+const waCv = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent("Halo MKS, gue mau ikut Rekrutmen Spontan. CV/latar belakang gue siap gue kirim di sini:")}`;
+
+const dna = [
+  {
+    icon: 'flame',
+    title: 'Tahan Banting',
+    desc: "Masalah teknis, keluhan klien, deadline mepet itu makanan sehari-hari gue. Gue butuh Problem Solver yang tenang pas badai datang.",
+  },
+  {
+    icon: 'target',
+    title: 'Impact Over Output',
+    desc: "Jangan bangga cuma karena lo 'lembur'. Gue cuma nilai hasil akhir. Kode lo bikin transaksi makin cepet? Itu yang gue hitung.",
+  },
+  {
+    icon: 'heart',
+    title: 'Empati ke User',
+    desc: 'Klien gue itu pedagang pasar & usaha tradisional. Sistem lo harus memudahkan, jangan bikin UI/UX rumit yang cuma dimengerti anak startup Jaksel.',
+  },
+];
+
+const larang = ['Mental PNS (Cari Aman)', 'Baperan (Anti Kritik)', 'Males Belajar', 'Kerja Kayak Robot'];
+
+const ICONS: Record<string, string> = {
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  heart: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+};
+---
+<Base title={title} description={description}>
+  {/* ============ HERO ============ */}
+  <section class="hero hero-compact">
+    <div class="hero-bg">
+      <div class="orb-1"></div>
+      <div class="grid-lines"></div>
+    </div>
+    <div class="hero-inner">
+      <span class="hero-badge anim-fade">Join The Resistance</span>
+      <h1 class="anim-fade anim-d1" data-i18n="rk.heroTitle">Gue Gak Cari Karyawan,<br />Gue Cari <span class="accent">Partner Perjuangan.</span></h1>
+      <p class="hero-sub anim-fade anim-d2" data-i18n="rk.heroSub">
+        PT Mesin Kasir Solo bukan tempat buat lo yang cuma cari "zona nyaman" 9-to-5.
+        Ini markas buat lo yang mau ngebangun sistem buat nyelametin ribuan UMKM bareng gue.
+      </p>
+    </div>
+  </section>
+
+  {/* ============ DNA GUE ============ */}
+  <section class="block" id="dna">
+    <div class="container">
+      <div class="section-head center">
+        <h2 data-i18n="rk.dnaTitle">DNA <span class="hl">GUE</span></h2>
+        <p class="sub" data-i18n="rk.dnaSub">
+          Gue pernah jatuh seburuk-buruknya di 2022. Kehilangan domain, kehilangan aset.
+          Gue bangkit lagi sendirian. Kalau mental lo tempe, lo gak bakal bertahan di sini.
+        </p>
+      </div>
+      <div class="grid grid-3 rk-grid">
+        {dna.map((d) => (
+          <article class="card rk-card">
+            <div class="rk-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={ICONS[d.icon]} />
+            </div>
+            <h3 data-i18n={`rk.d${dna.indexOf(d) + 1}T`}>{d.title}</h3>
+            <p data-i18n={`rk.d${dna.indexOf(d) + 1}D`}>{d.desc}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* ============ JANGAN COBA-COBA ============ */}
+  <section class="block rk-band" id="larangan">
+    <div class="container">
+      <h2 class="rk-warn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span data-i18n="rk.warn">JANGAN COBA-COBA MASUK KALAU:</span>
+      </h2>
+      <div class="rk-pills">
+        {larang.map((l) => (
+          <span class="rk-pill"><i></i><span data-i18n={`rk.p${larang.indexOf(l) + 1}`}>{l}</span></span>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* ============ POSISI TEMPUR ============ */}
+  <section class="block" id="posisi">
+    <div class="container">
+      <div class="section-head center">
+        <span class="kicker-pill">Premium Arsenal</span>
+        <h2 data-i18n="rk.posisiTitle">Posisi <span class="hl">Tempur</span></h2>
+        <p class="sub" data-i18n="rk.posisiSub"><i>Kalau lo merasa punya DNA yang sama, ambil senjata lo dan gabung barisan.</i></p>
+      </div>
+      <div class="rk-empty">
+        <div class="rk-shield">
+          <svg xmlns="http://www.w3.org/2000/svg" width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3 data-i18n="rk.emptyT">Gue Belum Buka Lowongan</h3>
+        <p data-i18n="rk.emptyD">Skill lo di atas rata-rata (Top 1%)? Coba paksa gue hire lewat jalur nekat.</p>
+        <a class="btn btn-primary" href={waCv} target="_blank" rel="noopener"><span data-i18n="rk.emptyBtn">Upload CV Spontan</span><span class="shine"></span></a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  /* ---- DNA cards (icon tile oranye ala mock) ---- */
+  .rk-card h3 { margin: 14px 0 6px; font-size: 17px; }
+  .rk-card p { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.7; }
+  .rk-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    display: grid; place-items: center;
+    color: var(--orange);
+    background: rgba(255, 95, 31, .1);
+    border: 1px solid rgba(255, 95, 31, .35);
+  }
+
+  /* ---- Band larangan (latar merah gelap) ---- */
+  .rk-band {
+    background: linear-gradient(180deg, rgba(190, 18, 60, .16), rgba(190, 18, 60, .05));
+    border-top: 1px solid rgba(248, 113, 113, .22);
+    border-bottom: 1px solid rgba(248, 113, 113, .22);
+  }
+  .rk-warn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin: 0 0 24px;
+    font-size: clamp(18px, 2.6vw, 24px); font-weight: 700;
+    color: #fca5a5; letter-spacing: .01em;
+  }
+  .rk-pills { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .rk-pill {
+    display: inline-flex; align-items: center; gap: 9px;
+    border: 1px solid rgba(248, 113, 113, .35); border-radius: 999px;
+    padding: 9px 18px; color: var(--text);
+    font-size: 12.5px; font-weight: 700;
+    background: rgba(0, 0, 0, .25);
+  }
+  .rk-pill i {
+    width: 7px; height: 7px; border-radius: 999px; background: #f87171;
+    box-shadow: 0 0 8px rgba(248, 113, 113, .8);
+  }
+
+  /* ---- Posisi tempur (empty state) ---- */
+  .rk-empty {
+    max-width: 860px; margin: 0 auto; text-align: center;
+    border: 1px solid var(--line-2); border-radius: 20px;
+    background: var(--card);
+    padding: 64px 28px 56px;
+  }
+  .rk-shield {
+    width: 96px; height: 96px; margin: 0 auto 22px;
+    border-radius: 24px; display: grid; place-items: center;
+    color: var(--orange);
+    background: rgba(255, 95, 31, .08);
+    border: 1.5px solid rgba(255, 95, 31, .4);
+    box-shadow: 0 0 40px rgba(255, 95, 31, .18);
+  }
+  .rk-empty h3 { margin: 0 0 10px; font-size: 22px; color: #fff; }
+  .rk-empty p { margin: 0 auto 26px; max-width: 420px; color: var(--text-2); font-size: 14px; line-height: 1.7; }
+
+  @media (max-width: 640px) {
+    .rk-empty { padding: 44px 20px 40px; }
+    .rk-pills { gap: 8px; }
+  }
+</style>

@@ -1,0 +1,53 @@
+kaki5 v169 / 1.0.101: gerbang kas di tab Jualan + modal Detail Riwayat Kas
+
+10 permintaan UI (9 komentar browser + 1 instruksi teks) plus perbaikan
+reanchorUnitId (poin 4). 20 file, +430/-108.
+
+UI / fitur:
+- Gerbang "Buka Kas" pindah ke klik tab Jualan: loadPOS() membuka modal
+  "Buka Kas" otomatis saat fitur kas aktif dan belum ada shift berjalan,
+  sehingga user wajib input modal awal sebelum transaksi. Guard lama saat
+  menekan Bayar tetap dipertahankan sebagai jaring pengaman.
+- Modal baru "Detail Riwayat Kas" (kas.js showKasShiftDetail +
+  #kasShiftDetailModal): tiap baris riwayat bisa diketuk via
+  data-action="show-kas-shift-detail" + data-shift-id. Menampilkan mulai/
+  tutup, durasi, modal awal, penjualan tunai + jumlah transaksi,
+  pengeluaran/pemasukan, kas sistem, kas fisik, selisih, dompet digital,
+  catatan tutup. Angka resmi shift tutup tetap yang tersimpan; rincian
+  dihitung ulang dengan hitungShift(shift, shift.waktuTutup) dan bila
+  menyimpang tampil sebagai baris "Hitung ulang dari transaksi".
+- Baris transaksi di kartu Transaksi Ojol ikut membuka "Detail Transaksi".
+- Dine-in jadi default saat halaman Jualan dibuka (hanya bila keranjang
+  kosong, supaya tidak menimpa pilihan transaksi berjalan).
+- Badge sisa stok (angka, title="Sisa stok") di pojok kiri atas kartu menu,
+  terpisah dari badge oranye jumlah item keranjang.
+- Harga satuan pindah ke samping nama menu di baris keranjang; kolom total
+  min-width 68px.
+- Legenda Omzet/Pengeluaran turun ke bawah chart per jam.
+- Tombol hapus di modal Pesanan Ditahan dibuat rasio 1:1 (38x38 lingkaran).
+- "Tanya Admin" jadi "WhatsApp" dengan tombol hijau gelap (.btn-wa).
+
+Fix:
+- formatDate() dipanggil dengan epoch ms dari shift.waktuTutup -> TypeError
+  "str.split is not a function". Helper baru tanggalDariMs().
+- Blok CSS usang "permintaan pemilik 2026-08-31" (.cart-qty-price
+  .cart-name-price) ternyata membuat harga satuan tetap turun ke baris
+  kedua dan menimpa ulang min-width kolom total; diganti mengikuti
+  struktur .cart-name-row yang sekarang.
+
+Bump versi (konvensi 6 slot / 8 titik teks): version.js APP_VERSION +
+CACHE_BUST, version.json version + cacheBust + notes, sw.js komentar header
++ CACHE_NAME, index.html ?v=. CHANGELOG entri v169 + rujukan blok komentar
+sw.js digeser 7-147 -> 7-169.
+
+Verifikasi: _qa-v169-check.mjs EXIT=0 (11 file JS lolos parse, 3 id modal
+unik, guard 3 label usang di bantuan.js); test-imports 45/45,
+test-css-drift, test-dynamic-imports, test-db-migrations, test-shim hijau;
+test-data-actions dan test-html-refs = persis baseline v165 (orphan
+pos.ui.js #posCatTabs, add-ojol-row/remove-ojol-row, 4 DEAD case) - bukan
+regresi rilis ini. Audit rujukan dokumen: 331 rujukan, 0 di luar rentang.
+Semua item dicek jalan di Browser pada localhost:8086.
+
+Catatan deploy: sw.js menyajikan HTML cache-first sedangkan JS/CSS
+network-first, jadi markup modal baru hanya sampai ke tab lama lewat bump
+CACHE_NAME ini.

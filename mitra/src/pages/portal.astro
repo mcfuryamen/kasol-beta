@@ -1,0 +1,642 @@
+---
+/**
+ * Portal Mitra — dashboard P0.
+ * =============================================================================
+ * Isi halaman:
+ *   1. Kode Saya      — kode referal + salin + share WhatsApp + link referral
+ *   2. Poin & Saldo   — siap ditarik / dalam siklus / total + info siklus payout
+ *   3. Riwayat        — daftar orang yang pakai kode lo
+ *   4. Klien Saya     — yang sudah beli lisensi (subset dari riwayat)
+ *   5. Ajukan Pencairan
+ *   6. Riwayat Pencairan
+ *
+ * Data diambil di sisi klien lewat `src/lib/api.ts`:
+ *   - ada token `?t=` → RPC `partner_session` + `wallet_my_balance` +
+ *     `partner_referrals` + `partner_payouts` (sumber = live)
+ *   - token-nya nggak ada / RPC belum ada → mock (badge "data contoh")
+ * Begitu tabel + RPC-nya hidup (Fase 1), sumbernya otomatis berubah tanpa
+ * ada yang perlu diedit di halaman ini.
+ */
+import Base from '../layouts/Base.astro';
+
+const title = 'Portal Mitra — Kode, Saldo & Pencairan | PT Mesin Kasir Solo';
+const description =
+  'Dashboard mitra Kasir Solo: kode referral, saldo poin, riwayat referral, dan pengajuan pencairan komisi.';
+---
+
+<Base title={title} description={description}>
+  <section class="block mp-page">
+    <div class="container">
+
+      {/* ============ KEPALA ============ */}
+      <header class="mp-head">
+        <div class="mp-head-main">
+          <span class="kicker-pill" data-i18n="m.portalBadge">Portal Mitra</span>
+          <h1><span data-i18n="m.pHalo">Halo</span>, <span id="mpName">Mitra</span></h1>
+          <div class="mp-tags">
+            <span class="mp-tag" id="mpTierLicensed" hidden data-i18n="m.pTierLicensed">Lo punya lisensi</span>
+            <span class="mp-tag" id="mpTierRefOnly" hidden data-i18n="m.pTierReferralOnly">Referensi doank</span>
+            <span class="mp-tag mp-tag-ok" id="mpStatusAktif" hidden data-i18n="m.pStatusAktif">Aktif</span>
+            <span class="mp-tag mp-tag-wait" id="mpStatusTertunda" hidden data-i18n="m.pStatusTertunda">Nunggu verifikasi</span>
+          </div>
+        </div>
+        <span class="mp-badge" id="mpMock" hidden data-i18n="m.pMock">Data contoh</span>
+      </header>
+
+      {/* ============ KODE SAYA ============ */}
+      <section class="mp-panel mp-panel-kode">
+        <div class="mp-panel-head">
+          <h2 data-i18n="m.pKodeTitle">Kode Lo</h2>
+          <p data-i18n="m.pKodeDesc">
+            Share kode ini. Siapa pun yang beli lewat kode lo, jadi referral lo.
+          </p>
+        </div>
+        <div class="mp-code-row">
+          <code class="mp-code" id="mpCode">—</code>
+          <button class="btn btn-outline mp-btn" id="mpCopy" type="button">
+            <span id="mpCopyLabel" data-i18n="m.pSalin">Salin</span>
+            <span id="mpCopyOk" data-i18n="m.pSalinOk" hidden>Tersalin!</span>
+          </button>
+          <a class="btn btn-primary mp-btn" id="mpShare" href="#" target="_blank" rel="noopener">
+            <span data-i18n="m.pShareWa">Share ke WhatsApp</span><span class="shine"></span>
+          </a>
+        </div>
+        <div class="mp-link-row">
+          <span class="mp-link-label" data-i18n="m.pLinkRef">Link referral</span>
+          <a class="mp-link" id="mpRefLink" href="#">—</a>
+        </div>
+      </section>
+
+      {/* ============ POIN & SALDO ============ */}
+      <section class="mp-panel">
+        <div class="mp-panel-head">
+          <h2 data-i18n="m.pSaldoTitle">Poin &amp; Saldo</h2>
+        </div>
+        <div class="mp-stats">
+          <div class="mp-stat mp-stat-ready">
+            <span class="mp-stat-label" data-i18n="m.pSaldoReady">Siap ditarik</span>
+            <b class="mp-stat-value" id="mpReady">0</b>
+            <span class="mp-stat-sub" id="mpReadyPoin">0 poin</span>
+          </div>
+          <div class="mp-stat mp-stat-pending">
+            <span class="mp-stat-label" data-i18n="m.pSaldoPending">Dalam siklus payout</span>
+            <b class="mp-stat-value" id="mpPending">0</b>
+            <span class="mp-stat-sub" id="mpPendingPoin">0 poin</span>
+          </div>
+          <div class="mp-stat mp-stat-total">
+            <span class="mp-stat-label" data-i18n="m.pSaldoTotal">Total Akumulasi</span>
+            <b class="mp-stat-value" id="mpTotal">0</b>
+            <span class="mp-stat-sub" id="mpTotalPoin">0 poin</span>
+          </div>
+        </div>
+        <div class="mp-meta">
+          <div><span data-i18n="m.pKonversi">1 poin = Rp 1.000</span></div>
+          <div>
+            <span data-i18n="m.pSiklus">Siklus payout</span>: <b id="mpCycle">—</b>
+            <span data-i18n="m.pHari">hari</span>
+          </div>
+          <div><span data-i18n="m.pNext">Payout berikutnya</span>: <b id="mpNext">—</b></div>
+        </div>
+      </section>
+
+      {/* ============ RIWAYAT REFERRAL ============ */}
+      <section class="mp-panel">
+        <div class="mp-panel-head">
+          <h2 data-i18n="m.pRiwayatTitle">Riwayat Referral</h2>
+        </div>
+        <div class="mp-table-wrap" id="mpRefTable"></div>
+      </section>
+
+      {/* ============ KLIEN SAYA ============ */}
+      <section class="mp-panel">
+        <div class="mp-panel-head">
+          <h2 data-i18n="m.pKlienTitle">Klien Saya</h2>
+          <p class="mp-panel-sub">
+            <b id="mpKlienNum">0</b> <span data-i18n="m.pJumlahKlien">Klien</span>
+          </p>
+        </div>
+        <div class="mp-klien" id="mpKlien"></div>
+      </section>
+
+      {/* ============ AJUKAN PENCAIRAN ============ */}
+      <section class="mp-panel" id="pencairan">
+        <div class="mp-panel-head">
+          <h2 data-i18n="m.pPencairanTitle">Ajukan Pencairan</h2>
+          <p data-i18n="m.pPencairanDesc">
+            Minimal Rp 50.000. Payout diproses manual sama tim kami.
+          </p>
+        </div>
+        <form class="mp-form" id="mpPayoutForm" novalidate>
+          <div class="mp-grid">
+            <label class="mp-field">
+              <span data-i18n="m.pJumlah">Jumlah</span>
+              <input type="number" id="mpAmount" name="amount" min="50000" step="1000" placeholder="50000" data-i18n-ph="m.pJumlahPh" />
+            </label>
+            <label class="mp-field">
+              <span data-i18n="m.pRekening">Rekening</span>
+              <input type="text" id="mpBank" name="bank" placeholder="Nama bank, nomor rekening, atas nama" data-i18n-ph="m.pRekeningPh" />
+            </label>
+          </div>
+          <div class="mp-form-note">
+            <span data-i18n="m.pPoinTersedia">Poin tersedia</span>: <b id="mpPoinReady">0</b>
+            <span class="mp-form-note-sep">·</span>
+            <span data-i18n="m.pKonversiLabel">Konversi ke uang</span>: <b id="mpMaxReady">Rp 0</b>
+          </div>
+          <button class="btn btn-primary mp-submit" type="submit">
+            <span data-i18n="m.pKirim">Kirim Permintaan</span><span class="shine"></span>
+          </button>
+          <p class="mp-note" data-i18n="m.pKirimNote">
+            Permintaan pencairan diproses manual oleh tim kami.
+          </p>
+          <p class="mp-ok" id="mpOk" hidden data-i18n="m.pOke">
+            Permintaan terkirim. Segera gue transfer ke rekening lo.
+          </p>
+        </form>
+      </section>
+
+      {/* ============ RIWAYAT PENCAIRAN ============ */}
+      <section class="mp-panel">
+        <div class="mp-panel-head">
+          <h2 data-i18n="m.pPayoutTitle">Riwayat Pencairan</h2>
+        </div>
+        <div class="mp-payouts" id="mpPayouts"></div>
+      </section>
+
+      <p class="mp-foot-note" data-i18n="m.pLoginNote">
+        Akses lewat link token yang dikirim ke WhatsApp lo.
+      </p>
+    </div>
+  </section>
+</Base>
+
+<!--
+  PENTING: `is:global` — isi tabel / kartu / riwayat di halaman ini di-inject
+  lewat JS (innerHTML). Style Astro yang di-scope cuma nyangkut elemen yang
+  ada di template, jadi elemen yang disuntik perlu style global. Semua kelas
+  di sini berawalan `mp-` jadi nggak nabrak halaman lain.
+-->
+<style is:global>
+  /* Atribut `hidden` harus mengalahkan `display` dari class (tag tier/status). */
+  [hidden] { display: none !important; }
+
+  .mp-page { padding-top: 92px; }
+
+  /* ---- Kepala ---- */
+  .mp-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 18px; flex-wrap: wrap; margin-bottom: 28px;
+  }
+  .mp-head h1 {
+    margin: 12px 0 0; font-size: clamp(28px, 4.4vw, 42px);
+    color: #fff; line-height: 1.1; letter-spacing: -.02em;
+  }
+  .mp-name { color: var(--orange); }
+  .mp-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .mp-tag {
+    display: inline-flex; align-items: center;
+    padding: 5px 12px; border-radius: 999px;
+    border: 1px solid var(--line-2); background: rgba(0, 0, 0, .3);
+    font-size: 11.5px; font-weight: 700; letter-spacing: .04em;
+    color: var(--text-2);
+  }
+  .mp-tag-ok { color: #4ade80; border-color: rgba(74, 222, 128, .3); background: rgba(74, 222, 128, .08); }
+  .mp-tag-wait { color: #fbbf24; border-color: rgba(251, 191, 36, .3); background: rgba(251, 191, 36, .08); }
+  .mp-badge {
+    padding: 7px 14px; border-radius: 999px;
+    border: 1px solid rgba(251, 191, 36, .35); background: rgba(251, 191, 36, .1);
+    color: #fbbf24; font-size: 11.5px; font-weight: 800;
+    letter-spacing: .08em; text-transform: uppercase;
+  }
+
+  /* ---- Panel ---- */
+  .mp-panel {
+    border: 1px solid var(--line-2); border-radius: 20px;
+    background: var(--card); padding: 26px 24px;
+    margin-bottom: 20px;
+  }
+  .mp-panel-head { margin-bottom: 20px; }
+  .mp-panel-head h2 {
+    margin: 0 0 8px; font-size: 19px; font-weight: 700; color: #fff;
+  }
+  .mp-panel-head p { margin: 0; color: var(--text-2); font-size: 13.5px; line-height: 1.65; }
+  .mp-panel-sub { margin-top: 8px; }
+
+  /* ---- Kode ---- */
+  .mp-code-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .mp-code {
+    flex: 1 1 220px; min-width: 0;
+    padding: 16px 20px; border-radius: 14px;
+    border: 1px dashed rgba(255, 95, 31, .45);
+    background: rgba(255, 95, 31, .07);
+    font-family: var(--font-display); font-size: clamp(22px, 4vw, 30px);
+    font-weight: 700; letter-spacing: .08em; color: var(--orange);
+    text-align: center; overflow-wrap: anywhere;
+  }
+  .mp-btn { height: 52px; padding: 0 22px; font-size: 12.5px; }
+  .mp-link-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line-2);
+  }
+  .mp-link-label {
+    font-size: 11px; font-weight: 800; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-3);
+  }
+  .mp-link {
+    font-family: var(--font-display); font-size: 13.5px;
+    color: var(--text); text-decoration: none; overflow-wrap: anywhere;
+  }
+  .mp-link:hover { color: var(--orange); }
+
+  /* ---- Statistik saldo ---- */
+  .mp-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .mp-stat {
+    border: 1px solid var(--line-2); border-radius: 16px;
+    background: rgba(0, 0, 0, .22); padding: 20px 18px;
+  }
+  .mp-stat-label {
+    display: block; font-size: 11px; font-weight: 800;
+    letter-spacing: .09em; text-transform: uppercase; color: var(--text-3);
+  }
+  .mp-stat-value {
+    display: block; margin: 10px 0 4px;
+    font-family: var(--font-display); font-size: clamp(22px, 3.4vw, 30px);
+    font-weight: 700; color: #fff; letter-spacing: -.02em;
+  }
+  .mp-stat-sub { font-size: 12.5px; color: var(--text-2); }
+  .mp-stat-ready { border-color: rgba(74, 222, 128, .28); }
+  .mp-stat-ready .mp-stat-value { color: #4ade80; }
+  .mp-stat-pending { border-color: rgba(251, 191, 36, .25); }
+  .mp-stat-pending .mp-stat-value { color: #fbbf24; }
+  .mp-stat-total { border-color: rgba(56, 189, 248, .25); }
+  .mp-stat-total .mp-stat-value { color: #7dd3fc; }
+
+  .mp-meta {
+    display: flex; flex-wrap: wrap; gap: 10px 26px;
+    margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line-2);
+    color: var(--text-2); font-size: 13px;
+  }
+  .mp-meta b { color: var(--text); }
+
+  /* ---- Tabel ---- */
+  .mp-table-wrap { overflow-x: auto; }
+  .mp-table { width: 100%; border-collapse: collapse; min-width: 620px; }
+  .mp-table th {
+    text-align: left; padding: 0 14px 12px 0;
+    font-size: 11px; font-weight: 800; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--text-3);
+    border-bottom: 1px solid var(--line-2);
+  }
+  .mp-table td {
+    padding: 14px 14px 14px 0;
+    font-size: 13.5px; color: var(--text-2);
+    border-bottom: 1px solid var(--line);
+  }
+  .mp-table tbody tr:last-child td { border-bottom: none; }
+  .mp-table td:first-child { color: var(--text); font-weight: 600; }
+  .mp-table .ta-r { text-align: right; padding-right: 0; }
+  .mp-table .ta-r b { color: var(--orange); }
+
+  .mp-st {
+    display: inline-flex; padding: 4px 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700;
+  }
+  .mp-st-paid { color: #4ade80; background: rgba(74, 222, 128, .1); }
+  .mp-st-free { color: #7dd3fc; background: rgba(56, 189, 248, .1); }
+  .mp-st-pending { color: #fbbf24; background: rgba(251, 191, 36, .1); }
+
+  .mp-empty {
+    margin: 0; padding: 26px 20px; text-align: center;
+    color: var(--text-3); font-size: 13.5px;
+    border: 1px dashed var(--line-2); border-radius: 14px;
+  }
+
+  /* ---- Kartu klien ---- */
+  .mp-klien { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .mp-klien-card {
+    border: 1px solid var(--line-2); border-radius: 14px;
+    background: rgba(0, 0, 0, .22); padding: 16px 16px 14px;
+  }
+  .mp-klien-card b { display: block; font-size: 14.5px; color: #fff; }
+  .mp-klien-card span {
+    display: block; margin-top: 4px; font-size: 12.5px; color: var(--text-2);
+  }
+  .mp-klien-card .mp-klien-poin {
+    margin-top: 10px; color: var(--orange); font-weight: 700; font-size: 13px;
+  }
+
+  /* ---- Form pencairan ---- */
+  .mp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .mp-field { display: block; margin-bottom: 16px; }
+  .mp-field > span {
+    display: block; margin-bottom: 7px;
+    font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-2);
+  }
+  .mp-field input {
+    width: 100%; padding: 13px 15px; border-radius: 12px;
+    border: 1px solid var(--line-2); background: rgba(0, 0, 0, .28);
+    color: var(--text); font-family: inherit; font-size: 14.5px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .mp-field input:focus {
+    outline: none; border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(255, 95, 31, .16);
+  }
+  .mp-field input::placeholder { color: rgba(255, 255, 255, .32); }
+  .mp-form-note {
+    margin: 0 0 16px; font-size: 13px; color: var(--text-2);
+  }
+  .mp-form-note b { color: var(--orange); }
+  .mp-form-note-sep { margin: 0 8px; color: var(--text-3); }
+  .mp-submit { width: 100%; height: 56px; }
+  .mp-note { margin: 14px 0 0; text-align: center; font-size: 12.5px; color: var(--text-2); }
+  .mp-ok {
+    margin: 14px 0 0; padding: 12px 16px; text-align: center;
+    border-radius: 12px; border: 1px solid rgba(74, 222, 128, .3);
+    background: rgba(74, 222, 128, .08); color: #4ade80;
+    font-size: 13px; font-weight: 600;
+  }
+
+  /* ---- Riwayat pencairan ---- */
+  .mp-payouts { display: grid; gap: 10px; }
+  .mp-payout-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; flex-wrap: wrap;
+    border: 1px solid var(--line-2); border-radius: 14px;
+    background: rgba(0, 0, 0, .22); padding: 14px 16px;
+  }
+  .mp-payout-row .mp-payout-info b { display: block; font-size: 14px; color: #fff; }
+  .mp-payout-row .mp-payout-info span { font-size: 12.5px; color: var(--text-2); }
+  .mp-payout-row .mp-payout-amount {
+    font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--orange);
+  }
+  .mp-out { font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+  .mp-out-selesai { color: #4ade80; background: rgba(74, 222, 128, .1); }
+  .mp-out-diproses { color: #fbbf24; background: rgba(251, 191, 36, .1); }
+  .mp-out-ditolak { color: #f87171; background: rgba(248, 113, 113, .1); }
+
+  .mp-foot-note {
+    margin: 26px 0 0; text-align: center;
+    font-size: 12.5px; color: var(--text-3);
+  }
+
+  @media (max-width: 760px) {
+    .mp-page { padding-top: 64px; }
+    .mp-stats { grid-template-columns: 1fr; }
+    .mp-grid { grid-template-columns: 1fr; gap: 0; }
+    .mp-panel { padding: 22px 16px; }
+    .mp-code { text-align: left; }
+  }
+</style>
+
+<script>
+  import { getPartner, requestPayout, payoutText, shareText, MIN_PAYOUT, WA_NUMBER } from '../lib/api';
+  import { refreshI18n, currentLang } from '../i18n/client';
+  import { formatRupiah, formatTanggal, POIN_TO_RUPIAH } from '../data/site';
+
+  const $ = (id: string) => document.getElementById(id);
+  const esc = (s: unknown) =>
+    String(s ?? '').replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string
+    );
+  const num = (n: number) => Number(n || 0).toLocaleString('id-ID');
+
+  const STATUS_KEY: Record<string, string> = {
+    paid: 'm.pStatusPaid',
+    free: 'm.pStatusFree',
+    pending: 'm.pStatusPending',
+  };
+  const STATUS_TEXT: Record<string, string> = {
+    paid: 'Beli lisensi',
+    free: 'Belum beli',
+    pending: 'Nunggu',
+  };
+  const OUT_KEY: Record<string, string> = {
+    selesai: 'm.pOutSelesai',
+    diproses: 'm.pOutDiproses',
+    ditolak: 'm.pOutDitolak',
+  };
+  const OUT_TEXT: Record<string, string> = {
+    selesai: 'Selesai',
+    diproses: 'Diproses',
+    ditolak: 'Ditolak',
+  };
+
+  let data: Awaited<ReturnType<typeof getPartner>> | null = null;
+
+  function renderKode(d: typeof data) {
+    if (!d) return;
+    $('mpName')!.textContent = d.name || 'Mitra';
+    $('mpCode')!.textContent = d.code || '—';
+
+    const link = `${location.origin}/r/${encodeURIComponent(d.code || '')}`;
+    const a = $('mpRefLink') as HTMLAnchorElement;
+    a.href = link;
+    a.textContent = link;
+
+    const btn = $('mpCopy') as HTMLButtonElement;
+    const lbl = $('mpCopyLabel') as HTMLElement;
+    const lblOk = $('mpCopyOk') as HTMLElement;
+    btn.addEventListener('click', async () => {
+      const teks = d.code || '';
+      try {
+        await navigator.clipboard.writeText(teks);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = teks;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+        } catch {
+          /* abaikan */
+        }
+        ta.remove();
+      }
+      lbl.hidden = true;
+      lblOk.hidden = false;
+      setTimeout(() => {
+        lbl.hidden = false;
+        lblOk.hidden = true;
+      }, 1800);
+    });
+
+    const share = $('mpShare') as HTMLAnchorElement;
+    share.href = `https://wa.me/?text=${encodeURIComponent(shareText(d.code, d.name))}`;
+  }
+
+  function renderSaldo(d: typeof data) {
+    if (!d) return;
+    const poin = (n: number) => `${num(n)} <span data-i18n="m.pPoin">poin</span>`;
+    $('mpReady')!.textContent = formatRupiah(d.pointsReady * POIN_TO_RUPIAH);
+    $('mpReadyPoin')!.innerHTML = poin(d.pointsReady);
+    $('mpPending')!.textContent = formatRupiah(d.pointsPending * POIN_TO_RUPIAH);
+    $('mpPendingPoin')!.innerHTML = poin(d.pointsPending);
+    $('mpTotal')!.textContent = formatRupiah(d.pointsTotal * POIN_TO_RUPIAH);
+    $('mpTotalPoin')!.innerHTML = poin(d.pointsTotal);
+    $('mpCycle')!.textContent = String(d.payoutCycleDays || 7);
+    $('mpNext')!.textContent = formatTanggal(d.nextPayoutDate, currentLang());
+    $('mpPoinReady')!.textContent = num(d.pointsReady);
+    $('mpMaxReady')!.textContent = formatRupiah(d.pointsReady * POIN_TO_RUPIAH);
+  }
+
+  function renderTags(d: typeof data) {
+    if (!d) return;
+    ($('mpTierLicensed') as HTMLElement).hidden = d.tier !== 'licensed';
+    ($('mpTierRefOnly') as HTMLElement).hidden = d.tier === 'licensed';
+    ($('mpStatusAktif') as HTMLElement).hidden = d.status !== 'aktif';
+    ($('mpStatusTertunda') as HTMLElement).hidden = d.status === 'aktif';
+    ($('mpMock') as HTMLElement).hidden = d.source !== 'mock';
+  }
+
+  function renderRiwayat(d: typeof data) {
+    if (!d) return;
+    const wrap = $('mpRefTable')!;
+    if (!d.referrals.length) {
+      wrap.innerHTML = `<p class="mp-empty" data-i18n="m.pRiwayatEmpty">Belum ada referral. Share kode lo buat mulai.</p>`;
+      return;
+    }
+    const rows = d.referrals
+      .map((r) => {
+        const key = STATUS_KEY[r.status] ?? 'm.pStatusPending';
+        const txt = STATUS_TEXT[r.status] ?? STATUS_TEXT.pending;
+        return `<tr>
+          <td>${esc(r.name)}</td>
+          <td>${esc(r.city || '-')}</td>
+          <td>${esc(r.product || '-')}</td>
+          <td>${esc(formatTanggal(r.date, currentLang()))}</td>
+          <td><span class="mp-st mp-st-${esc(r.status)}"><span data-i18n="${key}">${esc(txt)}</span></span></td>
+          <td class="ta-r"><b>${num(r.points)}</b></td>
+        </tr>`;
+      })
+      .join('');
+    wrap.innerHTML = `<table class="mp-table">
+      <thead><tr>
+        <th data-i18n="m.pKolNama">Nama</th>
+        <th data-i18n="m.pKolKota">Kota</th>
+        <th data-i18n="m.pKolProduk">Produk</th>
+        <th data-i18n="m.pKolTanggal">Tanggal</th>
+        <th data-i18n="m.pKolStatus">Status</th>
+        <th class="ta-r" data-i18n="m.pKolPoin">Poin</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  function renderKlien(d: typeof data) {
+    if (!d) return;
+    const wrap = $('mpKlien')!;
+    const klien = d.referrals.filter((r) => r.status === 'paid');
+    $('mpKlienNum')!.textContent = num(klien.length);
+    if (!klien.length) {
+      wrap.innerHTML = `<p class="mp-empty" data-i18n="m.pKosongKlien">Belum ada klien yang beli lisensi lewat kode lo.</p>`;
+      return;
+    }
+    wrap.innerHTML = klien
+      .map(
+        (r) => `<div class="mp-klien-card">
+          <b>${esc(r.name)}</b>
+          <span>${esc(r.city || '-')} · ${esc(r.product || '-')}</span>
+          <span>${esc(formatTanggal(r.date, currentLang()))}</span>
+          <div class="mp-klien-poin">+${num(r.points)} <span data-i18n="m.pPoin">poin</span></div>
+        </div>`
+      )
+      .join('');
+  }
+
+  function renderPayouts(d: typeof data) {
+    if (!d) return;
+    const wrap = $('mpPayouts')!;
+    if (!d.payouts.length) {
+      wrap.innerHTML = `<p class="mp-empty" data-i18n="m.pPayoutEmpty">Belum ada pencairan.</p>`;
+      return;
+    }
+    wrap.innerHTML = d.payouts
+      .map((p) => {
+        const key = OUT_KEY[p.status] ?? 'm.pOutDiproses';
+        const txt = OUT_TEXT[p.status] ?? OUT_TEXT.diproses;
+        return `<div class="mp-payout-row">
+          <div class="mp-payout-info">
+            <b>${esc(formatTanggal(p.date, currentLang()))}</b>
+            <span>${num(p.points)} poin${p.note ? ' · ' + esc(p.note) : ''}</span>
+          </div>
+          <div class="mp-payout-amount">${esc(formatRupiah(p.amount))}</div>
+          <span class="mp-out mp-out-${esc(p.status)}"><span data-i18n="${key}">${esc(txt)}</span></span>
+        </div>`;
+      })
+      .join('');
+  }
+
+  function wirePayoutForm() {
+    const form = $('mpPayoutForm') as HTMLFormElement | null;
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const amountInput = $('mpAmount') as HTMLInputElement;
+      const bankInput = $('mpBank') as HTMLInputElement;
+      const amount = Number(amountInput.value || 0);
+      const bank = bankInput.value.trim();
+
+      if (!amount || amount < MIN_PAYOUT) {
+        alert(`Minimal pencairan Rp ${MIN_PAYOUT.toLocaleString('id-ID')}.`);
+        amountInput.focus();
+        return;
+      }
+      if (!bank) {
+        bankInput.focus();
+        return;
+      }
+
+      const maxReady = (data?.pointsReady ?? 0) * POIN_TO_RUPIAH;
+      if (data?.source === 'live' && amount > maxReady) {
+        alert('Jumlahnya melebihi saldo yang siap ditarik.');
+        return;
+      }
+
+      const points = Math.floor(amount / POIN_TO_RUPIAH);
+      const req = { amount, points, bank, name: data?.name ?? 'Mitra', code: data?.code ?? '-' };
+
+      // Popup dibuka sinkron di dalam event klik, kalau tidak diblokir browser.
+      const win = window.open('about:blank', '_blank');
+      const res = await requestPayout(req);
+      if (res.via === 'wa' && win) {
+        win.location.href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(payoutText(req))}`;
+      } else {
+        win?.close();
+      }
+
+      // Live tapi server nolak (minimal, saldo kurang, sudah request di siklus
+      // ini) → tampilkan alasannya, jangan bargeun "sukses".
+      if (res.reason) {
+        alert(res.reason);
+        return;
+      }
+
+      // Saldo & riwayat pencairan berubah → tarik ulang.
+      if (res.via === 'rpc') {
+        data = await getPartner();
+        renderTags(data);
+        renderSaldo(data);
+        renderPayouts(data);
+      }
+
+      const ok = $('mpOk');
+      if (ok) ok.hidden = false;
+      form.reset();
+      refreshI18n(document);
+    });
+  }
+
+  (async () => {
+    data = await getPartner();
+    renderTags(data);
+    renderKode(data);
+    renderSaldo(data);
+    renderRiwayat(data);
+    renderKlien(data);
+    renderPayouts(data);
+    wirePayoutForm();
+    refreshI18n(document);
+  })();
+</script>
