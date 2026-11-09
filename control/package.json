@@ -1,0 +1,12 @@
+{
+  "name": "kasir-solo-admin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:imports": "node scripts/check-module-imports.mjs",
+    "check:parity": "node scripts/check-rest-parity.mjs",
+    "seed:kit": "node scripts/seed-marketing-kit.mjs",
+    "seed:kit:dry": "node scripts/seed-marketing-kit.mjs --dry-run"
+  }
+}

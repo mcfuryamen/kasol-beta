@@ -1,0 +1,19 @@
+-- STAGE 3 PROPOSAL — sync_errors telemetry hardening
+-- REVIEW ONLY. Do not apply to production without target/schema verification.
+-- Existing policy is insert-only but uses WITH CHECK (true).
+--
+-- Recommended preflight:
+--   verify public.sync_errors has app_type, stage, error, user_agent, unit_id;
+--   verify existing clients/RLS ownership model;
+--   apply on disposable staging first and test anonymous inserts.
+--
+-- Intended constraints:
+--   app_type = 'kaki5'
+--   stage in ('config','session','claim','write','readback','verify','unknown')
+--   length(error) <= 500
+--   length(user_agent) <= 300
+--   unit_id is non-empty when supplied
+--
+-- The application now enforces these bounds before insert. Database CHECK
+-- constraints and a narrowed WITH CHECK policy should be added only after
+-- the target project is confirmed and existing rows/schema are audited.

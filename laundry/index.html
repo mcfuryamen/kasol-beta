@@ -1,0 +1,2870 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Kasir Solo - Laundry</title>
+<meta name="description" content="Aplikasi manajemen usaha laundry: order cuci kiloan/satuan, antrian & status cucian, stok deterjen, pelanggan. Offline, ringan, oleh PT Mesin Kasir Solo.">
+<meta name="theme-color" content="#F97316">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kasir Solo Laundry">
+<style>
+:root{
+  --brand-yellow:#FCD34D;--brand-orange:#F97316;--brand-orange-dark:#EA580C;--brand-red:#DC2626;
+  --brand-gradient:linear-gradient(135deg,#FCD34D 0%,#F97316 55%,#DC2626 100%);
+  --bg:#FBF7F1;--surface:#FFFFFF;--surface-2:#FFFBF6;--ink:#2B1D14;--ink-soft:#7A6A5C;--ink-faint:#A5978A;
+  --border:#F0E3D5;--border-strong:#E6D5C1;
+  --c-kiloan:#0E7490;--c-kiloan-bg:#E1F3F6;
+  --c-satuan:#8A4B12;--c-satuan-bg:#F6ECDD;
+  --c-stok:#6B5B95;--c-stok-bg:#EEEAFB;
+  --success:#16A34A;--success-bg:#E9F8EE;
+  --danger:#DC2626;--danger-bg:#FDECEC;
+  --warning:#D97706;--warning-bg:#FEF3E0;
+  --info:#0284C7;--info-bg:#E7F4FC;
+  --radius-lg:22px;--radius-md:16px;--radius-sm:11px;
+  --shadow-sm:0 2px 8px rgba(43,29,20,.06);--shadow-md:0 8px 24px rgba(43,29,20,.10);--shadow-lg:0 16px 40px rgba(43,29,20,.16);
+  --safe-bottom:env(safe-area-inset-bottom,0px);--safe-top:env(safe-area-inset-top,0px);
+}
+#bootSplash{position:fixed;inset:0;z-index:9999;background:#FBF7F1;display:flex;align-items:center;justify-content:center;transition:opacity .45s ease}
+#bootSplash .grad{position:absolute;inset:0;background:var(--brand-gradient);opacity:0;transition:opacity .9s ease}
+#bootSplash.grad-on .grad{opacity:1}
+#bootSplash img{position:relative;width:38%;max-width:200px;border-radius:50%;box-shadow:0 12px 40px rgba(43,29,20,.2)}
+#bootSplash.gone{opacity:0;pointer-events:none}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);overscroll-behavior-y:none;-webkit-font-smoothing:antialiased;}
+button{font-family:inherit;}
+input,select,textarea{font-family:inherit;font-size:16px;}
+::selection{background:var(--brand-yellow);color:var(--ink);}
+
+.app{max-width:520px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);position:relative;}
+
+  .app-header{background:var(--brand-gradient);padding:calc(12px + var(--safe-top)) 16px 14px;border-radius:0 0 20px 20px;color:#fff;position:sticky;top:0;z-index:5;box-shadow:var(--shadow-md);}
+  /* Overlay update (port rosok .lock-overlay) — classList 'show' dari js/update.js */
+  .lock-overlay{position:fixed;inset:0;background:var(--brand-gradient);z-index:800;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;}
+  .lock-overlay.show{display:flex;}
+  .lock-overlay .modal-card{background:var(--surface);border-radius:var(--radius-lg);padding:24px 20px;width:100%;max-width:400px;box-shadow:var(--shadow-lg);}
+  .app-header .row{display:flex;align-items:center;gap:10px;}
+  .app-header .header-default{justify-content:space-between;gap:12px;}
+  .app-header .topbar-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+  .app-header .topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .app-header .brand-badge{width:38px;height:38px;flex-shrink:0;box-shadow:none;}
+  .app-header .brand-txt{flex:1;min-width:0;}
+  .app-header .brand-txt .biz{font-size:15.5px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .app-header .brand-txt .tag{font-size:11px;opacity:.85;margin-top:1px;white-space:nowrap;}
+  .app-header .icon-btn{width:38px;height:38px;flex-shrink:0;}
+  /* Chip lisensi compact ala rosok/kaki5 (pojok kanan atas) */
+  .trial-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;padding:5px 10px;border-radius:10px;text-align:center;flex-shrink:0;min-width:62px;cursor:pointer;line-height:1.15;user-select:none;}
+  .trial-badge.warn{background:#fff;color:var(--brand-orange-dark);border-color:#fff;}
+  .trial-label-xs{font-size:9px;opacity:.9;letter-spacing:.5px;}
+  .trial-value-sm{font-weight:700;font-size:12px;}
+  @media (max-width:380px){.app-header{padding-left:12px;padding-right:12px}.app-header .topbar-right{gap:6px}.app-header .brand-txt .biz{font-size:14px}.app-header .brand-txt .tag{font-size:10px}}
+.brand-mark{width:42px;height:42px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15);flex-shrink:0;font-size:22px;}
+.brand-name{font-weight:700;font-size:15.5px;letter-spacing:.2px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.brand-sub{font-size:11.5px;opacity:.92;margin-top:1px;}
+.header-actions{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.icon-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.22);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;}
+.icon-btn:active{background:rgba(255,255,255,.35);}
+.quota-banner{display:flex;align-items:center;gap:10px;background:var(--warning-bg);border:1px solid #F3D9A4;border-radius:14px;padding:10px 12px;margin-bottom:12px;}
+.quota-banner.hidden{display:none;}
+.quota-banner .btn{width:auto;flex:0 0 auto;}
+.quota-x{background:none;border:none;color:var(--ink-soft);font-size:15px;cursor:pointer;padding:4px 6px;flex:0 0 auto;}
+.qris-img{width:100%;max-width:250px;border-radius:14px;border:1px solid var(--border);display:block;margin:8px auto;}
+.page-title-header{display:flex;align-items:center;gap:10px;}
+.back-btn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.22);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;}
+.page-title-header h1{font-size:17px;margin:0;font-weight:800;}
+
+.app-main{flex:1;padding:16px 16px calc(100px + var(--safe-bottom));overflow-y:auto;}
+.view{display:none;animation:fadeIn .18s ease;}
+.view.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;margin-bottom:14px;box-shadow:var(--shadow-sm);}
+.card h3{margin:0 0 10px;font-size:14.5px;font-weight:800;}
+.section-title{font-size:13px;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;margin:18px 2px 8px;}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;box-shadow:var(--shadow-sm);}
+.stat-card .lbl{font-size:12px;color:var(--ink-soft);font-weight:600;}
+.stat-card .val{font-size:22px;font-weight:800;margin-top:4px;white-space:nowrap;}
+.stat-card .val.stat-sm{font-size:18px;}
+.stat-card .val.stat-xs{font-size:15px;}
+.stat-card .val.stat-xxs{font-size:13px;}
+@media (max-width:375px){.stat-card .val{font-size:19px;}.stat-card .lbl{font-size:11px;}}
+.stat-card.orange{background:linear-gradient(135deg,#FFF3E4,#FFE8D1);}
+.stat-card.green{background:var(--success-bg);}
+.stat-card.red{background:var(--danger-bg);}
+.stat-card.blue{background:var(--info-bg);}
+
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px;}
+.quick-btn{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;box-shadow:var(--shadow-sm);}
+.quick-btn .ic{font-size:22px;}
+.quick-btn span{font-size:11px;font-weight:700;text-align:center;color:var(--ink);}
+
+.list-item{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border);}
+.list-item:last-child{border-bottom:none;}
+.list-item .avatar{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.list-item .meta{flex:1;min-width:0;}
+.list-item .meta .t{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.list-item .meta .s{font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.list-item .right{text-align:right;flex-shrink:0;}
+.list-item .right .amt{font-weight:800;font-size:14px;}
+.list-item .right .badge{margin-top:3px;}
+
+.badge{display:inline-block;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px;}
+.badge.diterima{background:var(--info-bg);color:var(--info);}
+.badge.dicuci{background:var(--warning-bg);color:var(--warning);}
+.badge.disetrika{background:var(--c-stok-bg);color:var(--c-stok);}
+.badge.siap{background:var(--success-bg);color:var(--success);}
+.badge.diambil{background:#EFEFEF;color:#666;}
+.badge.batal{background:var(--danger-bg);color:var(--danger);}
+.badge.lunas{background:var(--success-bg);color:var(--success);}
+.badge.belum{background:var(--danger-bg);color:var(--danger);}
+.badge.dp{background:var(--warning-bg);color:var(--warning);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:var(--radius-sm);padding:13px 16px;font-weight:800;font-size:14.5px;cursor:pointer;width:100%;}
+.btn-primary{background:var(--brand-gradient);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-secondary{background:#fff;border:1.5px solid var(--border-strong);color:var(--ink);}
+.btn-danger{background:var(--danger-bg);color:var(--danger);}
+.btn-sm{padding:8px 12px;font-size:12.5px;width:auto;border-radius:10px;}
+.btn-row{display:flex;gap:10px;}
+.btn-row .btn{flex:1;}
+
+label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin:10px 0 6px;}
+input[type=text],input[type=number],input[type=tel],input[type=date],select,textarea{
+  width:100%;padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);font-size:15px;background:#fff;color:var(--ink);
+}
+textarea{resize:vertical;min-height:70px;}
+.field-row{display:flex;gap:10px;}
+.field-row > div{flex:1;}
+
+.tabs{display:flex;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:4px;margin-bottom:14px;overflow-x:auto;}
+.tab{flex:1;text-align:center;padding:9px 10px;border-radius:11px;font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;white-space:nowrap;}
+.tab.active{background:var(--brand-gradient);color:#fff;}
+
+.empty{text-align:center;padding:36px 10px;color:var(--ink-faint);}
+.empty .ic{font-size:38px;margin-bottom:8px;}
+.empty .t{font-weight:700;color:var(--ink-soft);font-size:14px;}
+.empty .s{font-size:12.5px;margin-top:4px;}
+
+.search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:10px 14px;margin-bottom:12px;}
+.search-box input{border:none;padding:0;flex:1;background:transparent;}
+
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:#fff;border-top:1px solid var(--border);display:flex;padding:8px 6px calc(8px + var(--safe-bottom));box-shadow:0 -4px 16px rgba(43,29,20,.06);z-index:15;}
+.nav-item{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;color:var(--ink-faint);font-size:10.5px;font-weight:700;cursor:pointer;border-radius:12px;}
+.nav-item .ic{font-size:20px;}
+.nav-item.active{color:var(--brand-orange-dark);}
+.nav-item.active .ic{filter:drop-shadow(0 2px 4px rgba(249,115,22,.35));}
+/* Tombol aksi utama di tengah nav (pola rosok) */
+.nav-item .fab-wrap{width:48px;height:48px;border-radius:50%;background:var(--brand-gradient);display:flex;align-items:center;justify-content:center;margin-top:-26px;box-shadow:0 6px 16px rgba(234,88,12,.38);border:4px solid var(--bg);flex-shrink:0;}
+.nav-item .fab-wrap span{color:#fff;font-size:22px;font-weight:800;line-height:1;}
+
+.sheet-backdrop{position:fixed;inset:0;background:rgba(43,29,20,.45);z-index:40;display:none;}
+.sheet-backdrop.open{display:block;}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:#fff;border-radius:24px 24px 0 0;z-index:41;transform:translateY(100%);transition:transform .22s ease;max-height:86vh;overflow-y:auto;padding:10px 18px calc(24px + var(--safe-bottom));box-shadow:0 -10px 30px rgba(0,0,0,.2);}
+.sheet.open{transform:translateY(0);}
+.sheet-handle{width:40px;height:5px;background:var(--border-strong);border-radius:10px;margin:8px auto 14px;}
+.sheet h2{font-size:16px;margin:0 0 12px;}
+.sheet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px;}
+.sheet-item{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;border-radius:16px;background:var(--surface-2);cursor:pointer;}
+.sheet-item .ic{font-size:24px;width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;}
+.sheet-item span{font-size:11.5px;font-weight:700;text-align:center;}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(43,29,20,.5);z-index:600;display:none;align-items:flex-end;justify-content:center;}
+.modal-backdrop.open{display:flex;}
+.modal{background:#fff;width:100%;max-width:520px;border-radius:24px 24px 0 0;max-height:92vh;overflow-y:auto;padding:16px 18px calc(20px + var(--safe-bottom));}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.modal-head h2{font-size:16px;margin:0;}
+.modal-close{background:var(--surface-2);border:none;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;}
+
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:30px;font-size:13px;font-weight:700;z-index:620;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:opacity .2s, bottom .2s;}
+.toast.show{opacity:1;bottom:130px;}
+
+.cart-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.cart-row .qty-ctrl{display:flex;align-items:center;gap:6px;}
+.qty-btn{width:26px;height:26px;border-radius:8px;border:1.5px solid var(--border-strong);background:#fff;font-weight:800;cursor:pointer;}
+.pay-methods{display:flex;gap:8px;flex-wrap:wrap;}
+.pay-chip{padding:9px 14px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;}
+.pay-chip.active{background:var(--brand-gradient);color:#fff;border-color:transparent;}
+
+/* Baris profil ala kaki5 (form Data Usaha: tiap field = baris + modal edit) */
+.setting-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.setting-item:last-child{border-bottom:none;}
+.setting-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.kbg-orange{background:var(--warning-bg);color:var(--warning);}
+.kbg-green{background:var(--success-bg);color:var(--success);}
+.kbg-blue{background:var(--info-bg);color:var(--info);}
+.kbg-purple{background:var(--c-stok-bg);color:var(--c-stok);}
+.setting-info{flex:1;min-width:0;}
+.s-title{font-size:15px;font-weight:700;color:var(--ink);}
+.toggle-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;margin:0;}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.2s}
+.toggle-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle-switch input:checked+.toggle-slider{background:var(--brand-gradient)}
+.toggle-switch input:checked+.toggle-slider::before{transform:translateX(20px)}
+.s-title .kreq{color:var(--danger);}
+.s-desc{font-size:12px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.setting-arrow{color:var(--ink-faint);font-size:18px;flex-shrink:0;}
+.card-title{font-size:15px;font-weight:700;color:var(--ink-soft);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+
+/* Banner "Lengkapi Profil" ala kaki5 (onboarding 2026-10-03) — overlay
+   center-immersive NON-blocking: bisa ditutup, app tetap berjalan. */
+.profile-banner{position:fixed;inset:0;z-index:520;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(43,29,20,.35);}
+.profile-banner.show{display:flex;}
+.profile-banner .card{max-width:400px;width:100%;}
+
+.progress-track{display:flex;justify-content:space-between;position:relative;margin:18px 0 6px;}
+.progress-track::before{content:"";position:absolute;top:13px;left:20px;right:20px;height:3px;background:var(--border);z-index:0;}
+.pstep{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;}
+.pstep .dot{width:26px;height:26px;border-radius:50%;background:#fff;border:3px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--ink-faint);}
+.pstep.done .dot{background:var(--success);border-color:var(--success);color:#fff;}
+.pstep.current .dot{background:var(--brand-orange);border-color:var(--brand-orange);color:#fff;}
+.pstep span{font-size:9.5px;font-weight:700;color:var(--ink-soft);text-align:center;}
+
+hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0;}
+.muted{color:var(--ink-soft);font-size:12.5px;}
+.total-row{display:flex;justify-content:space-between;font-size:14px;padding:4px 0;}
+.total-row.big{font-size:18px;font-weight:800;padding-top:8px;border-top:1.5px dashed var(--border-strong);margin-top:6px;}
+
+/* ===== CSS KOMPAT MODUL LISENSI KAKI5 (adopsi) ===== */
+:root{--text2:var(--ink-soft);--red:var(--danger);--green:var(--success);--line:var(--border);--bg2:var(--surface-2);--primary:var(--brand-orange);--accent:var(--brand-orange-dark);--success:#16A34A;}
+.hidden{display:none!important}
+.ktext2{color:var(--ink-soft)} .ktext3{color:var(--ink-faint)}
+.kfs11{font-size:11px}.kfs12{font-size:12px}.kfs14{font-size:14px}.kfs22{font-size:22px}.kfs30{font-size:30px}
+.kfw700{font-weight:700}.kfw800{font-weight:800}
+.kmb8{margin-bottom:8px}.kmb12{margin-bottom:12px}.kmb16{margin-bottom:16px}.kmt8{margin-top:8px}.kmt14{margin-top:14px}.kmt16{margin-top:16px}
+.kcenter{text-align:center}.kflex-between{display:flex;justify-content:space-between;align-items:center}.kgap8{gap:8px}.kw-full{width:100%}
+.badge.green{background:var(--success-bg);color:var(--success)} .badge.red{background:var(--danger-bg);color:var(--danger)} .badge.orange{background:var(--warning-bg);color:var(--warning)} .badge.amber{background:var(--warning-bg);color:var(--warning)} .badge.compact{font-size:11px}
+.btn-outline{background:#fff;border:1.5px solid var(--border-strong);color:var(--ink)}
+.btn-green{background:var(--success);color:#fff}
+.license-state-card{text-align:left}
+.license-steps{display:flex;align-items:center;gap:4px;margin-bottom:12px}
+.license-step{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;font-weight:700;color:var(--ink-faint);flex:1}
+.license-step-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-size:10px;background:#fff}
+.license-step.is-done .license-step-dot{background:var(--success);border-color:var(--success);color:#fff}
+.license-step.is-current .license-step-dot{background:var(--brand-orange);border-color:var(--brand-orange);color:#fff}
+.license-step.is-current{color:var(--ink)}
+.license-step-line{flex:1;height:2px;background:var(--border);margin-bottom:14px}
+.license-header{display:flex;align-items:center;gap:10px;margin:8px 0}
+.license-icon{font-size:26px}
+.license-title{font-weight:800;font-size:14px;flex:1}
+.license-description{font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:10px}
+.license-progress{height:8px;border-radius:6px;background:var(--warning-bg);overflow:hidden;margin-bottom:10px}
+.license-progress span{display:block;height:100%;background:var(--success);border-radius:6px}
+.license-actions{display:grid;gap:8px;margin-top:6px}
+.license-key{font-size:15px;margin:6px 0}
+.license-expiry{font-size:12.5px;color:var(--ink-soft);margin:4px 0}
+.license-desc,.license-hint{font-size:12px;color:var(--ink-soft);margin:6px 0;line-height:1.5}
+.lic-unit{margin-top:8px}
+.license-modal{position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;background:rgba(43,29,20,.5);padding:24px}
+.license-modal.open{display:flex}
+.license-modal.revoked-page{background:var(--bg);align-items:flex-start;padding-top:80px}
+.license-sheet{position:fixed;inset:0;z-index:640;display:none}
+.license-sheet.open{display:block}
+.license-sheet-backdrop{position:absolute;inset:0;background:rgba(43,29,20,.5)}
+.license-sheet-panel{position:absolute;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:#fff;border-radius:24px 24px 0 0;max-height:88vh;overflow-y:auto;padding:10px 18px calc(24px + var(--safe-bottom))}
+.toast-success{background:var(--success)} .toast-error{background:var(--danger)} .toast-warning{background:var(--warning)} .toast-info{background:var(--ink)}
+/* Scrollbar tersembunyi di HP (paritas rosok style.css:825-828) — kembali tampil di desktop */
+::-webkit-scrollbar{width:0;height:0}
+@media (min-width:768px){::-webkit-scrollbar{width:auto;height:auto}}
+.date-nav{display:flex;align-items:center;gap:8px;margin:12px 0}
+.date-nav .date-label{flex:1;text-align:center;font-size:15px;font-weight:800;padding:10px;background:var(--surface);border-radius:10px;border:1px solid var(--border);cursor:pointer}
+.date-nav .date-label:active{opacity:.6}
+.date-nav .date-label.active{color:var(--brand-orange-dark);text-decoration:underline;text-underline-offset:3px}
+.date-nav .date-btn{width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--border);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ink);flex-shrink:0}
+.date-nav .custom-picker{width:100%;box-sizing:border-box;background:var(--warning-bg);border:2px solid rgba(217,119,6,.3);border-radius:12px;padding:10px;box-shadow:var(--shadow-sm);margin-top:8px}
+.cal-nav-btn{width:26px;height:26px;border:1px solid var(--border);background:var(--surface);color:var(--ink);border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1}
+.cal-nav-btn:disabled{opacity:.3;cursor:default}
+.date-nav .custom-picker .cal-cell{background:var(--surface)}
+.date-nav .cal-title{text-align:center;font-weight:800;font-size:13px;color:var(--ink);margin-bottom:6px}
+.date-nav .cal-title-nav{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.date-nav .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.date-nav .cal-head{text-align:center;font-size:10px;font-weight:800;color:var(--ink-soft);padding-bottom:2px}
+.date-nav .cal-cell{height:clamp(30px,7vw,38px);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--ink);background:#faf6f0;border-radius:8px;cursor:pointer;user-select:none}
+.date-nav .cal-cell.empty{visibility:hidden}
+.date-nav .cal-cell.today{border:2px solid var(--brand-orange)}
+.date-nav .cal-cell.sel{background:var(--brand-gradient);color:#fff}
+.date-nav .cal-cell.sel.sel-end{background:var(--danger);color:#fff}
+.date-nav .cal-cell.inrange{background:rgba(249,115,22,.14);box-shadow:inset 0 0 0 1px rgba(249,115,22,.35)}
+.date-nav .cal-cell:active{opacity:.6}
+.date-nav .week-opt{display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 12px;margin-bottom:5px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font-size:13px;cursor:pointer;color:var(--ink)}
+.date-nav .week-opt span{font-size:12px;color:var(--ink-soft);font-weight:600}
+.date-nav .week-opt.sel{border-color:transparent;background:var(--brand-gradient);color:#fff}
+.date-nav .week-opt.sel span{color:rgba(255,255,255,.85)}
+.date-nav .month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.date-nav .month-opt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:10px 4px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font-size:13px;cursor:pointer;color:var(--ink)}
+.date-nav .month-opt span{font-size:10px;color:var(--ink-soft);font-weight:600}
+.date-nav .month-opt.sel{border-color:transparent;background:var(--brand-gradient);color:#fff}
+.date-nav .month-opt.sel span{color:rgba(255,255,255,.85)}
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:140px;padding:8px 0;overflow-x:auto}
+.chart-col{flex:1;min-width:28px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.chart-bar{width:100%;border-radius:6px 6px 0 0;min-height:4px}
+.chart-bar.income{background:var(--success)}
+.chart-bar.expense{background:var(--danger)}
+.chart-label{font-size:10px;color:var(--ink-soft);font-weight:600}
+.chart-val{font-size:9px;color:var(--ink-soft);font-weight:700}
+/* Sapaan beranda (port kaki5 #greetText/#namaUsaha/#todayDate) */
+.greet-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:12px;}
+.greet-hi{font-size:14px;font-weight:600;color:var(--ink-soft);}
+.greet-name{font-size:20px;font-weight:800;color:var(--ink);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.greet-date{font-size:13px;font-weight:600;color:var(--ink-soft);text-align:right;flex-shrink:0;padding-bottom:2px;}
+/* Banner platform messages (port rosok carousel.js) */
+#platCarouselEl{margin-bottom:14px;}
+.plat-carousel{position:relative;overflow:hidden;border-radius:var(--radius-lg);color:#fff;box-shadow:var(--shadow-sm);}
+.plat-carousel-track{display:flex;transition:transform .35s ease;}
+/* Slide compact (revisi pemilik): tinggi dipangkas, teks naik (center),
+   ikon besar pindah ke kanan — grid 2 kolom tanpa ubah markup renderer. */
+.plat-carousel-slide{min-width:100%;padding:14px 16px 22px;display:grid;grid-template-columns:1fr auto;grid-template-areas:"title emoji" "body emoji";align-items:center;column-gap:14px;border-radius:var(--radius-lg);}
+.plat-carousel-slide .plat-emoji{grid-area:emoji;font-size:32px;margin:0;align-self:center;}
+.plat-carousel-slide .plat-title{grid-area:title;font-size:15px;font-weight:800;margin:0 0 2px;line-height:1.3;}
+.plat-carousel-slide .plat-body{grid-area:body;font-size:12.5px;opacity:.88;line-height:1.55;}
+/* Titik navigasi overlay DI DALAM banner (revisi pemilik) */
+.plat-carousel-dots{position:absolute;left:0;right:0;bottom:7px;display:flex;justify-content:center;gap:6px;padding:0;}
+.plat-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);border:none;cursor:pointer;padding:0;transition:all .2s;}
+.plat-dot.active{background:#fff;width:18px;border-radius:4px;}
+/* ── Bantuan (pola kaki5): tab sticky + hero + akordeon ── */
+.bantuan-tabs{display:flex;gap:6px;margin-bottom:14px;position:sticky;top:0;z-index:6;background:var(--bg);padding:8px 0 6px;}
+.bantuan-tab{flex:1;border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);font-weight:700;font-size:13px;padding:9px 6px;border-radius:12px;cursor:pointer;font-family:inherit;}
+.bantuan-tab.active{background:var(--brand-gradient);color:#fff;border-color:transparent;box-shadow:var(--shadow-sm);}
+.card-hero{background:var(--brand-gradient);color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(249,115,22,.25);}
+.card-hero .card-title{color:#fff;}
+.card-hero .muted{color:rgba(255,255,255,.9);}
+.tut-item{border:1px solid var(--border);border-radius:14px;background:var(--surface);margin-bottom:10px;overflow:hidden;}
+.tut-item summary{list-style:none;cursor:pointer;padding:13px 14px;font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:8px;}
+.tut-item summary::-webkit-details-marker{display:none;}
+.tut-item summary .chev{margin-left:auto;color:var(--ink-faint);transition:transform .2s;}
+.tut-item[open] summary .chev{transform:rotate(90deg);}
+.tut-body{padding:0 14px 13px;font-size:12.5px;color:var(--ink-soft);line-height:1.7;}
+.tut-body b{color:var(--ink);}
+.video-item{margin-bottom:12px;}
+.video-item iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:14px;display:block;}
+.video-item .v-title{font-size:13px;font-weight:700;margin-top:6px;}
+.video-item .v-dur{font-size:11.5px;color:var(--ink-soft);}
+</style>
+</head>
+<body>
+<!-- BOOT SPLASH: frame awal mengikuti background native Laundry, lalu
+     bertransisi lembut ke gradasi brand saat aplikasi siap. -->
+<div id="bootSplash" aria-hidden="true"><div class="grad"></div><img src="assets/icon-512.png" alt="Logo Laundry Kasir Solo"></div>
+<div class="app" id="app">
+
+  <!-- HEADER -->
+  <header class="app-header" id="appHeader">
+    <div class="row header-default" id="headerDefault">
+      <div class="topbar-left">
+        <div class="brand-badge brand-mark"><img src="assets/logo.svg" alt="Logo Kasir Solo Laundry" style="width:38px;height:38px;border-radius:50%;object-fit:cover;display:block;"></div>
+        <div class="brand-txt">
+          <div class="brand-name biz" id="brandName" title="Kasir Solo">Kasir Solo</div>
+          <div class="brand-sub tag">Laundry &amp; Cuci Kiloan</div>
+        </div>
+      </div>
+      <div class="topbar-right header-actions">
+        <button class="icon-btn" onclick="go('bantuan')" aria-label="Bantuan" title="Bantuan">📖</button>
+        <div class="trial-badge" id="trialChip" role="button" tabindex="0" onclick="openLicenseSheetSafe()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLicenseSheetSafe();}" aria-label="Status lisensi" title="Status Lisensi"><div class="trial-label-xs">GRATIS</div><div class="trial-value-sm">100 trx</div></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="app-main" id="appMain">
+
+    <!-- BANNER KUOTA HABIS (in-flow, closable) -->
+    <div class="quota-banner hidden" id="quotaBanner">
+      <div style="flex:1;min-width:0;">
+        <span class="muted" id="quotaBannerText" style="font-size:12.5px;"></span>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openPurchaseSheetSafe()">Beli Lisensi</button>
+      <button class="quota-x" onclick="dismissQuotaBanner()" aria-label="Tutup">✕</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="greet-row">
+        <div>
+          <div class="greet-hi" id="greetText">Selamat pagi! ☀️</div>
+          <div class="greet-name" id="greetBizName" title="Kasir Solo">Kasir Solo</div>
+        </div>
+        <div class="greet-date" id="todayDate"></div>
+      </div>
+      <div id="platCarouselEl"></div>
+      <div class="stat-grid">
+        <div class="stat-card orange"><div class="lbl">Omzet Hari Ini</div><div class="val" id="statOmzet">Rp0</div></div>
+        <div class="stat-card green"><div class="lbl">Laba Hari Ini</div><div class="val" id="statLaba">Rp0</div></div>
+        <div class="stat-card blue"><div class="lbl">Cucian Aktif</div><div class="val" id="statOrderAktif">0</div></div>
+        <div class="stat-card red"><div class="lbl">Stok Menipis</div><div class="val" id="statStokTipis">0</div></div>
+      </div>
+
+      <div id="kasCard"></div>
+      <div class="section-title">Menu Cepat</div>
+      <div class="quick-grid">
+        <div class="quick-btn" onclick="openOrderForm()"><div class="ic">🧺</div><span>Order Baru</span></div>
+        <div class="quick-btn" onclick="go('antrian')"><div class="ic">📋</div><span>Antrian</span></div>
+        <div class="quick-btn" onclick="go('layanan')"><div class="ic">🏷️</div><span>Layanan</span></div>
+        <div class="quick-btn" onclick="go('laporan')"><div class="ic">📊</div><span>Laporan</span></div>
+      </div>
+
+      <div class="section-title">Siap Diambil / Perlu Perhatian</div>
+      <div class="card" id="dashOrderList"></div>
+
+      <div class="section-title">Order Terbaru</div>
+      <div class="card" id="dashRecentList"></div>
+    </section>
+
+    <!-- ORDER BARU (KASIR) -->
+    <section class="view" id="view-kasir">
+      <div class="search-box"><span>🔎</span><input type="text" id="posSearch" placeholder="Cari layanan / produk..." oninput="renderPosProducts()"></div>
+      <div class="tabs" id="posTabs">
+        <div class="tab active" data-cat="all" onclick="setPosCat('all')">Semua</div>
+        <div class="tab" data-cat="layanan" onclick="setPosCat('layanan')">Layanan Cuci</div>
+        <div class="tab" data-cat="produk" onclick="setPosCat('produk')">Produk Eceran</div>
+      </div>
+      <div id="posProductGrid" class="stat-grid" style="grid-template-columns:1fr 1fr;"></div>
+      <div style="height:90px;"></div>
+    </section>
+
+    <!-- ANTRIAN -->
+    <section class="view" id="view-antrian">
+      <div class="tabs">
+        <div class="tab active" data-s="aktif" onclick="setOrderTab('aktif')">Aktif</div>
+        <div class="tab" data-s="selesai" onclick="setOrderTab('selesai')">Selesai</div>
+        <div class="tab" data-s="semua" onclick="setOrderTab('semua')">Semua</div>
+      </div>
+      <div class="card" id="orderListWrap"></div>
+    </section>
+
+    <!-- ORDER DETAIL -->
+    <section class="view" id="view-order-detail"><div id="orderDetailWrap"></div></section>
+
+    <!-- LAYANAN & STOK -->
+    <section class="view" id="view-layanan">
+      <div class="search-box"><span>🔎</span><input type="text" id="produkSearch" placeholder="Cari layanan / produk..." oninput="renderProdukList()"></div>
+      <div class="tabs">
+        <div class="tab active" data-pc="all" onclick="setProdukCat('all')">Semua</div>
+        <div class="tab" data-pc="layanan" onclick="setProdukCat('layanan')">Layanan Cuci</div>
+        <div class="tab" data-pc="produk" onclick="setProdukCat('produk')">Produk Eceran</div>
+      </div>
+      <div class="card" id="produkListWrap"></div>
+    </section>
+
+    <!-- PEMBELIAN -->
+    <section class="view" id="view-pembelian">
+      <div class="card" id="pembelianListWrap"></div>
+    </section>
+
+    <!-- PELANGGAN -->
+    <section class="view" id="view-pelanggan">
+      <div class="search-box"><span>🔎</span><input type="text" id="pelangganSearch" placeholder="Cari pelanggan..." oninput="renderPelangganList()"></div>
+      <div class="card" id="pelangganListWrap"></div>
+    </section>
+
+    <!-- SUPPLIER -->
+    <section class="view" id="view-supplier">
+      <div class="card" id="supplierListWrap"></div>
+    </section>
+
+    <!-- LAPORAN -->
+    <section class="view" id="view-laporan">
+      <div class="tabs">
+        <div class="tab active" data-r="harian" onclick="setLaporanPeriod('harian')">Harian</div>
+        <div class="tab" data-r="mingguan" onclick="setLaporanPeriod('mingguan')">Mingguan</div>
+        <div class="tab" data-r="bulanan" onclick="setLaporanPeriod('bulanan')">Bulanan</div>
+        <div class="tab" data-r="custom" onclick="setLaporanPeriod('custom')">Custom</div>
+      </div>
+      <div class="date-nav" id="lapDateNav"></div>
+      <div class="stat-grid">
+        <div class="stat-card orange"><div class="lbl">💰 Omzet</div><div class="val" id="lapOmzet">Rp0</div></div>
+        <div class="stat-card blue"><div class="lbl">📈 Laba Kotor</div><div class="val" id="lapLaba">Rp0</div></div>
+        <div class="stat-card green"><div class="lbl">🧺 Kg Dicuci</div><div class="val" id="lapKg">0 kg</div></div>
+        <div class="stat-card green"><div class="lbl">🧾 Order</div><div class="val" id="lapCount">0</div></div>
+        <div class="stat-card orange"><div class="lbl">📦 Item</div><div class="val" id="lapItems">0</div></div>
+        <div class="stat-card red"><div class="lbl">🛒 Pembelian</div><div class="val" id="lapBeli">Rp0</div></div>
+        <div class="stat-card red"><div class="lbl">⏳ Piutang (semua)</div><div class="val" id="lapPiutang">Rp0</div></div>
+        <div class="stat-card blue"><div class="lbl">📊 Margin Kotor</div><div class="val" id="lapMargin">0%</div></div>
+      </div>
+      <div id="lapChartWrap"></div>
+      <div class="section-title">Order dalam Rentang</div>
+      <div class="card" id="lapOrders"></div>
+      <div class="section-title">Layanan Terlaris</div>
+      <div class="card" id="lapTopLayanan"></div>
+      <div class="section-title">Stok Menipis</div>
+      <div class="card" id="lapStokTipis"></div>
+    </section>
+
+    <!-- PENGATURAN -->
+    <section class="view" id="view-bantuan">
+      <div class="bantuan-tabs" role="tablist" aria-label="Bagian bantuan">
+        <button type="button" class="bantuan-tab active" id="btTabTutorial" role="tab" aria-selected="true" onclick="bantuanTab('tutorial')">📖 Tutorial</button>
+        <button type="button" class="bantuan-tab" id="btTabVideo" role="tab" aria-selected="false" onclick="bantuanTab('video')">🎬 Video</button>
+        <button type="button" class="bantuan-tab" id="btTabTc" role="tab" aria-selected="false" onclick="bantuanTab('tc')">📜 S &amp; K</button>
+      </div>
+
+      <div id="btPanelTutorial">
+        <div class="card card-hero">
+          <div class="card-title">📖 Bantuan</div>
+          <p class="muted" style="margin:0;font-size:13px;line-height:1.6;">Panduan singkat cara memakai <b>Kasir Solo - Laundry</b>. Ketuk sebuah topik untuk membuka langkah-langkahnya.</p>
+        </div>
+        <div id="btTutorials"></div>
+        <div class="card">
+          <div class="card-title">💬 Butuh Bantuan?</div>
+          <p class="muted" style="font-size:12.5px;">WhatsApp Admin <b>0881-6566-935</b> — sebutkan ID Perangkat kamu (lihat Pengaturan → Lisensi).</p>
+        </div>
+      </div>
+
+      <div id="btPanelVideo" style="display:none">
+        <div class="card card-hero">
+          <div class="card-title">🎬 Video Tutorial</div>
+          <p class="muted" style="margin:0;font-size:13px;">Video panduan penggunaan aplikasi.</p>
+        </div>
+        <div id="btVideos"><p class="muted" style="text-align:center;padding:20px 0;">Memuat video…</p></div>
+      </div>
+
+      <div id="btPanelTc" style="display:none">
+        <div class="card">
+          <div class="card-title">📜 Syarat &amp; Ketentuan</div>
+          <div class="muted" style="font-size:12px;line-height:1.65;">
+            <p><b>1. Penggunaan.</b> Aplikasi Kasir Solo - Laundry disediakan oleh PT Mesin Kasir Solo untuk membantu operasional usaha laundry Anda.</p>
+            <p><b>2. Data Anda.</b> Semua data usaha tersimpan di perangkat ini (offline). Jaga perangkat Anda dan lakukan Backup rutin dari menu Pengaturan.</p>
+            <p><b>3. Gratis &amp; Lisensi.</b> Masa gratis memberi 100 transaksi per bulan. Untuk pemakaian tanpa batas kuota, beli lisensi langsung dari aplikasi (QRIS/transfer) — diverifikasi admin PT Mesin Kasir Solo.</p>
+            <p><b>4. Larangan.</b> Dilarang menjual, menyebarkan, atau membongkar aplikasi tanpa izin tertulis dari PT Mesin Kasir Solo.</p>
+            <p><b>5. Dukungan.</b> Bantuan teknis via WhatsApp 08816566935.</p>
+          </div>
+          <div id="tcAcceptRow" style="margin-top:10px;">
+            <button class="btn btn-primary btn-sm" style="width:100%;" onclick="acceptTC()">✓ Saya Setuju</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="view-settings">
+      <div class="card">
+        <div class="card-title">👤 Profil Usaha</div>
+        <p class="muted" style="font-size:12px;line-height:1.5;margin:0 0 14px;">Lengkapi semua data di bawah, lalu tekan <b>Simpan Profil</b>. Identitas perangkat baru dikirim ke server hanya setelah tombol ini ditekan.</p>
+        <label class="form-label">Nama Usaha <span class="kreq">*</span></label>
+        <input class="form-input" type="text" id="profileNamaUsaha" placeholder="Contoh: Laundry Berkah" autocomplete="organization">
+        <label class="form-label" style="margin-top:12px;">Nama Pemilik <span class="kreq">*</span></label>
+        <input class="form-input" type="text" id="profileNamaPemilik" placeholder="Contoh: Budi Santoso" autocomplete="name">
+        <label class="form-label" style="margin-top:12px;">Nomor WhatsApp <span class="kreq">*</span></label>
+        <input class="form-input" type="tel" id="profileWa" placeholder="Contoh: 0812-3456-7890" inputmode="tel" autocomplete="tel">
+        <label class="form-label" style="margin-top:12px;">Provinsi <span class="kreq">*</span></label>
+        <select class="form-input" id="profileProvinsi"><option value="">Pilih Provinsi</option></select>
+        <label class="form-label" style="margin-top:12px;">Kota / Kabupaten <span class="kreq">*</span></label>
+        <select class="form-input" id="profileKabkota" disabled><option value="">Pilih Kota / Kabupaten</option></select>
+        <label class="form-label" style="margin-top:12px;">Kecamatan <span class="kreq">*</span></label>
+        <select class="form-input" id="profileKecamatan" disabled><option value="">Pilih Kecamatan</option></select>
+        <label class="form-label" style="margin-top:12px;">Desa / Kelurahan <span class="kreq">*</span></label>
+        <select class="form-input" id="profileDesa" disabled><option value="">Pilih Desa / Kelurahan</option></select>
+        <label class="form-label" style="margin-top:12px;">Detail Alamat <span class="kreq">*</span></label>
+        <textarea class="form-input" id="profileAlamat" rows="3" placeholder="Contoh: Jl. Merdeka No. 10"></textarea>
+        <button class="btn btn-primary" style="width:100%;margin-top:16px;" onclick="saveProfileForm()">💾 Simpan Profil</button>
+        <div class="muted" style="font-size:11px;line-height:1.45;margin-top:9px;">Data disimpan lokal terlebih dahulu. Sinkronisasi cloud berjalan setelah profil lengkap dan tombol Simpan Profil ditekan.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚙️ Aktifkan Fitur</div>
+        <div class="setting-item">
+          <div class="setting-icon kbg-green">💵</div>
+          <div class="setting-info"><div class="s-title">Tunai</div><div class="s-desc">Uang diterima langsung saat order</div></div>
+          <label class="toggle-switch"><input type="checkbox" id="payOptTunai" onchange="savePayOptions()" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-icon kbg-blue">📱</div>
+          <div class="setting-info"><div class="s-title">QRIS</div><div class="s-desc">Pembeli scan → bayar saat ambil</div></div>
+          <label class="toggle-switch"><input type="checkbox" id="payOptQris" onchange="savePayOptions()" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-icon kbg-orange">🏦</div>
+          <div class="setting-info"><div class="s-title">Transfer</div><div class="s-desc">Pembeli transfer bank</div></div>
+          <label class="toggle-switch"><input type="checkbox" id="payOptTransfer" onchange="savePayOptions()" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-icon kbg-green">💰</div>
+          <div class="setting-info"><div class="s-title">Buka / Tutup Kas</div><div class="s-desc" id="fiturKasDesc">Laci punya modal awal; order diblok kalau kas belum dibuka</div></div>
+          <label class="toggle-switch"><input type="checkbox" id="fiturKasToggle" onchange="saveFiturKas()" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📱 Perangkat</div>
+        <div class="setting-item" onclick="window.LDPrinter&&LDPrinter.connect()">
+          <div class="setting-icon kbg-blue">📡</div>
+          <div class="setting-info"><div class="s-title">Hubungkan Printer</div><div class="s-desc" id="ldPrinterStatus">Belum terhubung</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" onclick="window.LDPrinter&&LDPrinter.test()">
+          <div class="setting-icon kbg-green">📄</div>
+          <div class="setting-info"><div class="s-title">Cetak Tes</div><div class="s-desc">Cek apakah printer berfungsi</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" onclick="window.LDPrinter&&LDPrinter.disconnect()">
+          <div class="setting-icon kbg-red">❌</div>
+          <div class="setting-info"><div class="s-title">Putuskan Printer</div><div class="s-desc">Lepas koneksi Bluetooth</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" id="pwaInstallRow" onclick="installPwa()">
+          <div class="setting-icon kbg-green">📲</div>
+          <div class="setting-info"><div class="s-title" id="pwaInstallTitle">Pasang Aplikasi</div><div class="s-desc" id="pwaInstallDesc">Buka kayak app native di HP</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" onclick="runDiagnosa()">
+          <div class="setting-icon kbg-orange">🩺</div>
+          <div class="setting-info"><div class="s-title">Diagnosa</div><div class="s-desc">Cek koneksi &amp; penyimpanan, hasil bisa dikirim ke admin</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">💾 Data &amp; Cadangan</div>
+        <div class="setting-item" onclick="backupData()">
+          <div class="setting-icon kbg-green">💾</div>
+          <div class="setting-info"><div class="s-title">Simpan Cadangan</div><div class="s-desc">Simpan layanan, order &amp; data usaha ke file HP</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" onclick="document.getElementById('restoreFile').click()">
+          <div class="setting-icon kbg-blue">📂</div>
+          <div class="setting-info"><div class="s-title">Pulihkan Data</div><div class="s-desc">Pulihkan dari file cadangan — konfirmasi dulu sebelum mengganti</div></div>
+          <div class="setting-arrow">›</div>
+          <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="restoreData(event)">
+        </div>
+        <div class="setting-item" onclick="cloudSaveBackup()">
+          <div class="setting-icon kbg-green">☁️</div>
+          <div class="setting-info"><div class="s-title">Cadangan Cloud</div><div class="s-desc">Simpan data usaha ke server · 🔒 khusus lisensi aktif</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" onclick="cloudRestoreLatest()">
+          <div class="setting-icon kbg-blue">☁️</div>
+          <div class="setting-info"><div class="s-title">Pulihkan Cloud</div><div class="s-desc">Ambil cadangan terakhir dari server · 🔒 khusus lisensi aktif</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" onclick="confirmClearAll()">
+          <div class="setting-icon kbg-red">🗑️</div>
+          <div class="setting-info"><div class="s-title">Hapus Semua Data</div><div class="s-desc">Hati-hati! Data tidak bisa kembali</div></div>
+          <div class="setting-arrow">›</div>
+        </div>
+      </div>
+      <div class="card">
+        <div id="licenseInfoCard" style="margin-top:4px;">Memuat status lisensi…</div>
+      </div>
+      <div class="card">
+        <img src="assets/logo-kasirsolo.png" alt="Logo Kasir Solo" style="width:64px;height:64px;border-radius:50%;display:block;margin:0 auto;object-fit:cover;">
+        <div style="font-weight:800;font-size:18px;text-align:center;margin-top:10px;">Kasir Solo - Laundry</div>
+        <button type="button" onclick="openChangelogSheet()" style="display:block;margin:6px auto 10px;background:none;border:none;color:var(--ink-soft);font-size:13px;cursor:pointer;">Versi <span id="aboutVersionLabel">1.0.1</span> · 🕓 riwayat versi ›</button>
+        <div class="muted" style="font-size:12px;text-align:center;">PT Mesin Kasir Solo</div>
+        <div style="margin-top:8px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+          <a href="https://wa.me/628816566935" style="color:var(--success);font-weight:600;font-size:12px;text-decoration:none;">📱 0881-6566-935</a>
+          <a href="mailto:owner.kasirsolo@gmail.com" style="color:var(--info);font-weight:600;font-size:12px;text-decoration:none;">✉️ Email</a>
+          <a id="aboutSiteLink" href="https://kasirsolo.com" target="_blank" rel="noopener" style="color:var(--brand-orange-dark);font-weight:600;font-size:12px;text-decoration:none;">🌐 kasirsolo.com</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAV — maksimal 5 tombol, aksi utama di tengah (pola rosok) -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" data-view="dashboard" onclick="go('dashboard')"><span class="ic">🏠</span>Beranda</button>
+    <button class="nav-item" data-view="antrian" onclick="go('antrian')"><span class="ic">📋</span>Antrian</button>
+    <button class="nav-item" onclick="openOrderForm()"><span class="fab-wrap"><span>+</span></span>Order</button>
+    <button class="nav-item" data-view="laporan" onclick="go('laporan')"><span class="ic">📊</span>Laporan</button>
+    <button class="nav-item" data-view="more" onclick="openMoreSheet()"><span class="ic">☰</span>Lainnya</button>
+  </nav>
+
+  <!-- MORE SHEET -->
+  <div class="sheet-backdrop" id="moreBackdrop" onclick="closeMoreSheet()"></div>
+  <div class="sheet" id="moreSheet">
+    <div class="sheet-handle"></div>
+    <h2>Menu Lainnya</h2>
+    <div class="sheet-grid">
+      <div class="sheet-item" onclick="closeMoreSheet();go('layanan')"><div class="ic" style="background:var(--c-kiloan-bg);color:var(--c-kiloan);">🏷️</div><span>Layanan &amp; Stok</span></div>
+      <div class="sheet-item" onclick="closeMoreSheet();go('pembelian')"><div class="ic" style="background:var(--c-satuan-bg);color:var(--c-satuan);">🚚</div><span>Pembelian</span></div>
+      <div class="sheet-item" onclick="closeMoreSheet();go('pelanggan')"><div class="ic" style="background:var(--c-stok-bg);color:var(--c-stok);">🧑‍🤝‍🧑</div><span>Pelanggan</span></div>
+      <div class="sheet-item" onclick="closeMoreSheet();go('supplier')"><div class="ic" style="background:var(--info-bg);color:var(--info);">🏭</div><span>Supplier</span></div>
+      <div class="sheet-item" onclick="closeMoreSheet();go('laporan')"><div class="ic" style="background:var(--success-bg);color:var(--success);">📊</div><span>Laporan</span></div>
+      <div class="sheet-item" onclick="closeMoreSheet();go('settings')"><div class="ic" style="background:var(--warning-bg);color:var(--warning);">⚙️</div><span>Pengaturan</span></div>
+    </div>
+  </div>
+
+  <!-- SHEET STATUS LISENSI (modul kaki5 — render via renderLicenseStatusArea) -->
+  <div class="license-sheet" id="sheetLicense">
+    <div class="license-sheet-backdrop"></div>
+    <div class="license-sheet-panel">
+      <div class="sheet-handle"></div>
+      <h2>🔐 Status Lisensi</h2>
+      <div id="licenseSheetBody"></div>
+      <hr class="sep">
+      <button class="btn btn-secondary" onclick="contactWA()">💬 Bantuan via WhatsApp</button>
+    </div>
+  </div>
+
+  <!-- SHEET PEMBELIAN (modul kaki5 — QRIS/transfer + bukti, verifikasi admin) -->
+  <div class="license-sheet" id="sheetPurchase">
+    <div class="license-sheet-backdrop"></div>
+    <div class="license-sheet-panel">
+      <div class="sheet-handle"></div>
+      <h2>🛒 Beli Lisensi</h2>
+      <div id="purchaseSheetBody"></div>
+    </div>
+  </div>
+
+  <!-- LOCK OVERLAY (lisensi dicabut / perlu tindakan — modul kaki5) -->
+  <div class="license-modal" id="lockOverlay">
+    <div class="card license-lock-card" style="max-width:400px;width:100%;text-align:center;">
+      <h2 style="margin:0 0 8px;">🔐 Lisensi</h2>
+      <div id="lockLicenseStatusArea"></div>
+    </div>
+    <div class="card" id="lockRevokedPage" style="display:none;max-width:400px;width:100%;text-align:center;padding:26px 22px;"></div>
+  </div>
+
+  <!-- GENERIC MODAL -->
+  <div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this)closeModal()">
+    <div class="modal" id="modalBox"></div>
+  </div>
+
+  <!-- BANNER LENGKAPI PROFIL (ala kaki5 — onboarding non-blocking) -->
+  <div class="profile-banner" id="profileBanner">
+    <div class="card" style="text-align:center;padding:24px 22px;">
+      <div style="font-size:40px;line-height:1;margin-bottom:8px;">🏪</div>
+      <h2 style="margin:0 0 6px;">Lengkapi Profil Usaha</h2>
+      <p class="muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.5;">Isi nama, WhatsApp, dan alamat di halaman <b>Pengaturan</b> supaya data cloud perangkat ini rapi dan identitasmu aman.</p>
+      <button class="btn btn-primary" onclick="go('settings')">⚙️ Lengkapi di Pengaturan</button>
+    </div>
+  </div>
+
+  <div class="lock-overlay" id="updateOverlay" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
+    <div class="modal-card" style="max-width:360px;text-align:center;">
+      <img src="assets/logo.svg" alt="Logo" style="width:64px;height:64px;border-radius:50%;margin:0 auto 8px;display:block;object-fit:cover;">
+      <h2 id="updateTitle" style="margin:8px 0 4px;">Ada Versi Baru!</h2>
+      <div id="updateVersionLabel" style="font-weight:700;color:var(--brand-orange);margin-bottom:10px;">Versi —</div>
+      <ul id="updateNotesList" style="text-align:left;font-size:13px;line-height:1.6;margin:0 0 14px;padding-left:18px;"></ul>
+      <button class="btn btn-primary" id="updateOkBtn">OKE</button>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="js/supabase.min.js"></script>
+<script src="js/supabase-config.js"></script>
+<script>
+/* =========================================================
+   KASIR SOLO — LAUNDRY
+   Single-file offline app. Data disimpan di localStorage.
+   ========================================================= */
+const DB_KEY = 'ksldry_db_v2';
+const DB_KEY_LEGACY = 'ksldry_db_v1';
+const fmtRp = n => 'Rp' + Math.round(n||0).toLocaleString('id-ID');
+const fmtKg = n => (Math.round(n*10)/10).toLocaleString('id-ID') + ' kg';
+const uid = (p='') => p + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const pad2 = n => String(n).padStart(2,'0');
+
+/* ---------- KEAMANAN OUTPUT — semua data user WAJIB lewat escapeHtml ---------- */
+const ESC_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+const escapeHtml = v => String(v==null?'':v).replace(/[&<>"']/g, c=>ESC_MAP[c]);
+
+/* ---------- WAKTU — SEMUA perbandingan pakai waktu lokal; DB simpan instant (epoch ms) ---------- */
+const toMs = v => (typeof v === 'number' ? v : new Date(v).getTime());
+const todayLocal = (d=new Date()) => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const monthLocal = (d=new Date()) => `${d.getFullYear()}-${pad2(d.getMonth()+1)}`;
+const isSameLocalDay = (v, ref=new Date()) => { const t=toMs(v); return !isNaN(t) && new Date(t).toDateString()===ref.toDateString(); };
+const addDaysLocalStr = (days, from=new Date()) => todayLocal(new Date(from.getFullYear(), from.getMonth(), from.getDate()+days));
+
+let DB = loadDB();
+
+function defaultLicense(){
+  return { status:'none', firstSeen:null, deviceCode:null, installId:null, unitId:null,
+           serial:null, expiry:null, activatedAt:null, txMonth:null, txCount:0,
+           cloudQuota:null, txAdjust:0, cloudPending:false, revokedAt:null, lastSync:null, syncedAt:null };
+}
+function defaultDB(){
+  return {
+    version: 2,
+    settings:{ namaToko:'Laundry Saya', namaPemilik:'', alamat:'', wa:'',
+               provinsiId:'', provinsi:'', kabkotaId:'', kabkota:'',
+               kecamatanId:'', kecamatan:'', desaId:'', desa:'' },
+    products:[], customers:[], suppliers:[],
+    orders:[], purchases:[],
+    kas:[], kasShift:[],
+    platformMessages:[],
+    nomorCounter:null,
+    license: defaultLicense()
+  };
+}
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(DB_KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      return Object.assign(defaultDB(), d, {
+        settings:Object.assign(defaultDB().settings, d.settings||{}),
+        license:Object.assign(defaultLicense(), d.license||{})
+      });
+    }
+    const legacy = localStorage.getItem(DB_KEY_LEGACY);
+    if(legacy){
+      const mig = migrateLegacyDB(JSON.parse(legacy));
+      localStorage.setItem(DB_KEY, JSON.stringify(mig));
+      return mig;
+    }
+  }catch(e){}
+  return defaultDB();
+}
+/* Migrasi v1 (trial+share, tanggal ISO UTC) → v2 (kuota GRATIS, epoch ms).
+   Serial lama tidak device-bound → status lama 'trial'/'full' dipetakan ke 'free'. */
+function migrateLegacyDB(d){
+  const base = defaultDB();
+  d = d || {};
+  base.settings = Object.assign(base.settings, d.settings||{});
+  base.products = Array.isArray(d.products) ? d.products : [];
+  base.customers = Array.isArray(d.customers) ? d.customers : [];
+  base.suppliers = Array.isArray(d.suppliers) ? d.suppliers : [];
+  base.orders = Array.isArray(d.orders) ? d.orders : [];
+  base.purchases = Array.isArray(d.purchases) ? d.purchases : [];
+  const oldLic = d.license || {};
+  const firstSeen = toMs(oldLic.trialStart) || Date.now();
+  base.license = Object.assign(defaultLicense(), { status:'free', firstSeen, txMonth:monthLocal(), txCount:0 });
+  return base;
+}
+function saveDB(){ localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
+
+/* ---------- SEED DATA (contoh awal, hanya jika kosong) ---------- */
+function seedIfEmpty(){
+  if(DB.products.length) return;  DB.products = [
+    {id:uid('p'), kategori:'layanan', tipe:'kiloan', nama:'Cuci Kering Lipat (Reguler 3 Hari)', hargaBeli:2500, hargaJual:7000, durasiHari:3},
+    {id:uid('p'), kategori:'layanan', tipe:'kiloan', nama:'Cuci Setrika (Reguler 3 Hari)', hargaBeli:3500, hargaJual:9000, durasiHari:3},
+    {id:uid('p'), kategori:'layanan', tipe:'kiloan', nama:'Express (1 Hari)', hargaBeli:4000, hargaJual:12000, durasiHari:1},
+    {id:uid('p'), kategori:'layanan', tipe:'satuan', nama:'Cuci Sepatu', hargaBeli:8000, hargaJual:20000, durasiHari:2, stok:null},
+    {id:uid('p'), kategori:'layanan', tipe:'satuan', nama:'Cuci Bed Cover / Selimut', hargaBeli:10000, hargaJual:25000, durasiHari:2, stok:null},
+    {id:uid('p'), kategori:'layanan', tipe:'satuan', nama:'Setrika Saja (per pcs)', hargaBeli:800, hargaJual:2500, durasiHari:1, stok:null},
+    {id:uid('p'), kategori:'produk', nama:'Pewangi Laundry Botol', hargaBeli:12000, hargaJual:20000, stok:15, minStok:5},
+    {id:uid('p'), kategori:'produk', nama:'Plastik Kemasan', hargaBeli:500, hargaJual:1500, stok:100, minStok:20},
+    {id:uid('p'), kategori:'produk', nama:'Deterjen Eceran (1kg)', hargaBeli:15000, hargaJual:22000, stok:10, minStok:3},
+  ];
+  saveDB();
+}
+
+/* ---------- SEED BANNER (platform messages — port rosok seedPlatformMessagesIfEmpty) ---------- */
+function seedPlatformMessagesIfEmpty(){
+  if ((DB.platformMessages || []).length) return;
+  const now = new Date().toISOString();
+  const far = new Date(Date.now() + 365*24*3600*1000).toISOString();
+  DB.platformMessages = [
+    {order:1, visibleFrom: now, visibleUntil: far, emoji:'🔥', title:'Promo Spesial!', body:'Setiap order ≥ 10 kg, dapatkan diskon 5% untuk order berikutnya. Berlaku sampai akhir bulan ini.', gradient:'linear-gradient(135deg, #E85D04 0%, #FF8C42 100%)'},
+    {order:2, visibleFrom: now, visibleUntil: far, emoji:'📱', title:'Info Penting', body:'Perbarui status cucian di setiap tahap supaya pelanggan selalu tahu cucian mereka siap diambil.', gradient:'linear-gradient(135deg, #1982C4 0%, #2EABCA 100%)'},
+    {order:3, visibleFrom: now, visibleUntil: far, emoji:'🎁', title:'Kuota Transaksi Gratis', body:'Setiap bulan kamu dapat 100 transaksi gratis tanpa batas waktu — kuota segar lagi di awal bulan. Aktifkan lisensi untuk tanpa batas.', gradient:'linear-gradient(135deg, #70117E 0%, #B5368D 100%)'},
+  ];
+  saveDB();
+}
+
+/* ---------- PLATFORM CAROUSEL (port rosok carousel.js — banner beranda) ---------- */
+let platSlide = 0, platTimer = null;
+function platSetSlide(i){
+  const track = document.getElementById('platTrack');
+  if (!track) return;
+  const count = document.querySelectorAll('.plat-carousel-slide').length;
+  platSlide = count ? ((i % count) + count) % count : 0;
+  track.style.transform = 'translateX(-' + (platSlide * 100) + '%)';
+  document.querySelectorAll('.plat-dot').forEach((d, idx) => d.classList.toggle('active', idx === platSlide));
+}
+function platStartAuto(){ platStopAuto(); platTimer = setInterval(() => platSetSlide(platSlide + 1), 4000); }
+function platStopAuto(){ if (platTimer){ clearInterval(platTimer); platTimer = null; } }
+function platGoTo(i){ platSetSlide(i); platStartAuto(); }
+window.platGoTo = platGoTo;
+function renderPlatformCarousel(){
+  const el = document.getElementById('platCarouselEl');
+  if (!el) return;
+  const now = new Date().toISOString();
+  let msgs = (DB.platformMessages || []).filter(m => m.visibleFrom <= now && (m.visibleUntil === null || m.visibleUntil >= now));
+  msgs = msgs.sort((a,b)=>(a.order||0)-(b.order||0)).slice(0,5);
+  if (!msgs.length){ el.innerHTML = ''; platStopAuto(); return; }
+  const gradients = [
+    'linear-gradient(135deg, #E85D04 0%, #FF8C42 100%)',
+    'linear-gradient(135deg, #1982C4 0%, #2EABCA 100%)',
+    'linear-gradient(135deg, #70117E 0%, #B5368D 100%)',
+    'linear-gradient(135deg, #0A5636 0%, #248A4F 100%)',
+    'linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)'
+  ];
+  const slides = msgs.map((m, i) => `
+    <div class="plat-carousel-slide" style="background:${m.gradient || gradients[i % gradients.length]};">
+      <div class="plat-emoji">${m.emoji || '📢'}</div>
+      <div class="plat-title">${escapeHtml(m.title)}</div>
+      <div class="plat-body">${escapeHtml(m.body)}</div>
+    </div>`).join('');
+  const dots = msgs.map((_, i) => `<button class="plat-dot${i===0?' active':''}" onclick="platGoTo(${i})" aria-label="Banner ${i+1}"></button>`).join('');
+  el.innerHTML = `<div class="plat-carousel" id="platCarouselRoot"><div class="plat-carousel-track" id="platTrack">${slides}</div><div class="plat-carousel-dots">${dots}</div></div>`;
+  platSlide = 0; platSetSlide(0); platStartAuto();
+  let touchStartX = 0;
+  const root = document.getElementById('platCarouselRoot');
+  if (root){
+    root.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+    root.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].screenX - touchStartX;
+      if (dx < -40) platSetSlide(platSlide + 1);
+      else if (dx > 40) platSetSlide(platSlide - 1);
+      platStartAuto();
+    }, { passive: true });
+  }
+}
+
+/* ---------- NAVIGASI ---------- */
+const VIEW_TITLES = {
+  dashboard:'Beranda', kasir:'Order Baru', antrian:'Antrian Cucian', 'order-detail':'Detail Order',
+  layanan:'Layanan & Stok', pembelian:'Pembelian', pelanggan:'Pelanggan', supplier:'Supplier',
+  laporan:'Laporan', settings:'Pengaturan', bantuan:'Bantuan'
+};
+let navStack = ['dashboard'];
+function go(view){
+  if(navStack[navStack.length-1] !== view) navStack.push(view);
+  renderView(view);
+}
+function goBack(){
+  if(navStack.length>1){ navStack.pop(); renderView(navStack[navStack.length-1]); }
+  else renderView('dashboard');
+}
+function renderView(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const el = document.getElementById('view-'+view);
+  if(el) el.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const navBtn = document.querySelector(`.nav-item[data-view="${view}"]`);
+  if(navBtn) navBtn.classList.add('active');
+  /* Header brand SELALU tampil di semua halaman (pola kaki5 — navigasi
+     lewat bottom nav, tanpa tombol back di header). */
+  document.getElementById('headerDefault').style.display = 'flex';
+  /* Paritas kaki5: kartu status lisensi di-render ULANG tiap Pengaturan dibuka
+     (boot bisa gagal saat jaringan belum siap — jangan stuck "Memuat…"). */
+  if (view === 'settings' && window._ksr_renderLicenseInfoCard) {
+    try { window._ksr_renderLicenseInfoCard(); } catch (_) {}
+    try { refreshAboutSiteLink(); } catch (_) {}
+  }
+  document.getElementById('appMain').scrollTop = 0;
+  window.scrollTo(0,0);
+
+  if(view==='dashboard') renderDashboard();
+  if(view==='kasir') renderPosProducts();
+  if(view==='antrian') renderOrderList();
+  if(view==='layanan') renderProdukList();
+  if(view==='pembelian') renderPembelianList();
+  if(view==='pelanggan') renderPelangganList();
+  if(view==='supplier') renderSupplierList();
+  if(view==='laporan') renderLaporan();
+  if(view==='settings'){
+    fillSettingsForm();
+    /* P1 paritas kaki5: tiap buka Pengaturan tarik profil cloud dulu
+       (non-silent — gagal muncul toast); baris di-refresh oleh pull. */
+    if (window._ksr_pullProfile) window._ksr_pullProfile(false);
+  }
+  checkProfileNotification();
+}
+
+/* ---------- SHEETS / MODAL ---------- */
+function openMoreSheet(){ document.getElementById('moreBackdrop').classList.add('open'); document.getElementById('moreSheet').classList.add('open'); }
+function closeMoreSheet(){ document.getElementById('moreBackdrop').classList.remove('open'); document.getElementById('moreSheet').classList.remove('open'); }
+function openModal(html){ document.getElementById('modalBox').innerHTML = html; document.getElementById('modalBackdrop').classList.add('open'); }
+function closeModal(){ document.getElementById('modalBackdrop').classList.remove('open'); }
+/* ---------- KONFIRMASI (in-app, pengganti confirm()) ---------- */
+let __confirmCb = null;
+function confirmDialog(title, msg, okLabel, onOk){
+  __confirmCb = onOk;
+  openModal(`
+    <div class="modal-head"><h2>${escapeHtml(title)}</h2><button class="modal-close" onclick="closeConfirm()">✕</button></div>
+    <p class="muted" style="margin:4px 0 0;">${escapeHtml(msg)}</p>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Batal</button>
+      <button class="btn btn-danger" onclick="runConfirm()">${escapeHtml(okLabel)}</button>
+    </div>`);
+}
+function closeConfirm(){ __confirmCb = null; closeModal(); }
+function runConfirm(){ const cb = __confirmCb; __confirmCb = null; closeModal(); if(cb) cb(); }
+function toast(msg){
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* =========================================================
+   LISENSI — modul kaki5 DIADOPSI penuh (js/license.logic|ui|sync.js +
+   js/quota.offline.js + js/purchase.js + shim db/helpers/modal/version/
+   sync/settings + bootstrap js/laundry-license.js).
+   Bagian ini hanya menyisakan: onboarding non-blocking ala kaki5 (banner
+   profil + header dinamis), gerbang kuota untuk POS, jembatan window.
+   LaundryCore, dan banner/kontak.
+   ========================================================= */
+const APP_TITLE = 'Kasir Solo - Laundry';
+const WA_ADMIN = '628816566935';
+const APP_TYPE = 'laundry';
+
+/* ---------- ONBOARDING ala kaki5 (2026-10-03): TANPA gate blocking ----------
+   status 'none' → auto startTrial via modul (js/laundry-license.js);
+   banner "Lengkapi Profil" = KUNCI: semua halaman terkunci kecuali
+   Pengaturan; SATU CTA → go('settings') — form profil cuma ada di sana;
+   S&K konsen non-blocking (tcAcceptedAt) di kartu Pengaturan. */
+function applyHeaderBizName(){
+  const el = document.getElementById('brandName');
+  if (el) el.textContent = (DB.settings.namaToko || '').trim() || 'Kasir Solo';
+  const greet = document.getElementById('greetBizName');
+  if (greet){ greet.textContent = (DB.settings.namaToko || '').trim() || 'Kasir Solo'; greet.title = (DB.settings.namaToko || '').trim() || 'Kasir Solo'; }
+}
+/* Sapaan beranda (port kaki5 getGreeting + dayName/formatDate) */
+function updateGreeting(){
+  const g = document.getElementById('greetText');
+  if (!g) return;
+  const h = new Date().getHours();
+  g.textContent = h < 11 ? 'Selamat pagi! ☀️' : h < 15 ? 'Selamat siang! 🌤️' : h < 18 ? 'Selamat sore! 🌅' : 'Selamat malam! 🌙';
+  const dateEl = document.getElementById('todayDate');
+  if (dateEl){
+    const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const t = todayLocal(); // yyyy-mm-dd lokal
+    const d = new Date(t + 'T00:00:00');
+    dateEl.textContent = days[d.getDay()] + ', ' + parseInt(t.slice(8,10)) + ' ' + months[parseInt(t.slice(5,7))-1] + ' ' + t.slice(0,4);
+  }
+}
+/* Banner "Lengkapi Profil" = KUNCI aplikasi (keputusan pemilik 2026-10-03):
+   seluruh halaman terkunci kecuali Pengaturan — banner tampil di semua view
+   selama profil belum lengkap, auto-sembunyi saat di halaman Pengaturan. */
+function checkProfileNotification(){
+  const banner = document.getElementById('profileBanner');
+  if (!banner) return;
+  const incomplete = !(DB.settings.namaPemilik || '').trim() || !(DB.settings.wa || '').trim() || (!(DB.settings.kabkota || '').trim() && !(DB.settings.alamat || '').trim());
+  const atSettings = !!(document.getElementById('view-settings') && document.getElementById('view-settings').classList.contains('active'));
+  banner.classList.toggle('show', incomplete && !atSettings);
+}
+
+/* Gerbang transaksi POS: lisensi aktif ATAU sisa kuota > 0 (modul kaki5) */
+async function canCreateTx(){
+  try { return await window.LicenseAPI.canCreateTx(); } catch(_){ return true; }
+}
+async function bumpTx(){ try { await window.LicenseAPI.bumpTx(); } catch(_){} }
+function openLicenseSheetSafe(){ if (window.openLicenseSheet) window.openLicenseSheet(); else toast('Lisensi sedang dimuat…'); }
+function openPurchaseSheetSafe(){ if (window.openPurchaseSheet) window.openPurchaseSheet(); else toast('Lisensi sedang dimuat…'); }
+function dismissQuotaBanner(){
+  const banner = document.getElementById('quotaBanner');
+  if (banner) banner.classList.add('hidden');
+}
+function contactWA(){
+  (async () => {
+    let dc = '';
+    try { dc = window.LicenseAPI ? await window.LicenseAPI.getDeviceCode() : ''; } catch(_){ }
+    const msg = `Halo PT Mesin Kasir Solo, saya ingin bertanya tentang lisensi ${APP_TITLE}. ID Perangkat saya: ${dc||'-'}`;
+    window.open(`https://wa.me/${WA_ADMIN}?text=${encodeURIComponent(msg)}`, '_blank');
+  })();
+}
+
+/* ===== Supabase client bersama + push profil klien (dipakai shim sync.js) ===== */
+function getSupabaseClient(){
+  if (!window.supabase) return null;
+  const url = window.KASIRSOLO_SUPABASE_URL;
+  const anon = window.KASIRSOLO_SUPABASE_ANON_KEY;
+  if (!url || !anon || !anon.includes('.')) return null;
+  if (!window._ksrSupabaseClient) window._ksrSupabaseClient = window.supabase.createClient(url, anon, { auth:{ persistSession:true, autoRefreshToken:true } });
+  return window._ksrSupabaseClient;
+}
+async function reportSyncError(stage, err){
+  try {
+    const sb = getSupabaseClient(); if(!sb) return;
+    const unitId = window.LicenseAPI ? await window.LicenseAPI.getUnitId() : null; if(!unitId) return;
+    /* Paritas kaki5 sanitizeSyncTelemetry: stage whitelist, pesan dibersihkan,
+       UA dikirim versi sanitasi (tanpa control-char, maks 300) — bukan mentah. */
+    const SAFE_STAGES = new Set(['config','session','claim','write','readback','verify']);
+    const safeStage = SAFE_STAGES.has(stage) ? stage : 'unknown';
+    const safeMsg = String((err && err.message) || err || 'unknown').replace(/[\u0000-\u001F\u007F]/g,' ').replace(/\s+/g,' ').trim().slice(0,500) || 'unknown';
+    const safeUa = getDeviceInfo().diagnosticUserAgent || '';
+    await sb.from('sync_errors').insert({ unit_id: unitId, app_type: APP_TYPE, stage: safeStage, error: safeMsg, user_agent: safeUa });
+  } catch(_){ }
+}
+/* ===== P2 paritas kaki5 (2026-10-03): keandalan push profil =====
+   state sync lokal synced/pending + verifiedAt TTL 24h (self-heal) +
+   pendingIntent force/backfill + retry loop 5 menit; meta perangkat di
+   payload (browser/os/device_type/user_agent, getDeviceInfo); pipeline seed
+   source app-* + status 'baru' solo baris baru; readback verify — tulis yang
+   tak terbaca (RLS dibuang) ditandai pending, bukan sukses palsu. */
+const SYNC_STATE_KEY = 'ksldry_sync_state_v1';
+const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
+const SYNC_RETRY_MS = 5 * 60 * 1000;
+function getDeviceInfo(){
+  const ua = String(navigator.userAgent || '');
+  const uaLower = ua.toLowerCase();
+  let browser = 'Lainnya';
+  let browserMajor = '';
+  const match = (re) => ua.match(re)?.[1] || '';
+  if (/\bwv\b|; wv\)|webview/i.test(ua)) browser = 'WebView';
+  else if (/Edg\//i.test(ua)) { browser = 'Edge'; browserMajor = match(/Edg\/(\d+)/i); }
+  else if (/OPR\//i.test(ua)) { browser = 'Opera'; browserMajor = match(/OPR\/(\d+)/i); }
+  else if (/SamsungBrowser\//i.test(ua)) { browser = 'Samsung Internet'; browserMajor = match(/SamsungBrowser\/(\d+)/i); }
+  else if (/Firefox\//i.test(ua)) { browser = 'Firefox'; browserMajor = match(/Firefox\/(\d+)/i); }
+  else if (/CriOS\//i.test(ua)) { browser = 'Chrome'; browserMajor = match(/CriOS\/(\d+)/i); }
+  else if (/Chrome\//i.test(ua)) { browser = 'Chrome'; browserMajor = match(/Chrome\/(\d+)/i); }
+  else if (/Safari\//i.test(uaLower) && !/chrome|android/i.test(uaLower)) { browser = 'Safari'; browserMajor = match(/Version\/(\d+)/i); }
+  let os = 'Lainnya';
+  if (/windows nt/i.test(ua)) os = 'Windows';
+  else if (/android/i.test(ua)) os = 'Android';
+  else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
+  else if (/mac os x/i.test(ua)) os = 'macOS';
+  else if (/linux/i.test(ua)) os = 'Linux';
+  const isTablet = /ipad/i.test(ua) ||
+    (/android/i.test(ua) && !/mobile/i.test(ua)) ||
+    (navigator.maxTouchPoints > 1 && /tablet/i.test(ua)) ||
+    (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
+  const isMobile = !isTablet && (/mobile/i.test(ua) || /iphone|ipod|android.*mobile|iemobile|blackberry|opera mini/i.test(uaLower));
+  const deviceType = isTablet ? 'tablet' : (isMobile ? 'mobile' : 'desktop');
+  const diagnosticUserAgent = ua.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+  return { browser, browserMajor, os, deviceType, diagnosticUserAgent };
+}
+function readSyncState(){ try { return JSON.parse(localStorage.getItem(SYNC_STATE_KEY) || '{}') || {}; } catch (_){ return {}; } }
+function writeSyncState(st){ try { localStorage.setItem(SYNC_STATE_KEY, JSON.stringify(st)); } catch (_){ } }
+async function serverRowExists(sb, unitId){
+  const { data, error } = await sb.from('clients').select('unit_id').eq('unit_id', unitId).maybeSingle();
+  if (error) throw error;
+  return !!data;
+}
+let _syncRetryTimer = null;
+function startSyncRetryLoop(){
+  if (_syncRetryTimer) return;
+  _syncRetryTimer = setInterval(() => {
+    try {
+      if (!navigator.onLine) return;
+      const st = readSyncState();
+      if (st.status === 'pending'){ ensureSyncedProfile(st.pendingIntent === 'force'); }
+    } catch (_){}
+  }, SYNC_RETRY_MS);
+}
+async function ensureSyncedProfile(force){
+  let stage = 'session';
+  try {
+    const sb = getSupabaseClient();
+    if (!sb || !navigator.onLine) return { offline:true };
+    const profileConfirmed = !!(DB.settings && DB.settings.profileSavedAt);
+    if (!profileConfirmed) return { needProfile:true, reason:'profile-not-confirmed' };
+    if (!(DB.settings.namaToko||'').trim()) return { needProfile:true };
+    const unitId = window.LicenseAPI ? await window.LicenseAPI.getUnitId() : null;
+    if (!unitId) return { offline:true };
+    const deviceCode = window.LicenseAPI ? await window.LicenseAPI.getDeviceCode() : '';
+
+    // Self-heal state (T29 paritas kaki5): flag 'synced' hanya cache — bila
+    // belum diverifikasi >24h, cek baris ke server; hilang = push ulang.
+    if (!force){
+      const st = readSyncState();
+      if (st.status === 'synced'){
+        const vAt = st.verifiedAt ? new Date(st.verifiedAt).getTime() : 0;
+        if (Date.now() - vAt < VERIFY_TTL_MS) return { ok:true, reason:'already-synced' };
+        try {
+          if (await serverRowExists(sb, unitId)){
+            writeSyncState(Object.assign(readSyncState(), { verifiedAt: new Date().toISOString() }));
+            return { ok:true, reason:'already-synced' };
+          }
+        } catch (e){ await reportSyncError('verify', e); }
+      }
+    }
+
+    const auth = await (async () => {
+      try {
+        const { data } = await sb.auth.getSession();
+        const session = data && data.session;
+        if (session && session.user){
+          const cur = (session.user.user_metadata||{}).unit_id;
+          if (cur !== unitId){ try { await sb.auth.updateUser({ data:{ unit_id: unitId } }); } catch(_){} }
+          return session.user.id;
+        }
+        const { data: anon, error } = await sb.auth.signInAnonymously({ options:{ data:{ unit_id: unitId } } });
+        if (error) return null;
+        return anon && anon.user ? anon.user.id : null;
+      } catch(_){ return null; }
+    })();
+    if (!auth) throw new Error('auth session gagal');
+
+    const dev = getDeviceInfo();
+    try { DB.settings.deviceInfo = dev; } catch (_){}
+    const payload = {
+      unit_id: unitId, app_type: APP_TYPE, device_code: deviceCode,
+      install_id: (DB.license && DB.license.installId) || null,
+      nama_usaha: DB.settings.namaToko || '', nama_pemilik: DB.settings.namaPemilik || '',
+      no_whatsapp: DB.settings.wa || '',
+      provinsi_id: DB.settings.provinsiId || '', provinsi: DB.settings.provinsi || '',
+      kabkota_id: DB.settings.kabkotaId || '', kabkota: DB.settings.kabkota || '',
+      kecamatan_id: DB.settings.kecamatanId || '', kecamatan: DB.settings.kecamatan || '',
+      desa_id: DB.settings.desaId || '', desa: DB.settings.desa || '',
+      alamat_detail: DB.settings.alamat || '', last_seen: new Date().toISOString(),
+      browser: dev.browser, browser_major: dev.browserMajor, os: dev.os, device_type: dev.deviceType
+    };
+    try { saveDB(); } catch (_){ }
+
+    // Klaim device dulu — RLS hybrid: device_known men-SET user_id = anon ini.
+    stage = 'claim';
+    const { error: claimErr } = await sb.rpc('device_known', {
+      p_unit_id: unitId, p_device_code: deviceCode, p_app_type: APP_TYPE
+    });
+    if (claimErr) throw claimErr;
+
+    // Push: non-force = backfill-only (baris ada → TIDAK disentuh; cloud tetap
+    // sumber kebenaran); force (form profil) = update penuh + user_id.
+    stage = 'write';
+    const { data: existing } = await sb.from('clients').select('unit_id').eq('unit_id', unitId).eq('app_type', APP_TYPE).maybeSingle();
+    let upErr = null;
+    if (existing){
+      if (force){
+        const upd = await sb.from('clients').update(Object.assign({}, payload, { user_id: auth })).eq('unit_id', unitId).eq('app_type', APP_TYPE);
+        upErr = upd.error;
+      }
+    } else {
+      const ins = await sb.from('clients').insert(Object.assign({}, payload, { user_id: auth, first_seen: new Date().toISOString() }));
+      upErr = ins.error;
+    }
+    if (upErr) throw upErr;
+
+    // Pipeline seed ala kaki5: source app-* + status 'baru' solo baris baru —
+    // status yang sudah dimajukan admin di Control tidak pernah di-reset.
+    try {
+      const { data: cur } = await sb.from('clients').select('status, source').eq('unit_id', unitId).eq('app_type', APP_TYPE).maybeSingle();
+      const needSeed = !cur || !cur.status || cur.status === '' || cur.status === null;
+      if (needSeed) await sb.from('clients').update({ source: 'app-' + APP_TYPE, status: 'baru' }).eq('unit_id', unitId).eq('app_type', APP_TYPE);
+      else if (!cur.source) await sb.from('clients').update({ source: 'app-' + APP_TYPE }).eq('unit_id', unitId).eq('app_type', APP_TYPE);
+    } catch (_lead){ /* pipeline seed non-kritikel */ }
+
+    stage = 'readback';
+    if (!(await serverRowExists(sb, unitId))) throw new Error('baris tidak terbaca setelah tulis (RLS?)');
+    writeSyncState({ status:'synced', syncedAt: new Date().toISOString(), verifiedAt: new Date().toISOString(), recentErrors: [] });
+    return { ok:true };
+  } catch(e){
+    const message = String((e && e.message) || e);
+    const st = readSyncState();
+    const errs = Array.isArray(st.recentErrors) ? st.recentErrors : [];
+    errs.unshift({ stage, message, at: new Date().toISOString() });
+    writeSyncState({ status:'pending', pendingIntent: force ? 'force' : 'backfill', lastError: message, lastStage: stage, lastTryAt: new Date().toISOString(), recentErrors: errs.slice(0, 5) });
+    await reportSyncError(stage, e);
+    return { ok:false, error: message };
+  }
+}
+
+/* Jembatan untuk shim modul (js/db.js, js/sync.js, js/settings.js) */
+window.LaundryCore = {
+  getDB: () => DB,
+  saveDB,
+  fillSettingsForm,
+  ensureSyncedProfile,
+  reportSyncError,
+};
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+/* Angka panjang otomatis mengecil (port statSizeClass kaki5): aturan digit dulu
+   (ratusan juta = 9 digit -> xs), lalu loop scrollWidth sbg jaring pengaman. */
+function fitStat(id){
+  const el = document.getElementById(id);
+  if (!el || !el.clientWidth) return;
+  const digits = String(el.textContent).replace(/\D/g, '').length;
+  const tiers = ['', 'stat-sm', 'stat-xs', 'stat-xxs'];
+  let tier = digits > 8 ? 3 : digits > 6 ? 2 : 1;
+  for (; tier < tiers.length; tier++){
+    el.classList.remove('stat-sm','stat-xs','stat-xxs');
+    if (tiers[tier]) el.classList.add(tiers[tier]);
+    if (el.scrollWidth <= el.clientWidth) break;
+  }
+}
+function renderDashboard(){
+  updateGreeting();
+  renderPlatformCarousel();
+  renderKasCard();
+  const paidToday = DB.orders.filter(o=>isSameLocalDay(o.tanggalMasuk));
+  const omzet = paidToday.reduce((a,o)=>a+o.total,0);
+  const laba = paidToday.reduce((a,o)=>a+o.laba,0);
+  const orderAktif = DB.orders.filter(o=>!['diambil','batal'].includes(o.status)).length;
+  const stokTipis = DB.products.filter(p=>p.kategori==='produk' && p.stok<=p.minStok).length;
+  document.getElementById('statOmzet').textContent = fmtRp(omzet);
+  document.getElementById('statLaba').textContent = fmtRp(laba);
+  document.getElementById('statOrderAktif').textContent = orderAktif;
+  document.getElementById('statStokTipis').textContent = stokTipis;
+  ['statOmzet','statLaba','statOrderAktif','statStokTipis'].forEach(fitStat);
+
+  const wrap = document.getElementById('dashOrderList');
+  const attention = DB.orders.filter(o=>o.status==='siap' || (o.statusBayar!=='lunas' && !['batal'].includes(o.status))).slice(-6).reverse();
+  wrap.innerHTML = attention.length ? attention.map(orderRowHTML).join('') :
+    `<div class="empty"><div class="ic">🧺</div><div class="t">Tidak ada yang perlu perhatian</div></div>`;
+
+  const recentWrap = document.getElementById('dashRecentList');
+  const lastOrders = DB.orders.slice(-5).reverse();
+  recentWrap.innerHTML = lastOrders.length ? lastOrders.map(orderRowHTML).join('') : `<div class="empty"><div class="ic">📋</div><div class="t">Belum ada order</div></div>`;
+}
+function fmtDateTime(v){
+  const d = new Date(toMs(v));
+  if(isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short'}) + ' ' + d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+
+/* =========================================================
+   ORDER BARU / KASIR
+   ========================================================= */
+let posCat = 'all';
+let cart = [];
+function setPosCat(cat){ posCat=cat; document.querySelectorAll('#posTabs .tab').forEach(t=>t.classList.toggle('active', t.dataset.cat===cat)); renderPosProducts(); }
+function renderPosProducts(){
+  const q = (document.getElementById('posSearch').value||'').toLowerCase();
+  const list = DB.products.filter(p=>{
+    const matchCat = posCat==='all' || p.kategori===posCat;
+    const matchQ = !q || p.nama.toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  const grid = document.getElementById('posProductGrid');
+  grid.innerHTML = list.length ? list.map(p=>`
+    <div class="card" style="margin-bottom:0;padding:12px;cursor:pointer;" onclick="addToCart('${p.id}')">
+      <div style="font-size:22px;">${catIcon(p)}</div>
+      <div style="font-weight:700;font-size:13px;margin-top:6px;line-height:1.3;">${escapeHtml(p.nama)}</div>
+      <div class="muted" style="margin-top:4px;">${p.kategori==='layanan' ? (p.tipe==='kiloan'?'per kg':'per pcs') : 'Stok: '+p.stok}</div>
+      <div style="font-weight:800;color:var(--brand-orange-dark);margin-top:4px;">${fmtRp(p.hargaJual)}</div>
+    </div>`).join('') : `<div class="empty" style="grid-column:1/-1;"><div class="ic">🧺</div><div class="t">Tidak ditemukan</div></div>`;
+  renderCartBar();
+}
+function catIcon(p){ if(p.kategori!=='layanan') return '🧴'; return p.tipe==='kiloan' ? '⚖️' : '👕'; }
+async function addToCart(pid){
+  const p = DB.products.find(x=>x.id===pid);
+  if(!p) return;
+  if(!(await canCreateTx())){ openPurchaseSheetSafe(); toast('Kuota bulan ini habis — beli lisensi untuk lanjut'); return; }
+  if(p.kategori==='layanan' && p.tipe==='kiloan'){ openWeightPrompt(pid); return; }
+  if(p.kategori==='produk' && p.stok<=0){ toast('Stok habis'); return; }
+  const line = cart.find(c=>c.pid===pid);
+  if(line){
+    if(p.kategori==='produk' && line.qty>=p.stok){ toast('Stok tidak cukup'); return; }
+    line.qty++;
+  } else cart.push({pid, qty:1});
+  renderCartBar();
+  toast(p.nama+' ditambahkan');
+}
+function openWeightPrompt(pid){
+  const p = DB.products.find(x=>x.id===pid);
+  const existing = cart.find(c=>c.pid===pid);
+  openModal(`
+    <div class="modal-head"><h2>⚖️ ${escapeHtml(p.nama)}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Berat Cucian (kg)</label>
+    <input type="number" id="wPromptVal" step="0.1" min="0.1" value="${existing?existing.qty:''}" placeholder="cth: 3.5">
+    <p class="muted" style="margin-top:8px;">Harga: ${fmtRp(p.hargaJual)} / kg</p>
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-primary" onclick="confirmWeight('${pid}')">Tambahkan</button></div>
+  `);
+}
+function confirmWeight(pid){
+  const val = parseFloat(document.getElementById('wPromptVal').value);
+  if(!val || val<=0){ toast('Masukkan berat yang valid'); return; }
+  const line = cart.find(c=>c.pid===pid);
+  if(line) line.qty = val; else cart.push({pid, qty:val});
+  closeModal(); renderCartBar(); toast('Berat disimpan: '+fmtKg(val));
+}
+function renderCartBar(){
+  let bar = document.getElementById('cartBar');
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id='cartBar';
+    bar.style.cssText='position:fixed;left:0;right:0;bottom:calc(72px + var(--safe-bottom));max-width:520px;margin:0 auto;z-index:18;';
+    document.getElementById('app').appendChild(bar);
+  }
+  const total = cart.reduce((a,c)=>{ const p=DB.products.find(x=>x.id===c.pid); return a+(p?p.hargaJual*c.qty:0); },0);
+  const count = cart.length;
+  if(!count){ bar.innerHTML=''; return; }
+  bar.innerHTML = `
+    <div style="margin:0 16px;background:var(--ink);color:#fff;border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-lg);cursor:pointer;" onclick="openCartModal()">
+      <div style="background:rgba(255,255,255,.18);border-radius:10px;padding:6px 10px;font-weight:800;">${count}</div>
+      <div style="flex:1;font-size:13px;">Lihat Order</div>
+      <div style="font-weight:800;">${fmtRp(total)}</div>
+    </div>`;
+}
+function openCartModal(){
+  if(!cart.length) return;
+  const rows = cart.map(c=>{
+    const p = DB.products.find(x=>x.id===c.pid);
+    const isKg = p.kategori==='layanan' && p.tipe==='kiloan';
+    return `<div class="cart-row">
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:13.5px;">${escapeHtml(p.nama)}</div>
+        <div class="muted">${fmtRp(p.hargaJual)} ${isKg?'/kg':'/pcs'} · ${isKg?fmtKg(c.qty):c.qty+' pcs'}</div>
+      </div>
+      ${isKg
+        ? `<button class="btn btn-secondary btn-sm" onclick="openWeightPrompt('${c.pid}');">Ubah</button>`
+        : `<div class="qty-ctrl">
+             <button class="qty-btn" onclick="changeQty('${c.pid}',-1)">−</button>
+             <span style="min-width:20px;text-align:center;font-weight:700;">${c.qty}</span>
+             <button class="qty-btn" onclick="changeQty('${c.pid}',1)">+</button>
+           </div>`}
+    </div>`;
+  }).join('');
+  const subtotal = cart.reduce((a,c)=>{ const p=DB.products.find(x=>x.id===c.pid); return a+p.hargaJual*c.qty; },0);
+  openModal(`
+    <div class="modal-head"><h2>🧺 Order</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div id="cartRowsWrap">${rows}</div>
+    <div class="total-row big"><span>Total</span><span>${fmtRp(subtotal)}</span></div>
+    <label>Pelanggan</label>
+    <select id="cartCustomer"><option value="">- Pilih / kosongkan untuk pelanggan baru -</option>${DB.customers.map(c=>`<option value="${escapeHtml(c.id)}">${escapeHtml(c.nama)}</option>`).join('')}</select>
+    <div class="field-row">
+      <div><label>Nama Pelanggan Baru</label><input type="text" id="cartNamaBaru" placeholder="Isi jika belum terdaftar"></div>
+      <div><label>No. HP</label><input type="tel" id="cartTelpBaru"></div>
+    </div>
+    <label>Estimasi Selesai</label>
+    <input type="date" id="cartEta" value="${defaultEta()}">
+    <label>Status Pembayaran</label>
+    <div class="pay-methods" id="payStatus">
+      <div class="pay-chip active" data-p="lunas" onclick="selectChip(this,'payStatus')">Lunas</div>
+      <div class="pay-chip" data-p="dp" onclick="selectChip(this,'payStatus')">DP</div>
+      <div class="pay-chip" data-p="belum" onclick="selectChip(this,'payStatus')">Belum Bayar</div>
+    </div>
+    ${(function(){
+      const methods = activePayMethods();
+      if (methods.length <= 1) return '';
+      return `<label>Metode Bayar</label>
+    <div class="pay-methods" id="payMethods">
+      ${methods.map((m,i)=>`<div class="pay-chip ${i===0?'active':''}" data-m="${m}" onclick="selectChip(this,'payMethods')">${m}</div>`).join('')}
+    </div>`;
+    })()}
+    <label>Catatan (opsional)</label><textarea id="cartCatatan" placeholder="cth: jangan pakai pewangi, ada kancing lepas"></textarea>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-danger" onclick="clearCart()">Kosongkan</button>
+      <button class="btn btn-primary" onclick="checkout()">Simpan Order</button>
+    </div>
+  `);
+}
+function defaultEta(){ return addDaysLocalStr(3); }
+function selectChip(el, groupId){ document.querySelectorAll('#'+groupId+' .pay-chip').forEach(e=>e.classList.remove('active')); el.classList.add('active'); }
+function changeQty(pid, d){
+  const line = cart.find(c=>c.pid===pid);
+  const p = DB.products.find(x=>x.id===pid);
+  if(!line) return;
+  line.qty += d;
+  if(line.qty<=0) cart = cart.filter(c=>c.pid!==pid);
+  else if(p.kategori==='produk' && line.qty>p.stok){ line.qty=p.stok; toast('Stok maksimal tercapai'); }
+  renderCartBar(); openCartModal();
+}
+function clearCart(){ cart=[]; closeModal(); renderCartBar(); }
+/* Nomor order aman: berbasis bulan lokal + pindai nomor terakhir yang ada
+   (tahan restore/impor, tidak pernah bentrok meski data dipulihkan). */
+function nextOrderNumber(){
+  const mKey = monthLocal();
+  const prefix = `LD${mKey.slice(2,4)}${mKey.slice(5,7)}-`;
+  let max = 0;
+  for(const o of DB.orders){
+    if(o && typeof o.noOrder === 'string' && o.noOrder.startsWith(prefix)){
+      const n = parseInt(o.noOrder.slice(prefix.length), 10);
+      if(!isNaN(n) && n > max) max = n;
+    }
+  }
+  if(DB.nomorCounter && DB.nomorCounter.month === mKey && DB.nomorCounter.last > max) max = DB.nomorCounter.last;
+  const next = max + 1;
+  DB.nomorCounter = { month: mKey, last: next };
+  return prefix + String(next).padStart(4,'0');
+}
+async function checkout(){
+  if(!cart.length) return;
+  if(!(await canCreateTx())){ closeModal(); openPurchaseSheetSafe(); toast('Kuota bulan ini habis — beli lisensi untuk lanjut'); return; }
+  let custId = document.getElementById('cartCustomer').value;
+  const namaBaru = document.getElementById('cartNamaBaru').value.trim();
+  const telpBaru = document.getElementById('cartTelpBaru').value.trim();
+  let namaPelanggan = 'Pelanggan Umum';
+  if(custId){ namaPelanggan = DB.customers.find(c=>c.id===custId).nama; }
+  else if(namaBaru){
+    const newCust = {id:uid('c'), nama:namaBaru, telp:telpBaru, alamat:''};
+    DB.customers.push(newCust); custId = newCust.id; namaPelanggan = namaBaru;
+  }
+  let total=0, laba=0, totalKg=0;
+  const items = cart.map(c=>{
+    const p = DB.products.find(x=>x.id===c.pid);
+    if(p.kategori==='produk') p.stok -= c.qty;
+    if(p.kategori==='layanan' && p.tipe==='kiloan') totalKg += c.qty;
+    const sub = p.hargaJual*c.qty;
+    total += sub; laba += (p.hargaJual-p.hargaBeli)*c.qty;
+    return {productId:p.id, nama:p.nama, kategori:p.kategori, tipe:p.tipe||null, qty:c.qty, harga:p.hargaJual, hpp:p.hargaBeli};
+  });
+  const statusBayar = document.querySelector('#payStatus .pay-chip.active').dataset.p;
+  const activeChip = document.querySelector('#payMethods .pay-chip.active');
+  const metode = activeChip ? activeChip.dataset.m : (activePayMethods()[0] || 'Tunai');
+  const order = {
+    id: uid('o'), noOrder: nextOrderNumber(), tanggalMasuk: Date.now(),
+    customerId: custId||null, namaPelanggan, items, totalKg,
+    eta: document.getElementById('cartEta').value, catatan: document.getElementById('cartCatatan').value.trim(),
+    status:'diterima', statusBayar, metode, total, laba, tanggalSelesai:null
+  };
+  DB.orders.push(order); await bumpTx();
+  if(metode==='Tunai' && statusBayar==='lunas') addKasEntry('masuk', order.total, 'Order '+order.noOrder, order.id);
+  saveDB(); cart=[]; closeModal();
+  toast('Order tersimpan: '+order.noOrder);
+  renderPosProducts(); renderDashboard();
+  openOrderDetail(order.id);
+  confirmDialog('Cetak Nota?', 'Cetak nota ' + order.noOrder + ' sekarang?', 'Ya, Cetak', () => printNotaOrder(order.id));
+}
+async function openOrderForm(){
+  if(fiturKasAktif() && !getActiveShift()){ go('dashboard'); renderKasCard(); openBukaKas('Buka kas dulu sebelum menerima order.'); return; }
+  if(!(await canCreateTx())){ openPurchaseSheetSafe(); toast('Kuota bulan ini habis — beli lisensi untuk lanjut'); return; }
+  go('kasir');
+}
+
+/* =========================================================
+   ANTRIAN / STATUS ORDER
+   ========================================================= */
+const ORDER_STATUSES = ['diterima','dicuci','disetrika','siap','diambil'];
+const ORDER_LABELS = {diterima:'Diterima', dicuci:'Dicuci', disetrika:'Disetrika/Lipat', siap:'Siap Diambil', diambil:'Diambil', batal:'Batal'};
+const PAY_LABELS = {lunas:'Lunas', dp:'DP', belum:'Belum Bayar'};
+let orderTab = 'aktif';
+function setOrderTab(t){ orderTab=t; document.querySelectorAll('#view-antrian .tab').forEach(el=>el.classList.toggle('active', el.dataset.s===t)); renderOrderList(); }
+function renderOrderList(){
+  let list = DB.orders.slice().reverse();
+  if(orderTab==='aktif') list = list.filter(o=>!['diambil','batal'].includes(o.status));
+  if(orderTab==='selesai') list = list.filter(o=>o.status==='diambil');
+  const wrap = document.getElementById('orderListWrap');
+  wrap.innerHTML = list.length ? list.map(orderRowHTML).join('') : `<div class="empty"><div class="ic">📋</div><div class="t">Belum ada data order</div></div>`;
+}
+function orderRowHTML(o){
+  const desc = o.items.map(it=> it.tipe==='kiloan' ? `${escapeHtml(it.nama)} (${fmtKg(it.qty)})` : `${escapeHtml(it.nama)} x${it.qty}`).join(', ');
+  return `<div class="list-item" style="cursor:pointer;" onclick="openOrderDetail('${o.id}')">
+    <div class="avatar" style="background:var(--c-kiloan-bg);color:var(--c-kiloan);">🧺</div>
+    <div class="meta"><div class="t">${escapeHtml(o.noOrder)} — ${escapeHtml(o.namaPelanggan)}</div><div class="s">${desc}</div></div>
+    <div class="right"><div class="amt">${fmtRp(o.total)}</div><div class="badge ${o.status}">${ORDER_LABELS[o.status]||escapeHtml(o.status)}</div></div>
+  </div>`;
+}
+function openOrderDetail(id){
+  const o = DB.orders.find(x=>x.id===id);
+  if(!o) return;
+  window.__currentOrderId = id;
+  go('order-detail');
+  const idx = ORDER_STATUSES.indexOf(o.status);
+  const stepsHTML = ORDER_STATUSES.map((st,i)=>{
+    const cls = o.status==='batal' ? '' : (i<idx?'done':(i===idx?'current':''));
+    return `<div class="pstep ${cls}"><div class="dot">${i<idx||cls==='done'?'✓':i+1}</div><span>${ORDER_LABELS[st]}</span></div>`;
+  }).join('');
+  const itemsHTML = o.items.map(it=>`
+    <div class="total-row"><span>${escapeHtml(it.nama)} ${it.tipe==='kiloan'?'('+fmtKg(it.qty)+')':'x'+it.qty}</span><span>${fmtRp(it.harga*it.qty)}</span></div>`).join('');
+  document.getElementById('orderDetailWrap').innerHTML = `
+    <div class="card">
+      <h3>${escapeHtml(o.noOrder)}${o.status==='batal'?' <span class="badge batal">Batal</span>':''}</h3>
+      ${o.status!=='batal' ? `<div class="progress-track">${stepsHTML}</div>` : ''}
+      <hr class="sep">
+      <div class="total-row"><span>Pelanggan</span><span>${escapeHtml(o.namaPelanggan)}</span></div>
+      <div class="total-row"><span>Tanggal Masuk</span><span>${fmtDateTime(o.tanggalMasuk)}</span></div>
+      <div class="total-row"><span>Estimasi Selesai</span><span>${escapeHtml(o.eta||'-')}</span></div>
+      <div class="total-row"><span>Total Berat</span><span>${o.totalKg?fmtKg(o.totalKg):'-'}</span></div>
+      <div class="total-row"><span>Pembayaran</span><span class="badge ${o.statusBayar}">${PAY_LABELS[o.statusBayar]||escapeHtml(o.statusBayar)}</span></div>
+      ${o.catatan?`<div class="total-row"><span>Catatan</span><span>${escapeHtml(o.catatan)}</span></div>`:''}
+      <hr class="sep">
+      ${itemsHTML}
+      <div class="total-row big"><span>Total Tagihan</span><span>${fmtRp(o.total)}</span></div>
+    </div>
+
+    <div class="card">
+      <h3>🖨️ Nota</h3>
+      <button class="btn btn-secondary" style="width:100%;" onclick="printNotaOrder('${o.id}')">🖨️ Cetak Nota</button>
+    </div>
+
+    <div class="card">
+      <h3>💳 Update Pembayaran</h3>
+      <div class="pay-methods">
+        ${['lunas','dp','belum'].map(p=>`<button class="btn btn-sm ${o.statusBayar===p?'btn-primary':'btn-secondary'}" onclick="setPayStatus('${p}')">${PAY_LABELS[p]}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🔄 Ubah Status Cucian</h3>
+      <div class="quick-grid" style="grid-template-columns:repeat(3,1fr);">
+        ${ORDER_STATUSES.map(st=>`<button class="btn btn-sm ${o.status===st?'btn-primary':'btn-secondary'}" style="width:100%;" onclick="setOrderStatus('${st}')">${ORDER_LABELS[st]}</button>`).join('')}
+      </div>
+      <button class="btn btn-danger btn-sm" style="width:100%;margin-top:8px;" onclick="setOrderStatus('batal')">Batalkan Order</button>
+    </div>
+  `;
+}
+function setPayStatus(p){
+  const o = DB.orders.find(x=>x.id===window.__currentOrderId);
+  if(!o) return;   /* guard: detail order stale pasca-restore */
+  if(p==='lunas' && o.statusBayar!=='lunas' && o.metode==='Tunai') addKasEntry('masuk', o.total, 'Pelunasan '+o.noOrder, o.id);
+  o.statusBayar = p; saveDB(); openOrderDetail(o.id); renderKasCard();
+  toast('Status pembayaran: '+PAY_LABELS[p]);
+}
+function setOrderStatus(st){
+  const o = DB.orders.find(x=>x.id===window.__currentOrderId);
+  if(!o) return;   /* guard: detail order stale pasca-restore */
+  if(st==='batal') removeKasByOrder(o.id); /* pembatalan membalikkan kas terkait */
+  o.status = st;
+  if(st==='diambil' && !o.tanggalSelesai) o.tanggalSelesai = Date.now();
+  saveDB(); openOrderDetail(o.id); renderDashboard();
+  toast('Status diperbarui: '+ORDER_LABELS[st]);
+}
+
+/* =========================================================
+   LAYANAN & STOK PRODUK
+   ========================================================= */
+let produkCat='all';
+function setProdukCat(cat){ produkCat=cat; document.querySelectorAll('#view-layanan .tab').forEach(t=>t.classList.toggle('active', t.dataset.pc===cat)); renderProdukList(); }
+function renderProdukList(){
+  const q = (document.getElementById('produkSearch').value||'').toLowerCase();
+  let list = DB.products.filter(p=>(produkCat==='all'||p.kategori===produkCat) && (!q||p.nama.toLowerCase().includes(q)));
+  const wrap = document.getElementById('produkListWrap');
+  wrap.innerHTML = list.length ? list.map(p=>`
+    <div class="list-item" style="cursor:pointer;" onclick="openProdukForm('${p.id}')">
+      <div class="avatar" style="background:var(--c-kiloan-bg);color:var(--c-kiloan);">${catIcon(p)}</div>
+      <div class="meta"><div class="t">${escapeHtml(p.nama)}</div><div class="s">${p.kategori==='layanan' ? (p.tipe==='kiloan'?'Per kg · '+(Number(p.durasiHari)||1)+' hari':'Per pcs · '+(Number(p.durasiHari)||1)+' hari') : 'Stok: '+p.stok+(p.stok<=p.minStok?' ⚠️ menipis':'')}</div></div>
+      <div class="right"><div class="amt">${fmtRp(p.hargaJual)}</div></div>
+    </div>`).join('') : `<div class="empty"><div class="ic">🏷️</div><div class="t">Belum ada data</div></div>`;
+}
+function openProdukForm(id){
+  const p = id ? DB.products.find(x=>x.id===id) : null;
+  const kat = p ? p.kategori : 'layanan';
+  openModal(`
+    <div class="modal-head"><h2>${p?'Edit':'Tambah'} Layanan/Produk</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Jenis</label>
+    <select id="pfKategori" onchange="toggleProdukFields()">
+      <option value="layanan" ${kat==='layanan'?'selected':''}>Layanan Cuci</option>
+      <option value="produk" ${kat==='produk'?'selected':''}>Produk Eceran</option>
+    </select>
+    <label>Nama</label><input type="text" id="pfNama" value="${p?escapeHtml(p.nama):''}">
+    <div id="pfLayananFields" style="${kat!=='layanan'?'display:none;':''}">
+      <label>Tipe Harga</label>
+      <select id="pfTipe"><option value="kiloan" ${p&&p.tipe==='kiloan'?'selected':''}>Per Kilogram</option><option value="satuan" ${p&&p.tipe==='satuan'?'selected':''}>Per Item/Satuan</option></select>
+      <label>Estimasi Durasi (hari)</label><input type="number" id="pfDurasi" value="${p?Number(p.durasiHari)||1:1}">
+    </div>
+    <div id="pfStokFields" style="${kat!=='produk'?'display:none;':''}">
+      <label>Stok</label><input type="number" id="pfStok" value="${p&&p.stok!=null?Number(p.stok):0}">
+      <label>Stok Minimum</label><input type="number" id="pfMinStok" value="${p?Number(p.minStok)||1:1}">
+    </div>
+    <div class="field-row">
+      <div><label>Harga Modal</label><input type="number" id="pfBeli" value="${p?Number(p.hargaBeli)||0:0}"></div>
+      <div><label>Harga Jual</label><input type="number" id="pfJual" value="${p?Number(p.hargaJual)||0:0}"></div>
+    </div>
+    <div class="btn-row" style="margin-top:14px;">
+      ${p?`<button class="btn btn-danger" onclick="deleteProduk('${p.id}')">Hapus</button>`:''}
+      <button class="btn btn-primary" onclick="saveProduk('${p?p.id:''}')">Simpan</button>
+    </div>
+  `);
+}
+function toggleProdukFields(){
+  const kat = document.getElementById('pfKategori').value;
+  document.getElementById('pfLayananFields').style.display = kat==='layanan' ? '' : 'none';
+  document.getElementById('pfStokFields').style.display = kat==='produk' ? '' : 'none';
+}
+function saveProduk(id){
+  const kategori = document.getElementById('pfKategori').value;
+  const data = {
+    kategori,
+    nama: document.getElementById('pfNama').value.trim(),
+    hargaBeli: Number(document.getElementById('pfBeli').value)||0,
+    hargaJual: Number(document.getElementById('pfJual').value)||0,
+  };
+  if(kategori==='layanan'){
+    data.tipe = document.getElementById('pfTipe').value;
+    data.durasiHari = Number(document.getElementById('pfDurasi').value)||1;
+    data.stok = null; data.minStok = 0;
+  } else {
+    data.stok = Number(document.getElementById('pfStok').value)||0;
+    data.minStok = Number(document.getElementById('pfMinStok').value)||0;
+  }
+  if(!data.nama){ toast('Nama wajib diisi'); return; }
+  /* P3: validasi harga/stok negatif */
+  if(data.hargaBeli < 0 || data.hargaJual < 0){ toast('Harga tidak boleh negatif'); return; }
+  if(kategori==='produk' && (data.stok < 0 || data.minStok < 0)){ toast('Stok tidak boleh negatif'); return; }
+  if(id){ Object.assign(DB.products.find(x=>x.id===id), data); }
+  else { DB.products.push(Object.assign({id:uid('p')}, data)); }
+  saveDB(); closeModal(); renderProdukList(); toast('Data disimpan');
+}
+function deleteProduk(id){
+  DB.products = DB.products.filter(x=>x.id!==id); saveDB(); closeModal(); renderProdukList(); toast('Data dihapus');
+}
+
+/* =========================================================
+   PEMBELIAN (RESTOCK PRODUK ECERAN)
+   ========================================================= */
+function renderPembelianList(){
+  const wrap = document.getElementById('pembelianListWrap');
+  const list = DB.purchases.slice().reverse();
+  const btn = `<button class="btn btn-primary" style="margin-bottom:14px;" onclick="openPurchaseForm()">+ Catat Pembelian</button>`;
+  wrap.innerHTML = btn + (list.length ? list.map(pu=>`
+    <div class="list-item">
+      <div class="avatar" style="background:var(--info-bg);color:var(--info);">🚚</div>
+      <div class="meta"><div class="t">${escapeHtml(pu.supplierNama||'Supplier')}</div><div class="s">${fmtDateTime(pu.tanggal)} · ${(pu.items||[]).length} item</div></div>
+      <div class="right"><div class="amt">${fmtRp(pu.total)}</div></div>
+    </div>`).join('') : `<div class="empty"><div class="ic">🚚</div><div class="t">Belum ada pembelian</div></div>`);
+}
+function openPurchaseForm(){
+  const opts = DB.products.filter(p=>p.kategori==='produk').map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.nama)}</option>`).join('');
+  const supOpts = DB.suppliers.map(s=>`<option value="${escapeHtml(s.id)}">${escapeHtml(s.nama)}</option>`).join('');
+  openModal(`
+    <div class="modal-head"><h2>🚚 Catat Pembelian</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Supplier</label><select id="puSupplier"><option value="">- Umum -</option>${supOpts}</select>
+    <label>Produk</label><select id="puProduk">${opts||'<option>Tambah produk eceran dahulu</option>'}</select>
+    <div class="field-row">
+      <div><label>Jumlah</label><input type="number" id="puQty" value="1" min="1"></div>
+      <div><label>Harga Beli/Satuan</label><input type="number" id="puHarga" value="0"></div>
+    </div>
+    <div class="btn-row" style="margin-top:12px;"><button class="btn btn-primary" onclick="savePurchase()">Simpan Pembelian</button></div>
+  `);
+}
+function savePurchase(){
+  const pid = document.getElementById('puProduk').value;
+  const p = DB.products.find(x=>x.id===pid);
+  if(!p){ toast('Pilih produk dahulu'); return; }
+  const qty = Number(document.getElementById('puQty').value)||0;
+  const rawH = document.getElementById('puHarga').value;
+  let harga = rawH.trim() === '' ? p.hargaBeli : (Number(rawH)||0);
+  /* P3: qty negatif/zero bikin stok berkurang & total minus — blok */
+  if(qty <= 0){ toast('Jumlah tidak valid (min. 1)'); return; }
+  if(harga < 0){ toast('Harga tidak valid (min. 0)'); return; }
+  p.stok += qty; p.hargaBeli = harga;
+  const supId = document.getElementById('puSupplier').value;
+  const sup = DB.suppliers.find(x=>x.id===supId);
+  DB.purchases.push({ id:uid('pu'), tanggal:Date.now(), supplierId:supId||null, supplierNama:sup?sup.nama:'Umum',
+    items:[{productId:p.id, nama:p.nama, qty, harga}], total: qty*harga });
+  saveDB(); closeModal(); renderPembelianList(); toast('Pembelian dicatat, stok bertambah');
+}
+
+/* =========================================================
+   PELANGGAN & SUPPLIER
+   ========================================================= */
+function renderPelangganList(){
+  const q = (document.getElementById('pelangganSearch').value||'').toLowerCase();
+  const list = DB.customers.filter(c=>!q||c.nama.toLowerCase().includes(q));
+  const wrap = document.getElementById('pelangganListWrap');
+  const btn = `<button class="btn btn-primary" style="margin-bottom:14px;" onclick="openCustomerForm()">+ Tambah Pelanggan</button>`;
+  wrap.innerHTML = btn + (list.length ? list.map(c=>`
+    <div class="list-item" style="cursor:pointer;" onclick="openCustomerForm('${c.id}')">
+      <div class="avatar" style="background:var(--c-stok-bg);color:var(--c-stok);">🧑</div>
+      <div class="meta"><div class="t">${escapeHtml(c.nama)}</div><div class="s">${escapeHtml(c.telp||'-')}</div></div>
+    </div>`).join('') : `<div class="empty"><div class="ic">🧑‍🤝‍🧑</div><div class="t">Belum ada pelanggan</div></div>`);
+}
+function openCustomerForm(id){
+  const c = id ? DB.customers.find(x=>x.id===id) : null;
+  openModal(`
+    <div class="modal-head"><h2>${c?'Edit':'Tambah'} Pelanggan</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Nama</label><input type="text" id="cfNama" value="${c?escapeHtml(c.nama):''}">
+    <label>No. HP</label><input type="tel" id="cfTelp" value="${c?escapeHtml(c.telp||''):''}">
+    <label>Alamat</label><textarea id="cfAlamat">${c?escapeHtml(c.alamat||''):''}</textarea>
+    <div class="btn-row" style="margin-top:12px;">
+      ${c?`<button class="btn btn-danger" onclick="deleteCustomer('${c.id}')">Hapus</button>`:''}
+      <button class="btn btn-primary" onclick="saveCustomer('${c?c.id:''}')">Simpan</button>
+    </div>
+  `);
+}
+function saveCustomer(id){
+  const data = { nama: document.getElementById('cfNama').value.trim(), telp: document.getElementById('cfTelp').value.trim(), alamat: document.getElementById('cfAlamat').value.trim() };
+  if(!data.nama){ toast('Nama wajib diisi'); return; }
+  if(id) Object.assign(DB.customers.find(x=>x.id===id), data);
+  else DB.customers.push(Object.assign({id:uid('c')}, data));
+  saveDB(); closeModal(); renderPelangganList(); toast('Pelanggan disimpan');
+}
+function deleteCustomer(id){ DB.customers = DB.customers.filter(x=>x.id!==id); saveDB(); closeModal(); renderPelangganList(); }
+
+function renderSupplierList(){
+  const wrap = document.getElementById('supplierListWrap');
+  const btn = `<button class="btn btn-primary" style="margin-bottom:14px;" onclick="openSupplierForm()">+ Tambah Supplier</button>`;
+  wrap.innerHTML = btn + (DB.suppliers.length ? DB.suppliers.map(s=>`
+    <div class="list-item" style="cursor:pointer;" onclick="openSupplierForm('${s.id}')">
+      <div class="avatar" style="background:var(--info-bg);color:var(--info);">🏭</div>
+      <div class="meta"><div class="t">${escapeHtml(s.nama)}</div><div class="s">${escapeHtml(s.telp||'-')}</div></div>
+    </div>`).join('') : `<div class="empty"><div class="ic">🏭</div><div class="t">Belum ada supplier</div></div>`);
+}
+function openSupplierForm(id){
+  const s = id ? DB.suppliers.find(x=>x.id===id) : null;
+  openModal(`
+    <div class="modal-head"><h2>${s?'Edit':'Tambah'} Supplier</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Nama Supplier</label><input type="text" id="sfNama" value="${s?escapeHtml(s.nama):''}">
+    <label>No. HP</label><input type="tel" id="sfTelp" value="${s?escapeHtml(s.telp||''):''}">
+    <label>Alamat</label><textarea id="sfAlamat">${s?escapeHtml(s.alamat||''):''}</textarea>
+    <div class="btn-row" style="margin-top:12px;">
+      ${s?`<button class="btn btn-danger" onclick="deleteSupplier('${s.id}')">Hapus</button>`:''}
+      <button class="btn btn-primary" onclick="saveSupplier('${s?s.id:''}')">Simpan</button>
+    </div>
+  `);
+}
+function saveSupplier(id){
+  const data = { nama: document.getElementById('sfNama').value.trim(), telp: document.getElementById('sfTelp').value.trim(), alamat: document.getElementById('sfAlamat').value.trim() };
+  if(!data.nama){ toast('Nama wajib diisi'); return; }
+  if(id) Object.assign(DB.suppliers.find(x=>x.id===id), data);
+  else DB.suppliers.push(Object.assign({id:uid('sup')}, data));
+  saveDB(); closeModal(); renderSupplierList(); toast('Supplier disimpan');
+}
+function deleteSupplier(id){ DB.suppliers = DB.suppliers.filter(x=>x.id!==id); saveDB(); closeModal(); renderSupplierList(); }
+
+/* =========================================================
+   LAPORAN
+   ========================================================= */
+/* =========================================================
+   LAPORAN (port kaki5): periode + date-nav + custom 2-klik + grafik
+   ========================================================= */
+let lapPeriod = 'harian';
+let lapDate = todayLocal();              // tanggal acuan (YYYY-MM-DD lokal)
+let lapCustomStart = todayLocal(), lapCustomEnd = todayLocal();
+let _lapPickerOpen = false, _lapPickPhase = 'start';
+let _lapCalL = { y: null, m: null }, _lapCalR = { y: null, m: null };
+
+const LAP_MONTHS_FULL = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const LAP_MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const LAP_DAYS = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+function lapAddDays(ds, n){ const d = new Date(ds + 'T00:00:00'); d.setDate(d.getDate() + n); return todayLocal(d); }
+function lapWeekRange(ds){ const d = new Date(ds + 'T00:00:00'); const off = (d.getDay() + 6) % 7; const start = new Date(d); start.setDate(d.getDate() - off); const end = new Date(start); end.setDate(start.getDate() + 6); return { start: todayLocal(start), end: todayLocal(end) }; }
+function lapMonthRange(ds){ const [y, m] = ds.split('-').map(Number); const end = new Date(y, m, 0); return { start: y + '-' + String(m).padStart(2,'0') + '-01', end: todayLocal(end) }; }
+function lapFmtDate(ds){ if (!ds) return ''; const [y, m, d] = ds.split('-'); return parseInt(d) + ' ' + LAP_MONTHS[parseInt(m)-1] + ' ' + y; }
+function lapDayName(ds){ return LAP_DAYS[new Date(ds + 'T00:00:00').getDay()]; }
+function lapRangeSekarang(){
+  if (lapPeriod === 'harian') return { start: lapDate, end: lapDate };
+  if (lapPeriod === 'mingguan') return lapWeekRange(lapDate);
+  if (lapPeriod === 'bulanan') return lapMonthRange(lapDate);
+  return { start: lapCustomStart, end: lapCustomEnd };
+}
+function lapLabel(){
+  if (lapPeriod === 'harian') return lapDayName(lapDate) + ', ' + lapFmtDate(lapDate);
+  if (lapPeriod === 'mingguan'){ const w = lapWeekRange(lapDate); return lapFmtDate(w.start) + ' – ' + lapFmtDate(w.end); }
+  if (lapPeriod === 'bulanan'){ const [y, m] = lapDate.split('-'); return LAP_MONTHS_FULL[parseInt(m)-1] + ' ' + y; }
+  if (lapCustomStart === lapCustomEnd) return lapFmtDate(lapCustomStart) + ' (1 hari)';
+  const nHari = Math.round((new Date(lapCustomEnd + 'T00:00:00') - new Date(lapCustomStart + 'T00:00:00')) / 86400000) + 1;
+  return lapFmtDate(lapCustomStart) + ' – ' + lapFmtDate(lapCustomEnd) + ' (' + nHari + ' hari)';
+}
+function setLaporanPeriod(p){
+  lapPeriod = p;
+  if (p === 'custom' && lapCustomStart > lapCustomEnd){ const t = lapCustomStart; lapCustomStart = lapCustomEnd; lapCustomEnd = t; }
+  _lapPickerOpen = false;
+  renderLaporan();
+}
+function lapNav(delta){
+  if (lapPeriod === 'bulanan'){
+    const [y, m] = lapDate.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    lapDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-01';
+  } else if (lapPeriod === 'custom'){
+    // geser rentang custom per panjang rentang (min 1 hari)
+    const span = Math.max(1, Math.round((new Date(lapCustomEnd) - new Date(lapCustomStart)) / 86400000) + 1);
+    lapCustomStart = lapAddDays(lapCustomStart, delta * span);
+    lapCustomEnd = lapAddDays(lapCustomEnd, delta * span);
+  } else lapDate = lapAddDays(lapDate, delta * (lapPeriod === 'mingguan' ? 7 : 1));
+  renderLaporan();
+}
+/* Kalender */
+function lapBuildDayCal(){
+  const [y, m, sel] = lapDate.split('-').map(Number);
+  const first = new Date(y, m - 1, 1).getDay();
+  const dim = new Date(y, m, 0).getDate();
+  const today = todayLocal();
+  let cells = '';
+  for (let i = 0; i < first; i++) cells += '<div class="cal-cell empty"></div>';
+  for (let d = 1; d <= dim; d++){
+    const ds = y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const cls = 'cal-cell' + (d === sel ? ' sel' : '') + (ds === today ? ' today' : '');
+    cells += '<div class="' + cls + '" onclick="lapPickDate(\'' + ds + '\')">' + d + '</div>';
+  }
+  const heads = ['Mg','Sn','Rb','Km','Jm','Sb','Sa'].map(h => '<div class="cal-head">' + h + '</div>').join('');
+  return '<div class="cal-title">' + LAP_MONTHS_FULL[m-1] + ' ' + y + '</div><div class="cal-grid">' + heads + cells + '</div>';
+}
+function lapBuildWeekOpts(){
+  const first = lapDate.slice(0, 8) + '01';
+  const endM = lapMonthRange(lapDate).end;
+  let cur = lapWeekRange(first).start, idx = 1;
+  const weeks = [];
+  do {
+    const w = lapWeekRange(cur);
+    weeks.push({ n: idx, start: w.start, end: w.end });
+    cur = lapAddDays(w.start, 7); idx++;
+  } while (lapWeekRange(cur).start <= endM && idx <= 6);
+  const aktif = lapWeekRange(lapDate).start;
+  return weeks.map(w => '<button class="week-opt' + (w.start === aktif ? ' sel' : '') + '" onclick="lapPickWeek(\'' + w.start + '\')"><b>Minggu ' + w.n + '</b><span>' + lapFmtDate(w.start) + ' – ' + lapFmtDate(w.end) + '</span></button>').join('');
+}
+function lapBuildMonthOpts(){
+  const y = lapDate.split('-')[0];
+  const cur = parseInt(lapDate.split('-')[1]);
+  return '<div class="month-grid">' + LAP_MONTHS.map((mn, i) => '<button class="month-opt' + (i + 1 === cur ? ' sel' : '') + '" onclick="lapPickMonth(\'' + y + '-' + String(i+1).padStart(2,'0') + '-01\')"><b>' + mn + '</b><span>' + y + '</span></button>').join('') + '</div>';
+}
+function lapBuildMonthCal(y, m, selDate, rangeStart, rangeEnd, side, navPrev, navNext){
+  const first = new Date(y, m - 1, 1).getDay();
+  const dim = new Date(y, m, 0).getDate();
+  const today = todayLocal();
+  let cells = '';
+  for (let i = 0; i < first; i++) cells += '<div class="cal-cell empty"></div>';
+  for (let d = 1; d <= dim; d++){
+    const ds = y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const inRange = rangeStart && rangeEnd && ds > rangeStart && ds < rangeEnd;
+    const isSel = ds === selDate;
+    const selCls = isSel ? (side === 'end' ? ' sel sel-end' : ' sel') : '';
+    const cls = 'cal-cell' + selCls + (inRange ? ' inrange' : '') + (ds === today ? ' today' : '');
+    cells += '<div class="' + cls + '" onclick="lapPickCustom(\'' + side + '\',\'' + ds + '\')">' + d + '</div>';
+  }
+  const heads = ['Mg','Sn','Rb','Km','Jm','Sb','Sa'].map(h => '<div class="cal-head">' + h + '</div>').join('');
+  const prev = '<button type="button" class="cal-nav-btn" onclick="lapShiftCal(\'' + side + '\',-1)"' + (navPrev ? '' : ' disabled') + '>‹</button>';
+  const next = '<button type="button" class="cal-nav-btn" onclick="lapShiftCal(\'' + side + '\',1)"' + (navNext ? '' : ' disabled') + '>›</button>';
+  return '<div class="cal-title cal-title-nav">' + prev + '<span>' + LAP_MONTHS_FULL[m-1] + ' ' + y + '</span>' + next + '</div><div class="cal-grid">' + heads + cells + '</div>';
+}
+function lapBuildCustomPicker(){
+  if (_lapCalL.y === null){
+    const [sy, sm] = lapCustomStart.split('-').map(Number);
+    const nx = new Date(sy, sm - 1, 1); nx.setMonth(nx.getMonth() + 1);
+    _lapCalL = { y: sy, m: sm };
+    _lapCalR = { y: nx.getFullYear(), m: nx.getMonth() + 1 };
+  }
+  const k = c => c.y * 12 + c.m;
+  const now = new Date();
+  const kini = { y: now.getFullYear(), m: now.getMonth() + 1 };
+  const atasNextOff = k(_lapCalL) >= k(kini);
+  const bawahPrevOff = k(_lapCalR) <= k(_lapCalL) + 1;
+  const kiri = lapBuildMonthCal(_lapCalL.y, _lapCalL.m, lapCustomStart, lapCustomStart, lapCustomEnd, 'start', true, !atasNextOff);
+  const kanan = lapBuildMonthCal(_lapCalR.y, _lapCalR.m, lapCustomEnd, lapCustomStart, lapCustomEnd, 'end', !bawahPrevOff, true);
+  return _lapPickPhase === 'end' ? '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px;text-align:center">Klik berikutnya: tanggal \u{1F534} AKHIR</div>' : '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:6px;text-align:center">Klik berikutnya: tanggal \u{1F7E0} MULAI</div>'
+    + '<div style="width:100%;display:flex;gap:8px;flex-wrap:wrap"><div style="flex:1;min-width:190px">' + kiri + '</div><div style="flex:1;min-width:190px">' + kanan + '</div></div>';
+}
+function lapRenderDateNav(){
+  const nav = document.getElementById('lapDateNav');
+  if (!nav) return;
+  const pickerBody = _lapPickerOpen
+    ? '<div class="custom-picker">' + (lapPeriod === 'harian' ? lapBuildDayCal() : lapPeriod === 'mingguan' ? lapBuildWeekOpts() : lapPeriod === 'bulanan' ? lapBuildMonthOpts() : lapBuildCustomPicker()) + '</div>'
+    : '';
+  nav.innerHTML =
+    '<button class="date-btn" onclick="lapNav(-1)" aria-label="Sebelumnya">‹</button>' +
+    '<div class="date-label' + (_lapPickerOpen ? ' active' : '') + '" onclick="lapTogglePicker()">' + lapLabel() + (lapPeriod === 'custom' ? ' ⌄' : ' ⌄') + '</div>' +
+    '<button class="date-btn" onclick="lapNav(1)" aria-label="Berikutnya">›</button>' + pickerBody;
+  document.querySelectorAll('#view-laporan .tab').forEach(t => t.classList.toggle('active', t.dataset.r === lapPeriod));
+}
+function lapTogglePicker(){
+  _lapPickerOpen = !_lapPickerOpen;
+  if (_lapPickerOpen && lapPeriod === 'custom'){
+    _lapPickPhase = 'start';
+    lapSyncCals();
+  }
+  lapRenderDateNav();
+}
+/* Kalender kiri = bulan MULAI; kanan = bulan AKHIR bila beda bulan,
+   kalau sama maka bulan berikutnya (kaki5) — sel merah (akhir) selalu
+   terlihat tanpa perlu mencari lewat panah. */
+function lapSyncCals(){
+  const [sy, sm] = lapCustomStart.split('-').map(Number);
+  const [ey, em] = lapCustomEnd.split('-').map(Number);
+  _lapCalL = { y: sy, m: sm };
+  if (ey * 12 + em > sy * 12 + sm){
+    _lapCalR = { y: ey, m: em };
+  } else {
+    const nx = new Date(sy, sm - 1, 1); nx.setMonth(nx.getMonth() + 1);
+    _lapCalR = { y: nx.getFullYear(), m: nx.getMonth() + 1 };
+  }
+}
+function lapPickDate(ds){ lapDate = ds; _lapPickerOpen = false; renderLaporan(); }
+function lapPickWeek(start){ lapDate = start; _lapPickerOpen = false; renderLaporan(); }
+function lapPickMonth(ds){ lapDate = ds; _lapPickerOpen = false; renderLaporan(); }
+function lapPickCustom(side, ds){
+  // Alur klik-2x kaki5: klik-1 = mulai (oranye), klik-2 = akhir (merah);
+  // klik lebih awal dari mulai → SWAP otomatis.
+  if (_lapPickPhase === 'start'){
+    lapCustomStart = ds; lapCustomEnd = ds; _lapPickPhase = 'end';
+  } else {
+    if (ds < lapCustomStart){ lapCustomEnd = lapCustomStart; lapCustomStart = ds; }
+    else lapCustomEnd = ds;
+    _lapPickPhase = 'start';
+  }
+  lapSyncCals();
+  renderLaporan(); // picker tetap terbuka; kedua kalender ikut bulan mulai/akhir
+}
+function lapShiftCal(side, dir){
+  const cal = side === 'start' ? _lapCalL : _lapCalR;
+  const d = new Date(cal.y, cal.m - 1 + dir, 1);
+  const baru = { y: d.getFullYear(), m: d.getMonth() + 1 };
+  const k = c => c.y * 12 + c.m;
+  const now = new Date();
+  const kini = { y: now.getFullYear(), m: now.getMonth() + 1 };
+  if (side === 'start'){
+    if (dir > 0 && k(baru) > k(kini)) return;
+    _lapCalL = baru;
+    if (k(_lapCalR) <= k(_lapCalL)){
+      const d2 = new Date(_lapCalL.y, _lapCalL.m, 1);
+      _lapCalR = { y: d2.getFullYear(), m: d2.getMonth() + 1 };
+    }
+  } else {
+    if (dir < 0 && k(baru) <= k(_lapCalL)) return;
+    _lapCalR = baru;
+  }
+  lapRenderDateNav();
+}
+function lapLegendHtml(){
+  return '<div style="display:flex;gap:12px;margin-top:10px;justify-content:center">' +
+    '<div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--success)"></div>Omzet</div>' +
+    '<div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:var(--danger)"></div>Pembelian</div>' +
+    '</div>';
+}
+/* Grafik batang (legenda WAJIB di bawah — aturan pemilik v183) */
+function lapRenderChart(orders, purchases){
+  const omzetHari = {}, beliHari = {};
+  const dstr = ms => todayLocal(new Date(Number(ms) || 0));
+  orders.forEach(o => { const d = dstr(o.tanggalMasuk); omzetHari[d] = (omzetHari[d] || 0) + (Number(o.total) || 0); });
+  purchases.forEach(b => { const d = dstr(b.tanggal); beliHari[d] = (beliHari[d] || 0) + (Number(b.total || b.jumlah) || 0); });
+  const range = lapRangeSekarang();
+  let labels = [], omzet = [], beli = [];
+  if (lapPeriod === 'harian'){
+    // PER JAM (port renderHourlyChart kaki5): sumbu X jam aktif pertama-terakhir
+    // (+1 jam longgar dua ujung); tanpa transaksi → kartu grafik tidak dirender.
+    const inc24 = new Array(24).fill(0), exp24 = new Array(24).fill(0);
+    const hourOf = ms => { const d = new Date(Number(ms) || 0); return isNaN(d.getTime()) ? null : d.getHours(); };
+    orders.forEach(o => { const h = hourOf(o.tanggalMasuk); if (h !== null) inc24[h] += Number(o.total) || 0; });
+    purchases.forEach(b => { const h = hourOf(b.tanggal); if (h !== null) exp24[h] += Number(b.total || b.jumlah) || 0; });
+    let lo = -1, hi = -1;
+    for (let h = 0; h < 24; h++){ if (inc24[h] > 0 || exp24[h] > 0){ if (lo < 0) lo = h; hi = h; } }
+    if (lo < 0){ document.getElementById('lapChartWrap').innerHTML = ''; return; }
+    lo = Math.max(0, lo - 1); hi = Math.min(23, hi + 1);
+    const nCols = hi - lo + 1;
+    const maxV = [...inc24.slice(lo, hi + 1), ...exp24.slice(lo, hi + 1), 1].reduce((a, b) => (b > a ? b : a), 1);
+    let hb = '';
+    for (let h = lo; h <= hi; h++){
+      const ho = inc24[h] > 0 ? Math.max((inc24[h] / maxV) * 120, 4) : 0;
+      const he = exp24[h] > 0 ? Math.max((exp24[h] / maxV) * 120, 4) : 0;
+      hb += '<div class="chart-col"><div class="chart-val">' + (inc24[h] > 0 ? Math.round(inc24[h] / 1000) + 'k' : '') + '</div>' +
+        '<div style="display:flex;gap:3px;align-items:flex-end;width:100%;height:120px">' +
+        '<div class="chart-bar income" style="flex:1;height:' + ho + 'px"></div>' +
+        '<div class="chart-bar expense" style="flex:1;height:' + he + 'px"></div>' +
+        '</div><div class="chart-label">' + String(h).padStart(2, '0') + '</div></div>';
+    }
+    document.getElementById('lapChartWrap').innerHTML =
+      '<div class="card"><h3>📊 Grafik Harian · Per Jam</h3>' +
+      '<p class="muted" style="font-size:11px;margin:-2px 0 6px;">' + lapFmtDate(lapDate) + ' · jam ' + String(lo).padStart(2, '0') + '-' + String(hi).padStart(2, '0') + ' · ' + orders.length + ' order</p>' +
+      '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="chart-bars" style="min-width:' + (nCols * 30) + 'px">' + hb + '</div></div>' +
+      lapLegendHtml() + '</div>';
+    return;
+  } else if (lapPeriod === 'mingguan'){
+    let d = range.start;
+    while (d <= range.end){
+      labels.push(lapDayName(d).slice(0, 3));
+      omzet.push(omzetHari[d] || 0);
+      beli.push(beliHari[d] || 0);
+      d = lapAddDays(d, 1);
+    }
+  } else {
+    const jarakBulan = (parseInt(range.end.slice(0,4)) - parseInt(range.start.slice(0,4))) * 12 + (parseInt(range.end.slice(5,7)) - parseInt(range.start.slice(5,7)));
+    if (jarakBulan >= 2){
+      const mm = {};
+      const tambah = (map, tgl, val) => { const k = tgl.slice(0, 7); mm[k] = mm[k] || { o: 0, b: 0 }; mm[k][map] += val || 0; };
+      orders.forEach(o => tambah('o', dstr(o.tanggalMasuk), Number(o.total) || 0));
+      purchases.forEach(b => tambah('b', dstr(b.tanggal), Number(b.total || b.jumlah) || 0));
+      Object.keys(mm).sort().forEach(k => {
+        labels.push(LAP_MONTHS[parseInt(k.slice(5,7)) - 1] + ' ' + k.slice(2, 4));
+        omzet.push(mm[k].o); beli.push(mm[k].b);
+      });
+    } else {
+      let d = range.start, wn = 1, wo = 0, wb = 0, cnt = 0;
+      while (d <= range.end){
+        wo += omzetHari[d] || 0; wb += beliHari[d] || 0; cnt++;
+        if (cnt === 7 || d === range.end){ labels.push('M' + wn); omzet.push(wo); beli.push(wb); wn++; wo = 0; wb = 0; cnt = 0; }
+        d = lapAddDays(d, 1);
+      }
+    }
+  }
+  const maxVal = [...omzet, ...beli, 1].reduce((a, b) => (b > a ? b : a), 1);
+  const bars = labels.map((lb, i) => {
+    const ho = Math.max((omzet[i] / maxVal) * 120, 4);
+    const hb = Math.max((beli[i] / maxVal) * 120, beli[i] > 0 ? 4 : 0);
+    return '<div class="chart-col">' +
+      '<div class="chart-val">' + (omzet[i] > 0 ? Math.round(omzet[i] / 1000) + 'k' : '') + '</div>' +
+      '<div style="display:flex;gap:3px;align-items:flex-end;width:100%;height:120px">' +
+      '<div class="chart-bar income" style="flex:1;height:' + ho + 'px"></div>' +
+      '<div class="chart-bar expense" style="flex:1;height:' + hb + 'px"></div>' +
+      '</div><div class="chart-label">' + lb + '</div></div>';
+  }).join('');
+  document.getElementById('lapChartWrap').innerHTML =
+    '<div class="card"><h3>📊 Grafik ' + (lapPeriod === 'mingguan' ? 'Mingguan' : lapPeriod === 'bulanan' ? 'Bulanan' : 'Custom') + '</h3>' +
+    '<div class="chart-bars">' + bars + '</div>' + lapLegendHtml() + '</div>';
+}
+function renderLaporan(){
+  lapRenderDateNav();
+  const range = lapRangeSekarang();
+  const dstr = ms => todayLocal(new Date(Number(ms) || 0));
+  const orders = DB.orders.filter(o => o.status !== 'batal' && dstr(o.tanggalMasuk) >= range.start && dstr(o.tanggalMasuk) <= range.end);
+  const purchases = (DB.purchases || []).filter(b => dstr(b.tanggal) >= range.start && dstr(b.tanggal) <= range.end);
+  const omzet = orders.reduce((a, o) => a + (Number(o.total) || 0), 0);
+  const laba = orders.reduce((a, o) => a + (Number(o.laba) || 0), 0);
+  const kg = orders.reduce((a, o) => a + (Number(o.totalKg) || 0), 0);
+  const itemCt = orders.reduce((a, o) => a + (o.items || []).length, 0);
+  const beliTotal = purchases.reduce((a, b) => a + (Number(b.total || b.jumlah) || 0), 0);
+  const piutang = DB.orders.filter(o => o.statusBayar !== 'lunas' && o.status !== 'batal').reduce((a, o) => a + (Number(o.total) || 0), 0);
+  const marginPct = omzet > 0 ? Math.round((laba / omzet) * 100) : 0;
+  const setStat = (id, val) => {
+    const el = document.getElementById(id); if (!el) return;
+    el.textContent = val;
+    el.classList.remove('stat-sm', 'stat-xs', 'stat-xxs');
+    const d = String(val).replace(/[^0-9]/g, '').length;
+    if (d > 8) el.classList.add('stat-xxs'); else if (d > 6) el.classList.add('stat-xs');
+  };
+  setStat('lapOmzet', fmtRp(omzet));
+  setStat('lapLaba', fmtRp(laba));
+  setStat('lapKg', kg ? fmtKg(kg) : '0 kg');
+  setStat('lapCount', String(orders.length));
+  setStat('lapItems', String(itemCt));
+  setStat('lapBeli', fmtRp(beliTotal));
+  setStat('lapPiutang', fmtRp(piutang));
+  const mg = document.getElementById('lapMargin');
+  if (mg) mg.textContent = marginPct + '%';
+  lapRenderChart(orders, purchases);
+  // Order dalam rentang (terbaru dulu)
+  const sorted = [...orders].sort((a, b) => b.tanggalMasuk - a.tanggalMasuk);
+  document.getElementById('lapOrders').innerHTML = sorted.length ? sorted.map(o =>
+    '<div class="total-row"><span>' + escapeHtml(o.noOrder) + ' · ' + escapeHtml(o.namaPelanggan || '-') + '<br><span class="muted" style="font-size:11px;">' + fmtDateTime(o.tanggalMasuk) + ' · ' + PAY_LABELS[o.statusBayar] + '</span></span><span style="font-weight:800;">' + fmtRp(o.total) + '</span></div>'
+  ).join('') : '<p class="muted">Tidak ada order dalam rentang ini.</p>';
+  // Layanan terlaris (kg/pcs dipisah)
+  const counter = {};
+  orders.forEach(o => (o.items || []).forEach(it => {
+    const e = counter[it.nama] = counter[it.nama] || { kg: 0, pcs: 0 };
+    if (it.tipe === 'kiloan') e.kg += Number(it.qty) || 0; else e.pcs += Number(it.qty) || 0;
+  }));
+  const score = e => Math.max(e.kg, e.pcs);
+  const top = Object.entries(counter).sort((a, b) => score(b[1]) - score(a[1])).slice(0, 5);
+  document.getElementById('lapTopLayanan').innerHTML = top.length ? top.map(([nama, e]) => {
+    const parts = [];
+    if (e.kg) parts.push((Math.round(e.kg * 10) / 10).toLocaleString('id-ID') + ' kg');
+    if (e.pcs) parts.push(e.pcs + ' pcs');
+    return '<div class="total-row"><span>' + escapeHtml(nama) + '</span><span>' + parts.join(' · ') + '</span></div>';
+  }).join('') : '<p class="muted">Belum ada data order.</p>';
+  const tipis = DB.products.filter(p => p.kategori === 'produk' && p.stok <= p.minStok);
+  document.getElementById('lapStokTipis').innerHTML = tipis.length ? tipis.map(p =>
+    '<div class="total-row"><span>' + escapeHtml(p.nama) + '</span><span>Stok: ' + (Number(p.stok) || 0) + '</span></div>'
+  ).join('') : '<p class="muted">Semua stok aman.</p>';
+}
+window.setLaporanPeriod = setLaporanPeriod;
+window.lapNav = lapNav; window.lapTogglePicker = lapTogglePicker;
+window.lapPickDate = lapPickDate; window.lapPickWeek = lapPickWeek; window.lapPickMonth = lapPickMonth;
+window.lapPickCustom = lapPickCustom; window.lapShiftCal = lapShiftCal;
+
+/* ---------- PENGATURAN (dipulihkan) ---------- */
+function regionSummaryText(){
+  const p = DB.settings;
+  const parts = [p.desa, p.kecamatan, p.kabkota, p.provinsi].filter(v => v && String(v).trim()).join(', ');
+  const detail = (p.alamat || '').trim();
+  if (!parts && !detail) return '—';
+  return parts ? (detail ? detail + ' — ' + parts : parts) : detail;
+}
+let profileRegionState = {};
+let profileRegionWired = false;
+function fillSettingsForm(){
+  fillPayOptionsToggles();
+  const s = DB.settings || {};
+  const put = (id, value) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = value || ''; };
+  put('profileNamaUsaha', s.namaToko);
+  put('profileNamaPemilik', s.namaPemilik);
+  put('profileWa', s.wa);
+  put('profileAlamat', s.alamat);
+  const nextRegionState = {
+    provinsi_id: s.provinsiId || '', provinsi: s.provinsi || '',
+    kabkota_id: s.kabkotaId || '', kabkota: s.kabkota || '',
+    kecamatan_id: s.kecamatanId || '', kecamatan: s.kecamatan || '',
+    desa_id: s.desaId || '', desa: s.desa || ''
+  };
+  if (profileRegionWired) Object.assign(profileRegionState, nextRegionState);
+  else profileRegionState = nextRegionState;
+  if (!profileRegionWired && window.setupRegionPicker && document.getElementById('profileProvinsi')) {
+    profileRegionWired = true;
+    window.setupRegionPicker({ provSel:'profileProvinsi', kabSel:'profileKabkota', kecSel:'profileKecamatan', desaSel:'profileDesa', state: profileRegionState });
+  }
+  applyHeaderBizName();
+  if (window._ksr_tcState) window._ksr_tcState();
+}
+function profileFormValues(){
+  const value = id => (document.getElementById(id)?.value || '').trim();
+  return {
+    namaToko: value('profileNamaUsaha'), namaPemilik: value('profileNamaPemilik'),
+    wa: value('profileWa').replace(/[\s-]/g, ''), alamat: value('profileAlamat')
+  };
+}
+async function saveProfileForm(){
+  const v = profileFormValues();
+  if (!v.namaToko || !v.namaPemilik || !v.wa || !v.alamat || !profileRegionState.provinsi_id || !profileRegionState.kabkota_id || !profileRegionState.kecamatan_id || !profileRegionState.desa_id){
+    toast('Lengkapi semua field profil dan wilayah terlebih dahulu.'); return;
+  }
+  if (!/^(\+?62|0)8[1-9][0-9]{6,11}$/.test(v.wa)){ toast('Nomor WhatsApp tidak valid.'); return; }
+  Object.assign(DB.settings, v, {
+    provinsiId: profileRegionState.provinsi_id, provinsi: profileRegionState.provinsi,
+    kabkotaId: profileRegionState.kabkota_id, kabkota: profileRegionState.kabkota,
+    kecamatanId: profileRegionState.kecamatan_id, kecamatan: profileRegionState.kecamatan,
+    desaId: profileRegionState.desa_id, desa: profileRegionState.desa,
+    profileSavedAt: new Date().toISOString()
+  });
+  saveDB(); fillSettingsForm();
+  try {
+    const res = await ensureSyncedProfile(true);
+    if (res && res.ok) toast('✅ Profil disimpan & identitas perangkat tersinkron!');
+    else toast('⚠️ Profil disimpan lokal — sinkronisasi akan dicoba lagi saat online.');
+  } catch (_) { toast('⚠️ Profil disimpan lokal — sinkronisasi akan dicoba lagi saat online.'); }
+}
+/* ---------- BACKUP & RESTORE — validasi sebelum pulih; lisensi TIDAK ikut file ---------- */
+const BACKUP_MAX_ROWS = 20000;
+const ID_RE = /^[A-Za-z0-9_-]{1,48}$/;
+const BACKUP_FORMAT_VERSION = 3;
+const BACKUP_CLOUD_FORMAT_VERSION = 1;
+function buildBackupPayload(){
+  return { version:BACKUP_FORMAT_VERSION, exportedAt:Date.now(),
+    settings:DB.settings, products:DB.products, customers:DB.customers,
+    suppliers:DB.suppliers, orders:DB.orders, purchases:DB.purchases,
+    kas:DB.kas||[], kasShift:DB.kasShift||[] };
+}
+async function backupSha256Hex(value){
+  if(!globalThis.crypto?.subtle) throw new Error('Web Crypto tidak tersedia');
+  const bytes = new TextEncoder().encode(value);
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function createBackupEnvelope(payload){
+  const unitId = await window.LaundryCore?.getUnitId?.() || await getSetting('unitId', null);
+  if(typeof unitId !== 'string' || !unitId.trim()) throw new Error('Identitas unit belum siap');
+  return { cloudFormatVersion:BACKUP_CLOUD_FORMAT_VERSION, unitId, createdAt:new Date().toISOString(), payload,
+    payloadHash:await backupSha256Hex(JSON.stringify(payload)) };
+}
+async function unwrapBackupEnvelope(raw){
+  if(!raw || typeof raw!=='object' || Array.isArray(raw)) return {status:'invalid', error:'Envelope backup rusak'};
+  const marked = Object.prototype.hasOwnProperty.call(raw,'cloudFormatVersion') || Object.prototype.hasOwnProperty.call(raw,'payloadHash') || Object.prototype.hasOwnProperty.call(raw,'payload');
+  if(!marked) return {status:'legacy-untrusted', payload:raw};
+  const unitId = await window.LaundryCore?.getUnitId?.() || await getSetting('unitId', null);
+  if(raw.cloudFormatVersion!==BACKUP_CLOUD_FORMAT_VERSION || raw.unitId!==unitId || typeof raw.createdAt!=='string' || !raw.payload || typeof raw.payload!=='object' || Array.isArray(raw.payload) || typeof raw.payloadHash!=='string' || !/^[a-f0-9]{64}$/.test(raw.payloadHash)) return {status:'invalid', error:'Envelope backup tidak valid atau bukan milik unit ini'};
+  if(await backupSha256Hex(JSON.stringify(raw.payload))!==raw.payloadHash) return {status:'invalid', error:'Backup berubah atau rusak (hash tidak cocok)'};
+  return {status:'integrity', payload:raw.payload};
+}
+function validateBackupData(d){
+  const errs = [];
+  if(!d || typeof d!=='object' || Array.isArray(d)) return ['File bukan format cadangan Kasir Solo'];
+  if(d.license) errs.push('File berisi data lisensi — tidak boleh');
+  const isNum = v => typeof v==='number' && isFinite(v) && v>=0;
+  const idOk = r => r && typeof r === 'object' && typeof r.id === 'string' && ID_RE.test(r.id);
+  const checkRows = (label, arr, fn) => {
+    if(arr === undefined) return;
+    if(!Array.isArray(arr)){ errs.push(label+' bukan daftar'); return; }
+    if(arr.length > BACKUP_MAX_ROWS){ errs.push(label+' terlalu banyak baris'); return; }
+    arr.forEach((row, i) => { const e = fn(row, i); if(e && errs.length < 8) errs.push(label+' baris '+(i+1)+': '+e); });
+  };
+  checkRows('Produk', d.products, r=>{
+    if(!idOk(r)) return 'id tidak valid';
+    if(typeof r.nama !== 'string' || !r.nama) return 'nama tidak valid';
+    if(!isNum(r.hargaJual)) return 'harga jual tidak valid';
+    if(r.hargaBeli !== undefined && !isNum(r.hargaBeli)) return 'harga modal tidak valid';
+    if(r.stok != null && !isNum(r.stok)) return 'stok tidak valid';
+    return null;
+  });
+  checkRows('Pelanggan', d.customers, r=> (!idOk(r) || typeof r.nama!=='string') ? 'data tidak valid' : null);
+  checkRows('Supplier', d.suppliers, r=> (!idOk(r) || typeof r.nama!=='string') ? 'data tidak valid' : null);
+  checkRows('Order', d.orders, r=>{
+    if(!idOk(r)) return 'id tidak valid';
+    if(typeof r.noOrder !== 'string' || !r.noOrder) return 'nomor tidak valid';
+    if(isNaN(toMs(r.tanggalMasuk))) return 'tanggal masuk tidak valid';
+    if(!Array.isArray(r.items)) return 'daftar item tidak valid';
+    if(!isNum(r.total)) return 'total tidak valid';
+    if(r.status && !ORDER_STATUSES.includes(r.status) && r.status!=='batal') return 'status tidak dikenal';
+    if(r.statusBayar && !['lunas','dp','belum'].includes(r.statusBayar)) return 'status bayar tidak dikenal';
+    return null;
+  });
+  checkRows('Kas', d.kas, r=>{
+    if(!idOk(r)) return 'id tidak valid';
+    if(isNaN(toMs(r.waktu))) return 'waktu tidak valid';
+    if(r.tipe!=='masuk' && r.tipe!=='keluar') return 'tipe tidak dikenal';
+    if(!isNum(r.jumlah)) return 'jumlah tidak valid';
+    return null;
+  });
+  checkRows('Shift Kas', d.kasShift, r=>{
+    if(!idOk(r)) return 'id tidak valid';
+    if(isNaN(toMs(r.waktuBuka))) return 'waktu buka tidak valid';
+    if(r.status!=='buka' && r.status!=='tutup') return 'status tidak dikenal';
+    if(r.modalAwal !== undefined && !isNum(r.modalAwal)) return 'modal awal tidak valid';
+    return null;
+  });
+  checkRows('Pembelian', d.purchases, r=>{
+    if(!idOk(r)) return 'id tidak valid';
+    if(isNaN(toMs(r.tanggal))) return 'tanggal tidak valid';
+    if(!Array.isArray(r.items)) return 'daftar item tidak valid';
+    return null;
+  });
+  if(d.settings !== undefined && (typeof d.settings !== 'object' || d.settings === null)) errs.push('Pengaturan tidak valid');
+  return errs;
+}
+async function backupData(){
+  let payload;
+  try { payload = await createBackupEnvelope(buildBackupPayload()); } catch(e) { toast('Backup belum siap: '+String(e?.message||e)); return; }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `backup-kasirsolo-laundry-${todayLocal()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Backup berhasil diunduh');
+}
+function restoreData(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data = null;
+    try{ data = JSON.parse(reader.result); }catch(e){ toast('File backup tidak valid'); return; }
+    unwrapBackupEnvelope(data).then(result=>{
+      if(result.status==='invalid'){ toast('Backup ditolak: '+result.error); return; }
+      const legacyWarning = result.status==='legacy-untrusted' ? ' File lama tidak memiliki verifikasi integritas.' : '';
+      data = result.payload;
+      const errs = validateBackupData(data);
+      if(errs.length){ toast('Backup ditolak: ' + errs[0]); return; }
+      confirmDialog('Pulihkan Data?', 'Semua data saat ini akan diganti dengan isi file backup.'+legacyWarning+' Lisensi perangkat tidak ikut berubah.', 'Pulihkan', ()=>{ applyBackup(data); });
+    }).catch(e=>toast('Backup tidak dapat diverifikasi: '+String(e?.message||e)));
+  };
+  reader.onerror = () => toast('Gagal membaca file');
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+function applyBackup(d){
+  if(Array.isArray(d.products)) DB.products = d.products;
+  if(Array.isArray(d.customers)) DB.customers = d.customers;
+  if(Array.isArray(d.suppliers)) DB.suppliers = d.suppliers;
+  if(Array.isArray(d.orders)) DB.orders = d.orders;
+  if(Array.isArray(d.purchases)) DB.purchases = d.purchases;
+  if(Array.isArray(d.kas)) DB.kas = d.kas;
+  if(Array.isArray(d.kasShift)) DB.kasShift = d.kasShift;
+  /* restore saat shift terbuka = lanjut shift tersebut (kas kontinu) */
+  if(getActiveShift()) renderKasCard();
+  if(d.settings && typeof d.settings === 'object'){
+    DB.settings = { namaToko:String(d.settings.namaToko||''), alamat:String(d.settings.alamat||''), wa:String(d.settings.wa||'') };
+  }
+  DB.nomorCounter = null; // dihitung ulang dari data yang dipulihkan
+  /* P3: pasca-restore, cart/detail stale bisa rujuk produk yang sudah tak ada */
+  cart = []; renderCartBar();
+  window.__currentOrderId = null;
+  saveDB();
+  renderView('dashboard');
+  if (window._ksr_updateTrialChip) window._ksr_updateTrialChip();
+  toast('Data berhasil dipulihkan');
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+/* ── Metode bayar aktif (pola kaki5 payOptions) ── */
+function getPayOptions(){
+  const po = DB.settings.payOptions;
+  if (po && typeof po === 'object') return po;
+  return { tunai: true, qris: true, transfer: true };
+}
+function activePayMethods(){
+  const po = getPayOptions();
+  return ['Tunai','Transfer','QRIS'].filter(m => po[m.toLowerCase()]);
+}
+function savePayOptions(){
+  const po = {
+    tunai: document.getElementById('payOptTunai').checked,
+    qris: document.getElementById('payOptQris').checked,
+    transfer: document.getElementById('payOptTransfer').checked,
+  };
+  if (!po.tunai && !po.qris && !po.transfer){
+    toast('Minimal satu metode bayar harus aktif');
+    document.getElementById('payOptTunai').checked = true;
+    po.tunai = true;
+  }
+  DB.settings.payOptions = po;
+  saveDB();
+  toast('Metode bayar disimpan');
+}
+window.savePayOptions = savePayOptions;
+function fillPayOptionsToggles(){
+  const fk = document.getElementById('fiturKasToggle');
+  if (fk){
+    fk.checked = fiturKasAktif();
+    document.getElementById('fiturKasDesc').textContent = fiturKasAktif() ? 'Laci punya modal awal; order diblok kalau kas belum dibuka' : 'Nonaktif — order bebas tanpa perlu buka kas';
+  }
+  const po = getPayOptions();
+  const t = document.getElementById('payOptTunai');
+  if (!t) return;
+  t.checked = !!po.tunai;
+  document.getElementById('payOptQris').checked = !!po.qris;
+  document.getElementById('payOptTransfer').checked = !!po.transfer;
+}
+
+/* =========================================================
+   KAS & SHIFT (port pola kaki5) — DB.kas + DB.kasShift
+   ========================================================= */
+function getActiveShift(){ return (DB.kasShift || []).find(k => k.status === 'buka') || null; }
+function fiturKasAktif(){ return DB.settings.fiturKas !== false; } // default AKTIF (paritas kaki5)
+function kasEntries(shift){ const sh = shift || getActiveShift(); if (!sh) return []; return (DB.kas || []).filter(e => e.shiftId === sh.id); }
+function kasSistem(shift){
+  const sh = shift || getActiveShift(); if (!sh) return 0;
+  let masuk = 0, keluar = 0;
+  for (const e of kasEntries(sh)){ if (e.tipe === 'masuk') masuk += Number(e.jumlah) || 0; else keluar += Number(e.jumlah) || 0; }
+  return (Number(sh.modalAwal) || 0) + masuk - keluar;
+}
+function addKasEntry(tipe, jumlah, keterangan, refOrderId){
+  const sh = getActiveShift();
+  if (!sh) return false;
+  if (refOrderId && (DB.kas || []).some(e => e.refOrderId === refOrderId && e.tipe === 'masuk')) return false; // idempoten
+  (DB.kas = DB.kas || []).push({ id: uid('kk'), shiftId: sh.id, waktu: Date.now(), tipe, jumlah: Number(jumlah) || 0, keterangan: keterangan || '', refOrderId: refOrderId || null });
+  return true;
+}
+function removeKasByOrder(orderId){ DB.kas = (DB.kas || []).filter(e => e.refOrderId !== orderId); }
+
+/* Kartu kas di Beranda */
+function renderKasCard(){
+  const wrap = document.getElementById('kasCard');
+  if (!wrap) return;
+  if (!fiturKasAktif()){ wrap.innerHTML = ''; return; }
+  const sh = getActiveShift();
+  if (!sh){
+    wrap.innerHTML = `
+      <div class="card" style="border:1.5px dashed var(--warning);background:var(--warning-bg);">
+        <div class="card-title" style="color:var(--warning);">🔒 Kas Belum Dibuka</div>
+        <p class="muted" style="font-size:12.5px;margin:0 0 12px;">Order baru dikunci sampai kas dibuka (atur di Pengaturan → Aktifkan Fitur).</p>
+        <button class="btn btn-primary" style="width:100%;" onclick="openBukaKas()">🔓 Buka Kas</button>
+      </div>`;
+    return;
+  }
+  const masuk = kasEntries(sh).filter(e => e.tipe === 'masuk').reduce((a, e) => a + e.jumlah, 0);
+  const keluar = kasEntries(sh).filter(e => e.tipe === 'keluar').reduce((a, e) => a + e.jumlah, 0);
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="card-title">💰 Kas — Buka sejak ${fmtDateTime(sh.waktuBuka)}</div>
+      <div class="total-row"><span>Modal Awal</span><span>${fmtRp(sh.modalAwal)}</span></div>
+      <div class="total-row"><span>Kas Masuk</span><span class="kgreen" style="color:var(--success);font-weight:700;">+${fmtRp(masuk)}</span></div>
+      <div class="total-row"><span>Kas Keluar</span><span style="color:var(--danger);font-weight:700;">-${fmtRp(keluar)}</span></div>
+      <div class="total-row big"><span>Kas Sistem</span><span>${fmtRp(kasSistem(sh))}</span></div>
+      <p class="muted" style="font-size:11px;margin:6px 0 10px;">Kas sistem = modal awal + order tunai lunas + kas masuk manual − kas keluar.</p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="openCatatKas()">💸 Catat Kas</button>
+        <button class="btn btn-danger" onclick="tutupKas()">🔒 Tutup Kas</button>
+      </div>
+    </div>`;
+}
+function openBukaKas(pesan){
+  openModal(`
+    <div class="modal-head"><h2>🔓 Buka Kas</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${pesan ? `<p class="muted" style="margin:0 0 10px;">${pesan}</p>` : ''}
+    <label>Modal Awal (uang di laci)</label>
+    <input type="number" id="modalAwalVal" inputmode="numeric" min="0" placeholder="cth: 50000">
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="bukaKas()">🔓 Buka Kas</button>
+    </div>
+  `);
+}
+function bukaKas(){
+  const v = parseInt(document.getElementById('modalAwalVal').value) || 0;
+  if (v < 0){ toast('Modal awal tidak valid'); return; }
+  DB.kasShift = DB.kasShift || [];
+  DB.kasShift.push({ id: uid('ks'), status: 'buka', waktuBuka: Date.now(), modalAwal: v });
+  saveDB(); closeModal(); renderKasCard(); renderDashboard();
+  toast('✅ Kas dibuka — selamat bekerja!');
+}
+function openCatatKas(tipe){
+  openModal(`
+    <div class="modal-head"><h2>💸 Catat Kas</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Jenis</label>
+    <div class="pay-methods" id="kasTipe">
+      <div class="pay-chip ${tipe === 'keluar' ? '' : 'active'}" data-t="masuk" onclick="selectChip(this,'kasTipe')">Masuk</div>
+      <div class="pay-chip ${tipe === 'keluar' ? 'active' : ''}" data-t="keluar" onclick="selectChip(this,'kasTipe')">Keluar</div>
+    </div>
+    <label>Nominal</label>
+    <input type="number" id="kasNominal" inputmode="numeric" min="0" placeholder="cth: 20000">
+    <label>Keterangan</label>
+    <input type="text" id="kasKet" placeholder="cth: beli deterjen / setor bank">
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="catatKas()">💾 Simpan</button>
+    </div>
+  `);
+}
+function catatKas(){
+  const tipe = document.querySelector('#kasTipe .pay-chip.active').dataset.t;
+  const jumlah = parseInt(document.getElementById('kasNominal').value) || 0;
+  const ket = document.getElementById('kasKet').value.trim();
+  if (jumlah <= 0){ toast('Nominal harus lebih dari 0'); return; }
+  if (addKasEntry(tipe, jumlah, ket)){
+    saveDB(); closeModal(); renderKasCard(); renderDashboard();
+    toast('Kas ' + tipe + ' dicatat: ' + fmtRp(jumlah));
+  } else { toast('Buka kas dulu sebelum mencatat'); }
+}
+function tutupKas(){
+  const sh = getActiveShift();
+  if (!sh) return;
+  const masuk = kasEntries(sh).filter(e => e.tipe === 'masuk');
+  const keluar = kasEntries(sh).filter(e => e.tipe === 'keluar');
+  const mOrder = masuk.filter(e => e.refOrderId).reduce((a, e) => a + e.jumlah, 0);
+  const mManual = masuk.filter(e => !e.refOrderId).reduce((a, e) => a + e.jumlah, 0);
+  const kTotal = keluar.reduce((a, e) => a + e.jumlah, 0);
+  confirmDialog('Tutup Kas?', `Modal ${fmtRp(sh.modalAwal)} · Masuk order ${fmtRp(mOrder)} · Masuk manual ${fmtRp(mManual)} · Keluar ${fmtRp(kTotal)} → Kas sistem akhir ${fmtRp(kasSistem(sh))}. Tutup shift sekarang?`, 'Ya, Tutup', () => {
+    sh.status = 'tutup';
+    sh.waktuTutup = Date.now();
+    sh.rekap = { masukOrder: mOrder, masukManual: mManual, keluar: kTotal, akhir: kasSistem(sh) };
+    saveDB(); renderKasCard(); renderDashboard();
+    toast('✅ Kas ditutup — rekap tersimpan');
+  });
+}
+function saveFiturKas(){
+  const on = document.getElementById('fiturKasToggle').checked;
+  DB.settings.fiturKas = on;
+  saveDB();
+  document.getElementById('fiturKasDesc').textContent = on ? 'Laci punya modal awal; order diblok kalau kas belum dibuka' : 'Nonaktif — order bebas tanpa perlu buka kas';
+  renderKasCard();
+  toast(on ? 'Fitur kas diaktifkan' : 'Fitur kas dimatikan');
+}
+window.openBukaKas = openBukaKas; window.bukaKas = bukaKas;
+window.openCatatKas = openCatatKas; window.catatKas = catatKas;
+window.tutupKas = tutupKas; window.saveFiturKas = saveFiturKas;
+
+/* ── NOTA PRINTER (laundry, via LDPrinter) ── */
+function padLine(kiri, kanan, width){
+  const k = String(kiri), w = String(kanan);
+  const sp = Math.max(1, width - k.length - w.length);
+  return k + ' '.repeat(sp) + w;
+}
+function buildNotaText(o){
+  const ESC = String.fromCharCode(27); const LF = '\n';
+  const W = 32;
+  let t = ESC + '@';
+  t += ESC + 'a' + String.fromCharCode(1);
+  t += ((DB.settings.namaToko || 'Kasir Solo Laundry').slice(0, 24)) + LF;
+  const almt = [DB.settings.alamat, DB.settings.kabkota].filter(x => x && String(x).trim()).join(', ').slice(0, 30);
+  if (almt) t += almt + LF;
+  t += '======== NOTA ORDER ========' + LF + LF;
+  t += ESC + 'a' + String.fromCharCode(0);
+  t += padLine('No', o.noOrder, W) + LF;
+  t += padLine('Tanggal', new Date(o.tanggalMasuk).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }), W) + LF;
+  if (o.namaPelanggan) t += padLine('Pelanggan', o.namaPelanggan.slice(0, 18), W) + LF;
+  if (o.eta) t += padLine('Est. Selesai', o.eta, W) + LF;
+  t += '--------------------------------' + LF;
+  for (const it of o.items){
+    t += it.nama.slice(0, W) + LF;
+    t += padLine('  ' + (it.tipe === 'kiloan' ? fmtKg(it.qty) : 'x' + it.qty) + ' x ' + fmtRp(it.harga), fmtRp(it.harga * it.qty), W) + LF;
+  }
+  t += '--------------------------------' + LF;
+  t += padLine('TOTAL', fmtRp(o.total), W) + LF;
+  t += padLine('Bayar', (PAY_LABELS[o.statusBayar] || o.statusBayar) + ' · ' + (o.metode || '-'), W) + LF;
+  if (o.catatan) t += 'Catatan: ' + o.catatan.slice(0, W - 9) + LF;
+  t += LF;
+  t += ESC + 'a' + String.fromCharCode(1);
+  t += 'Terima kasih! 🙏' + LF + 'WA 0881-6566-935' + LF;
+  return t;
+}
+function printNotaOrder(id){
+  const o = DB.orders.find(x => x.id === (id || window.__currentOrderId));
+  if (!o){ toast('Order tidak ditemukan'); return; }
+  if (!window.LDPrinter || !LDPrinter.connected()){ toast('Printer belum terhubung — hubungkan di Pengaturan → Perangkat'); return; }
+  LDPrinter.printText(buildNotaText(o)).then(ok => { if (ok) toast('🖨️ Nota ' + o.noOrder + ' tercetak'); });
+}
+window.printNotaOrder = printNotaOrder;
+
+/* ── Changelog (pola kaki5/rosok): entri TERBARU di paling atas ── */
+const CHANGELOGS = [
+  { version: '1.0.1', notes: ['Pengaturan gaya kaki5: profil, fitur, perangkat, data & cadangan, lisensi, tentang', 'Cadangan cloud & diagnosa koneksi', 'Halaman Bantuan 3 tab (Tutorial/Video/S&K)', 'Banner promo + sapaan beranda', 'Logo baru (mesin cuci) di seluruh branding'] },
+  { version: '1.0.0', notes: ['Rilis perdana Kasir Solo Laundry', 'Order kiloan/satuan, antrian 5 status, DP/piutang', 'Lisensi terpusat & kuota 100 transaksi/bulan'] },
+];
+function openChangelogSheet(){
+  openModal(`
+    <div class="modal-head"><h2>🕓 Riwayat Versi</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${CHANGELOGS.map((c, i) => `
+      <div style="padding:${i ? 12 : 2}px 0 ${i === CHANGELOGS.length - 1 ? 4 : 12}px;${i ? 'border-top:1px solid var(--border);' : ''}">
+        <div style="font-size:14px;font-weight:800;color:var(--ink);">Versi ${c.version}${i === 0 ? ' <span style="font-size:10px;background:var(--success-bg);color:var(--success);padding:2px 8px;border-radius:99px;font-weight:700;">TERBARU</span>' : ''}</div>
+        <ul style="margin:8px 0 0;padding-left:18px;color:var(--ink-soft);font-size:12.5px;line-height:1.7;">
+          ${c.notes.map(n => '<li>' + escapeHtml(n) + '</li>').join('')}
+        </ul>
+      </div>`).join('')}
+  `);
+}
+window.openChangelogSheet = openChangelogSheet;
+
+/* ── Link situs dinamis (pola kaki5 appSiteLink/rosok app-link: products.store_url) ── */
+async function refreshAboutSiteLink(){
+  const a = document.getElementById('aboutSiteLink');
+  if (!a || !navigator.onLine) return;
+  try {
+    const sb = getSupabaseClient();
+    if (!sb) return;
+    const { data, error } = await sb.from('products').select('store_url').eq('app_type', 'laundry').maybeSingle();
+    const url = (!error && data && data.store_url) ? String(data.store_url).trim() : '';
+    if (/^https:\/\//.test(url)){
+      a.href = url;
+      a.textContent = '🌐 ' + url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    }
+  } catch (_) { /* fallback tetap kasirsolo.com */ }
+}
+window.refreshAboutSiteLink = refreshAboutSiteLink;
+
+/* ── Deteksi aplikasi terpasang (pola kaki5 pwa.js): standalone → judul row berubah ── */
+(function detectInstalled(){
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (!standalone) return;
+  const t = document.getElementById('pwaInstallTitle');
+  const d = document.getElementById('pwaInstallDesc');
+  if (t) t.textContent = 'Aplikasi Terpasang';
+  if (d) d.textContent = 'Sudah terpasang di perangkat ini';
+})();
+
+/* ── Bantuan (pola kaki5): tab + akordeon tutorial + video cloud ── */
+const TUTORIALS = [
+  { icon: '🚀', title: 'Memulai Pakai Aplikasi', body: 'Isi <b>Profil</b> dulu di Pengaturan (nama usaha, pemilik, WhatsApp, alamat) supaya data cloud perangkatmu rapi. Layanan contoh sudah tersedia — ubah atau tambah sendiri di <b>Layanan &amp; Stok</b>.' },
+  { icon: '🧺', title: 'Membuat Order Baru', body: 'Tekan tombol <b>＋ Order</b> di tengah bawah → pilih layanan (kiloan isi berat kg, satuan isi jumlah) → atur pelanggan, estimasi selesai, status bayar → <b>Simpan Order</b>.' },
+  { icon: '📋', title: 'Antrian & Status Cucian', body: 'Pantau cucian di halaman <b>Antrian</b>: diterima → dicuci → disetrika → siap → diambil. Ubah status lewat kartu order. Cucian "siap" menunggu diambil pelanggan.' },
+  { icon: '💵', title: 'Pembayaran: Lunas / DP / Belum', body: 'Saat order, pilih status bayar. DP/Belum Bayar otomatis jadi <b>piutang</b> — lunasi dari kartu order kapan saja. Metode bayar (Tunai/Transfer/QRIS) bisa diaktifkan di Pengaturan → Aktifkan Fitur.' },
+  { icon: '🧑‍🤝‍🧑', title: 'Pelanggan & Supplier', body: 'Daftarkan pelanggan agar riwayat order rapi (bisa dibuat langsung saat order). Supplier dipakai untuk mencatat pembelian barang (deterjen dsb) — stok bertambah otomatis.' },
+  { icon: '🏷️', title: 'Layanan & Stok', body: 'Layanan kiloan/satuan punya harga &amp; durasi pengerjaan. Produk eceran punya stok + stok menipis — dapat peringatan otomatis di Beranda.' },
+  { icon: '📊', title: 'Laporan', body: 'Lihat omzet, laba, kg tercuci, dan piutang per Hari / Minggu / Bulan di halaman Laporan.' },
+  { icon: '💰', title: 'Kas Harian (Buka / Tutup)', body: 'Buka kas di Beranda tiap mulai kerja (isi modal awal). Selama kas terbuka, order tunai lunas otomatis masuk <b>kas sistem</b>; catat uang keluar/masuk manual lewat 💸 Catat Kas. Tutup kas saat selesai — rekap tersimpan. Matikan gerbang ini di Pengaturan → Aktifkan Fitur.' },
+  { icon: '🖨️', title: 'Printer Nota Bluetooth', body: 'Hubungkan printer thermal di Pengaturan → Perangkat → <b>Hubungkan Printer</b> (Chrome Android). Setelah tersambung, tombol <b>🖨️ Cetak Nota</b> muncul di detail order dan ditawarkan otomatis setiap order tersimpan.' },
+  { icon: '💾', title: 'Backup & Pulihkan', body: 'Pengaturan → Data &amp; Cadangan: simpan ke file HP, atau <b>Cadangan Cloud</b> (khusus lisensi aktif) agar aman walau HP hilang. Pulihkan Cloud mengambil cadangan terakhir dari server.' },
+  { icon: '🎟️', title: 'Lisensi & Kuota Gratis', body: 'Gratis dapat <b>100 transaksi/bulan</b>, segar tiap awal bulan. Butuh tanpa batas? Beli lisensi di aplikasi (QRIS/transfer → upload bukti → admin verifikasi → aktif otomatis).' },
+  { icon: '📲', title: 'Pasang Aplikasi di HP', body: 'Pengaturan → Perangkat → <b>Pasang Aplikasi</b> (atau menu browser ⋮ → Install app) supaya terbuka seperti aplikasi asli dan bisa dipakai luring.' },
+];
+function renderTutorials(){
+  const wrap = document.getElementById('btTutorials');
+  if (!wrap) return;
+  wrap.innerHTML = TUTORIALS.map(t => `
+    <details class="tut-item">
+      <summary><span>${t.icon}</span><span>${t.title}</span><span class="chev">›</span></summary>
+      <div class="tut-body">${t.body}</div>
+    </details>`).join('');
+}
+function bantuanTab(tab){
+  ['tutorial','video','tc'].forEach(t => {
+    const panel = document.getElementById('btPanel' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (panel) panel.style.display = (t === tab) ? 'block' : 'none';
+    const btn = document.getElementById('btTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (btn){ btn.classList.toggle('active', t === tab); btn.setAttribute('aria-selected', t === tab ? 'true' : 'false'); }
+  });
+  if (tab === 'video') loadBantuanVideos();
+}
+window.bantuanTab = bantuanTab;
+function parseYoutubeId(raw){
+  const u = String(raw || '');
+  const m = u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,})/) || u.match(/([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : '';
+}
+async function loadBantuanVideos(){
+  const wrap = document.getElementById('btVideos');
+  if (!wrap || wrap.dataset.loaded === '1') return;
+  wrap.dataset.loaded = '1';
+  try {
+    const sb = getSupabaseClient();
+    if (!sb || !navigator.onLine) throw new Error('offline');
+    const { data, error } = await sb.from('products').select('tutorials').eq('app_type', 'laundry').maybeSingle();
+    const list = (!error && data && Array.isArray(data.tutorials)) ? data.tutorials : [];
+    if (!list.length){
+      wrap.innerHTML = '<p class="muted" style="text-align:center;padding:20px 0;">Belum ada video tutorial — segera hadir 🎬</p>';
+      return;
+    }
+    wrap.innerHTML = list.map(v => {
+      const id = parseYoutubeId(v.url);
+      if (!id) return '';
+      return `<div class="video-item">
+        <iframe src="https://www.youtube-nocookie.com/embed/${id}" title="${escapeHtml(v.judul || 'Video')}" loading="lazy" allowfullscreen></iframe>
+        <div class="v-title">${escapeHtml(v.judul || '')}${v.durasi ? ' <span class="v-dur">· ' + escapeHtml(v.durasi) + '</span>' : ''}</div>
+        ${v.deskripsi ? '<div class="v-dur">' + escapeHtml(v.deskripsi) + '</div>' : ''}
+      </div>`;
+    }).join('');
+  } catch (_){
+    wrap.innerHTML = '<p class="muted" style="text-align:center;padding:20px 0;">Belum ada video tutorial — segera hadir 🎬</p>';
+  }
+}
+renderTutorials();
+
+/* ── Cadangan Cloud (pola rosok/kaki5: bucket backups, path unit, lisensi aktif) ── */
+async function ensureAnonSession(sb, unitId){
+  const { data } = await sb.auth.getSession();
+  const session = data && data.session;
+  if (session && session.user){
+    const cur = (session.user.user_metadata || {}).unit_id;
+    if (cur !== unitId){ try { await sb.auth.updateUser({ data: { unit_id: unitId } }); } catch (_) {} }
+    return session.user.id;
+  }
+  const { data: anon, error } = await sb.auth.signInAnonymously({ options: { data: { unit_id: unitId } } });
+  if (error) return null;
+  return anon && anon.user ? anon.user.id : null;
+}
+async function cloudCtx(){
+  // AWAIT WAJIB: isLicensed() async — tanpa await selalu truthy (pelajaran rosok 51a7748)
+  if (!(await window.LicenseAPI.isLicensed())) return { err: 'locked' };
+  if (!navigator.onLine) return { err: 'offline' };
+  const sb = getSupabaseClient();
+  if (!sb) return { err: 'nosupabase' };
+  const unitId = window.LicenseAPI ? await window.LicenseAPI.getUnitId() : null;
+  if (!unitId) return { err: 'noid' };
+  let ok = null;
+  try { ok = await ensureAnonSession(sb, unitId); } catch (_) {}
+  if (!ok) return { err: 'session' };
+  return { sb, unitId };
+}
+function cloudErr(kind){
+  const msg = {
+    locked: '🔒 Fitur ini khusus lisensi aktif — beli lisensi untuk membuka 💳',
+    offline: 'Tidak ada koneksi internet — coba lagi saat online',
+    nosupabase: 'Konfigurasi server belum termuat — muat ulang halaman',
+    session: 'Sesi server gagal dibuat — coba lagi sebentar',
+    noid: 'Identitas perangkat belum siap — buka ulang aplikasi',
+  }[kind] || 'Gagal mengakses cloud';
+  toast(msg);
+  if (kind === 'locked') openPurchaseSheetSafe();
+}
+async function cloudSaveBackup(){
+  const ctx = await cloudCtx();
+  if (ctx.err) return cloudErr(ctx.err);
+  const { sb, unitId } = ctx;
+  try {
+    const envelope = await createBackupEnvelope(buildBackupPayload());
+    const blob = new Blob([JSON.stringify(envelope)], { type: 'application/json' });
+    const { error } = await sb.storage.from('backups')
+      .upload(unitId + '/cadangan-latest.json', blob, { contentType: 'application/json', upsert: true });
+    if (error) throw error;
+    DB.settings.lastCloudBackupAt = new Date().toISOString();
+    saveDB();
+    toast('✅ Cadangan tersimpan ke cloud!');
+  } catch (e) {
+    console.error('[CloudSave]', e);
+    toast('Gagal simpan ke cloud: ' + String((e && e.message) || e).slice(0, 90));
+  }
+}
+async function cloudRestoreLatest(){
+  const ctx = await cloudCtx();
+  if (ctx.err) return cloudErr(ctx.err);
+  const { sb, unitId } = ctx;
+  try {
+    const { data: blob, error } = await sb.storage.from('backups').download(unitId + '/cadangan-latest.json');
+    if (error){
+      if (String(error.message || '').includes('not found')){ toast('Belum ada cadangan di cloud. Simpan dulu ya!'); return; }
+      throw error;
+    }
+    const raw = JSON.parse(await blob.text());
+    const res = await unwrapBackupEnvelope(raw);
+    if (res.status === 'invalid'){ toast(res.error); return; }
+    const data = res.payload;
+    const errs = validateBackupData(data);
+    if (errs.length){ toast('Backup ditolak: ' + errs[0]); return; }
+    const tgl = raw.createdAt ? new Date(raw.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+    confirmDialog('Pulihkan Cloud?', 'Pulihkan cadangan cloud (' + tgl + ')? Semua data saat ini akan diganti dengan isi cadangan. Lisensi perangkat tidak ikut berubah.', 'Ya, Pulihkan', () => {
+      applyBackup(data);
+    });
+  } catch (e) {
+    console.error('[CloudRestore]', e);
+    toast('Gagal ambil dari cloud: ' + String((e && e.message) || e).slice(0, 90));
+  }
+}
+
+/* ── Diagnosa (pola kaki5 sync.health — versi ringkas laundry) ── */
+async function runDiagnosa(){
+  openModal(`
+    <div class="modal-head"><h2>🩺 Diagnosa</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div id="diagBody"><p class="muted">Mengecek…</p></div>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-secondary" onclick="copyDiagResult()">📋 Salin Hasil</button>
+      <button class="btn btn-secondary" onclick="sendDiagWA()">💬 Kirim ke Admin</button>
+    </div>
+  `);
+  const steps = [];
+  const add = (nama, ok, detail) => steps.push({ nama, ok, detail: detail || '' });
+  const sb = getSupabaseClient();
+  add('Konfigurasi server', !!sb, sb ? 'URL & kunci termuat' : 'config belum termuat');
+  add('Koneksi internet', navigator.onLine, navigator.onLine ? 'online' : 'offline');
+  let userId = null;
+  if (sb){
+    try { userId = await ensureAnonSession(sb, await window.LicenseAPI.getUnitId()); } catch (_) {}
+  }
+  add('Sesi server (anonim)', !!userId, userId ? 'aktif' : 'gagal / belum dibuat');
+  let rowOk = null, lic = '—';
+  if (sb && userId){
+    try {
+      const unitId = await window.LicenseAPI.getUnitId();
+      const { data, error } = await sb.from('clients').select('unit_id, license_status').eq('unit_id', unitId).eq('app_type', 'laundry').maybeSingle();
+      rowOk = !error && !!data;
+      if (data && data.license_status) lic = data.license_status;
+    } catch (_) { rowOk = false; }
+  }
+  add('Baris klien di server', rowOk === true, rowOk === true ? 'ditemukan (lisensi: ' + lic + ')' : (rowOk === false ? 'tidak ditemukan / gagal baca' : 'dilewati'));
+  const profilOk = !!(DB.settings.namaToko || '').trim() && !!(DB.settings.wa || '').trim();
+  add('Profil usaha lengkap', profilOk, profilOk ? DB.settings.namaToko : 'nama/WA belum diisi');
+  let isLic = null;
+  try { isLic = await window.LicenseAPI.isLicensed(); } catch (_) {}
+  add('Status lisensi lokal', isLic !== null, isLic ? 'aktif' : 'tier gratis');
+  window.__diagResult = steps;
+  const body = document.getElementById('diagBody');
+  if (body){
+    body.innerHTML = steps.map(st => `
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:16px;">${st.ok ? '✅' : (st.ok === false ? '❌' : '⚠️')}</span>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;">${st.nama}</div><div class="muted" style="font-size:11.5px;">${st.detail}</div></div>
+      </div>`).join('');
+  }
+}
+function diagText(){
+  const steps = window.__diagResult || [];
+  return 'Diagnosa Kasir Solo Laundry\n' + steps.map(st => (st.ok ? '✓' : (st.ok === false ? '✗' : '!')) + ' ' + st.nama + ' — ' + st.detail).join('\n') + '\nVersi ' + (window.LaundryVersion && window.LaundryVersion.APP_VERSION || '-');
+}
+async function copyDiagResult(){
+  try { await navigator.clipboard.writeText(diagText()); toast('Hasil diagnosa disalin'); }
+  catch (_){ toast('Gagal menyalin — salin manual dari layar'); }
+}
+function sendDiagWA(){
+  window.open('https://wa.me/628816566935?text=' + encodeURIComponent(diagText()), '_blank');
+}
+window.cloudSaveBackup = cloudSaveBackup;
+window.cloudRestoreLatest = cloudRestoreLatest;
+window.runDiagnosa = runDiagnosa;
+window.copyDiagResult = copyDiagResult;
+window.sendDiagWA = sendDiagWA;
+
+/* ── PWA install (pola kaki5 pwa.js) ── */
+let _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _pwaPrompt = e;
+});
+window.addEventListener('appinstalled', () => {
+  _pwaPrompt = null;
+  const t = document.getElementById('pwaInstallTitle');
+  const d = document.getElementById('pwaInstallDesc');
+  if (t) t.textContent = 'Aplikasi Terpasang';
+  if (d) d.textContent = 'Sudah terpasang di perangkat ini';
+});
+function installPwa(){
+  if (!_pwaPrompt){
+    toast('Buka menu browser (⋮) → "Install app" / "Tambahkan ke layar utama"');
+    return;
+  }
+  _pwaPrompt.prompt();
+  _pwaPrompt.userChoice.finally(() => { _pwaPrompt = null; });
+}
+window.installPwa = installPwa;
+
+/* ── Hapus Semua Data (pola kaki5: konfirmasi berlapis, lisensi & profil tetap) ── */
+function confirmClearAll(){
+  confirmDialog('Hapus Semua Data?', 'SEMUA data usaha (layanan, order, pelanggan, stok) akan dihapus dan tidak bisa dikembalikan. Status lisensi tetap tersimpan. Yakin?', 'Ya, Hapus', () => {
+    confirmDialog('Konfirmasi Terakhir', 'Hapus SEMUA data sekarang?', 'Hapus Sekarang', () => {
+      DB.products = []; DB.orders = []; DB.purchases = [];
+      DB.customers = []; DB.suppliers = [];
+      DB.nomorCounter = null;
+      saveDB();
+      cart = []; renderCartBar();
+      window.__currentOrderId = null;
+      renderDashboard();
+      toast('Semua data dihapus');
+    });
+  });
+}
+window.confirmClearAll = confirmClearAll;
+
+const _splashStart = Date.now();
+function hideBootSplash(){
+  const splash = document.getElementById('bootSplash');
+  if (!splash || splash.classList.contains('gone')) return;
+  const wait = Math.max(0, 900 - (Date.now() - _splashStart));
+  setTimeout(() => {
+    splash.classList.add('gone');
+    setTimeout(() => { try { splash.remove(); } catch (_) {} }, 500);
+  }, wait);
+}
+setTimeout(() => { document.getElementById('bootSplash')?.classList.add('grad-on'); }, 250);
+setTimeout(hideBootSplash, 3500);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') setTimeout(hideBootSplash, 200);
+});
+
+function init(){
+  seedIfEmpty();
+  seedPlatformMessagesIfEmpty();
+  applyHeaderBizName();
+  renderView('dashboard');
+  startSyncRetryLoop();   /* P2: pending profil dicoba ulang tiap 5 menit selama online */
+  /* Onboarding ala kaki5 & S&K ditangani modul (js/laundry-license.js) setelah siap */
+  window.addEventListener('laundry-license-ready', () => {
+    checkProfileNotification();
+    if (window._ksr_tcState) window._ksr_tcState();
+  });
+}
+init();
+hideBootSplash();
+</script>
+<script type="module" src="js/printer.js?v=2"></script>
+<script type="module" src="js/laundry-license.js?v=2"></script>
+<script type="module" src="js/region-loader.js?v=2"></script>
+<script type="module">
+  import { startUpdateWatcher } from './js/update.js';
+  import { APP_VERSION, CACHE_BUST } from './js/version.js';
+  window.LaundryVersion = { CACHE_BUST, APP_VERSION };
+  const vLabel = document.getElementById('aboutVersionLabel');
+  if (vLabel) vLabel.textContent = APP_VERSION;
+  startUpdateWatcher();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+</script>
+</body>
+</html>

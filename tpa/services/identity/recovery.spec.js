@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';
+import { IdentityAdapter } from './adapter.js';
+import { MockIdentityProvider, FIXTURES } from './mock-provider.js';
+
+let now = new Date('2026-01-01T00:00:00Z');
+const provider = new MockIdentityProvider({ now: () => now });
+const adapter = new IdentityAdapter(provider);
+const identity = await adapter.resolveIdentity(FIXTURES[2].phoneE164);
+const memberships = await adapter.listMemberships(identity.globalIdentityId);
+const session = await adapter.createAppSession(memberships[0].membership.membershipId);
+const adminIdentity = await adapter.resolveIdentity(FIXTURES[0].phoneE164);
+const adminMemberships = await adapter.listMemberships(adminIdentity.globalIdentityId);
+const adminSession = await adapter.createAppSession(adminMemberships[0].membership.membershipId);
+const challenge = await adapter.requestRecovery(FIXTURES[2].phoneE164);
+assert.equal(challenge.method, 'admin_approval');
+await assert.rejects(() => adapter.completeRecovery(challenge.challengeId, 'invalid-artifact', 'newpass'), /Identity/);
+const approved = await adapter.approveRecovery(challenge.challengeId);
+const result = await adapter.completeRecovery(challenge.challengeId, approved.approvalToken, 'newpass');
+assert.equal(approved.status, 'approved');
+assert.equal(result.completed, true);
+await assert.rejects(() => adapter.verifySession(session.appSessionId));
+const next = await adapter.verifyCredential(identity.globalIdentityId, 'newpass');
+assert.equal(next.globalIdentityId, identity.globalIdentityId);
+const missing = await adapter.requestRecovery('+6289999999999');
+assert.equal(missing.status, 'pending');
+now = new Date('2026-01-01T01:00:00Z');
+await assert.rejects(() => adapter.approveRecovery(missing.challengeId, session.appSessionId));
+console.log('TPA Stage G recovery tests: PASS');

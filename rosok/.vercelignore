@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+npm-debug.log*
+
+# Vercel
+.vercel
+
+# Git — JANGAN di-ignore.
+# Vercel butuh .git untuk menjalankan Ignored Build Step (git diff HEAD^ HEAD).
+# Kalau .git dihapus, deteksi perubahan per-app gagal dan semua app kedeploy.
+# .git dihapus otomatis oleh Vercel dari output akhir, jadi tidak ikut ter-serve.
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — JANGAN ter-upload saat deploy via CLI (git-integration aman via .gitignore)
+.env.local
+.env
+.env.example
+
+# Logs
+*.log

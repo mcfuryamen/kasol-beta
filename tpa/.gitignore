@@ -1,0 +1,17 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!.env.local.example
+!.env.staging.example
+
+# Supabase local state
+supabase/.temp/
+supabase/.branches/
+
+# Build and test output
+dist/
+coverage/
+
+# Local logs
+*.log

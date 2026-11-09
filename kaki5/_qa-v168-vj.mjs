@@ -1,0 +1,13 @@
+import { readFileSync } from 'node:fs';
+const s = readFileSync('js/version.json', 'utf8');
+console.log('len=' + s.length + ' crlf=' + s.includes('\r\n'));
+const i = s.indexOf('notes');
+console.log('idx=' + i);
+console.log('head=' + JSON.stringify(s.slice(0, 60)));
+console.log('around=' + JSON.stringify(s.slice(i - 6, i + 30)));
+console.log('tail=' + JSON.stringify(s.slice(-30)));
+const re = /^\s*"notes": \[[\s\S]*?\](?=})/m;
+console.log('regex-test=' + re.test(s));
+const re2 = /"notes":\s*\[[\s\S]*?\]/;
+const m = s.match(re2);
+console.log('re2=' + (m ? JSON.stringify(m[0].slice(0, 30)) + '...' + JSON.stringify(m[0].slice(-20)) : 'null'));

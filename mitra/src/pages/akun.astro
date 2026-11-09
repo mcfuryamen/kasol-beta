@@ -1,0 +1,1246 @@
+---
+/**
+ * Akun Kasol — daftar / masuk / dashboard akun universal.
+ * =============================================================================
+ * Satu akun (nomor WhatsApp + PIN) untuk seluruh ekosistem Kasol:
+ * lihat lisensi lintas app, dan aktifkan kemitraan (opt-in).
+ *
+ * Logika data: `src/lib/account.ts` (Supabase Auth + RPC).
+ * Kontrak: docs/ACCOUNT-KASOL.md
+ *
+ * Fase A1 = mitra saja. Login dari app klien menyusul (fase A2).
+ */
+import Base from '../layouts/Base.astro';
+import { site } from '../data/site';
+
+const title = 'Akun Kasol — Satu Akun untuk Semua Aplikasi';
+const description =
+  'Satu akun Kasol untuk semuanya: lihat lisensi aplikasi yang sudah dimiliki, beli lisensi baru, dan aktifkan kemitraan. Cukup nomor WhatsApp + PIN.';
+
+const waAdmin = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent('Halo, saya butuh bantuan Akun Kasol (lupa PIN).')}`;
+---
+
+<Base title={title} description={description} bare>
+  <section class="block ak-page">
+    <div class="container">
+      <!-- Topbar minimal (header/footer situs disembunyikan: halaman funnel) -->
+      <div class="ak-topbar">
+        <a class="ak-brand" href="/" aria-label="Kembali ke program mitra">
+          <img src="/icon-192.png" alt="" width="30" height="30" />
+          <strong>KASIR<span>SOLO</span></strong>
+        </a>
+        <a class="ak-back" href="/">← Program Mitra</a>
+      </div>
+
+      <div class="section-head center" id="akHero">
+        <span class="kicker-pill">Akun Kasol</span>
+        <h2>Satu <span class="hl">Akun</span>, Semua Aplikasi</h2>
+        <p class="sub">
+          Pakai nomor WhatsApp + PIN. Dari akun ini lo bisa lihat lisensi yang sudah aktif,
+          beli lisensi aplikasi lain, dan jadi mitra — tanpa akun terpisah.
+        </p>
+      </div>
+
+      <!-- Grid: form (kiri) + panel manfaat (kanan). Saat sudah login,
+           panel disembunyikan dan grid jadi satu kolom (dashboard). -->
+      <div class="ak-wrap" id="akWrap">
+        <div class="ak-main">
+
+      <!-- BELUM SIAP (env belum diset) -->
+      <div class="ak-card ak-hidden" id="akNotReady">
+        <p class="ak-note">Akun belum tersedia di server ini. Hubungi admin.</p>
+      </div>
+
+      <!-- FORM MASUK / DAFTAR -->
+      <div class="ak-card" id="akAuth" hidden>
+        <div class="ak-tabs" role="tablist">
+          <button type="button" class="ak-tab is-on" data-mode="masuk" role="tab" aria-selected="true">Masuk</button>
+          <button type="button" class="ak-tab" data-mode="daftar" role="tab" aria-selected="false">Daftar</button>
+        </div>
+
+        <!-- MASUK -->
+        <form id="akMasukForm" class="ak-form" novalidate>
+          <label class="ak-field">
+            <span>Nomor WhatsApp</span>
+            <input id="akMasukWa" type="tel" inputmode="numeric" autocomplete="username" placeholder="0812xxxxxxx" required>
+          </label>
+          <label class="ak-field">
+            <span>PIN</span>
+            <input id="akMasukPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="6 digit" maxlength="12" required>
+          </label>
+          <button class="ak-btn ak-btn-primary" type="submit">Masuk</button>
+        </form>
+
+        <!-- DAFTAR -->
+        <form id="akDaftarForm" class="ak-form" novalidate hidden>
+          <label class="ak-field">
+            <span>Nama</span>
+            <input id="akDaftarNama" type="text" autocomplete="name" placeholder="Nama atau nama usaha" required>
+          </label>
+          <label class="ak-field">
+            <span>Nomor WhatsApp</span>
+            <input id="akDaftarWa" type="tel" inputmode="numeric" autocomplete="username" placeholder="0812xxxxxxx" required>
+          </label>
+          <label class="ak-field">
+            <span>PIN (6 digit angka)</span>
+            <input id="akDaftarPin" type="password" inputmode="numeric" autocomplete="new-password" placeholder="6 digit" maxlength="12" required>
+          </label>
+          <label class="ak-field">
+            <span>Ulangi PIN</span>
+            <input id="akDaftarPin2" type="password" inputmode="numeric" autocomplete="new-password" placeholder="ulangi PIN" maxlength="12" required>
+          </label>
+          <button class="ak-btn ak-btn-primary" type="submit">Buat Akun</button>
+          <p class="ak-hint">
+            Nomor WhatsApp belum diverifikasi otomatis di tahap ini. Jangan pakai nomor orang lain —
+            akun bisa dibekukan.
+          </p>
+        </form>
+
+        <p class="ak-msg" id="akMsg" hidden></p>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div id="akDash" hidden>
+        <div class="ak-card ak-identity">
+          <div class="ak-ava" id="akAva">A</div>
+          <div class="ak-id-text">
+            <h3 id="akNama">—</h3>
+            <p class="ak-sub"><span id="akWa">—</span></p>
+            <p class="ak-sub ak-dim" id="akGid">—</p>
+          </div>
+          <button class="ak-btn ak-btn-ghost" type="button" id="akKeluar">Keluar</button>
+        </div>
+
+        <!-- Tab dashboard: Profil | Lisensi | Referal -->
+        <div class="ak-tabs ak-dtabs" role="tablist">
+          <button type="button" class="ak-tab is-on" data-dtab="profil" role="tab" aria-selected="true">Profil</button>
+          <button type="button" class="ak-tab" data-dtab="lisensi" role="tab" aria-selected="false">Lisensi</button>
+          <button type="button" class="ak-tab" data-dtab="referal" role="tab" aria-selected="false">Referal</button>
+        </div>
+
+        <!-- ══ TAB PROFIL ══ -->
+        <div id="akTabProfil">
+
+        <!-- Ringkasan angka -->
+        <div class="ak-stats" id="akStats">
+          <div class="ak-stat"><span class="ak-stat-n" id="akStatLic">—</span><span class="ak-stat-l">Lisensi aktif</span></div>
+          <div class="ak-stat"><span class="ak-stat-n" id="akStatDev">—</span><span class="ak-stat-l">Perangkat</span></div>
+          <div class="ak-stat"><span class="ak-stat-n" id="akStatRef">—</span><span class="ak-stat-l">Referral</span></div>
+          <div class="ak-stat"><span class="ak-stat-n" id="akStatPoin">—</span><span class="ak-stat-l">Poin siap cair</span></div>
+        </div>
+
+        <!-- Data diri — identitas akun yang bisa diedit -->
+        <div class="ak-card" id="akProfilCard">
+          <div class="ak-card-head">
+            <h3>Data Diri</h3>
+            <span class="ak-badge ak-badge-soft" id="akProfilBadge">—</span>
+          </div>
+          <p class="ak-note ak-dim">
+            Nama tampil & domisili membantu kami memproses pencairan komisi.
+            Perubahan di sini ikut tersinkron ke data klien aplikasi lo.
+            Nomor WhatsApp adalah identitas login — tidak bisa diubah di sini.
+          </p>
+<div class="ak-grid2">
+            <label class="ak-field"><span>Nama tampil</span><input id="akNamaInput" type="text" maxlength="60" placeholder="mis. Budi Santoso"></label>
+            <label class="ak-field"><span>Nomor WhatsApp</span><input id="akWaInput" type="text" disabled></label>
+            <label class="ak-field"><span>Provinsi</span><select id="akProvinsiInput" class="ak-select" data-emsifa="provinsi"></select></label>
+            <label class="ak-field"><span>Kabupaten/Kota</span><select id="akKotaInput" class="ak-select" data-emsifa="kabkota"></select></label>
+            <label class="ak-field"><span>Kecamatan</span><select id="akKecamatanInput" class="ak-select" data-emsifa="kecamatan"></select></label>
+            <label class="ak-field"><span>Desa</span><select id="akDesaInput" class="ak-select" data-emsifa="desa"></select></label>
+          </div>
+          <label class="ak-field"><span>Alamat detail</span><textarea id="akAlamatInput" class="ak-textarea" maxlength="200" placeholder="mis. Jl. Merdeka No. 12 RT 01/RW 02"></textarea></label>
+          <div class="ak-actions">
+            <button class="ak-btn ak-btn-primary" type="button" id="akSimpanProfil">Simpan Perubahan</button>
+          </div>
+          <p class="ak-msg" id="akProfilMsg" hidden></p>
+        </div>
+
+        <div class="ak-card">
+          <div class="ak-card-head"><h3>Keamanan</h3></div>
+          <p class="ak-note ak-dim">PIN dipakai untuk masuk di semua aplikasi Kasol. Jangan bagikan ke siapa pun.</p>
+          <div class="ak-grid2">
+            <label class="ak-field"><span>PIN baru (6 digit)</span><input id="akPinBaru" type="password" inputmode="numeric" maxlength="12" placeholder="6 digit"></label>
+            <label class="ak-field"><span>Ulangi PIN baru</span><input id="akPinBaru2" type="password" inputmode="numeric" maxlength="12" placeholder="ulangi"></label>
+          </div>
+          <div class="ak-actions">
+            <button class="ak-btn ak-btn-primary" type="button" id="akGantiPin">Simpan PIN</button>
+          </div>
+          <p class="ak-msg" id="akPinMsg" hidden></p>
+        </div>
+
+        <div class="ak-card">
+          <div class="ak-card-head"><h3>Bantuan</h3></div>
+          <p class="ak-note">
+            Lupa PIN, nomor salah daftar, atau butuh pindah perangkat? Chat admin — balasan di jam kerja.
+          </p>
+          <a class="ak-btn ak-btn-ghost ak-help-wa" href={waAdmin} target="_blank" rel="noopener">
+            💬 Chat admin di WhatsApp
+          </a>
+        </div>
+        </div><!-- /akTabProfil -->
+
+        <!-- ══ TAB REFERAL ══ -->
+        <div id="akTabReferal" hidden>
+
+        <div class="ak-card" id="akMitraCard">
+          <div class="ak-card-head">
+            <h3>Kode Referral</h3>
+            <span class="ak-badge ak-badge-soft" id="akMitraBadge">—</span>
+          </div>
+          <p class="ak-note">
+            Sudah aktif sejak daftar — <strong>universal</strong>, berlaku semua aplikasi Kasol.
+            Teman yang pakai kode ini dapat diskon, lo dapat komisi. Mau dipakai atau tidak, terserah.
+          </p>
+          <div class="ak-code-row">
+            <code id="akMitraCode">—</code>
+            <button class="ak-btn ak-btn-ghost" type="button" id="akCopyCode">Salin</button>
+          </div>
+          <a class="ak-reflink" id="akRefLink" href="#" target="_blank" rel="noopener">—</a>
+          <div class="ak-actions">
+            <a class="ak-btn ak-btn-ghost" id="akShareWa" href="#" target="_blank" rel="noopener">💬 Bagikan ke WhatsApp</a>
+          </div>
+          <p class="ak-msg" id="akKodeMsg" hidden></p>
+        </div>
+
+        <!-- Saldo komisi -->
+        <div class="ak-card">
+          <div class="ak-card-head"><h3>Saldo Komisi</h3></div>
+          <div class="ak-balance">
+            <div><span>Siap dicairkan</span><strong id="akSaldoReady">—</strong></div>
+            <div><span>Pending (nunggu siklus)</span><strong id="akSaldoPending">—</strong></div>
+            <div><span>Saldo rupiah</span><strong id="akSaldoRupiah">—</strong></div>
+          </div>
+          <button class="ak-btn ak-btn-primary" type="button" id="akBukaPayout">Ajukan Pencairan</button>
+        </div>
+
+        <!-- Referral terakhir -->
+        <div class="ak-card">
+          <div class="ak-card-head"><h3>Referral Terakhir</h3></div>
+          <div id="akRefList"><p class="ak-note ak-dim">Belum ada referral.</p></div>
+        </div>
+
+        <!-- Riwayat pencairan -->
+        <div class="ak-card">
+          <div class="ak-card-head"><h3>Riwayat Pencairan</h3></div>
+          <div id="akPayoutList"><p class="ak-note ak-dim">Belum ada pencairan.</p></div>
+        </div>
+
+        </div><!-- /akTabReferal -->
+
+        <!-- ══ MODAL: AJUKAN PENCAIRAN ══ -->
+        <div class="ak-modal" id="akPayoutModal" hidden>
+          <div class="ak-modal-backdrop" data-close-payout></div>
+          <div class="ak-modal-panel ak-card" role="dialog" aria-modal="true" aria-labelledby="akPayoutTitle">
+            <div class="ak-card-head">
+              <h3 id="akPayoutTitle">Ajukan Pencairan</h3>
+              <button class="ak-modal-close" type="button" data-close-payout aria-label="Tutup">✕</button>
+            </div>
+            <p class="ak-note ak-dim" id="akPayoutHint">Minimal Rp 50.000 · 1 poin = Rp 1.000 · 1 request per siklus.</p>
+            <div class="ak-grid2">
+              <label class="ak-field"><span>Poin dicairkan</span><input id="akPayoutPoints" type="number" min="1" step="1" placeholder="50"></label>
+              <label class="ak-field"><span>Nominal (Rp)</span><input id="akPayoutAmount" type="number" min="0" step="1000" placeholder="50000"></label>
+            </div>
+            <label class="ak-field"><span>Rekening tujuan</span><input id="akPayoutBank" type="text" placeholder="mis. BCA 1234567890 a.n. Nama"></label>
+            <button class="ak-btn ak-btn-primary" type="button" id="akAjukanPayout">Ajukan Pencairan</button>
+            <p class="ak-msg" id="akPayoutMsg" hidden></p>
+          </div>
+        </div>
+
+        <!-- ══ TAB LISENSI ══ -->
+        <div id="akTabLisensi" hidden>
+        <div class="ak-card">
+          <div class="ak-card-head">
+            <h3>Aplikasi Saya</h3>
+            <span class="ak-badge" id="akLicCount">0 lisensi</span>
+          </div>
+          <div id="akLicList"><p class="ak-note">Memuat lisensi...</p></div>
+          <div id="akAppLinks" class="ak-applinks"></div>
+        </div>
+
+        <!-- Manajemen perangkat -->
+        <div class="ak-card" id="akPerangkatCard">
+          <div class="ak-card-head"><h3>Manajemen Perangkat</h3></div>
+          <p class="ak-note ak-dim">
+            Belum punya lisensi? Beli dulu lewat aplikasi — begitu lisensi aktif,
+            kartunya muncul di daftar atas lengkap dengan tombol
+            <strong>+ Tambah perangkat</strong> (kode aktivasi 10 menit per perangkat).
+            Keluar dari semua perangkat mengakhiri sesi akun ini di semua tempat —
+            lo harus masuk ulang di tiap aplikasi setelahnya.
+          </p>
+          <button class="ak-btn ak-btn-ghost" type="button" id="akKeluarSemua">Keluar dari semua perangkat</button>
+          <p class="ak-msg" id="akKeluarSemuaMsg" hidden></p>
+        </div>
+
+        <!-- URL Akses Perangkat Kaki5 (konsep 2026-11-07) -->
+        <div class="ak-card" id="akTautanCard">
+          <div class="ak-card-head"><h3>URL Akses Perangkat — Kaki5</h3></div>
+          <p class="ak-note ak-dim">
+            Bagikan tautan ini ke perangkat yang mau pakai Kaki5 <strong>tanpa akun</strong>:
+            begitu dibuka, aplikasi langsung masuk mode Pemilik perangkat — tanpa
+            melewati halaman login. Masuk akun tetap lewat WA + PIN di dalam aplikasi.
+          </p>
+          <div class="ak-actions">
+            <button class="ak-btn ak-btn-primary" type="button" id="akBuatTautan">Generate URL</button>
+          </div>
+          <div id="akTautanPanel" hidden>
+            <div class="ak-code-row">
+              <code id="akTautanUrl">—</code>
+            </div>
+            <div class="ak-actions">
+              <button class="ak-btn ak-btn-ghost" type="button" id="akCopyTautan">Salin URL</button>
+              <a class="ak-btn ak-btn-ghost" id="akTautanWa" href="#" target="_blank" rel="noopener">💬 Kirim via WhatsApp</a>
+              <button class="ak-btn ak-btn-ghost" type="button" id="akTautanBaru">Generate baru</button>
+            </div>
+          </div>
+          <p class="ak-msg" id="akTautanMsg" hidden></p>
+        </div>
+        </div><!-- /akTabLisensi -->
+        </div><!-- /akDash -->
+        </div><!-- /ak-main -->
+
+        <!-- Panel manfaat — hanya tampil sebelum login (halaman funnel) -->
+        <aside class="ak-side" id="akSide">
+          <div class="ak-card ak-side-card">
+            <h3>Setelah punya akun</h3>
+            <ul class="ak-benefit">
+              <li>
+                <span class="ak-benefit-ic">📱</span>
+                <div>
+                  <strong>Semua lisensi dalam satu layar</strong>
+                  <p>Kaki Lima, Rosok, Laundry — status, perangkat aktif, dan sisa kuota.</p>
+                </div>
+              </li>
+              <li>
+                <span class="ak-benefit-ic">🛒</span>
+                <div>
+                  <strong>Beli aplikasi lain, akun tetap satu</strong>
+                  <p>Nggak perlu daftar ulang tiap aplikasi. Nomor WhatsApp yang sama = akun yang sama.</p>
+                </div>
+              </li>
+              <li>
+                <span class="ak-benefit-ic">🤝</span>
+                <div>
+                  <strong>Aktifkan kemitraan kapan saja</strong>
+                  <p>Kode referal universal, komisi dari tiap rekomendasi yang jadi.</p>
+                </div>
+              </li>
+            </ul>
+
+            <div class="ak-side-note">
+              <strong>Sudah pernah pakai aplikasi Kasir Solo?</strong>
+              <p>Masuk atau daftar dengan nomor WhatsApp yang sama — lisensi yang sudah aktif otomatis muncul, tanpa perlu pindah perangkat.</p>
+            </div>
+
+            <a class="ak-btn ak-btn-ghost ak-side-wa" href={waAdmin} target="_blank" rel="noopener">
+              💬 Lupa PIN? Chat admin
+            </a>
+          </div>
+        </aside>
+      </div><!-- /ak-wrap -->
+    </div>
+  </section>
+</Base>
+
+<style>
+  .ak-page { padding-top: 20px; }
+  /* Grid funnel: form (kiri) + panel manfaat (kanan). */
+  .ak-wrap {
+    display: grid; gap: 18px; align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+    max-width: 1000px; margin: 0 auto;
+  }
+  /* Setelah login: panel hilang, dashboard satu kolom di tengah. */
+  .ak-wrap.is-dash { grid-template-columns: minmax(0, 1fr); max-width: 760px; }
+  .ak-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; max-width: 760px; margin: 0 auto 26px;
+  }
+  .ak-brand { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; color: var(--text-1); }
+  .ak-brand img { border-radius: 8px; }
+  .ak-brand strong { font-size: 15px; letter-spacing: .02em; }
+  .ak-brand strong span { color: var(--orange); }
+  .ak-back { font-size: 13px; color: var(--text-2); text-decoration: none; }
+  .ak-back:hover { color: var(--orange); }
+  .ak-card {
+    max-width: 100%; margin: 0 0 18px;
+    border: 1px solid var(--line-2); border-radius: 20px;
+    background: var(--card); padding: 26px;
+  }
+  .ak-side-card { position: sticky; top: 18px; margin-bottom: 0; }
+  .ak-side-card h3 { margin-bottom: 16px; }
+  .ak-benefit { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+  .ak-benefit li { display: flex; gap: 12px; align-items: flex-start; }
+  .ak-benefit-ic {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 10px;
+    display: grid; place-items: center; font-size: 17px;
+    background: rgba(255, 95, 31, .12); border: 1px solid rgba(255, 95, 31, .28);
+  }
+  .ak-benefit strong { display: block; font-size: 14px; margin-bottom: 3px; }
+  .ak-benefit p { margin: 0; font-size: 12.5px; color: var(--text-2); line-height: 1.55; }
+  .ak-side-note {
+    margin-top: 18px; padding: 14px; border-radius: 14px;
+    border: 1px dashed var(--line-2); background: rgba(0, 0, 0, .16);
+  }
+  .ak-side-note strong { font-size: 13px; }
+  .ak-side-note p { margin: 6px 0 0; font-size: 12.5px; color: var(--text-2); line-height: 1.55; }
+  .ak-side-wa { width: 100%; margin-top: 14px; text-align: center; text-decoration: none; display: block; }
+  .ak-card h3 { margin: 0; font-size: 18px; }
+  .ak-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .ak-tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .ak-tab {
+    flex: 1; padding: 11px 14px; border-radius: 12px; cursor: pointer;
+    background: transparent; color: var(--text-2);
+    border: 1px solid var(--line-2); font: inherit; font-weight: 700;
+  }
+  .ak-tab.is-on { background: var(--orange); border-color: var(--orange); color: #fff; }
+  .ak-form { display: grid; gap: 14px; }
+  .ak-grid2 { display: grid; gap: 18px 14px; grid-template-columns: 1fr 1fr; }
+  .ak-field { display: grid; gap: 7px; }
+  .ak-field > span { font-size: 13px; color: var(--text-2); font-weight: 600; }
+  .ak-field input,
+  .ak-field select,
+  .ak-field textarea {
+    width: 100%; padding: 13px 14px; border-radius: 12px; font: inherit;
+    border: 1px solid var(--line-2); background: rgba(0, 0, 0, .18); color: var(--text-1);
+    box-sizing: border-box;
+  }
+  .ak-field input:focus,
+  .ak-field select:focus,
+  .ak-field textarea:focus { outline: none; border-color: var(--orange); }
+  .ak-field select option { color: var(--text-1); }
+  .ak-field textarea { resize: vertical; min-height: 64px; }
+  .ak-btn {
+    padding: 13px 18px; border-radius: 12px; font: inherit; font-weight: 700;
+    cursor: pointer; border: 1px solid transparent;
+  }
+  .ak-btn-primary { background: var(--orange); color: #fff; }
+  .ak-btn-primary:disabled { opacity: .6; cursor: progress; }
+  .ak-btn-ghost { background: transparent; color: var(--text-1); border-color: var(--line-2); }
+  .ak-hint, .ak-note { font-size: 13px; color: var(--text-2); line-height: 1.6; margin: 0; }
+  /* Ritme vertikal kartu: catatan → form → tombol → pesan, jarak konsisten. */
+  .ak-card > .ak-note { margin-bottom: 18px; }
+  .ak-grid2 + .ak-btn,
+  .ak-field + .ak-btn { margin-top: 20px; }
+  .ak-grid2 + .ak-field { margin-top: 18px; }
+  .ak-field + .ak-note { margin-top: 10px; }
+  .ak-dim { opacity: .75; }
+  .ak-msg {
+    margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; font-size: 13.5px;
+    border: 1px solid var(--line-2); background: rgba(0, 0, 0, .18);
+  }
+  .ak-msg.is-error { border-color: #b42318; }
+  .ak-msg.is-ok { border-color: #12805c; }
+  .ak-identity { display: flex; align-items: center; gap: 16px; }
+  .ak-ava {
+    width: 54px; height: 54px; border-radius: 50%; flex-shrink: 0;
+    display: grid; place-items: center; font-weight: 800; font-size: 20px;
+    background: var(--orange); color: #fff;
+  }
+  .ak-id-text { flex: 1; min-width: 0; }
+  .ak-id-text h3 { margin: 0 0 4px; font-size: 19px; }
+  .ak-sub { margin: 0; font-size: 13px; color: var(--text-2); word-break: break-word; }
+  .ak-badge {
+    font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px;
+    background: var(--orange); color: #fff; white-space: nowrap;
+  }
+  .ak-badge-soft { background: transparent; color: var(--text-2); border: 1px solid var(--line-2); }
+  .ak-lic {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 14px; border: 1px solid var(--line-2); border-radius: 14px;
+    background: rgba(0, 0, 0, .18); margin-bottom: 10px;
+  }
+  .ak-lic-ic { font-size: 22px; line-height: 1; }
+  .ak-lic-main { flex: 1; min-width: 0; }
+  .ak-lic-name { font-weight: 700; margin: 0 0 3px; }
+  .ak-lic-sub { margin: 0; font-size: 12.5px; color: var(--text-2); }
+  .ak-chip { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+  .ak-chip.on { background: rgba(18, 128, 92, .18); color: #34d399; border: 1px solid rgba(52, 211, 153, .4); }
+  .ak-chip.off { background: rgba(180, 35, 24, .16); color: #f87171; border: 1px solid rgba(248, 113, 113, .35); }
+  .ak-applinks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .ak-applinks a {
+    font-size: 13px; padding: 9px 12px; border-radius: 10px; text-decoration: none;
+    border: 1px solid var(--line-2); color: var(--text-1);
+  }
+  .ak-applinks a:hover { border-color: var(--orange); color: var(--orange); }
+  .ak-code-row { display: flex; gap: 10px; align-items: center; margin: 0 0 4px; }
+  .ak-code-row code {
+    flex: 1; font-size: 18px; font-weight: 800; letter-spacing: .06em;
+    padding: 12px 14px; border-radius: 12px; text-align: center;
+    background: rgba(0, 0, 0, .24); border: 1px dashed var(--line-2);
+  }
+  .ak-reflink {
+    display: block; margin: 0 0 4px; font-size: 13px; color: var(--text-2);
+    text-decoration: none; word-break: break-all; text-align: center;
+  }
+  .ak-reflink:hover { color: var(--orange); }
+  /* Ringkasan angka */
+  .ak-stats {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;
+    margin-bottom: 18px;
+  }
+  .ak-stat {
+    border: 1px solid var(--line-2); border-radius: 14px;
+    background: var(--card); padding: 14px 12px; text-align: center;
+  }
+  .ak-stat-n { display: block; font-size: 20px; font-weight: 800; line-height: 1.2; }
+  .ak-stat-l { display: block; font-size: 11.5px; color: var(--text-2); margin-top: 3px; }
+
+  /* Detail lisensi: perangkat + aksi */
+  .ak-dev-list { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .ak-dev {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    font-size: 12.5px; color: var(--text-2);
+    padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, .16);
+    border: 1px solid var(--line-2);
+  }
+  .ak-dev .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text-1); }
+  .ak-lic-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .ak-lic-actions .ak-btn { padding: 9px 12px; font-size: 12.5px; }
+  .ak-code-box {
+    margin-top: 10px; padding: 12px; border-radius: 12px;
+    border: 1px dashed var(--orange); background: rgba(255, 95, 31, .08);
+    font-size: 12.5px;
+  }
+  .ak-code-box code { font-size: 16px; font-weight: 800; letter-spacing: .05em; }
+
+  /* Kemitraan: saldo, riwayat */
+  .ak-balance {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
+  }
+  .ak-balance > div {
+    padding: 12px; border-radius: 12px; background: rgba(0, 0, 0, .18);
+    border: 1px solid var(--line-2);
+  }
+  .ak-balance span { display: block; font-size: 11.5px; color: var(--text-2); }
+  .ak-balance strong { display: block; font-size: 15px; margin-top: 4px; }
+  .ak-row {
+    display: flex; justify-content: space-between; gap: 10px;
+    padding: 9px 0; border-bottom: 1px solid var(--line-2); font-size: 12.5px;
+  }
+  .ak-row:last-child { border-bottom: none; }
+  .ak-row-main { min-width: 0; }
+  .ak-row-main strong { display: block; font-size: 13px; }
+  .ak-row-main span { color: var(--text-2); }
+  .ak-row-side { text-align: right; white-space: nowrap; }
+  .ak-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .ak-help-wa { display: block; margin-top: 12px; text-align: center; text-decoration: none; }
+  @media (max-width: 640px) {
+    .ak-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ak-balance { grid-template-columns: 1fr; }
+  }
+
+  /* Modal pencairan */
+  .ak-modal { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; }
+  .ak-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .65); }
+  .ak-modal-panel {
+    position: relative; width: 100%; max-width: 460px; margin: 0;
+    max-height: calc(100dvh - 32px); overflow-y: auto;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+  }
+  .ak-modal-close {
+    width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+    border: 1px solid var(--line-2); background: transparent; color: var(--text-2);
+    font: inherit; font-size: 14px; flex-shrink: 0;
+  }
+  .ak-modal-close:hover { color: var(--text-1); border-color: var(--orange); }
+
+  /* PENTING: banyak elemen di halaman ini punya display (grid/flex) dari class,
+     sedangkan atribut `hidden` hanya display:none dari UA stylesheet — kalah
+     spesifisitas. Tanpa aturan ini, form Masuk & Daftar tampil bersamaan. */
+  .ak-page [hidden] { display: none !important; }
+  .ak-hidden { display: none !important; }
+  @media (max-width: 880px) {
+    .ak-wrap { grid-template-columns: minmax(0, 1fr); }
+    .ak-side-card { position: static; }
+  }
+  @media (max-width: 640px) {
+    .ak-page { padding-top: 16px; }
+    .ak-topbar { margin-bottom: 18px; }
+    .ak-card { padding: 20px 16px; }
+    .ak-grid2 { grid-template-columns: 1fr; }
+    .ak-identity { flex-wrap: wrap; }
+  }
+</style>
+
+<script>
+  import {
+    accountReady, sesiSekarang, masuk, daftar, keluar, profil, lisensiSaya,
+    gantiProfil, gantiPin, appLinks, ringkasan, riwayatReferral, riwayatPencairan,
+    ajukanPencairan, buatKodeAktivasi, keluarSemuaPerangkat, pastikanReferral,
+    type ProfilAkun, type LisensiAkun, type RingkasanAkun,
+  } from '../lib/account';
+
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T | null;
+  const show = (el: HTMLElement | null, on: boolean) => { if (el) el.hidden = !on; };
+
+  const APP_META: Record<string, { label: string; icon: string }> = {
+    kaki5: { label: 'Kaki Lima', icon: '🛒' },
+    rosok: { label: 'Rosok', icon: '♻️' },
+    laundry: { label: 'Laundry', icon: '🧺' },
+    minimarket: { label: 'Minimarket', icon: '🏪' },
+    retail: { label: 'Retail', icon: '🏬' },
+  };
+
+  const rupiah = (n: number) => 'Rp' + new Intl.NumberFormat('id-ID').format(Math.round(n || 0));
+  const tgl = (s: string) => {
+    if (!s) return '';
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
+  ));
+
+  let mode: 'masuk' | 'daftar' = 'masuk';
+
+  const msgTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+  function setMsg(el: HTMLElement | null, text: string, kind: 'ok' | 'error' | '' = '') {
+    if (!el) return;
+    // Pesan baru membatalkan auto-clear pesan sebelumnya — tanpa ini pesan
+    // error bisa terhapus oleh timer pesan sukses yang masih pending (race QA).
+    const prev = msgTimers.get(el);
+    if (prev) clearTimeout(prev);
+    msgTimers.delete(el);
+    el.textContent = text;
+    el.className = 'ak-msg' + (kind ? ` is-${kind}` : '');
+    el.hidden = !text;
+  }
+  function autoClearMsg(el: HTMLElement | null, ms = 2600) {
+    if (!el) return;
+    msgTimers.set(el, setTimeout(() => { msgTimers.delete(el); setMsg(el, ''); }, ms));
+  }
+
+  function switchMode(next: 'masuk' | 'daftar') {
+    mode = next;
+    // Scope ke tab AUTH saja — tab dashboard (data-dtab) jangan ikut tersentuh.
+    document.querySelectorAll('.ak-tab[data-mode]').forEach((b) => {
+      const on = (b as HTMLElement).dataset.mode === next;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-selected', String(on));
+    });
+    show($('akMasukForm'), next === 'masuk');
+    show($('akDaftarForm'), next === 'daftar');
+    setMsg($('akMsg'), '');
+  }
+
+  function renderProfil(p: ProfilAkun, kodeReferral?: string | null) {
+    const nama = p.nama || 'Akun Kasol';
+    const elNama = $('akNama'); if (elNama) elNama.textContent = nama;
+    const ava = $('akAva'); if (ava) ava.textContent = nama.trim().charAt(0).toUpperCase() || 'A';
+    const wa = $('akWa'); if (wa) wa.textContent = p.wa ? `+${p.wa}` : '—';
+    const st = $('akStatus');
+    if (st) st.textContent = p.phoneVerified ? 'Akun terverifikasi' : 'Akun aktif · nomor belum diverifikasi';
+    const gid = $('akGid'); if (gid) gid.textContent = `ID akun: ${p.gid}`;
+
+    // Kode referal: otomatis sejak daftar (Fase A3) → SELALU dirender.
+    const kode = kodeReferral || p.mitra?.code || '';
+    const codeEl = $('akMitraCode'); if (codeEl) codeEl.textContent = kode || '—';
+
+    // Fitur portal yang diport (Fase migrasi portal → referal):
+    // link referal /r/<kode> + tombol bagikan ke WhatsApp.
+    const linkEl = $('akRefLink') as HTMLAnchorElement | null;
+    const shareEl = $('akShareWa') as HTMLAnchorElement | null;
+    if (kode) {
+      const url = `${location.origin}/r/${encodeURIComponent(kode)}`;
+      if (linkEl) { linkEl.href = url; linkEl.textContent = url.replace(/^https?:\/\//, ''); }
+      if (shareEl) {
+        const pesan = [
+          `Halo, gue ${nama}.`,
+          '',
+          'Gue pakai aplikasi kasir dari PT Mesin Kasir Solo.',
+          `Beli lewat link ini, dapet diskon lisensi pertama: ${url}`,
+          '',
+          `Kode gue: ${kode}`,
+        ].join('\n');
+        shareEl.href = `https://wa.me/?text=${encodeURIComponent(pesan)}`;
+      }
+    }
+
+    const badge = $('akMitraBadge');
+    const aktif = !!p.mitra && p.mitra.status === 'aktif';
+    if (badge) {
+      badge.textContent = aktif ? 'Mitra aktif' : (p.mitra ? `Mitra ${p.mitra.status}` : 'Menyiapkan…');
+      badge.className = 'ak-badge' + (aktif ? '' : ' ak-badge-soft');
+    }
+    // Kartu Data Diri (tab Profil): isi nilai terkini.
+    const inNama = $<HTMLInputElement>('akNamaInput'); if (inNama) inNama.value = nama;
+    const inWa = $<HTMLInputElement>('akWaInput'); if (inWa) inWa.value = p.wa ? `+${p.wa}` : '—';
+    const inAlamat = $<HTMLTextAreaElement>('akAlamatInput');
+    if (inAlamat) inAlamat.value = p.client?.alamatDetail || '';
+    // Target wilayah disimpan, diterapkan oleh picker emsifa setelah listener
+    // terpasang (di boot) — jangan dispatch di sini, nanti change-nya hilang.
+    const wt = (window as any).__akWilayahTarget ||= {};
+    wt.provinsi = p.client?.provinsi || p.mitra?.provinsi || '';
+    wt.kabkota = p.client?.kabkota || p.mitra?.kota || '';
+    wt.kecamatan = p.client?.kecamatan || '';
+    wt.desa = p.client?.desa || '';
+    // Picker mungkin sudah siap duluan (RPC profil belakangan) → re-apply.
+    if ((window as any).__akPickerReady) void (window as any).__akApplyWilayah?.(wt);
+    const pBadge = $('akProfilBadge');
+    if (pBadge) {
+      pBadge.textContent = p.phoneVerified ? 'Terverifikasi' : 'Belum terverifikasi';
+    }
+  }
+
+  /** Tab dashboard: Profil | Lisensi */
+  function switchDashTab(next: 'profil' | 'lisensi' | 'referal') {
+    document.querySelectorAll('.ak-dtabs .ak-tab').forEach((b) => {
+      const on = (b as HTMLElement).dataset.dtab === next;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-selected', String(on));
+    });
+    show($('akTabProfil'), next === 'profil');
+    show($('akTabLisensi'), next === 'lisensi');
+    show($('akTabReferal'), next === 'referal');
+  }
+
+  function renderLisensi(list: LisensiAkun[], links: Record<string, string>) {
+    const host = $('akLicList');
+    const count = $('akLicCount');
+    if (count) count.textContent = `${list.length} lisensi`;
+    if (!host) return;
+    if (!list.length) {
+      host.innerHTML = '<p class="ak-note">Belum ada lisensi terikat ke akun ini. Beli lewat aplikasi, lalu lisensinya otomatis muncul di sini.</p>';
+      return;
+    }
+    host.innerHTML = list.map((l) => {
+      const meta = APP_META[l.appType] || { label: l.appType, icon: '📦' };
+      const on = l.status === 'active' && !l.expired;
+      const activeDev = l.devices.filter((d) => d.status === 'active');
+      const dev = `${activeDev.length}/${l.maxDevices} perangkat`;
+      const quota = l.txQuota == null ? '' : ` · kuota ${l.txUsed}/${l.txQuota}`;
+      const url = links[l.appType];
+
+      const devRows = activeDev.length
+        ? `<ul class="ak-dev-list">${activeDev.map((d) => `
+            <li class="ak-dev">
+              <span class="mono">${esc(d.label || d.deviceCode)}</span>
+              <span>${d.lastSeen ? 'aktif ' + tgl(d.lastSeen) : 'aktif'}</span>
+            </li>`).join('')}</ul>`
+        : '<p class="ak-note ak-dim" style="margin-top:8px">Belum ada perangkat aktif tercatat.</p>';
+
+      const actions = `<div class="ak-lic-actions">
+        ${on ? `<button class="ak-btn ak-btn-ghost" type="button" data-activate="${esc(l.licenseId)}" data-maxdev="${l.maxDevices}">+ Tambah perangkat</button>` : ''}
+        ${url ? `<a class="ak-btn ak-btn-ghost" href="${esc(url)}" target="_blank" rel="noopener">Buka aplikasi</a>` : ''}
+      </div>`;
+
+      return `<div class="ak-lic">
+        <div class="ak-lic-ic">${meta.icon}</div>
+        <div class="ak-lic-main">
+          <p class="ak-lic-name">${meta.label} <span class="ak-chip ${on ? 'on' : 'off'}">${on ? 'Aktif' : (l.expired ? 'Kedaluwarsa' : l.status)}</span></p>
+          <p class="ak-lic-sub">${esc(l.kodeProduk || l.appType)} · ${l.maxDevices > 1 ? l.maxDevices + ' perangkat' : '1 perangkat'} · ${dev}${quota}</p>
+          ${devRows}
+          ${actions}
+          <div data-code-for="${esc(l.licenseId)}"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderRingkasan(r: RingkasanAkun | null) {
+    const set = (id: string, v: string) => { const el = $(id); if (el) el.textContent = v; };
+    set('akStatLic', r ? String(r.licenses) : '—');
+    set('akStatDev', r ? String(r.devices) : '—');
+    set('akStatRef', r ? String(r.referrals) : '—');
+    set('akStatPoin', r ? rupiah(r.pointsReady * 1000) : '—');
+    // Rincian saldo hanya relevan bagi mitra
+    set('akSaldoReady', r ? rupiah(r.pointsReady * 1000) : '—');
+    set('akSaldoPending', r ? rupiah(r.pointsPending * 1000) : '—');
+    set('akSaldoRupiah', r ? rupiah(r.rupiahBalance) : '—');
+  }
+
+  function renderReferral(list: Array<{ name: string; city: string; product: string; status: string; points: number; date: string }>) {
+    const host = $('akRefList');
+    if (!host) return;
+    if (!list.length) {
+      host.innerHTML = '<p class="ak-note ak-dim">Belum ada referral. Bagikan kode lo untuk mulai.</p>';
+      return;
+    }
+    const label: Record<string, string> = { paid: 'Lunas', free: 'Gratis', pending: 'Pending' };
+    host.innerHTML = list.map((r) => `
+      <div class="ak-row">
+        <div class="ak-row-main">
+          <strong>${esc(r.name)}</strong>
+          <span>${esc([r.city, r.product].filter(Boolean).join(' · '))}</span>
+        </div>
+        <div class="ak-row-side">
+          <strong>${r.points} poin</strong>
+          <span>${esc(label[r.status] || r.status)} · ${tgl(r.date)}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderPencairan(list: Array<{ id: string; date: string; points: number; amount: number; status: string; note: string }>) {
+    const host = $('akPayoutList');
+    if (!host) return;
+    if (!list.length) {
+      host.innerHTML = '<p class="ak-note ak-dim">Belum ada pencairan.</p>';
+      return;
+    }
+    const label: Record<string, string> = { selesai: 'Selesai', diproses: 'Diproses', ditolak: 'Ditolak' };
+    host.innerHTML = list.map((p) => `
+      <div class="ak-row">
+        <div class="ak-row-main">
+          <strong>${esc(p.id)}</strong>
+          <span>${esc(p.note || '—')}</span>
+        </div>
+        <div class="ak-row-side">
+          <strong>${rupiah(p.amount)}</strong>
+          <span>${esc(label[p.status] || p.status)} · ${tgl(p.date)}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  async function renderAppLinks() {
+    const host = $('akAppLinks');
+    if (!host) return;
+    const links = await appLinks();
+    const entries = Object.entries(links);
+    host.innerHTML = entries.length
+      ? entries.map(([k, url]) => {
+          const meta = APP_META[k] || { label: k, icon: '📦' };
+          return `<a href="${url}" target="_blank" rel="noopener">${meta.icon} Buka ${meta.label}</a>`;
+        }).join('')
+      : '';
+  }
+
+  async function loadDashboard() {
+    const sesi = await sesiSekarang();
+    const auth = $('akAuth');
+    const dash = $('akDash');
+    const side = $('akSide');
+    const wrap = $('akWrap');
+    if (!sesi) {
+      show(auth, true);
+      show(dash, false);
+      show(side, true);
+      show($('akHero'), true);
+      wrap?.classList.remove('is-dash');
+      return;
+    }
+    show(auth, false);
+    show(dash, true);
+    // Dashboard: panel manfaat + hero pemasaran tidak relevan — fokus ke data akun.
+    show(side, false);
+    show($('akHero'), false);
+    wrap?.classList.add('is-dash');
+
+    const [p, list, ring, links, ref] = await Promise.all([
+      profil(), lisensiSaya(), ringkasan(), appLinks(), pastikanReferral(),
+    ]);
+
+    // pastikanReferral menambal akun lama yang belum punya baris mitra/kode.
+    if (p) renderProfil(p, ref?.code ?? null);
+    renderLisensi(list, links);
+    renderRingkasan(ring);
+    void renderAppLinks();
+    void initTautanPerangkat();
+
+    // Setiap akun kini otomatis punya partner (Fase A3) → riwayat selalu dimuat.
+    const [refs, payouts] = await Promise.all([riwayatReferral(5), riwayatPencairan()]);
+    renderReferral(refs);
+    renderPencairan(payouts);
+  }
+
+  // ── URL Akses Perangkat Kaki5 (konsep 2026-11-07) ─────────────────────────
+  // Tautan khusus untuk perangkat tanpa akun: dibuka → kaki5 langsung mode
+  // Pemilik perangkat (penangan di kaki5/js/account.js → applyAksesPerangkatLink).
+  // Kunci acak dibuat di browser & disimpan lokal supaya URL yang sama tampil
+  // lagi. Kunci TIDAK divalidasi server — pintunya memang terbuka, setara
+  // tombol "Lanjut tanpa akun" yang dulu ada di gerbang kaki5.
+  const TAUTAN_KEY = 'ak_device_url_v1';
+  const TAUTAN_FALLBACK = 'https://kaki5.kasirsolo.com';
+
+  function tautanKey(): string {
+    const b = new Uint8Array(16);
+    crypto.getRandomValues(b);
+    return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function tautanBaru(): Promise<string> {
+    let base = TAUTAN_FALLBACK;
+    try {
+      const links = await appLinks();
+      if (links.kaki5) base = links.kaki5.replace(/\/+$/, '');
+    } catch { /* pakai fallback */ }
+    return `${base}/#akses-perangkat?k=${tautanKey()}`;
+  }
+
+  function renderTautan(url: string) {
+    const panel = $('akTautanPanel');
+    const codeEl = $('akTautanUrl');
+    const wa = $('akTautanWa') as HTMLAnchorElement | null;
+    if (codeEl) codeEl.textContent = url;
+    if (wa) {
+      const pesan = [
+        'Coba aplikasi kasir Kaki5 — buka tautan ini di HP lo:',
+        url,
+        '',
+        'Nggak perlu daftar dulu, langsung bisa dipakai. Kalau nanti mau sinkron lisensi, tinggal bikin Akun Kasol di dalam aplikasi.',
+      ].join('\n');
+      wa.href = `https://wa.me/?text=${encodeURIComponent(pesan)}`;
+    }
+    if (panel) panel.hidden = false;
+  }
+
+  async function initTautanPerangkat() {
+    try {
+      const saved = localStorage.getItem(TAUTAN_KEY);
+      if (saved && /^https?:\/\//.test(saved)) renderTautan(saved);
+    } catch { /* abaikan */ }
+  }
+
+  async function boot() {
+    if (!accountReady) {
+      show($('akNotReady'), true);
+      show($('akAuth'), false);
+      return;
+    }
+    show($('akNotReady'), false);
+    await loadDashboard();
+
+    // Deep-link ?daftar=1 (dari tautan app klien/kampanye) → langsung tab Daftar.
+    try {
+      const q = new URLSearchParams(location.search);
+      if ((q.get('daftar') || '') === '1') switchMode('daftar');
+    } catch { /* abaikan */ }
+
+    document.querySelectorAll('.ak-tab[data-mode]').forEach((b) =>
+      b.addEventListener('click', () => switchMode(((b as HTMLElement).dataset.mode as 'masuk' | 'daftar') || 'masuk')));
+
+    // Tab dashboard: Profil | Lisensi
+    document.querySelectorAll('.ak-dtabs .ak-tab[data-dtab]').forEach((b) =>
+      b.addEventListener('click', () => switchDashTab(((b as HTMLElement).dataset.dtab as 'profil' | 'lisensi' | 'referal') || 'profil')));
+
+    $<HTMLFormElement>('akMasukForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const wa = ($<HTMLInputElement>('akMasukWa')?.value || '').trim();
+      const pin = ($<HTMLInputElement>('akMasukPin')?.value || '').trim();
+      const btn = $<HTMLButtonElement>('akMasukForm')?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+      if (btn) btn.disabled = true;
+      const res = await masuk(wa, pin);
+      if (btn) btn.disabled = false;
+      if (!res.ok) { setMsg($('akMsg'), res.reason || 'Gagal masuk.', 'error'); return; }
+      setMsg($('akMsg'), '');
+      await loadDashboard();
+    });
+
+    $<HTMLFormElement>('akDaftarForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nama = ($<HTMLInputElement>('akDaftarNama')?.value || '').trim();
+      const wa = ($<HTMLInputElement>('akDaftarWa')?.value || '').trim();
+      const pin = ($<HTMLInputElement>('akDaftarPin')?.value || '').trim();
+      const pin2 = ($<HTMLInputElement>('akDaftarPin2')?.value || '').trim();
+      if (pin !== pin2) { setMsg($('akMsg'), 'PIN dan ulangannya nggak sama.', 'error'); return; }
+      const btn = $<HTMLButtonElement>('akDaftarForm')?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+      if (btn) btn.disabled = true;
+      const res = await daftar({ wa, pin, nama });
+      if (btn) btn.disabled = false;
+      if (!res.ok) {
+        if (res.code === 'already_registered') {
+          switchMode('masuk');
+          const inWa = $<HTMLInputElement>('akMasukWa');
+          if (inWa) inWa.value = wa;
+        }
+        setMsg($('akMsg'), res.reason || 'Pendaftaran gagal.', 'error');
+        return;
+      }
+      setMsg($('akMsg'), '');
+      await loadDashboard();
+    });
+
+    $('akKeluar')?.addEventListener('click', async () => {
+      await keluar();
+      await loadDashboard();
+      switchMode('masuk');
+    });
+
+    // (Simpan Data Diri — handler ada di blok picker emsifa di bawah)
+
+    // ── Emsifa region picker (Provinsi → Kabupaten → Kecamatan → Desa) ──
+    // Konsep sama dengan kaki5/js/region.js: API wilayah Indonesia emsifa
+    // (static JSON, tanpa key), multi-BASE fallback, cache localStorage agar
+    // tetap jalan setelah sekali online.
+    const REGION_BASES = [
+      'https://www.emsifa.com/api-wilayah-indonesia/api',
+      'https://raw.githubusercontent.com/emsifa/api-wilayah-indonesia/gh-pages/api',
+    ];
+    const REGION_CACHE_KEY = 'akun-region-cache-v1';
+    const regionCache: Record<string, unknown[]> = (() => {
+      try { return JSON.parse(localStorage.getItem(REGION_CACHE_KEY) || '{}'); } catch { return {}; }
+    })();
+    const persistRegionCache = () => {
+      try {
+        const keys = Object.keys(regionCache);
+        const trimmed: Record<string, unknown[]> = {};
+        for (const k of keys.slice(-60)) trimmed[k] = regionCache[k];
+        localStorage.setItem(REGION_CACHE_KEY, JSON.stringify(trimmed));
+      } catch { /* kuota penuh — cukup cache memori */ }
+    };
+    async function emsifaGetJson(path: string): Promise<Array<{ id: string | number; name: string }>> {
+      const key = 'region:' + path;
+      if (regionCache[key]) return regionCache[key] as Array<{ id: string | number; name: string }>;
+      let lastErr: unknown = null;
+      for (const base of REGION_BASES) {
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 12000);
+          const r = await fetch(base + path, { signal: ctrl.signal }).finally(() => clearTimeout(t));
+          if (r.ok) {
+            const j = await r.json() as Array<{ id: string | number; name: string }>;
+            regionCache[key] = j;
+            persistRegionCache();
+            return j;
+          }
+          lastErr = new Error('region ' + r.status);
+        } catch (e) { lastErr = e; }
+      }
+      throw lastErr || new Error('region: semua sumber wilayah gagal');
+    }
+
+    const provSel = $<HTMLSelectElement>('akProvinsiInput');
+    const kabSel = $<HTMLSelectElement>('akKotaInput');
+    const kecSel = $<HTMLSelectElement>('akKecamatanInput');
+    const desaSel = $<HTMLSelectElement>('akDesaInput');
+
+    const resetWilayah = () => {
+      kabSel!.innerHTML = '<option value="">Kabupaten</option>'; kabSel!.disabled = true;
+      kecSel!.innerHTML = '<option value="">Kecamatan</option>'; kecSel!.disabled = true;
+      desaSel!.innerHTML = '<option value="">Desa</option>'; desaSel!.disabled = true;
+    };
+
+    const fillSel = async (sel: HTMLSelectElement, path: string, placeholder: string) => {
+      sel.disabled = true;
+      sel.innerHTML = '<option value="">Memuat…</option>';
+      try {
+        const items = await emsifaGetJson(path);
+        sel.innerHTML = '<option value="">' + placeholder + '</option>' +
+          items.map((it) => '<option value="' + String(it.id) + '">' + esc(it.name) + '</option>').join('');
+      } catch {
+        sel.innerHTML = '<option value="">Gagal memuat</option>';
+      }
+      sel.disabled = false;
+    };
+
+    // Pilih opsi berdasar NAMA (teks) — nilai option = id emsifa. Cocok longgar:
+    // "Surakarta" cocok dengan "Kota Surakarta", "Sukoharjo" dengan "Kabupaten Sukoharjo".
+    const matchSel = (sel: HTMLSelectElement, name: string): string | null => {
+      const want = name.trim().toLowerCase();
+      if (!want) return null;
+      const strip = (s: string) => s.replace(/^(kabupaten|kota)\s+/i, '').trim().toLowerCase();
+      for (const o of Array.from(sel.options)) {
+        if (!o.value) continue;
+        const ot = o.text.trim().toLowerCase();
+        if (ot === want || strip(ot) === strip(want)) return o.value;
+      }
+      return null;
+    };
+
+    // Rantai prefill: pilih provinsi → muat kabupaten → pilih → muat kecamatan → dst.
+    async function applyWilayahTarget(t: { provinsi?: string; kabkota?: string; kecamatan?: string; desa?: string }) {
+      if (!provSel) return;
+      if (!t?.provinsi) return;
+      const provId = matchSel(provSel, t.provinsi);
+      if (!provId) return;
+      provSel.value = provId;
+      await fillSel(kabSel!, '/regencies/' + provId + '.json', 'Kabupaten');
+      if (t.kabkota) {
+        const kabId = matchSel(kabSel!, t.kabkota);
+        if (!kabId) return;
+        kabSel!.value = kabId;
+        await fillSel(kecSel!, '/districts/' + kabId + '.json', 'Kecamatan');
+        if (t.kecamatan) {
+          const kecId = matchSel(kecSel!, t.kecamatan);
+          if (!kecId) return;
+          kecSel!.value = kecId;
+          await fillSel(desaSel!, '/villages/' + kecId + '.json', 'Desa');
+          if (t.desa) {
+            const desaId = matchSel(desaSel!, t.desa);
+            if (desaId) desaSel!.value = desaId;
+          }
+        }
+      }
+    }
+
+    if (provSel) {
+      await fillSel(provSel, '/provinces.json', 'Provinsi');
+      provSel.addEventListener('change', async () => {
+        if (!provSel.value) { resetWilayah(); return; }
+        await fillSel(kabSel!, '/regencies/' + provSel.value + '.json', 'Kabupaten');
+        kecSel!.innerHTML = '<option value="">Kecamatan</option>'; kecSel!.disabled = true;
+        desaSel!.innerHTML = '<option value="">Desa</option>'; desaSel!.disabled = true;
+      });
+    }
+    kabSel?.addEventListener('change', async () => {
+      if (!kabSel!.value) { kecSel!.innerHTML = '<option value="">Kecamatan</option>'; kecSel!.disabled = true; return; }
+      await fillSel(kecSel!, '/districts/' + kabSel!.value + '.json', 'Kecamatan');
+      desaSel!.innerHTML = '<option value="">Desa</option>'; desaSel!.disabled = true;
+    });
+    kecSel?.addEventListener('change', async () => {
+      if (!kecSel!.value) { desaSel!.innerHTML = '<option value="">Desa</option>'; desaSel!.disabled = true; return; }
+      await fillSel(desaSel!, '/villages/' + kecSel!.value + '.json', 'Desa');
+    });
+
+    // Placeholder awal anak rantai sebelum profil/pilihan terisi.
+    resetWilayah();
+
+    // Terapkan target wilayah dari profil + ekspos utk re-apply saat profil
+    // RPC selesai belakangan (boot tidak menunggu RPC sebelum sampai sini).
+    (window as any).__akApplyWilayah = applyWilayahTarget;
+    (window as any).__akPickerReady = true;
+    void applyWilayahTarget((window as any).__akWilayahTarget || {});
+
+    // Teks opsi terpilih ('' kalau masih placeholder) untuk dikirim ke RPC.
+    const selText = (sel: HTMLSelectElement | null): string => {
+      if (!sel || !sel.value) return '';
+      return (sel.options[sel.selectedIndex]?.text || '').trim();
+    };
+
+    $('akSimpanProfil')?.addEventListener('click', async () => {
+      const btn = $<HTMLButtonElement>('akSimpanProfil');
+      const nama = ($<HTMLInputElement>('akNamaInput')?.value || '').trim();
+      if (nama.length < 2) { setMsg($('akProfilMsg'), 'Nama minimal 2 huruf.', 'error'); return; }
+      if (btn) btn.disabled = true;
+      const res = await gantiProfil({
+        nama,
+        provinsi: selText(provSel),
+        kota: selText(kabSel),
+        kecamatan: selText(kecSel),
+        desa: selText(desaSel),
+        alamat_detail: ($<HTMLTextAreaElement>('akAlamatInput')?.value || '').trim(),
+      });
+      if (btn) btn.disabled = false;
+      if (!res.ok) { setMsg($('akProfilMsg'), res.reason || 'Gagal menyimpan perubahan.', 'error'); return; }
+      const elNama = $('akNama'); if (elNama) elNama.textContent = nama;
+      const ava = $('akAva'); if (ava) ava.textContent = nama.trim().charAt(0).toUpperCase() || 'A';
+      setMsg($('akProfilMsg'), 'Perubahan tersimpan. ✓', 'ok');
+      autoClearMsg($('akProfilMsg'));
+    });
+
+    $('akCopyCode')?.addEventListener('click', async () => {
+      const code = $('akMitraCode')?.textContent?.trim() || '';
+      if (!code) return;
+      try {
+        await navigator.clipboard.writeText(code);
+        setMsg($('akKodeMsg'), `Kode ${code} disalin.`, 'ok');
+      } catch {
+        setMsg($('akKodeMsg'), `Salin manual: ${code}`, '');
+      }
+      autoClearMsg($('akKodeMsg'));
+    });
+
+    $('akGantiPin')?.addEventListener('click', async () => {
+      const p1 = ($<HTMLInputElement>('akPinBaru')?.value || '').trim();
+      const p2 = ($<HTMLInputElement>('akPinBaru2')?.value || '').trim();
+      if (p1 !== p2) { setMsg($('akPinMsg'), 'PIN dan ulangannya nggak sama.', 'error'); return; }
+      const res = await gantiPin(p1);
+      if (!res.ok) { setMsg($('akPinMsg'), res.reason || 'Gagal mengganti PIN.', 'error'); return; }
+      const a = $<HTMLInputElement>('akPinBaru'); if (a) a.value = '';
+      const b = $<HTMLInputElement>('akPinBaru2'); if (b) b.value = '';
+      setMsg($('akPinMsg'), 'PIN tersimpan.', 'ok');
+      autoClearMsg($('akPinMsg'));
+    });
+
+    // Keluar dari semua perangkat (sesi global Supabase Auth)
+    $('akKeluarSemua')?.addEventListener('click', async () => {
+      if (!confirm('Keluar dari SEMUA perangkat yang memakai akun ini? Kamu harus masuk ulang di sini.')) return;
+      const btn = $<HTMLButtonElement>('akKeluarSemua');
+      if (btn) btn.disabled = true;
+      const res = await keluarSemuaPerangkat();
+      if (btn) btn.disabled = false;
+      if (!res.ok) { setMsg($('akKeluarSemuaMsg'), res.reason || 'Gagal keluar dari semua perangkat.', 'error'); return; }
+      await loadDashboard();
+      switchMode('masuk');
+    });
+
+    // URL Akses Perangkat — generate / salin / kirim WA (kartu statis →
+    // listener biasa cukup; panel-nya tidak dirender ulang).
+    const buatTautan = async () => {
+      const btn = $<HTMLButtonElement>('akBuatTautan') || $<HTMLButtonElement>('akTautanBaru');
+      if (btn) btn.disabled = true;
+      const url = await tautanBaru();
+      if (btn) btn.disabled = false;
+      try { localStorage.setItem(TAUTAN_KEY, url); } catch { /* kuota penuh — abaikan */ }
+      renderTautan(url);
+      setMsg($('akTautanMsg'), 'URL siap dibagikan.', 'ok');
+      autoClearMsg($('akTautanMsg'));
+    };
+    $('akBuatTautan')?.addEventListener('click', () => void buatTautan());
+    $('akTautanBaru')?.addEventListener('click', () => {
+      if (!confirm('Generate URL baru? URL lama tetap berfungsi untuk orang yang sudah menyimpannya. Lanjut?')) return;
+      void buatTautan();
+    });
+    $('akCopyTautan')?.addEventListener('click', async () => {
+      const url = $('akTautanUrl')?.textContent?.trim() || '';
+      if (!url) return;
+      try {
+        await navigator.clipboard.writeText(url);
+        setMsg($('akTautanMsg'), 'URL disalin.', 'ok');
+      } catch {
+        setMsg($('akTautanMsg'), `Salin manual: ${url}`, '');
+      }
+      autoClearMsg($('akTautanMsg'));
+    });
+
+    // Tambah perangkat: terbitkan kode aktivasi 10 menit (delegated — kartu lisensi
+    // dirender ulang setiap load, jadi listener per-tombol akan hilang).
+    $('akLicList')?.addEventListener('click', async (e) => {
+      const btn = (e.target as HTMLElement)?.closest?.('[data-activate]') as HTMLButtonElement | null;
+      if (!btn) return;
+      const licenseId = btn.dataset.activate || '';
+      const box = document.querySelector(`[data-code-for="${licenseId}"]`) as HTMLElement | null;
+      if (!box) return;
+      btn.disabled = true;
+      const res = await buatKodeAktivasi(licenseId);
+      btn.disabled = false;
+      if (!res.ok) {
+        box.innerHTML = `<div class="ak-code-box" style="border-color:#b42318">${esc(res.reason || 'Kode gagal dibuat.')}</div>`;
+        return;
+      }
+      box.innerHTML = `<div class="ak-code-box">
+        <strong>Kode aktivasi perangkat baru</strong>
+        <p class="ak-note ak-dim">Buka aplikasi di perangkat baru → menu Lisensi → “Punya kode aktivasi?” → masukkan kode ini. Berlaku <strong>10 menit</strong>.</p>
+        <div class="ak-code-row" style="margin:8px 0 0">
+          <code>${esc(res.code || '')}</code>
+          <button class="ak-btn ak-btn-ghost" type="button" data-copy-code="${esc(res.code || '')}">Salin</button>
+        </div>
+      </div>`;
+    });
+
+    // Salin kode aktivasi
+    $('akLicList')?.addEventListener('click', async (e) => {
+      const btn = (e.target as HTMLElement)?.closest?.('[data-copy-code]') as HTMLButtonElement | null;
+      if (!btn) return;
+      try { await navigator.clipboard.writeText(btn.dataset.copyCode || ''); btn.textContent = 'Tersalin'; }
+      catch { btn.textContent = 'Salin manual'; }
+      setTimeout(() => { btn.textContent = 'Salin'; }, 2000);
+    });
+
+    // Ajukan pencairan (nominal otomatis = poin × Rp1.000 bila dikosongkan)
+    // ── Modal pencairan: buka dari kartu Saldo Komisi, tutup ✕ / klik backdrop.
+    const payoutModal = $('akPayoutModal');
+    const showPayoutModal = (on: boolean) => { if (payoutModal) payoutModal.hidden = !on; };
+    $('akBukaPayout')?.addEventListener('click', () => showPayoutModal(true));
+    payoutModal?.querySelectorAll('[data-close-payout]').forEach((el) =>
+      el.addEventListener('click', () => showPayoutModal(false)));
+
+    $('akAjukanPayout')?.addEventListener('click', async () => {
+      const points = Number(($<HTMLInputElement>('akPayoutPoints')?.value || '').trim());
+      const amountRaw = ($<HTMLInputElement>('akPayoutAmount')?.value || '').trim();
+      const amount = amountRaw ? Number(amountRaw) : points * 1000;
+      const bankInfo = ($<HTMLInputElement>('akPayoutBank')?.value || '').trim();
+      const btn = $<HTMLButtonElement>('akAjukanPayout');
+      if (btn) btn.disabled = true;
+      const res = await ajukanPencairan({ points, amount, bankInfo });
+      if (btn) btn.disabled = false;
+      if (!res.ok) { setMsg($('akPayoutMsg'), res.reason || 'Pencairan gagal diajukan.', 'error'); return; }
+      setMsg($('akPayoutMsg'), 'Request pencairan tercatat. Ditunggu transfer manual dari tim kami.', 'ok');
+      const f1 = $<HTMLInputElement>('akPayoutPoints'); if (f1) f1.value = '';
+      const f2 = $<HTMLInputElement>('akPayoutAmount'); if (f2) f2.value = '';
+      const f3 = $<HTMLInputElement>('akPayoutBank'); if (f3) f3.value = '';
+      await loadDashboard();
+    });
+  }
+
+  void boot();
+</script>

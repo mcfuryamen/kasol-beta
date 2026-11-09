@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Logo Kasir Solo Kaki Lima — gerobak v3: kanopi menempel bodi (satu siluet),
+       scallop dangkal, jendela layanan, gagang, roda. Full-bleed persegi. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F5821F"/>
+      <stop offset="0.55" stop-color="#D6501C"/>
+      <stop offset="1" stop-color="#B04018"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- kanopi (scallop dangkal, selebar bodi) -->
+  <path d="M112 122 H400 V170 A70 70 0 0 1 304 170 A70 70 0 0 1 208 170 A70 70 0 0 1 112 170 Z" fill="#FFFFFF"/>
+  <!-- bodi gerobak (menyatu dengan kanopi) -->
+  <rect x="112" y="162" width="288" height="144" rx="30" fill="#FFFFFF"/>
+  <!-- jendela layanan -->
+  <rect x="162" y="192" width="188" height="46" rx="20" fill="url(#bg)"/>
+  <!-- gagang dorong -->
+  <path d="M116 264 L 54 298" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round"/>
+  <!-- roda -->
+  <circle cx="256" cy="382" r="54" fill="none" stroke="#FFFFFF" stroke-width="24"/>
+  <circle cx="256" cy="382" r="13" fill="#FFFFFF"/>
+</svg>

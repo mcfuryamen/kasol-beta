@@ -1,0 +1,2307 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kasir Solo - Masjid</title>
+<meta name="description" content="Aplikasi manajemen masjid: kas & keuangan (infaq, donasi, pengeluaran), jamaah, kegiatan/kajian, inventaris. Offline, ringan, oleh PT Mesin Kasir Solo.">
+<meta name="theme-color" content="#F97316">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kasir Solo Masjid">
+<style>
+:root{
+  --brand-yellow:#FCD34D;--brand-orange:#F97316;--brand-orange-dark:#EA580C;--brand-red:#DC2626;
+  --brand-gradient:linear-gradient(135deg,#FCD34D 0%,#F97316 55%,#DC2626 100%);
+  --bg:#FBF7F1;--surface:#FFFFFF;--surface-2:#FFFBF6;--ink:#2B1D14;--ink-soft:#7A6A5C;--ink-faint:#A5978A;
+  --border:#F0E3D5;--border-strong:#E6D5C1;
+  --c-masuk:#0E7490;--c-masuk-bg:#E1F3F6;
+  --c-keluar:#8A4B12;--c-keluar-bg:#F6ECDD;
+  --c-jamaah:#6B5B95;--c-jamaah-bg:#EEEAFB;
+  --success:#16A34A;--success-bg:#E9F8EE;
+  --danger:#DC2626;--danger-bg:#FDECEC;
+  --warning:#D97706;--warning-bg:#FEF3E0;
+  --info:#0284C7;--info-bg:#E7F4FC;
+  --radius-lg:22px;--radius-md:16px;--radius-sm:11px;
+  --shadow-sm:0 2px 8px rgba(43,29,20,.06);--shadow-md:0 8px 24px rgba(43,29,20,.10);--shadow-lg:0 16px 40px rgba(43,29,20,.16);
+  --safe-bottom:env(safe-area-inset-bottom,0px);--safe-top:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);overscroll-behavior-y:none;-webkit-font-smoothing:antialiased;}
+button{font-family:inherit;}
+input,select,textarea{font-family:inherit;font-size:16px;}
+::selection{background:var(--brand-yellow);color:var(--ink);}
+
+.app{max-width:520px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);position:relative;}
+
+.app-header{position:fixed;top:0;left:0;right:0;max-width:520px;margin:0 auto;background:var(--brand-gradient);padding:calc(10px + var(--safe-top)) 16px 12px;border-radius:0 0 20px 20px;color:#fff;z-index:100;box-shadow:var(--shadow-md);}
+.app-header .row{display:flex;align-items:center;gap:10px;}
+.topbar-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.brand-mark{width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15);flex-shrink:0;font-size:20px;}
+.brand-name{font-weight:700;font-size:15px;letter-spacing:.2px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.brand-sub{font-size:11px;opacity:.85;margin-top:1px;white-space:nowrap;}
+.icon-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;}
+.icon-btn:active{transform:scale(.95);}
+.trial-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;padding:5px 10px;border-radius:10px;text-align:center;flex-shrink:0;min-width:62px;cursor:pointer;line-height:1.15;}
+.trial-badge.hidden{display:none;}
+.trial-badge.warn{background:#fff;color:var(--brand-orange-dark);border-color:#fff;}
+.trial-label-xs{font-size:10px;font-weight:800;letter-spacing:.05em;}
+.trial-value-sm{font-size:11px;opacity:.9;white-space:nowrap;}
+.view-title{font-size:18px;font-weight:800;margin:2px 0 12px;}
+
+.app-main{flex:1;padding:calc(76px + var(--safe-top)) 16px calc(100px + var(--safe-bottom));overflow-y:auto;}
+.view{display:none;animation:fadeIn .18s ease;}
+.view.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;margin-bottom:14px;box-shadow:var(--shadow-sm);}
+.card h3{margin:0 0 10px;font-size:14.5px;font-weight:800;}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.card-head h3{margin:0;}
+/* Website CMS */
+.web-status{display:flex;align-items:center;gap:12px;}
+.web-badge{font-size:10.5px;font-weight:800;letter-spacing:.5px;padding:5px 10px;border-radius:8px;background:var(--warning-bg);color:var(--warning);white-space:nowrap;}
+.web-badge.live{background:var(--success-bg);color:var(--success);}
+.web-status-txt{min-width:0;}
+.web-status-txt .t1{font-size:13px;font-weight:700;}
+.web-status-txt .t2{font-size:11.5px;color:var(--ink-faint);}
+.web-field{margin-bottom:10px;}
+.web-field label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-faint);margin-bottom:4px;}
+.web-item{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--surface-2);}
+.web-item-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.web-item-head b{font-size:12.5px;}
+.web-del{background:none;border:none;font-size:16px;cursor:pointer;padding:4px;}
+.web-thumb{width:100%;height:120px;object-fit:cover;border-radius:10px;margin-bottom:8px;background:var(--surface-2);display:block;}
+.web-sec-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);}
+.web-sec-row:last-child{border-bottom:none;}
+.web-sec-row .t{font-size:13px;font-weight:700;}
+.web-sec-row .d{font-size:11.5px;color:var(--ink-faint);}
+.section-title{font-size:13px;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;margin:18px 2px 8px;}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;box-shadow:var(--shadow-sm);}
+.stat-card .lbl{font-size:11.5px;color:var(--ink-soft);font-weight:700;}
+.stat-card .val{font-size:19px;font-weight:800;margin-top:4px;}
+.stat-card.orange{background:linear-gradient(135deg,#FFF3E4,#FFE8D1);}
+.stat-card.green{background:var(--success-bg);}
+.stat-card.red{background:var(--danger-bg);}
+.stat-card.blue{background:var(--info-bg);}
+
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px;}
+.quick-btn{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;box-shadow:var(--shadow-sm);}
+.quick-btn .ic{font-size:22px;}
+.quick-btn span{font-size:11px;font-weight:700;text-align:center;color:var(--ink);}
+
+.list-item{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border);}
+.list-item:last-child{border-bottom:none;}
+.list-item .avatar{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.list-item .meta{flex:1;min-width:0;}
+.list-item .meta .t{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.list-item .meta .s{font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.list-item .right{text-align:right;flex-shrink:0;}
+.list-item .right .amt{font-weight:800;font-size:14px;}
+.list-item .right .amt.plus{color:var(--success);}
+.list-item .right .amt.minus{color:var(--danger);}
+.list-item .right .badge{margin-top:3px;}
+
+.badge{display:inline-block;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px;}
+.badge.masuk{background:var(--success-bg);color:var(--success);}
+.badge.keluar{background:var(--danger-bg);color:var(--danger);}
+.badge.akandatang{background:var(--info-bg);color:var(--info);}
+.badge.selesai{background:#EFEFEF;color:#666;}
+.badge.baik{background:var(--success-bg);color:var(--success);}
+.badge.ringan{background:var(--warning-bg);color:var(--warning);}
+.badge.berat{background:var(--danger-bg);color:var(--danger);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:var(--radius-sm);padding:13px 16px;font-weight:800;font-size:14.5px;cursor:pointer;width:100%;}
+.btn-primary{background:var(--brand-gradient);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-secondary{background:#fff;border:1.5px solid var(--border-strong);color:var(--ink);}
+.btn-danger{background:var(--danger-bg);color:var(--danger);}
+.btn-sm{padding:8px 12px;font-size:12.5px;width:auto;border-radius:10px;}
+.btn-row{display:flex;gap:10px;}
+.btn-row .btn{flex:1;}
+
+label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin:10px 0 6px;}
+input[type=text],input[type=number],input[type=tel],input[type=date],input[type=time],select,textarea{
+  width:100%;padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);font-size:15px;background:#fff;color:var(--ink);
+}
+textarea{resize:vertical;min-height:70px;}
+.field-row{display:flex;gap:10px;}
+.field-row > div{flex:1;}
+
+.tabs{display:flex;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:4px;margin-bottom:14px;overflow-x:auto;}
+.tab{flex:1;text-align:center;padding:9px 10px;border-radius:11px;font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;white-space:nowrap;}
+.tab.active{background:var(--brand-gradient);color:#fff;}
+
+.empty{text-align:center;padding:36px 10px;color:var(--ink-faint);}
+.empty .ic{font-size:38px;margin-bottom:8px;}
+.empty .t{font-weight:700;color:var(--ink-soft);font-size:14px;}
+.empty .s{font-size:12.5px;margin-top:4px;}
+
+.search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:10px 14px;margin-bottom:12px;}
+.search-box input{border:none;padding:0;flex:1;background:transparent;}
+
+.fab{position:fixed;right:18px;bottom:calc(88px + var(--safe-bottom));width:56px;height:56px;border-radius:50%;background:var(--brand-gradient);color:#fff;border:none;font-size:28px;box-shadow:var(--shadow-lg);cursor:pointer;z-index:335;display:flex;align-items:center;justify-content:center;}
+
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;height:calc(72px + var(--safe-bottom));background:#fff;border-top:2px solid var(--border);display:flex;padding:0 6px var(--safe-bottom);box-shadow:0 -4px 16px rgba(43,29,20,.06);z-index:350;}
+#view-kas,#view-jamaah,#view-inventaris,#view-kegiatan{padding-bottom:64px;}
+.tut-head{display:flex;align-items:center;gap:12px;cursor:pointer;padding:4px 0;}
+.tut-ic{font-size:28px;line-height:1;}
+.tut-arrow{font-size:18px;color:var(--ink-soft);transition:transform .2s;display:inline-block;}
+.tut-arrow.open{transform:rotate(90deg);}
+.tut-body{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);line-height:1.6;font-size:13.5px;}
+.tut-body p{margin:0 0 8px;}
+.tut-body ol,.tut-body ul{margin:0 0 8px;padding-left:20px;}
+.tc-clause{margin-bottom:12px;}
+.tc-clause:last-child{margin-bottom:0;}
+.vid-wrap{position:relative;padding-top:56.25%;border-radius:12px;overflow:hidden;background:#000;margin-bottom:10px;}
+.vid-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+.nav-item{position:relative;flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 0;color:var(--ink-faint);font-size:11px;font-weight:600;cursor:pointer;transition:color .2s;}
+.nav-item .ic{font-size:26px;line-height:1;}
+.nav-item.active{color:var(--brand-orange-dark);}
+.nav-item.active::before{content:'';position:absolute;top:-2px;left:20%;right:20%;height:3px;background:var(--brand-gradient);border-radius:0 0 4px 4px;}
+
+.sheet-backdrop{position:fixed;inset:0;background:rgba(43,29,20,.45);z-index:360;display:none;}
+.sheet-backdrop.open{display:block;}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:#fff;border-radius:24px 24px 0 0;z-index:370;transform:translateY(100%);transition:transform .22s ease;max-height:86vh;overflow-y:auto;padding:10px 18px calc(24px + var(--safe-bottom));box-shadow:0 -10px 30px rgba(0,0,0,.2);}
+.sheet.open{transform:translateY(0);}
+.sheet-handle{width:40px;height:5px;background:var(--border-strong);border-radius:10px;margin:8px auto 14px;}
+.sheet h2{font-size:16px;margin:0 0 12px;}
+.sheet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px;}
+.sheet-item{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;border-radius:16px;background:var(--surface-2);cursor:pointer;}
+.sheet-item .ic{font-size:24px;width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;}
+.sheet-item span{font-size:11.5px;font-weight:700;text-align:center;}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(43,29,20,.5);z-index:380;display:none;align-items:flex-end;justify-content:center;}
+.modal-backdrop.open{display:flex;}
+.modal{background:#fff;width:100%;max-width:520px;border-radius:24px 24px 0 0;max-height:92vh;overflow-y:auto;padding:16px 18px calc(20px + var(--safe-bottom));}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.modal-head h2{font-size:16px;margin:0;}
+.modal-close{background:var(--surface-2);border:none;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;}
+
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:30px;font-size:13px;font-weight:700;z-index:400;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:opacity .2s, bottom .2s;}
+.toast.show{opacity:1;bottom:130px;}
+
+.pay-methods{display:flex;gap:8px;flex-wrap:wrap;}
+.pay-chip{padding:9px 14px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;}
+.pay-chip.active{background:var(--brand-gradient);color:#fff;border-color:transparent;}
+
+.locked-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
+.locked-screen.hidden{display:none;}
+.lock-card{background:#fff;border-radius:24px;padding:26px 22px;max-width:400px;width:100%;box-shadow:var(--shadow-lg);text-align:center;}
+.lock-card .ic{font-size:44px;margin-bottom:6px;}
+
+hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0;}
+.muted{color:var(--ink-soft);font-size:12.5px;}
+.total-row{display:flex;justify-content:space-between;font-size:14px;padding:4px 0;}
+.total-row.big{font-size:18px;font-weight:800;padding-top:8px;border-top:1.5px dashed var(--border-strong);margin-top:6px;}
+
+/* ===== Kasir Solo Platform ===== */
+.brand-mark{overflow:hidden;padding:0;}
+.brand-mark img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
+.pf-row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border);cursor:pointer;}
+.pf-row:last-child{border-bottom:none;}
+.pf-row.static{cursor:default;}
+.pf-row .ic{font-size:19px;width:38px;height:38px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pf-row .tx{flex:1;min-width:0;}
+.pf-row .tx b{display:block;font-size:14px;}
+.pf-row .tx span{display:block;font-size:12px;color:var(--ink-soft);margin-top:1px;}
+.pf-row .go{color:var(--ink-faint);font-size:20px;}
+.pf-switch{position:relative;width:46px;height:26px;flex-shrink:0;}
+.pf-switch input{opacity:0;width:0;height:0;position:absolute;}
+.pf-switch i{position:absolute;inset:0;background:var(--border-strong);border-radius:26px;transition:.2s;}
+.pf-switch i::before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+.pf-switch input:checked + i{background:var(--success);}
+.pf-switch input:checked + i::before{transform:translateX(20px);}
+.pf-device{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:800;letter-spacing:2px;font-size:22px;text-align:center;background:#FFF8F0;border:1.5px dashed var(--border-strong);border-radius:12px;padding:13px;}
+.pf-note{font-size:12px;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-top:10px;line-height:1.55;}
+.pf-ok{font-size:13px;font-weight:700;color:var(--success);background:var(--success-bg);border-radius:12px;padding:11px 13px;margin-bottom:10px;line-height:1.5;}
+.pf-warn{font-size:13px;font-weight:700;color:var(--warning);background:var(--warning-bg);border-radius:12px;padding:11px 13px;margin-bottom:10px;line-height:1.5;}
+.pf-lock{text-align:center;padding:8px 0 4px;}
+.pf-lock .big{font-size:42px;margin-bottom:4px;}
+.pf-kas{display:flex;align-items:center;gap:12px;}
+.pf-kas .st{flex:1;}
+.pf-kas .st b{display:block;font-size:14px;}
+.pf-kas .st span{font-size:12px;color:var(--ink-soft);}
+.pf-kas.open{border-color:#BBE5C8;background:var(--success-bg);}
+.pf-kas.closed{border-color:#F6D7A8;background:var(--warning-bg);}
+.pf-receipt{background:#fff;border:1px dashed var(--border-strong);border-radius:10px;padding:10px;font-family:"Courier New",ui-monospace,monospace;font-size:11px;line-height:1.35;white-space:pre-wrap;max-height:240px;overflow:auto;margin:8px 0;}
+.pf-seg{display:flex;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:6px;}
+.pf-seg button{flex:1;border:none;background:none;padding:9px;border-radius:9px;font-weight:800;font-size:13px;color:var(--ink-soft);cursor:pointer;}
+.pf-seg button.on{background:var(--brand-gradient);color:#fff;}
+.pf-diag{display:flex;gap:10px;padding:9px 2px;border-bottom:1px solid var(--border);font-size:13px;}
+.pf-diag:last-child{border-bottom:none;}
+.pf-diag .s{flex-shrink:0;width:22px;}
+.pf-diag b{display:block;}
+.pf-diag span{color:var(--ink-soft);font-size:12px;word-break:break-word;}
+.pf-doc h4{margin:14px 0 4px;font-size:13.5px;}
+.pf-doc p{margin:0;font-size:12.5px;line-height:1.6;color:var(--ink-soft);}
+.pf-ver{font-size:12.5px;line-height:1.55;}
+.pf-ver b{font-size:13.5px;}
+.pf-ver ul{margin:4px 0 12px;padding-left:18px;color:var(--ink-soft);}
+
+/* ===== PENGATURAN: baris setting (adopsi kaki5) ===== */
+.settings-grid{display:grid;grid-template-columns:1fr;gap:14px;}
+.settings-grid .card{margin-bottom:0;}
+.setting-item{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.setting-item:last-child{border-bottom:none;}
+.setting-item:active{opacity:.65;}
+.setting-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.setting-info{flex:1;min-width:0;}
+.setting-info .s-title{font-weight:700;font-size:15px;}
+.setting-info .s-desc{font-size:12px;color:var(--ink-soft);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.setting-arrow{color:var(--ink-faint);font-size:20px;flex-shrink:0;}
+.app-footer{display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:18px;padding:4px 0 6px;}
+.app-footer .logo{width:64px;height:64px;border-radius:50%;background:var(--brand-gradient);display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:var(--shadow-md);}
+.app-footer .fname{font-weight:800;font-size:17px;margin-top:10px;}
+.app-footer .fver{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+.app-footer .fpt{font-size:12px;font-weight:600;color:var(--ink-soft);margin-top:10px;}
+.app-footer .flinks{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:8px;font-size:12px;font-weight:600;}
+.app-footer .flinks a{color:var(--brand-orange-dark);text-decoration:none;}
+
+/* ===== TABLET & DESKTOP: full width (desktop mengikuti tablet) ===== */
+@media (min-width:768px){
+  .settings-grid{grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
+  .app{max-width:none;}
+  .app-header{max-width:none;padding-left:24px;padding-right:24px;}
+  .app-main{padding-left:24px;padding-right:24px;}
+  .bottom-nav{max-width:none;padding-left:16px;padding-right:16px;}
+  .stat-grid{grid-template-columns:repeat(4,1fr);}
+  .stat-grid.half{grid-template-columns:repeat(2,1fr);}
+  #kasListWrap,#kegiatanListWrap,#jamaahListWrap,#inventarisListWrap{column-count:2;column-gap:28px;}
+  #kasListWrap > .btn,#kegiatanListWrap > .btn,#jamaahListWrap > .btn,#inventarisListWrap > .btn,
+  #kasListWrap > .empty,#kegiatanListWrap > .empty,#jamaahListWrap > .empty,#inventarisListWrap > .empty{column-span:all;}
+  .fab{right:24px;}
+  .sheet{max-width:640px;}
+  .modal{max-width:640px;}
+}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAKNGlDQ1BJQ0MgUHJvZmlsZQAAeJydU2dYVNcW3ffe6YU2wwhIGXqTLjCA1KEXKSJNFIaZAYYyjMMMCHZFVDCiqEixIlERA0YjILEiioWgYK8BCSJKDEYRFUu+ke9LfHl57+Vl/bh3ffvsfc7Za+0DQAsMFYlzUBWAbLFMGhXgw46LT2ATuwEFMhDADoDHz5WEzfKPBgAI8uOyc6MCfOBf8PomIIr/NavACDYb/j+o8iVSGQASAQAOAmEuHwApAoCsfJlEER8FAGZKpoKjOAWXxsUnAKAaCp42yad9zpnkXgouyBYLAFDFnSWCbIGCdwDAmjy5UACAhQJAcZ5ImA+AXQcAoyx5tggAe6OozRbycgFwNEVcJuSnA+BsAYAmjY7iAuBmAJBoaV/wlC+4TLhApmiKmyMpkIrS0mVsM745287FhcMOFOZnCWUyqwgeP5MnFbC5OdkSnrgAYLLnz1BTaMsO8uM62bk4OVnZW9t9IdR/XfybUHg7yV5GfvYMYXX9EfurvJxaAM4YALbhj1hKFUDLKgCNu3/EjHYBKBcBNF/5oh+WYl7SZTKJq41Nfn6+tUjIt1YI+jv+Z8LfwBfnWSu2+10etq8wlSfPkrEVuvFzsnLkUnauhMcXsq3+PMT/uPCv7zEtSpgqlArFfCE7RiTMF4nT2NwcsUAkE+WI2SLxfzLxH5b9CZNzDQCMuo/ATLIGlStMwH7uAhyDCljiDoXrv/sWSo4BxcuL1RuanPvPQP59V7RM8ckVpX2u40ZFs/lyad7kmuJZAh4ooAxM0ARdMAQzsAJ7cAY38AI/CIZwiIZ4mAd8SIdskEI+LILlUAylsAG2QDXshDqoh0Y4DC1wHM7AebgMV+EG3IM+GIRnMAqvYQJBECJCRxiIJqKHGCOWiD3CQTwQPyQUiULikWQkDREjcmQRshIpRcqRamQ3Uo98ixxDziAXkR7kDtKPDCO/Iu9QDKWhTFQHNUFtUA7qjYag0ehcNA2djxaiReh6tBKtRQ+izegZ9DJ6A+1Dn6FjGGBUjIXpY1YYB+Ni4VgClopJsSVYCVaB1WKNWBvWiV3D+rAR7C2OgGPg2DgrnBsuEDcbx8fNxy3BrcNV4/bjmnEduGu4ftwo7iOejtfGW+Jd8UH4OHwaPh9fjK/A78UfxZ/D38AP4l8TCAQWwZTgTAgkxBMyCAsJ6wjbCU2E04QewgBhjEgkahItie7EcCKPKCMWE6uIB4mniL3EQeIbEpWkR7In+ZMSSGLSClIF6QDpJKmXNESaIKuQjcmu5HCygFxALiPXkdvIV8iD5AmKKsWU4k6JpmRQllMqKY2Uc5T7lJdUKtWA6kKNpIqoy6iV1EPUC9R+6luaGs2CxqUl0uS09bR9tNO0O7SXdDrdhO5FT6DL6Ovp9fSz9If0N0oMJWulICWB0lKlGqVmpV6l58pkZWNlb+V5yoXKFcpHlK8oj6iQVUxUuCo8lSUqNSrHVG6pjKkyVO1Uw1WzVdepHlC9qPpEjahmouanJlArUtujdlZtgIExDBlcBp+xklHHOMcYZBKYpswgZgazlPkNs5s5qq6mPl09Rn2Beo36CfU+FsYyYQWxslhlrMOsm6x3U3SmeE8RTlk7pXFK75RxjakaXhpCjRKNJo0bGu802Zp+mpmaGzVbNB9o4bQstCK18rV2aJ3TGpnKnOo2lT+1ZOrhqXe1UW0L7Sjthdp7tLu0x3R0dQJ0JDpVOmd1RnRZul66GbqbdU/qDusx9Dz0RHqb9U7pPWWrs73ZWexKdgd7VF9bP1Bfrr9bv1t/wsDUYLbBCoMmgweGFEOOYarhZsN2w1EjPaMwo0VGDUZ3jcnGHON0463GncbjJqYmsSarTVpMnphqmAaZFpo2mN43o5t5ms03qzW7bk4w55hnmm83v2qBWjhapFvUWFyxRC2dLEWW2y17puGnuUwTT6uddsuKZuVtlWfVYNVvzbIOtV5h3WL93MbIJsFmo02nzUdbR9ss2zrbe3ZqdsF2K+za7H61t7Dn29fYX3egO/g7LHVodXgx3XK6cPqO6bcdGY5hjqsd2x0/ODk7SZ0anYadjZyTnbc53+IwORGcdZwLLngXH5elLsdd3ro6ucpcD7v+4mbllul2wO3JDNMZwhl1MwbcDdx57rvd+zzYHskeuzz6PPU9eZ61no+8DL0EXnu9hrzNvTO8D3o/97H1kfoc9RnnunIXc0/7Yr4BviW+3X5qfrP9qv0e+hv4p/k3+I8GOAYsDDgdiA8MCdwYeCtIJ4gfVB80GuwcvDi4I4QWMiukOuRRqEWoNLQtDA0LDtsUdn+m8UzxzJZwCA8K3xT+IMI0Yn7E95GEyIjImsjHUXZRi6I6ZzFmJc06MOt1tE90WfS92Waz5bPbY5RjEmPqY8ZjfWPLY/vibOIWx12O14oXxbcmEBNiEvYmjM3xm7NlzmCiY2Jx4s25pnMXzL04T2te1rwTScpJvKQjyfjk2OQDye954bxa3lhKUMq2lFE+l7+V/0zgJdgsGBa6C8uFQ6nuqeWpT9Lc0zalDad7plekj4i4omrRi4zAjJ0Z45nhmfsyP2XFZjVlk7KTs4+J1cSZ4o4c3ZwFOT0SS0mxpG++6/wt80elIdK9uUju3NxWGVMmkXXJzeSr5P15Hnk1eW/yY/KPLFBdIF7QVWBRsLZgqNC/8OuFuIX8he2L9BctX9S/2Hvx7iXIkpQl7UsNlxYtHVwWsGz/csryzOU/rLBdUb7i1crYlW1FOkXLigZWBaxqKFYqlhbfWu22euca3BrRmu61Dmur1n4sEZRcKrUtrSh9v46/7tJXdl9VfvVpfer67jKnsh0bCBvEG25u9Ny4v1y1vLB8YFPYpubN7M0lm19tSdpysWJ6xc6tlK3yrX2VoZWtVUZVG6reV6dX36jxqWnapr1t7bbx7YLtvTu8djTu1NlZuvPdLtGu27sDdjfXmtRW7CHsydvzuC6mrvNrztf1e7X2lu79sE+8r29/1P6Oeuf6+gPaB8oa0AZ5w/DBxINXv/H9prXRqnF3E6up9BAckh96+m3ytzcPhxxuP8I50vid8XfbjjKOljQjzQXNoy3pLX2t8a09x4KPtbe5tR393vr7fcf1j9ecUD9RdpJysujkp1OFp8ZOS06PnEk7M9Ce1H7vbNzZ6x2RHd3nQs5dOO9//mynd+epC+4Xjl90vXjsEudSy2Wny81djl1Hf3D84Wi3U3fzFecrrVddrrb1zOg52evZe+aa77Xz14OuX74x80bPzdk3b99KvNV3W3D7yZ2sOy/u5t2duLfsPv5+yQOVBxUPtR/W/mj+Y1OfU9+Jft/+rkezHt0b4A88+yn3p/eDRY/pjyuG9Ibqn9g/OT7sP3z16Zyng88kzyZGin9W/Xnbc7Pn3/3i9UvXaNzo4Avpi0+/rnup+XLfq+mv2scixh6+zn49MV7yRvPN/rect53vYt8NTeS/J76v/GD+oe1jyMf7n7I/ffoN94Tz+5lGCeEAACK7SURBVHja5X15mF1Vle9v7X3OuUPNlaQSEgxhJoEEJAQiAgU4KyI03OA80ravHd7Tp22L7Qsl/Z7d2trfewoqg6Ddtp+5ojIYaBGwggMgM6RISEAgATJWqurO55y91vtjnztV3VupFPeC0Pf7zleV3Fvn7vNbe69p/9bahJfxJQLCpYMaxw4IrUmbuve+v7LHh3u4YbNUWI4WkcOFZREM5gnQLUJxEjgQgYiEBCoSYwKC3QQ8L8CTENmsDDb5Hby177MPj9XdP5XSWLaLcOmwIYK8XBjQy/Gl69aldApALejy49P6woK/ipnPCA1Wi+AYERyUdJVSBIABNgLDAmMAEUDY4kZiL0WABoGIQGI/my8xk8gOCG3SwN1CuMvkCn/q+adNeyvfvS6lkU6D0jCvagHIupRGKs3lGTdxzQnzYoi9BeDzjMEZCVfNgyYgFPgBIwgELMJgEfsX9i+FQZBo0jIAsReVZcIi9n0iJVCuIsSUAmmCCRiFwOwhwV0K+KUB39o19MgulG+xLqWwJs2El2ZV0EsFfO1sz//g5NOVkg9JiHPjMT0PIvCLDD8UFhGGgCCkCGJFxeUb2ZlvARfUvccRYg3eE4ZAhEVEIKRcRSrpKBCAXMnsEcHNWuG65GUPDdeqKEqnzStaALIWCpdCiCBr10J96dCT/wqCTytFZ7gOoVRkBIExFihSkGg8jUGMgJaKMGYCfvU9qayUskAAwFVKd3gKpUBghH9Hwt+5+Ymjf7YmnTYCENaCaKhyt1eGAERASKdUedYXrz3lApD8fcxVJ4GBbMEIIAYMTRHoUjPLm4J/gDO/EfiVq7qiRKwwVKenSBOh6PMDDPnnrq89vK5isNPtUUvUTnWT/+Gq12miyzxHvUGMIFc0xipa0hCZEcDtBL/2p4i1NwRIh6u1Q4RiwL8t+fyV/m898rt2qaWWCuDOtYPOWUPD4ej3V/Yk4vqrSuFTnlYqmwuNtaCkKmDNBOA6nR8NVwCI/SllI4zofiyV30XkgMCvziBA2N6hy3O0b1iEccXejPnKId99dF/5Gf+iBFCr68euO/nNSQffdj19VC4TirAwEWnUGs/9gk8AyJoEFoAZMCEQhhA2ALN1d+oAJoAUCBqiHIA0QCq6p1SF0wz8WuVS/qiIAUj1xTXlfX6yaPDpOd986BYbv7TGNlALVQ6V/u3krypF/6AEyJdMSEJO7QPtF3woQAhiQkhQAkLfDlInQPEeUKIPlOgDYl2A2wHSjgUqDIBSHlKYAOf2QbKjkPw4pFSw99YeyIkByolWSEX5NwW/TkgsYdxRjiJCKTD//K1vPXLJEMCSgn6xsQO9uJk/6NDQcPjCFSsG+roTP4rF1VvymZCZBVV1sx/wo9mOMIT4ecAwkOiFmnM49ILl0AuOhZpzOKh7ASjeA2in6aAFAEwIyY+Dx18A79wKs/0xmG2Pwux8EpLbB5AGeUlAawhz1avCftQU21H3JRyVK4W378n4H1hy5aYXXqxKmrUA5M5Bh84aDjNXnbLCS8r1nquPyGaCkDB51jcBH8r+8AsQvwhK9EEvWgl9+NnQi0+G6ltcN7gKTFwTedXOXIoEqdSUBxMAvOcZhFvvQThyB8In/wTO7gN5ccBNROPjpuBXLL0ALBL2xhynEPCfx0t84aLLH32gPBFfMgGUwd/3g5PP7ojTzxygL18wIRE59aqlEfhkwffzkLAE1X8E3KXvhD7mbVB9h4BQ472wqQeXZjJkqQEsQlBp6wJEnzC7n0bw0Hr4998I88IWq6K8pB0gS1PwK8MSCTtc7TDLRDYIU/O/vfHXsxUCzRb88WtWnZNIqJ+BJVYqsVFEWmQ/M19pIPAhpRz0wDFwT/gAnGPeDvKSkUcTJXlIRaC30j/m6N4EKG0FXcrDf3A9Sht+BLPtMSsEJwYY0xT86kIUE9NKKyDI+OaiBZc/9ovZCIFmo/PHr1l1TjKpf24CdoOAWRGpacGXyKvJj0N1LYB70sfgLk+B3HhFb7cF9GkiRQhX7IkEJfh3p1G87Urw3u2gZG/0DGYq+PVCYFcRuYp4wjep2QiBDtTbyVy78sxYzLmVQ/HCgIWI1HRqB9CQsAQJfLjHng/v1M9AdQ7YB+Iw0tkvS1I28ogYUA6IAJ7YjeL6/4fS738KUg7gxQFj6mb+VOMMdhSRqxBOFMw7Fnz/sdsOxDDTgYC/9+qTjutM6N9BpMcvRTN/OvDJARfGoToXIHbmJXCOeGN1xr+swDcRRLQigsfuQP6nQ+A924GOXjveBiug/DszOKZAipDd5weDB3/v8Qdn6qLSTIOszH+snOOxc4+rcVihYAxNq/OtoeX8KPSSQcTfdBlU1wLIS61qZqmaSDvg8V3I/fjLCB6+DdTRH3lJ0ngl2DSG6XC0Dgw/my/KyfOveWzXTBJ5aj/zgn6LQQUCdKj+IxZThxWstzM9+ELgwj54r/0QEud/H1QGP/JG/mJfkYEWE4J6BtD1t1ch/uZPQLL7qu/LVPAtkKRzgQmTrl7suvRTrAVhJEWyn0k+rQCwdlCfNTQcZq896avJTudNuUxQdTWbgC8CcHECsdP+DrGzvhytUWPBf6W8lAbYQJiRvODvkbxoLaSYrXpRk8AvC4SInH3FMOxPOIO7dx73NUqnzW/XDupZqaCK0b165VmJpHOH75uQmTS4Nmc/eeYDXMoidtZX4B3/nmjW/yXp+tnZBtIOSr9PI/ejS0CxpH0e5kk5pRq1AQmTjnayfviWuVdu/PV0WVTVNJ+/cZnsvvrULuWoa4QBYzBpw2Syt0N25p/55Rrw9SsY/GhSKQ0JA8Ren0Ly/f8IKWQbJPTq/4qFVMgimtTVox9f2YNlaRFpDERjFZROKRoa4pjy/zHZ4RxaLJlwutwOoMH5MXiv+wy8E95XA/6r5KUdSBggfvpFSFzwRZtTip6vkYtKgCqEbHpi+jWhFP+JhsBYk1IzEsC6SPXkrjtxZcxVnypkQkNCTlPwyQEX9sE97kLEVv8tpOLbv8pe2oGYEIm3fhyxsz8ImRiNsquN4wMFcsaKxiS1/ps9Fx+zmtJpI6mU3q8AUqllNgA36lueVsoYmTbI4mIGesEJiJ39FZtdhHqFq53pNJKCsEHy3f8LzjGrwfkJuxKaJPFYBK4CQfS3REBYlpZpBSDrUppoiHPXnXRuR9I5I5sPTdPNlChvT24HYm/+GsiJRxboVQp+JSkIkOOi46Nfh0r2AEFQ3amrE4KAAD3hG9Mbc143evHyC2kIPHkV1K+AjWmRdSnNBkMmjLg4zRJrpCDFDLzXfw56zmHVIOvV/iIFMSH0wCFIXHSJdU/Lz10DfsUjEiLfiIjI2vs+vtKdvApU7X4uDYHzuWfe2ZlwTigUDdvN80bga0hhAnrJ6XBXrLHbhK8mozuDOEFMiPhpF8B77ZsguQm7BYoGsQGgcoHhHk8fe2hQOp+GwHcODjpTBHAmhtmmaeQLYEhjtYNKYEU6htgZXwC9mlXODNRRYs0XQfFklEpvlKawFjFkEcP4vAjozDOH67elZF1K0xB4/MoTV8dddWquYKQhdUSi7GZhHO5xF0DPOxpizH8N1dNEFTkLj0DszPdAsuPW+5sEvvVoSGd9lg5Xrdr3kaWn1dqCOuQU0V+7roKlBzbawyXABKDkHLgnfcxuav8XXQDlVSAiiL/1Y1B9A/UGuWZjroyipwgs6uN1mIuAaE3ajF1xWh8xnVcqGoChG26gE0GKGbhL3wXVfZANx1/K2V/epqxcHF01/yfykq4CsIHum4/YaRdCCpnKKpg6CtLZgCFC73z+IyfMo3TarAWUwqU2WaR16W0dHU5/EBjTmC4IwBhQrBvO8e+2RuKlmv0SgawUSDs1l46u6v9BqUgQ/NKtAghiZ70b1Nln2R1TSAl2RztgNn0x1eMF/jsA4NK1g8rBsQNl4vcFYBGKiOBTeDuwbqdz1Fug+5dYz6fts7+aDAMALkwgfOYRmG0bYfY+C8lPWAzi3VBzDoZz8FLoQ1ZAdfbbvzbGGst2OgqkAGbo+YfAXTGI0h9uBHX0VveVax5FCYRFBAoXALgOI8NCADD6/ZU9LuMpT6t+3/r/U1nKkfGNn/8duEe+sf35HmHL4SHA7NyK0u9/guCxO8CjzwFhYM1XJT9f3tHSUD0L4Cw7A7HT3wtn8XHVzf52ThY2NmP64B3IfONiULK7oVckIuISUcA87no4rPeakVEHAFzQqo647s8VQoZEI60FXwgwJVDPYujFqyMSWzsfiEFaQ4ISCr/+Dkp3/TskNw7ykqBYJxCjJtQRAefGULrrJ/DvuQHe6y5A4l2fh0p2t3fCKJundJeuhl6wBLznecDxUE+FFBBAvmHu8XRP1g9XA1ivogceJE0QiUzvFK6mgpQKljAV64yWF7UVfLPnWWQvfx+Kt37bDr6jH3DcqtE1puZnGP2MNtg7+gDtonTHD5H5egrhsyNWjbFpX9rahFDxJNxlqy0lklTjyBhglwgCGqy4oQRajVBgK1OasJQBOEtOxdSd6daqHdIaZscWZC9/P8KnHwZ1zbMrkMMZkaYggnIRGXXPg9n5NLL/+gGETz4QCaG9xtldfnrEcUXDyBggClgAptXWDb361C5mLAsCBoTUVPCjpFu8F+qgFRGdU7WnqoMUeHwXslf/DXh8JyjZE+l7mZYu2Iy3gzAAxTvApTyyV3wCZsefQVq3x0OKMHEOPx7U1QeYoFlkrEqhQESOeTa1rF/lCqUjCTTfD2xh1tSZT0BQgupdDNWzsH5ftMUej0CQ/+kl4N3PgOJdQBjul6vZaEeq7rPGgLwkeGIUuWv/DhL6kfqUtgRlas5B0AuWQPxS1Umozw2Rb8nL8zyPj1IhydKkqzTb4ri66LfMfJDQh5p7BCgKPNriRSgN/56fIXj0N1aHHyj40xVimBCU7EG4+W4Ub/8RSKn2qCI2ICI4rzkKCPyqnZR6Vc4MTjiKHFZLlRY62tbhVkzwJPq4/Qs15/D2RbdKg4tZFG+/EhTrmMTNPEC104S3Aw5BiW6UbrsWnI22FFsdNUe304uOnKr7a1MTJKLtXD9GieCwSq1towAsSj+rvsXtM7xECB65DbzjKcBJ1MQeBwi+NAG/XF3peDB7tsO/d73N4rbaFkQTXs0/pF7Ak/JCJAS2ewWHKogsYiOVIuipbiiDlAfqHKhLw7Y6rRs8fGs0aH5xOr8R+LUeiXbhP/jrOsPZagmo/gFbkRNhKJhSmUlWA/IiBcZcw1FVYbmeqrb2ihnQMVCit/XOZ1n95MZgto+A3HjDpXvAOr8B+LZmT0BuHGbbZpjxPVHiTFo+mVRnb0TstTXnk1PUAMgIA0xzFYG6mcUGarUf5CgCZrECcJNtKKy0OQ/e8ywkE7EMpqifWer8hqSpSODZfeBdz0QZR2m9GYgnQV68XAveoPxJyiFNlxJB3Fb9SJMyUQGUC2i3PQYYlhYuod/AbXsROr+RupJI7QQBeGxX24JKcjybimCZCn70S7Qi4wqAU1ctOLnQmctVJW3M/fiFiH1MLdX5TXn9zECp0N4MKal6VV5jjQkgu5lFjrI6PwK+Efg1ZZ1oI+mp3mdujc5vWvkIas+KrqO5Sz1dpUk0rwQIqXaQdeX/kR0IQ1uk0KZWFdTRb/V/uQKyVTq/0edZbCFGV3/7BGACW7tcsZcyOR4QEgKJhAosJapRP9KgeNqWGBXatJsEqDkHgxJdUZRNrdX5U9SPAcU7oAcObotbTQDELwKlciqi8cyPpl5RQWg8IhPK1MYXEpWUliCFiZpdmha6bSJQfQug5y2x1fE1vZhapvNrDLAEJeiBxVBzD45IBarlobBkJyClYlUADbmjAAQZBcEeDaqo+ymeEAgclCCZ3dOs7xebP1Fwlp4OCUqV/aCW6vxa3e8X4R53OigqwmiLVze2G+IXGjDmKmpetE3e7VEQeY6Iqm2+pnhClorCo9vbSnDyVp1r08/NbM1sdX6d+glBiS54rz+vPVF99F1m1/ZpOKPlIi4AhOcVoJ6iRjFAXb8dAu96qq2MYz2wBN6qcyG58Sgga5HaqaQgNCQ7Du+Uc+AsOrKtpAKzfeu0k4HLNoDpKSWhbDblXFAj8FkA5cDs2NLGvWCbS0+8/dNQ/QsBv9h4+c4WfLJ2TPXNR+Kv/nv7XOoIG/PMZutaizSrpiEWQAGbFASbCj4bJVD1nlDVEJOOgXf/GZLdWw0wWq2GmKF6BpB872XWi4DUxwaz0fnlzSMBpJhH8sOXQc9ZaOsYWj37RQClwJkxhNuetHktbjzmqIJGAH5chcbZwiw7XUUoN3usb4RkUxE8sRvmuZFJjK0WMwtMCG/FG2xVYnasOntnpfMlImkBkhlF8n3/gNiqt9YUDrYhrQ4gfPpx8OhOSyCQqTGNCMRVBGHZnXfUE2ru0L0TBDwe0zWc0MkeCFlDHG75I9r6UsrWYp39QVsQV8rborgahsGM1Y5SkEIOUswi+eGvIvH2i6N8k2obh8ym1f8A+PV5rUmrlWMKIMimxemR0Uhp4W5SZDNvjdw/FsCJI9zyxxbza6RKO5RILTg2RRA/8/3ovuRGOAcfV9lfnbnOJ0ixBL1oKXrW3oDEWz5i33O8agqaTdSMo0XqVGsIG/gPbgDcWEX9TA0oRTwiCOEeAHCi1TNsAv4yBKqxXmWbR39hM8y2R+Esea2l/c1mKZc7lZTbxtR4ghKWINmdMBPbwWPPAMEE3NceDMk9AzMeAJpQV/jfEHwAgUD3J+CdvAg8Ogz/wftBvUugel4D6lwA8jpANY9qJ0E0ptmskIjLFDy5EebPj4NiCdvXrtH4RCwtxWC4IgD29b0ZmFFPWWoiYVLQK5F68IvwH7wZzpLXHmBELOWGQZZgGz08F/bB7NkM3vkozO4RyNjT4NxuwM9BOLAP5sagj+oGb8pDJopWCNIEfFjwVU8czrEd4B33oPTsBjtRSIPcJCjZD9X9Gqh5x0DNXwE9bymo6yCQVvWNog6kp0X03aUNN0EKeVBPHBKaKeMTQFyldMbncV/hbrs9GZWljv3DCT/vienzxguhAUVlqbWGL0oyUbIfXZ+/0QZN+6OoSORWKadCBJHxZ2G23Y1w2x/Bu0fAuV2WQ0MapD3rvlFNTwkWQBmg5MDfmI0CNWoMPtsNF/f4blA8BFjbjt61K49DiPEt0Ys0KNEHNedIOAefAr34VKh5y6qklUrHLjX9MxJB8hmMfebt4H27Idqd5IJWjEHY7Wo97vP6+Tc8fo6koB1s3EVRSeX1ApwvAJE0ae3oxMB7t8G//0bEz/hgFMzo5jNeOSAoSCmD4OlhhFv/E2bHQ5DCmG0x6cRBbgfgUQ0HRur3hQHAEJAQ6IE4zLYs4NZuGtV80AB6YQKUFCAggBhTepVo1wq6nKcJizDP3Qez7Y+g+66Cmnc0nMPeCOfwN0J1LYwcnGkEwQxyHBQ33ITw+adB3f0RMw9TmHEsICVEELoeALBrkEgERAQZ++yyfkp4W7Si/sBU1VDdZg1FJK05i9H1P39hjc3kbUoxlRnPmecRjPwC4ZZbrE5XGuQkqu0jRWamygSW2110EDyWsd+BRokuBff4LlDSWKHRgbDaCBADCYuA8UHJuXAOPQvusSnogWXRigirn60FNwww9rlzEW57EvASNX0k6lgR4hBRaGTCxIIjFqa37l4LKEUEkXUp3fuvI6MC3NDhKUDENGxqKgK4CZjnNsO/5/qIqFX7ZQJSDqQwitLd/xf5698P/77vQfK7Qck+y3bTqtpznlDl7093advyjJIESjioa4NUIV8JKOGAklGDP00zuzdRNRevyBroZD/AJQSPX4/CLz+K4u2XgEe32i5apKpxEDNIKRTv+DmCrRuBeLIh+NG/TadWIJKbFqa37pZUSg8BbCsf0tEzMF1VDOQjBKjmTU0ZFOtA8TdXwT3xHdYWsIl2tYDgiRsQPHQ1eGI7yOsC9Q5EA+Zqx8RZeqzkaKikAzNesIKs7Z9kBKrDgUq6kFC1gDsQAyUSgDDCp/8T5vnfw122Bu6Kj4LcBMQEEaNjAvn0FbZS0jQB33JslW8EELoSNaBTbWcsGgKPfvH4P3TF1OqMX1MnPNk1JQ3JjiJ29sVIXvBl+1Z+F/z7vgnz7G8tg8KJRUasRX62AOQq+A+OI9yWBbmqbkzsM5zFPYid1AXxw9ZmOsv9g0oTUHOOgbfqC1Bzl4MAZH/wNeTXXQ7qnhO1NpsKvjBMp6NUJjD3f/emTacAwFBknSoFw7/FoAKGmYBvEOHn07bzFQNK9sLf8G9wTzwHem4CpbsugRR2QvUO1AQ4TmvZ054DQNc08i7v71EliUiei7aUJZEGJeYDxe3wN/wPeKdeAp6Yh8KN14I6e5uCX2aWOESkhP5lCLZQe2h4mKeQfGQtFI5N0d77Nj/Q5enleZ/Z1iY12l0im2EcOBje6n7AHwWcjshAtivW1yj++nnwaM6qoFpnKWSo3iQSb18EUBsLSKAAsW5z/pf7EG7fCYp5NepnalfFpKMoH5jHB17oOOHS++83QzW+Wb1CPjZFtCZttPBah8hSJ5qF/CyAF4N5YRvCkZ1Qff0gB6CYC4o5rb08B5TwAFGQfFDNcKI+XyW5AGAFSnj2b1o9jpgLcgmqrxOlezMIn9kJisWagm/HaOvCiGiI7r8/OHNwUE3bsqxsC/Z+fsWG7rhzeqYYGio7+41IU0RgnxF/3WI4R3VCCmE1+Gnh5CeXYF7wUbjhSauFGm3aB4LEuw6HszgO8bn1i8AIqMOB/1AG+V/+GRRTU1qXTW5/3+VoPRGYe767ctOplwKY3EVxikuSHkkRAGjizwUhsyLaD1dTQBoo3bMdvMOH6vDsMVJatfAikOdAJgJIyJAme8YSMmQiALkapFo8BiKobg/mWR+FXz0DctFU59c0bULIEBf47NAQGBG20wpgTTptZF1K937jsftyPl/RE9OaWcLmNVmo+MaFO5+BGQ1BHVHW0dGtubT9acb8KDahxoQQEfC+Uuu+t3yRAnV6MLtC5NY9GRWNN6CcSF2zprDX0zoXmqvm3Lzpj80a91HzE+5AyJ/aMSHZRzytDyn4RoiiXbNGaVYiIDCgRAzJdxwJNc+FFE1r1FHkAeWufwrBlr2gWIPtPgKkGMI9vB8dFx0BCVrkihoBJTXMjgCZazeDJwrWBWaZ5qwBcFwT+Uaec7S3vPeEhycwVD54ZQZN+4ggGEkRfeMPGRZ8TAGkqNLEpnEKnQVwNCRfQv6mLTC7AlBXlHPRCnBexOVqiCHwWAmkmpGdxA5yrAQOAbj6xX2vttlQ6vUQPh8g84NN4PEG4DdIjSsCO0QUsPnrvhseHsNIipqdwNQ0LKV02sjaQafvm4/cMeGb/9MTdxwWMdNyNctCKJSQ/8UmhE/moHriVoerWepepUCehhQMOOtX09FT8uwANIEzPpA3oJievb5XthG06osjGMkhc9UIOFMEeQ3AnxQjsUjY52pnIjD/snD9E7feOTjoTHfyEu23dfHaQX3mpcNm32dX3NYb128YLYShapCunloYx4ABYoOHIXbqAkgYAkF04OOBFCmKgOIawZYMsj98DOTRFK59vRpidH5oOdxl3VYFzlQNVVJCArjW6Bd+8wLyNzwJUhJtBsm0p2yISNjjOs54EG4YSCw/23o1058/5uxnTCIYZhBQ/LR6T7bE93S4+tCcb4wi0tPydpQCSFC4fSvCF7JIvu1QqB4XnA8tP3umwLDV/7y3FBXvuXU73FOYb4bBe4sgr78q8BnJ2YKrujzwWIDsv29B6d7nbPIPMwEfJqGVkw/NNrC6iNJplvqKh1n0jo781nQKauG3H9qd9/ldhnkippXm6FCbprydaHuZEg6CjS8gc/XD8B8dg+qMQyXcas2BntnFewuTlr40BcPsKVjPaSb3VlbXq6QL1R1H6YF9GP/6gxb8Drdmj6K5zmcBu0SKRbIFkfPmrx/ZsS4FRdj/MVczSk2uScPIupRecPmjj2b88HwF+K5SxDypt8Rk6oiU08QuJFtA7qePIvfjx2F2+9Y2JJzoDNr9GEQmhM9la1w/aca5BBxCuD1jU9buNPdUyqafEw5UXwJmh4/Md0eQ+d5DMGN5C77hSQUWDY9CZJcARTAThi9cdPOmB+4cHHTWzPB4K5rNESY7Prn83G5XXR8wdGBYFGp3uBtQR6TKw5RCAIp5iK1ciNhpB0MvtGlcKZkqF4tqhNfrwb9/FJmr7q8awaZhf/RrkdH9iRMRWz3PxgW6xu5E30FxG1+Y7XkUb9+Gwl3bIHkflHSi2jjeD/vCgq8J5BLJRGDWvOaWzdfL4KBDw204wmSyEHZ/cvm5SUelWcQrhWxUlK7YP0XcPpwUAlAyDm/FAsROWQhnSRfgKSAwELYuJWIOwqeyyHzvAUimMM2GfE1eqByPdMbR/amVcI/qghTD6j1dDfiM4KkMSnc9j9KfngdPFC3wpOqrgaY3uMYlpRUhzAfm3QtnAf7sj7Eqr4T/tvyNXS79TIF6coEJFZEjMgPeTjlwM2xzR64D55B+eCsG4BzZB9XhgrM+go17UbzjaXChBHJ102IHaSBk8Q1UzEH8TYfBO36uNa7ZAMGmffDv34Fw6z5IKQDiTpRZlca1xQ3VjoQJrRxhZHImXLNw/RO3zgb8F3eQWySEnRcvOyEZd65POOqwfcUwVOWD3KYDfzJYItZlNAKKu6C4CykEkHxgVYWimYMvNU8WCZjiHijpQfIBJO/bZltxp3pWZdPWMo39/F7XcYohPz0emtQht2y+b7bgY/b7gwANDYd3rh105l898lCuwKfmfXPb3LjjQKKuEzMBv3wuvMCmeyOvQ3KWnEudrh3hgYJfLiwksnkpEki2YAlmHa51Csqnr+5nfLXpBRHwXM9xcqG5c7xgXn/ILZvvu/NFgN+awzyrpwXRvk8s/98xR31JWJAPuboamoHfrAasaauBGYLf0PZgagdg2b9LG8UIYVwpR4NQZPONO+KbvrQmDfOyH+bZ6DjbnR9f8dakxrc7HHXEaNEIIEyTd9VkSt3yzNTVbMFvRmvfj9opH2fb72rKhfxnP+RPD6zf9KtWHnXeEqowDYHL9Jb5Vz5y6548rcoG/B1PAV2u0mJzSDxl5jetAXt5wbfqRkyno3VMEWVD/u5EEScNrN/0K0mlLEmmRefMt/5I85q8996PHfv6mKMu8xSdZRjIBcYICCTQB2SoXwrwI78eIpJ0lHZJoWh4gy/ylYEbH98wSd3+5Z4pX6lDS6VUWRBjFx+3RgFfjDv6RMOCjM+RaiKbmnsZwRdA7FnBpLq0Ik2EYmgeMkJfn3PTyE/KwCMNpjY0lmhr82FZC1XeiFiXgn5z97EXEuiTmtTpMUXIBYyA2USPNUkY7QNfAEGUy3KU0p1awTeCUPgPInT5w2Pz1p01PBwKQOkU1JoWz/qXTACN1BIAjH7kuEEFfBhC53Q4NFdEkA8FgRGuFg9AkYBaAb7YfoBse9dCeYpUQhEUCNnAjCrgZoi6ru/GjXc2G/MrWgDl75JUStXmxzPvXzEQOOHbFOg8ZpzeodUcVxECFpRCgc8CZjBIhISi5rPVUnpCQ6MuBAjbvWMiQLmKEFOAR/beuYBHCfidYvqlH+KW+etHdtSqzv3l8F+pAqi81qWgU0ihdoaNf+CYOVqpVYGhQQGdApGjjeCgpKNIRzETM2DKRxtIlTxMQlZ/CaCjk7OVzeUhH7IoYAdENivCPQJscH1zb/fNT+ypne1AGtRGVfMXJYC6zf8zBzUGhmXyw4+9d3kfiI9gxlIhOZoYhxlgkbDMI6IuEUmgfL4ZSQimIoAMILsV6DmBPEWgzY7C4wC29qZHRqdMgl2DhOFh81LN9kav/w/FherbkVWbEAAAAABJRU5ErkJggg==">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- HEADER -->
+  <header class="app-header" id="appHeader">
+    <div class="row" id="headerDefault">
+      <div class="brand-mark"><img src="data:image/png;base64,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" alt="Kasir Solo"></div>
+      <div>
+        <div class="brand-name">Kasir Solo</div>
+        <div class="brand-sub">Manajemen Masjid</div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" onclick="go('bantuan')" aria-label="Bantuan" title="Bantuan">📖</button>
+        <div class="trial-badge" id="quotaChip" role="button" tabindex="0" onclick="Platform.openLicense()" aria-label="Status lisensi" title="Status Lisensi">
+          <div class="trial-label-xs" id="quotaText">GRATIS</div>
+          <div class="trial-value-sm" id="quotaSub">—</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="app-main" id="appMain">
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="stat-grid">
+        <div class="stat-card orange"><div class="lbl">Saldo Semua Sumber</div><div class="val" id="statSaldo">Rp0</div></div>
+        <div class="stat-card green"><div class="lbl">Pemasukan Bulan Ini</div><div class="val" id="statMasuk">Rp0</div></div>
+        <div class="stat-card red"><div class="lbl">Pengeluaran Bulan Ini</div><div class="val" id="statKeluar">Rp0</div></div>
+        <div class="stat-card blue"><div class="lbl">Jamaah Terdaftar</div><div class="val" id="statJamaah">0</div></div>
+      </div>
+
+      <div class="section-title">Menu Cepat</div>
+      <div class="quick-grid">
+        <div class="quick-btn" onclick="openTransaksiForm('masuk')"><div class="ic">➕</div><span>Catat Masuk</span></div>
+        <div class="quick-btn" onclick="openTransaksiForm('keluar')"><div class="ic">➖</div><span>Catat Keluar</span></div>
+        <div class="quick-btn" onclick="openKegiatanForm()"><div class="ic">📅</div><span>Kegiatan Baru</span></div>
+        <div class="quick-btn" onclick="go('laporan')"><div class="ic">📊</div><span>Laporan</span></div>
+      </div>
+
+      <div class="section-title">Kegiatan Mendatang</div>
+      <div class="card" id="dashKegiatanList"></div>
+
+      <div class="section-title">Transaksi Terakhir</div>
+      <div class="card" id="dashKasList"></div>
+    </section>
+
+    <!-- KAS -->
+    <section class="view" id="view-kas">
+      <div class="tabs">
+        <div class="tab active" data-k="semua" onclick="setKasTab('semua')">Semua</div>
+        <div class="tab" data-k="masuk" onclick="setKasTab('masuk')">Pemasukan</div>
+        <div class="tab" data-k="keluar" onclick="setKasTab('keluar')">Pengeluaran</div>
+      </div>
+      <div class="card" style="margin-bottom:10px;">
+        <div class="card-head">
+          <div class="total-row big" style="flex:1;border-top:none;margin-top:0;padding-top:0;"><span>Saldo Semua Sumber</span><span id="kasSaldoInline">Rp0</span></div>
+          <button class="btn btn-secondary btn-sm" onclick="Platform.openOpname()">🧮 Opname</button>
+        </div>
+      </div>
+      <div class="card" id="kasListWrap"></div>
+      <button class="fab" onclick="openTransaksiForm('masuk')" aria-label="Catat Transaksi">＋</button>
+    </section>
+
+    <!-- BANTUAN -->
+    <section class="view" id="view-bantuan">
+      <div class="tabs">
+        <div class="tab active" data-b="tutorial" onclick="setBantuanTab('tutorial')">📖 Tutorial</div>
+        <div class="tab" data-b="video" onclick="setBantuanTab('video')">🎬 Video</div>
+        <div class="tab" data-b="tc" onclick="setBantuanTab('tc')">📜 S & K</div>
+      </div>
+      <div id="bantuanPanelTutorial">
+        <p class="muted" style="margin:-4px 0 12px;">Panduan singkat cara memakai <b>Kasir Solo - Manajemen Masjid</b>. Ketuk sebuah topik untuk membukanya.</p>
+        <div id="bantuanContent"></div>
+      </div>
+      <div id="bantuanPanelVideo" style="display:none">
+        <p class="muted" style="margin:-4px 0 12px;">Video panduan singkat pemakaian aplikasi. Ketuk sebuah kartu untuk menonton.</p>
+        <div id="bantuanVideoList"></div>
+      </div>
+      <div id="bantuanPanelTc" style="display:none">
+        <div class="card">
+          <h3>📜 Syarat & Ketentuan</h3>
+          <p class="muted">🕒 Terakhir diperbarui: <b>8 November 2026</b> · v1.0</p>
+        </div>
+        <div class="card">
+          <div class="tc-clause"><b>1. Layanan</b><p class="muted" style="margin-top:3px;">Kasir Solo - Manajemen Masjid adalah aplikasi administrasi masjid: mencatat kas masuk & keluar, opname kas, kegiatan & kajian, data jamaah, inventaris, laporan, serta publikasi profil masjid ke website. Aplikasi langsung bisa dipakai tanpa masa uji coba berhitung hari — yang dibatasi hanyalah kuota transaksi gratis bulanan sesuai pasal 2.</p></div>
+          <div class="tc-clause"><b>2. Kuota Gratis & Lisensi</b><p class="muted" style="margin-top:3px;">Versi gratis memberi <b>kuota transaksi setiap bulan</b> (jumlah tertera di aplikasi) tanpa batas waktu; kuota menyegarkan diri di awal bulan. Saat kuota habis, aplikasi tetap bisa dibuka & dilihat, namun pencatatan baru terkunci sampai bulan berikutnya — atau buka lebih awal dengan <b>membeli lisensi</b> (QRIS/transfer, bukti pembayaran diverifikasi admin, lalu aktif otomatis). Lisensi berlaku <b>per perangkat</b>.</p></div>
+          <div class="tc-clause"><b>3. Data Anda</b><p class="muted" style="margin-top:3px;">Seluruh data kas, kegiatan, jamaah & inventaris tersimpan <b>lokal di perangkat Anda</b> dan tidak dikirim ke server. Gunakan fitur cadangan/ekspor yang tersedia di Pengaturan untuk memindahkan atau menyalin data. Menghapus data aplikasi menghapus semuanya secara permanen.</p></div>
+          <div class="tc-clause"><b>4. Website Masjid</b><p class="muted" style="margin-top:3px;">Publikasi ke website masjid hanya mengirim profil masjid, jadwal kajian, dan laporan yang Anda pilih untuk dipublikasikan, menggunakan ID Website & Token Publikasi dari pengelola website. Data kas rinci tidak dipublikasikan tanpa tindakan Anda.</p></div>
+          <div class="tc-clause"><b>5. Tanggung Jawab</b><p class="muted" style="margin-top:3px;">Anda bertanggung jawab atas penggunaan aplikasi pada perangkat Anda. Kami tidak bertanggung jawab atas kehilangan data akibat tindakan manual (hapus data, reset/pergantian perangkat) atau kerusakan perangkat.</p></div>
+          <div class="tc-clause"><b>6. Bantuan & Perubahan</b><p class="muted" style="margin-top:3px;">Butuh bantuan? Hubungi kami melalui WhatsApp <b>0881-6566-935</b>. Kami dapat memperbarui Syarat & Ketentuan ini sewaktu-waktu; penggunaan berkelanjutan berarti Anda menyetujui versi terbaru. — <b>PT Mesin Kasir Solo</b></p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- KEGIATAN -->
+    <section class="view" id="view-kegiatan">
+      <div class="tabs">
+        <div class="tab active" data-e="akandatang" onclick="setKegiatanTab('akandatang')">Akan Datang</div>
+        <div class="tab" data-e="selesai" onclick="setKegiatanTab('selesai')">Selesai</div>
+        <div class="tab" data-e="semua" onclick="setKegiatanTab('semua')">Semua</div>
+      </div>
+      <div class="card" id="kegiatanListWrap"></div>
+      <button class="fab" onclick="openKegiatanForm()" aria-label="Tambah Kegiatan">＋</button>
+    </section>
+
+    <!-- JAMAAH -->
+    <section class="view" id="view-jamaah">
+      <div class="search-box"><span>🔎</span><input type="text" id="jamaahSearch" placeholder="Cari jamaah..." oninput="renderJamaahList()"></div>
+      <div class="card" id="jamaahListWrap"></div>
+      <button class="fab" onclick="openJamaahForm()" aria-label="Tambah Jamaah">＋</button>
+    </section>
+
+    <!-- INVENTARIS -->
+    <section class="view" id="view-inventaris">
+      <div class="card" id="inventarisListWrap"></div>
+      <button class="fab" onclick="openInventarisForm()" aria-label="Tambah Aset">＋</button>
+    </section>
+
+    <!-- LAPORAN -->
+    <section class="view" id="view-laporan">
+      <div class="tabs">
+        <div class="tab active" data-r="bulan" onclick="setLaporanRange('bulan')">Bulan Ini</div>
+        <div class="tab" data-r="minggu" onclick="setLaporanRange('minggu')">Minggu</div>
+        <div class="tab" data-r="tahun" onclick="setLaporanRange('tahun')">Tahun</div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card green"><div class="lbl">Total Pemasukan</div><div class="val" id="lapMasuk">Rp0</div></div>
+        <div class="stat-card red"><div class="lbl">Total Pengeluaran</div><div class="val" id="lapKeluar">Rp0</div></div>
+        <div class="stat-card orange"><div class="lbl">Selisih (Surplus)</div><div class="val" id="lapSelisih">Rp0</div></div>
+        <div class="stat-card blue"><div class="lbl">Saldo Akhir Kas</div><div class="val" id="lapSaldo">Rp0</div></div>
+      </div>
+      <div class="section-title">Rincian Pemasukan per Kategori</div>
+      <div class="card" id="lapKategoriMasuk"></div>
+      <div class="section-title">Rincian Pengeluaran per Kategori</div>
+      <div class="card" id="lapKategoriKeluar"></div>
+    </section>
+
+    <!-- WEBSITE (MINI-CMS) -->
+    <section class="view" id="view-website">
+      <div class="card" id="webStatusCard">
+        <div class="web-status">
+          <span class="web-badge" id="webStatusBadge">BELUM TAYANG</span>
+          <div class="web-status-txt">
+            <div class="t1" id="webStatusMain">Website belum pernah dipublikasikan</div>
+            <div class="t2" id="webStatusSub">—</div>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn btn-primary" onclick="openPublishSheet()">🚀 Publikasikan</button>
+          <button class="btn btn-secondary" onclick="previewWebsite()">👁️ Preview</button>
+        </div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-secondary" onclick="saveWebsiteDraft()">💾 Simpan Draft</button>
+          <button class="btn btn-secondary" onclick="pullWebsiteLive()">↩️ Tarik dari Live</button>
+        </div>
+        <p class="muted" id="webActionStatus" style="margin-top:8px;"></p>
+      </div>
+      <div class="tabs" id="webEditTabs">
+        <div class="tab active" data-w="hero" onclick="setWebTab('hero')">Hero</div>
+        <div class="tab" data-w="sambutan" onclick="setWebTab('sambutan')">Sambutan</div>
+        <div class="tab" data-w="pengumuman" onclick="setWebTab('pengumuman')">Info</div>
+        <div class="tab" data-w="galeri" onclick="setWebTab('galeri')">Galeri</div>
+        <div class="tab" data-w="tampilan" onclick="setWebTab('tampilan')">Tampilan</div>
+      </div>
+      <div id="webEditPanel"></div>
+    </section>
+
+    <!-- PENGATURAN -->
+    <section class="view" id="view-settings">
+      <div class="settings-grid">
+        <div class="card">
+          <h3>🕌 Data Masjid</h3>
+          <div class="setting-item" onclick="openMasjidField('namaMasjid')">
+            <div class="setting-icon" style="background:var(--warning-bg);color:var(--warning);">🕌</div>
+            <div class="setting-info"><div class="s-title">Nama Masjid</div><div class="s-desc" id="rowNamaMasjid">—</div></div>
+            <div class="setting-arrow">›</div>
+          </div>
+          <div class="setting-item" onclick="openMasjidField('alamat')">
+            <div class="setting-icon" style="background:var(--info-bg);color:var(--info);">📍</div>
+            <div class="setting-info"><div class="s-title">Alamat</div><div class="s-desc" id="rowAlamat">—</div></div>
+            <div class="setting-arrow">›</div>
+          </div>
+          <div class="setting-item" onclick="openMasjidField('takmir')">
+            <div class="setting-icon" style="background:var(--c-jamaah-bg);color:var(--c-jamaah);">👤</div>
+            <div class="setting-info"><div class="s-title">Nama Ketua Takmir</div><div class="s-desc" id="rowTakmir">—</div></div>
+            <div class="setting-arrow">›</div>
+          </div>
+          <div class="setting-item" onclick="openMasjidField('wa')">
+            <div class="setting-icon" style="background:var(--success-bg);color:var(--success);">💬</div>
+            <div class="setting-info"><div class="s-title">No. WhatsApp Pengurus</div><div class="s-desc" id="rowWA">—</div></div>
+            <div class="setting-arrow">›</div>
+          </div>
+        </div>
+        <div class="card" id="cardWebsite">
+        <div class="card-head">
+          <h3>🌐 Website Masjid</h3>
+          <label class="pf-switch" style="margin:0;"><input type="checkbox" id="setWebsiteOn" onchange="toggleWebsiteModule(this.checked)" aria-label="Aktifkan modul website"><i></i></label>
+        </div>
+        <p class="muted" id="websiteOnNote">Kirim profil, jadwal kajian, dan laporan bulan berjalan ke website publik masjid.</p>
+        <div id="websiteModuleBody">
+          <label>ID Website</label><input type="text" id="setPubSlug" placeholder="masjid">
+          <label>Token Publikasi</label><input type="password" id="setPubToken" placeholder="token dari pengelola website">
+          <div class="btn-row" style="margin-top:12px;">
+            <button class="btn btn-primary" onclick="publishWebsite()">🚀 Publikasikan</button>
+            <button class="btn btn-secondary" onclick="downloadWebsiteJson()">⬇️ Unduh JSON</button>
+          </div>
+          <p class="muted" id="pubStatus" style="margin-top:8px;"></p>
+        </div>
+      </div>
+        <div class="card">
+          <h3>🔒 Lisensi</h3>
+          <div class="setting-item" onclick="openLicenseSheet()">
+            <div class="setting-icon" style="background:var(--c-masuk-bg);color:var(--c-masuk);">🔒</div>
+            <div class="setting-info"><div class="s-title">Kelola Lisensi</div><div class="s-desc" id="licenseStatusBox">—</div></div>
+            <div class="setting-arrow">›</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>💾 Backup & Restore</h3>
+          <div class="setting-item" onclick="backupData()">
+            <div class="setting-icon" style="background:var(--success-bg);color:var(--success);">⬇️</div>
+            <div class="setting-info"><div class="s-title">Backup Data</div><div class="s-desc">Simpan seluruh data ke file JSON</div></div>
+            <div class="setting-arrow">›</div>
+          </div>
+          <div class="setting-item" onclick="document.getElementById('restoreFile').click()">
+            <div class="setting-icon" style="background:var(--info-bg);color:var(--info);">📂</div>
+            <div class="setting-info"><div class="s-title">Restore Data</div><div class="s-desc">Pulihkan data dari file cadangan</div></div>
+            <div class="setting-arrow">›</div>
+          </div>
+          <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="restoreData(event)">
+        </div>
+        <div class="card">
+          <h3>🧪 Data Contoh</h3>
+          <div class="setting-item" onclick="loadDemoData()">
+            <div class="setting-icon" style="background:var(--c-keluar-bg);color:var(--c-keluar);">🧪</div>
+            <div class="setting-info"><div class="s-title">Muat Data Contoh</div><div class="s-desc">Isi data contoh untuk mencoba fitur · hanya saat data masih kosong</div></div>
+            <div class="setting-arrow">›</div>
+          </div>
+        </div>
+      </div>
+      <div class="app-footer">
+        <div class="logo">🕌</div>
+        <div class="fname">Kasir Solo - Masjid</div>
+        <div class="fver" id="footerVersion"></div>
+        <div class="fpt">PT Mesin Kasir Solo</div>
+        <div class="flinks">
+          <a href="https://wa.me/628816566935" target="_blank" rel="noopener">📱 0881-6566-935</a>
+          <a href="mailto:owner.kasirsolo@gmail.com">✉️ owner.kasirsolo@gmail.com</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" data-view="dashboard" onclick="go('dashboard')"><span class="ic">🏠</span>Beranda</button>
+    <button class="nav-item" data-view="kas" onclick="go('kas')"><span class="ic">💰</span>Kas</button>
+    <button class="nav-item" data-view="kegiatan" onclick="go('kegiatan')"><span class="ic">📅</span>Kegiatan</button>
+    <button class="nav-item" data-view="laporan" onclick="go('laporan')"><span class="ic">📊</span>Laporan</button>
+    <button class="nav-item" data-view="more" onclick="openMoreSheet()"><span class="ic">☰</span>Lainnya</button>
+  </nav>
+
+  <!-- MORE SHEET -->
+  <div class="sheet-backdrop" id="moreBackdrop" onclick="closeMoreSheet()"></div>
+  <div class="sheet" id="moreSheet">
+    <div class="sheet-handle"></div>
+    <h2>Menu Lainnya</h2>
+    <div class="sheet-grid">
+      <div class="sheet-item" onclick="closeMoreSheet();go('jamaah')"><div class="ic" style="background:var(--c-jamaah-bg);color:var(--c-jamaah);">🧑‍🤝‍🧑</div><span>Jamaah</span></div>
+      <div class="sheet-item" onclick="closeMoreSheet();go('inventaris')"><div class="ic" style="background:var(--c-keluar-bg);color:var(--c-keluar);">📦</div><span>Inventaris</span></div>
+      <div class="sheet-item" id="navWebsite" onclick="closeMoreSheet();go('website')"><div class="ic" style="background:var(--c-masuk-bg);color:var(--c-masuk);">🌐</div><span>Website</span></div>
+      <div class="sheet-item" onclick="closeMoreSheet();go('settings')"><div class="ic" style="background:var(--warning-bg);color:var(--warning);">⚙️</div><span>Pengaturan</span></div>
+    </div>
+  </div>
+
+  <!-- GENERIC MODAL -->
+  <div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this)closeModal()">
+    <div class="modal" id="modalBox"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* =========================================================
+   KASIR SOLO PLATFORM — kuota gratis bulanan, lisensi per perangkat,
+   buka/tutup kas, pengeluaran & pemasukan, nota & printer, diagnosa, PWA.
+   Dipakai bersama oleh Konter HP, Laundry, dan Masjid.
+   ========================================================= */
+(function () {
+'use strict';
+const CFG = {"key": "masjid", "name": "Kasir Solo - Masjid", "prefix": "KSM", "salt": "KS-MASJID-LIC-2026-v2", "quota": 60, "unit": "catatan", "wa": "628816566935", "version": "1.2.2"};
+window.APP_VERSION = CFG.version;
+/* --- algoritma lisensi per perangkat (dipakai aplikasi & generator; harus identik) --- */
+const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // tanpa I, O, 0, 1 agar tidak salah baca
+function h53(str, seed) {
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0, ch; i < str.length; i++) {
+    ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+}
+function licenseCode(prefix, salt, dev) {
+  let o = '';
+  for (let i = 0; i < 12; i++) o += ALPHA[h53(salt + '|' + dev + '|' + i, i + 7) % 32];
+  return prefix + '-' + o.slice(0, 4) + '-' + o.slice(4, 8) + '-' + o.slice(8, 12);
+}
+
+const A = {
+  mode: 'masjid', hasKas: false, hasCashflow: false,
+  storeName: () => DB.settings.namaMasjid || 'Masjid',
+  grossLabel: '',
+  expCats: [], incCats: [],
+  SUMBER: ['Tunai', 'Rekening Bank', 'QRIS / Dompet Digital'],
+  termsService: 'aplikasi manajemen masjid: mencatat kas pemasukan dan pengeluaran per sumber dana (tunai, rekening, QRIS), data jamaah, jadwal kegiatan dan kajian, inventaris, laporan transparansi, serta cetak bukti penerimaan/pengeluaran.',
+  termsData: 'Data jamaah dan keuangan masjid tidak pernah dikirim ke server kami. Pengurus bertanggung jawab menjaga kerahasiaan data jamaah.',
+  counts: () => DB.kas.length + ' catatan kas · ' + DB.jamaah.length + ' jamaah · ' + DB.kegiatan.length + ' kegiatan · ' + DB.inventaris.length + ' aset',
+  cashIn: () => ({ tunai: 0, nonTunai: 0, count: 0 }),
+  gross: () => 0,
+  receipt(kind, k, u) {
+    const masuk = k.tipe === 'masuk';
+    const rows = [{ t: 'c', s: masuk ? 'BUKTI PENERIMAAN' : 'BUKTI PENGELUARAN' }, { t: 'lr', l: 'Tanggal', r: u.fmtD(k.tanggal) }, { t: 'hr' },
+      { t: 'lr', l: 'Kategori', r: k.kategori }, { t: 'lr', l: masuk ? 'Masuk ke' : 'Dari', r: k.sumber || 'Tunai' }, { t: 'lr', l: 'JUMLAH', r: u.rp(k.jumlah) }];
+    if (k.keterangan) rows.push({ t: 'hr' }, { t: 'p', s: k.keterangan });
+    rows.push({ t: 'n' }, { t: 'c', s: masuk ? 'Jazakumullahu khairan' : 'Tercatat oleh Bendahara' }, { t: 'n' });
+    return rows;
+  },
+  help: [
+    ['💰 Kas & Keuangan', 'Menu <b>Kas</b> untuk mencatat pemasukan (infaq Jumat, donasi, zakat, wakaf, kotak amal) dan pengeluaran (listrik, honor, perawatan, kegiatan). Pilih <b>sumber dana</b>: tunai, rekening bank, atau QRIS.'],
+    ['🧮 Opname Kas', 'Dari Beranda atau <b>Lainnya → Opname Kas</b>: hitung uang tunai fisik di brankas, lalu bandingkan dengan catatan aplikasi. Selisih bisa dicatat sebagai penyesuaian.'],
+    ['📅 Kegiatan & Kajian', 'Catat jadwal kajian dan kegiatan beserta pengisi dan tempat. Tandai <b>Selesai</b> setelah acara berlangsung.'],
+    ['🧑‍🤝‍🧑 Jamaah & Inventaris', 'Simpan data jamaah dan aset masjid (sound system, karpet, dll) beserta kondisinya.'],
+    ['📊 Laporan', 'Laporan mingguan/bulanan/tahunan per kategori dan per sumber dana — cocok untuk dilaporkan ke jamaah secara transparan.'],
+    ['🖨️ Bukti', 'Di detail transaksi kas tersedia <b>Cetak Bukti</b> (printer thermal Bluetooth atau browser).'],
+    ['💾 Backup', 'Rutin tekan <b>Backup</b> di Pengaturan dan simpan filenya. Data hanya ada di perangkat ini.']
+  ],
+  hooks: [
+    {
+      fn: 'saveTransaksi', arr: 'kas', needKas: false,
+      pre() { return { sumber: ($('txSumber') || {}).value || 'Tunai' }; },
+      onNew(rec, ctx) { rec.sumber = ctx.sumber; saveDB(); renderView(navStack[navStack.length - 1]); }
+    }
+  ],
+  install(P) {
+    P.wrapGuard('openTransaksiForm', { needKas: false });
+    P.printKas = id => P.printRecord('kas', DB.kas.find(x => x.id === id));
+
+    // pilihan sumber dana di form transaksi
+    P.helpers.after('openTransaksiForm', tipe => {
+      const sel = $('txKategori'); if (!sel || $('txSumber')) return;
+      sel.insertAdjacentHTML('afterend', `<label>${tipe === 'masuk' ? 'Masuk ke' : 'Dibayar dari'}</label><select id="txSumber">${A.SUMBER.map(s => `<option value="${s}">${s}</option>`).join('')}</select>`);
+    });
+
+    // baris kas menampilkan sumber dana
+    window.kasRowHTML = function (k) {
+      const isMasuk = k.tipe === 'masuk';
+      return `<div class="list-item" style="cursor:pointer;" onclick="openTransaksiDetail('${k.id}')">
+        <div class="avatar" style="background:${isMasuk ? 'var(--success-bg)' : 'var(--danger-bg)'};color:${isMasuk ? 'var(--success)' : 'var(--danger)'};">${isMasuk ? '⬇️' : '⬆️'}</div>
+        <div class="meta"><div class="t">${esc(k.kategori)}</div><div class="s">${esc(k.sumber || 'Tunai')}${k.keterangan ? ' · ' + esc(k.keterangan) : ''}</div></div>
+        <div class="right"><div class="amt ${isMasuk ? 'plus' : 'minus'}">${isMasuk ? '+' : '-'}${rp(k.jumlah)}</div><div class="s">${fmtShort(k.tanggal)}</div></div>
+      </div>`;
+    };
+
+    // detail transaksi: sumber dana + cetak bukti
+    P.helpers.after('openTransaksiDetail', id => {
+      const k = DB.kas.find(x => x.id === id), box = $('modalBox'); if (!k || !box) return;
+      const rowsEl = box.querySelector('.total-row.big');
+      if (rowsEl) rowsEl.insertAdjacentHTML('beforebegin', `<div class="total-row"><span>${k.tipe === 'masuk' ? 'Masuk ke' : 'Dibayar dari'}</span><span>${esc(k.sumber || 'Tunai')}</span></div>`);
+      box.insertAdjacentHTML('beforeend', `<div class="btn-row" style="margin-top:8px;"><button class="btn btn-secondary" onclick="Platform.printKas('${k.id}')">🖨️ Cetak Bukti</button></div>`);
+    });
+  }
+};
+
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rp = n => (n < 0 ? '-' : '') + 'Rp' + Math.round(Math.abs(n || 0)).toLocaleString('id-ID');
+const pad2 = n => String(n).padStart(2, '0');
+const dayOf = d => { d = d || new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
+const ymNow = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1); };
+const fmtD = iso => new Date(iso).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmtShort = iso => new Date(iso).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+const inWin = (iso, f, t) => { const x = new Date(iso).getTime(); return x >= f && x <= t; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const toastMsg = m => { if (typeof toast === 'function') toast(m); };
+
+const NET = A.netLabel || 'Laba Bersih', NETW = A.netShort || 'laba';
+const P = {};
+window.Platform = P;
+P.cfg = CFG;
+P._A = A;
+
+/* ---------- penyimpanan khusus (tahan restore/backup) ---------- */
+const LS = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+};
+const K = { dev: 'ks_dev_' + CFG.key, lic: 'ks_lic_' + CFG.key, use: 'ks_use_' + CFG.key };
+
+function deviceId() {
+  let d = LS.get(K.dev);
+  if (!d || !/^[A-HJ-NP-Z2-9]{8}$/.test(d)) {
+    const a = new Uint8Array(8);
+    try { crypto.getRandomValues(a); } catch (e) { for (let i = 0; i < 8; i++) a[i] = Math.floor(Math.random() * 256); }
+    d = ''; for (let i = 0; i < 8; i++) d += ALPHA[a[i] % 32];
+    LS.set(K.dev, d);
+  }
+  return d;
+}
+const devFmt = d => d.slice(0, 4) + '-' + d.slice(4);
+
+/* state yang ikut backup (kas, keuangan) disimpan di DB.platform */
+function st() {
+  let p = DB.platform; if (!p) p = DB.platform = {};
+  p.cashflow = p.cashflow || [];
+  if (p.shift === undefined) p.shift = null;
+  p.shiftLog = p.shiftLog || [];
+  p.opnameLog = p.opnameLog || [];
+  p.settings = p.settings || { kas: false };
+  return p;
+}
+
+/* ---------- lisensi & kuota ---------- */
+const savedCode = () => (LS.get(K.lic) || '').toUpperCase();
+P.isLicensed = () => { const c = savedCode(); return !!c && c === licenseCode(CFG.prefix, CFG.salt, deviceId()); };
+P.activate = input => {
+  const c = String(input || '').toUpperCase().replace(/\s+/g, '');
+  if (c && c === licenseCode(CFG.prefix, CFG.salt, deviceId())) { LS.set(K.lic, c); return true; }
+  return false;
+};
+function usage() {
+  let u = null; try { u = JSON.parse(LS.get(K.use) || 'null'); } catch (e) { }
+  if (!u || u.month !== ymNow()) u = { month: ymNow(), count: 0 };
+  return u;
+}
+P.used = () => usage().count;
+P.remaining = () => Math.max(0, CFG.quota - usage().count);
+P.hit = function () {
+  const u = usage(); u.count++; LS.set(K.use, JSON.stringify(u));
+  P.refresh();
+  if (!P.isLicensed()) {
+    const r = P.remaining();
+    if (r === 0) toastMsg('Kuota gratis bulan ini habis');
+    else if (r <= 5) toastMsg('Sisa kuota gratis: ' + r + ' ' + CFG.unit);
+  }
+};
+P.guard = function (o) {
+  o = o || {};
+  if (!o.noQuota && !P.isLicensed() && usage().count >= CFG.quota) { quotaBlock(); return false; }
+  if (o.needKas && kasOn() && !st().shift) { P.openKasOpen(true); return false; }
+  return true;
+};
+
+P.refresh = function () {
+  const chip = $('quotaChip'); if (!chip) return;
+  if (P.isLicensed()) { chip.classList.add('hidden'); return; }
+  chip.classList.remove('hidden');
+  const u = usage().count;
+  const habis = u >= CFG.quota;
+  $('quotaText').textContent = habis ? 'KUOTA HABIS' : 'GRATIS';
+  $('quotaSub').textContent = u + '/' + CFG.quota + ' ' + CFG.unit;
+  chip.classList.toggle('warn', habis);
+};
+
+function quotaBlock() {
+  openModal(`
+    <div class="modal-head"><h2>🔒 Kuota Gratis Habis</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="pf-lock"><div class="big">🔒</div></div>
+    <p class="muted" style="line-height:1.6">Kuota gratis <b>${CFG.quota} ${CFG.unit}</b> bulan ini sudah terpakai. Kamu tetap bisa membuka aplikasi dan melihat semua data. Pencatatan baru terbuka lagi <b>tanggal 1 bulan depan</b>, atau buka lebih awal dengan lisensi.</p>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-secondary" onclick="closeModal()">Tutup</button>
+      <button class="btn btn-primary" onclick="Platform.openLicense()">Beli / Aktifkan</button>
+    </div>`);
+}
+
+P.openLicense = function () {
+  const lic = P.isLicensed(), dev = devFmt(deviceId());
+  openModal(`
+    <div class="modal-head"><h2>💳 Lisensi</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${lic
+      ? `<div class="pf-ok">✅ Lisensi aktif di perangkat ini. Pencatatan ${CFG.unit} tanpa batas kuota.</div>`
+      : `<div class="pf-warn">Versi gratis: ${P.used()}/${CFG.quota} ${CFG.unit} terpakai bulan ini.</div>`}
+    <label>ID Perangkat</label>
+    <div class="pf-device" id="pfDev">${dev}</div>
+    <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;" onclick="Platform.copyDev()">📋 Salin ID Perangkat</button>
+    ${lic ? '' : `
+    <hr class="sep">
+    <label>Kode Lisensi</label>
+    <input type="text" id="pfLicIn" placeholder="${CFG.prefix}-XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:1px;" oninput="Platform.fmtLic(this)">
+    <div class="btn-row" style="margin-top:12px;"><button class="btn btn-primary" onclick="Platform.doActivate()">Aktifkan</button></div>
+    <hr class="sep">
+    <button class="btn btn-secondary" onclick="Platform.buyWA()">💬 Beli Lisensi via WhatsApp</button>`}
+    <div class="pf-note">Lisensi hanya berlaku untuk <b>perangkat ini</b> (ID di atas). Untuk membeli, kirim ID Perangkat ke admin lewat WhatsApp; setelah pembayaran dikonfirmasi kamu akan menerima kode lisensi.</div>`);
+};
+P.fmtLic = function (el) {
+  let v = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (v.startsWith(CFG.prefix)) v = v.slice(CFG.prefix.length);
+  const parts = (v.match(/.{1,4}/g) || []).slice(0, 3);
+  el.value = CFG.prefix + (parts.length ? '-' + parts.join('-') : '-');
+};
+P.doActivate = function () {
+  const v = ($('pfLicIn') || {}).value || '';
+  if (P.activate(v)) { P.refresh(); toastMsg('Lisensi berhasil diaktifkan 🎉'); P.openLicense(); }
+  else toastMsg('Kode lisensi tidak cocok dengan perangkat ini');
+};
+P.copyDev = function () {
+  const d = devFmt(deviceId());
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(d).then(() => toastMsg('ID Perangkat disalin'), () => toastMsg(d));
+  else toastMsg(d);
+};
+P.buyWA = function () {
+  const nama = (DB.settings && (DB.settings.namaToko || DB.settings.namaMasjid || DB.settings.namaPondok)) || '';
+  const msg = 'Halo Admin Kasir Solo, saya ingin membeli lisensi *' + CFG.name + '*.\nID Perangkat: ' + devFmt(deviceId()) + (nama ? '\nNama usaha: ' + nama : '') + '\nMohon info pembayarannya.';
+  window.open('https://wa.me/' + CFG.wa + '?text=' + encodeURIComponent(msg), '_blank');
+};
+
+/* stub kompatibilitas untuk kode lama */
+window.isLicensed = () => P.isLicensed();
+window.licenseInfoText = () => P.isLicensed() ? 'Lisensi aktif — tanpa batas kuota. ID Perangkat: ' + devFmt(deviceId())
+  : 'Versi gratis: ' + P.used() + '/' + CFG.quota + ' ' + CFG.unit + ' terpakai bulan ini.';
+window.openLicenseSheet = () => P.openLicense();
+window.closeLicenseSheet = () => { };
+window.updateTrialUI = () => P.refresh();
+
+/* ---------- kas ---------- */
+const kasOn = () => !!(A.hasKas && st().settings.kas);
+function cashStats(from, to) {
+  const ci = A.cashIn(from, to); let kT = 0, mT = 0;
+  st().cashflow.forEach(c => { if (c.sumber === 'Tunai' && inWin(c.tanggal, from, to)) { if (c.tipe === 'keluar') kT += c.jumlah; else mT += c.jumlah; } });
+  const modal = st().shift ? st().shift.modal : 0;
+  return { ci, kT, mT, modal, sistem: modal + ci.tunai + mT - kT };
+}
+P.openKasOpen = function (blocked) {
+  openModal(`
+    <div class="modal-head"><h2>🔓 Buka Kas</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${blocked ? '<div class="pf-warn">Kas belum dibuka. Buka kas dulu sebelum mencatat transaksi.</div>' : ''}
+    <label>Modal Awal di Laci (Rp)</label>
+    <input type="number" id="pfModal" inputmode="numeric" placeholder="0">
+    <p class="muted" style="margin-top:8px;">Hitung uang tunai yang ada di laci sekarang, lalu masukkan sebagai modal awal. Ketik <b>0</b> kalau laci memang kosong.</p>
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-secondary" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="Platform.doKasOpen()">🔓 Buka Kas</button></div>`);
+};
+P.doKasOpen = function () {
+  const raw = $('pfModal').value;
+  if (raw === '' || Number(raw) < 0) { toastMsg('Isi modal awal (0 jika kosong)'); return; }
+  st().shift = { start: new Date().toISOString(), modal: Number(raw) };
+  saveDB(); closeModal(); toastMsg('Kas dibuka — silakan lanjutkan transaksi'); renderDashboard();
+};
+P.openKasClose = function () {
+  const sh = st().shift; if (!sh) { P.openKasOpen(); return; }
+  const s = cashStats(new Date(sh.start).getTime(), Date.now());
+  openModal(`
+    <div class="modal-head"><h2>🔒 Tutup Kas</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="total-row"><span>Kas dibuka</span><span>${fmtD(sh.start)}</span></div>
+    <div class="total-row"><span>Jumlah transaksi</span><span>${s.ci.count}</span></div>
+    <hr class="sep">
+    <div class="total-row"><span>Modal awal di laci</span><span>${rp(s.modal)}</span></div>
+    <div class="total-row"><span>${esc(A.cashInLabel || 'Penjualan tunai')}</span><span>${rp(s.ci.tunai)}</span></div>
+    <div class="total-row"><span>Pemasukan tunai</span><span>${rp(s.mT)}</span></div>
+    <div class="total-row"><span>Pengeluaran tunai</span><span>- ${rp(s.kT)}</span></div>
+    <div class="total-row big"><span>Kas sistem (perkiraan)</span><span id="pfSis">${rp(s.sistem)}</span></div>
+    <div class="pf-note">📱 Non-tunai (QRIS/Transfer/Debit) di luar laci: <b>${rp(s.ci.nonTunai)}</b>. Hanya <b>Kas sistem</b> yang dibandingkan dengan hitungan fisik.</div>
+    <label>Uang tunai fisik di laci (hitung manual)</label>
+    <input type="number" id="pfFis" inputmode="numeric" placeholder="0" oninput="Platform.kasDiff(${s.sistem})">
+    <div class="total-row" style="margin-top:6px;"><span>Selisih (fisik − sistem)</span><b id="pfSel">—</b></div>
+    <label>Catatan (opsional)</label><textarea id="pfCat" placeholder="cth: kembalian kurang Rp2.000"></textarea>
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-secondary" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="Platform.doKasClose()">🔒 Tutup Kas</button></div>`);
+};
+P.kasDiff = function (sis) {
+  const raw = $('pfFis').value, el = $('pfSel');
+  if (raw === '') { el.textContent = '—'; el.style.color = ''; return; }
+  const d = Number(raw) - sis;
+  el.textContent = (d > 0 ? '+' : '') + rp(d) + (d === 0 ? ' ✓ pas' : '');
+  el.style.color = d === 0 ? 'var(--success)' : 'var(--danger)';
+};
+P.doKasClose = function () {
+  const sh = st().shift; if (!sh) return;
+  const raw = $('pfFis').value;
+  if (raw === '') { toastMsg('Isi uang fisik di laci'); return; }
+  const s = cashStats(new Date(sh.start).getTime(), Date.now());
+  st().shiftLog.push({
+    start: sh.start, end: new Date().toISOString(), modal: s.modal, tunaiJual: s.ci.tunai, nonTunai: s.ci.nonTunai, count: s.ci.count,
+    masuk: s.mT, keluar: s.kT, sistem: s.sistem, fisik: Number(raw), selisih: Number(raw) - s.sistem, catatan: $('pfCat').value.trim()
+  });
+  st().shift = null; saveDB(); closeModal();
+  toastMsg('Kas ditutup. Selisih ' + rp(Number(raw) - s.sistem)); renderDashboard();
+};
+
+/* opname kas (untuk masjid: hitung uang tunai di brankas) */
+function saldoTunai() {
+  return DB.kas.reduce((a, k) => a + ((k.sumber || 'Tunai') === 'Tunai' ? (k.tipe === 'masuk' ? k.jumlah : -k.jumlah) : 0), 0);
+}
+P.openOpname = function () {
+  const sis = saldoTunai(), last = st().opnameLog.slice(-1)[0];
+  openModal(`
+    <div class="modal-head"><h2>🧮 Opname Kas</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p class="muted" style="line-height:1.55">Cocokkan uang tunai fisik di brankas/kotak dengan catatan aplikasi. Hanya transaksi bersumber <b>Tunai</b> yang dihitung.</p>
+    <div class="total-row big"><span>Saldo tunai (catatan)</span><span>${rp(sis)}</span></div>
+    ${last ? `<div class="muted" style="margin-top:6px;">Opname terakhir: ${fmtD(last.tanggal)} · selisih ${rp(last.selisih)}</div>` : ''}
+    <label>Uang tunai fisik (hitung manual)</label>
+    <input type="number" id="pfFis" inputmode="numeric" placeholder="0" oninput="Platform.kasDiff(${sis})">
+    <div class="total-row" style="margin-top:6px;"><span>Selisih (fisik − catatan)</span><b id="pfSel">—</b></div>
+    <label>Catatan (opsional)</label><textarea id="pfCat" placeholder="cth: dihitung bersama bendahara"></textarea>
+    <label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="pfAdj" style="width:auto;"> Catat selisih sebagai penyesuaian kas</label>
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-secondary" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="Platform.doOpname(${sis})">Simpan Opname</button></div>`);
+};
+P.doOpname = function (sis) {
+  const raw = $('pfFis').value; if (raw === '') { toastMsg('Isi uang fisik'); return; }
+  const fis = Number(raw), sel = fis - sis;
+  st().opnameLog.push({ id: uid(), tanggal: new Date().toISOString(), sistem: sis, fisik: fis, selisih: sel, catatan: $('pfCat').value.trim() });
+  if ($('pfAdj').checked && sel !== 0) {
+    DB.kas.push({ id: uid(), tanggal: new Date().toISOString(), tipe: sel > 0 ? 'masuk' : 'keluar', kategori: 'Lainnya', jumlah: Math.abs(sel), keterangan: 'Penyesuaian opname kas', sumber: 'Tunai' });
+  }
+  saveDB(); closeModal(); toastMsg('Opname tersimpan. Selisih ' + rp(sel));
+  if (typeof renderView === 'function') renderView(navStack[navStack.length - 1]);
+};
+
+/* ---------- pengeluaran & pemasukan ---------- */
+let kfTab = 'semua';
+const inc = () => st().cashflow;
+function monthWin() { const n = new Date(); return [new Date(n.getFullYear(), n.getMonth(), 1).getTime(), Date.now()]; }
+function cfSum(f, t) {
+  let keluar = 0, masuk = 0, nlK = 0, nlM = 0;
+  st().cashflow.forEach(c => { if (!inWin(c.tanggal, f, t)) return;
+    if (c.tipe === 'keluar') { c.nonLaba ? nlK += c.jumlah : keluar += c.jumlah; } else { c.nonLaba ? nlM += c.jumlah : masuk += c.jumlah; } });
+  return { keluar, masuk, nlK, nlM };
+}
+P.setKfTab = t => { kfTab = t; P.renderKeuangan(); };
+P.renderKeuangan = function () {
+  const v = $('view-keuangan'); if (!v) return;
+  const [f, t] = monthWin(), s = cfSum(f, t);
+  let list = st().cashflow.slice().sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+  if (kfTab !== 'semua') list = list.filter(c => c.tipe === kfTab);
+  v.innerHTML = `
+    <div class="stat-grid" style="margin-bottom:12px;">
+      <div class="stat-card red"><div class="lbl">Pengeluaran Bulan Ini</div><div class="val">${rp(s.keluar)}</div></div>
+      <div class="stat-card green"><div class="lbl">Pemasukan Lain Bulan Ini</div><div class="val">${rp(s.masuk)}</div></div>
+    </div>
+    <div class="btn-row" style="margin-bottom:14px;">
+      <button class="btn btn-secondary" style="background:var(--danger-bg);color:var(--danger);border-color:transparent;" onclick="Platform.openCfForm('keluar')">➖ Pengeluaran</button>
+      <button class="btn btn-secondary" style="background:var(--success-bg);color:var(--success);border-color:transparent;" onclick="Platform.openCfForm('masuk')">➕ Pemasukan</button>
+    </div>
+    <div class="tabs">
+      ${[['semua', 'Semua'], ['keluar', 'Pengeluaran'], ['masuk', 'Pemasukan']].map(x => `<div class="tab ${kfTab === x[0] ? 'active' : ''}" onclick="Platform.setKfTab('${x[0]}')">${x[1]}</div>`).join('')}
+    </div>
+    <div class="card">${list.length ? list.map(c => `
+      <div class="list-item" style="cursor:pointer;" onclick="Platform.openCfDetail('${c.id}')">
+        <div class="avatar" style="background:${c.tipe === 'masuk' ? 'var(--success-bg)' : 'var(--danger-bg)'};">${c.tipe === 'masuk' ? '⬇️' : '⬆️'}</div>
+        <div class="meta"><div class="t">${esc(c.kategori)}</div><div class="s">${esc(c.ket || '')}${c.ket ? ' · ' : ''}${esc(c.sumber)}${c.nonLaba ? ' · di luar ' + esc(NETW) : ''}</div></div>
+        <div class="right"><div class="amt" style="color:${c.tipe === 'masuk' ? 'var(--success)' : 'var(--danger)'};">${c.tipe === 'masuk' ? '+' : '-'}${rp(c.jumlah)}</div><div class="muted" style="font-size:11px;">${fmtShort(c.tanggal)}</div></div>
+      </div>`).join('') : '<div class="empty"><div class="ic">🧾</div><div class="t">Belum ada catatan</div><div class="s">Catat biaya operasional & pemasukan di luar penjualan</div></div>'}</div>`;
+};
+P.openCfForm = function (tipe) {
+  const cats = tipe === 'keluar' ? A.expCats : A.incCats;
+  openModal(`
+    <div class="modal-head"><h2>${tipe === 'keluar' ? '🧾 Catat Pengeluaran' : '💰 Catat Pemasukan'}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="pf-seg"><button class="${tipe === 'keluar' ? 'on' : ''}" onclick="Platform.openCfForm('keluar')">Pengeluaran</button><button class="${tipe === 'masuk' ? 'on' : ''}" onclick="Platform.openCfForm('masuk')">Pemasukan</button></div>
+    <input type="hidden" id="cfTipe" value="${tipe}">
+    <label>${tipe === 'keluar' ? 'Jenis Pengeluaran' : 'Jenis Pemasukan'}</label>
+    <select id="cfKat" onchange="Platform.cfKatChange()">${cats.map(c => `<option value="${esc(c[0])}" data-nl="${c[1]}">${esc(c[0])}</option>`).join('')}</select>
+    <div id="cfNl" class="pf-note" style="display:none;margin-top:8px;">Kategori ini <b>tidak memengaruhi ${esc(NETW)}</b> — ini ${esc(A.nonNetNote || 'uang pemilik/stok, bukan biaya atau hasil jualan')}.</div>
+    <label>Tanggal Catatan</label>
+    <input type="date" id="cfTgl" value="${dayOf()}" max="${dayOf()}">
+    <p class="muted" style="margin-top:4px;">Boleh mundur untuk mencatat yang ketinggalan. Tanggal menentukan laporan hari apa catatan ini masuk.</p>
+    <label>Jumlah Uang (Rp)</label><input type="number" id="cfJml" inputmode="numeric" placeholder="0">
+    <label>${tipe === 'keluar' ? 'Ambil dari?' : 'Masuk ke?'}</label>
+    <div class="pay-methods" id="cfSrc">${[['Tunai', '💵 Tunai (laci)'], ['QRIS', '📱 QRIS'], ['Transfer', '🏦 Transfer']].map((x, i) => `<div class="pay-chip ${i === 0 ? 'active' : ''}" data-v="${x[0]}" onclick="Platform.pickSrc(this)">${x[1]}</div>`).join('')}</div>
+    <p class="muted" style="margin-top:6px;">Hanya <b>Tunai</b> yang memengaruhi uang laci saat tutup kas.</p>
+    <label>Keterangan (opsional)</label><textarea id="cfKet" placeholder="cth: bayar listrik bulan ini"></textarea>
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-secondary" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="Platform.saveCf()">💾 Simpan</button></div>`);
+  P.cfKatChange();
+};
+P.cfKatChange = function () {
+  const sel = $('cfKat'); if (!sel) return;
+  $('cfNl').style.display = sel.options[sel.selectedIndex].dataset.nl === '1' ? 'block' : 'none';
+};
+P.pickSrc = el => { document.querySelectorAll('#cfSrc .pay-chip').forEach(e => e.classList.remove('active')); el.classList.add('active'); };
+P.saveCf = function () {
+  const tipe = $('cfTipe').value, jml = Number($('cfJml').value) || 0;
+  if (jml <= 0) { toastMsg('Jumlah harus lebih dari 0'); return; }
+  const tgl = $('cfTgl').value || dayOf();
+  if (tgl > dayOf()) { toastMsg('Tanggal tidak boleh di masa depan'); return; }
+  const sel = $('cfKat'), opt = sel.options[sel.selectedIndex];
+  const now = new Date();
+  // hari ini → waktu persis (agar masuk shift kas yang sedang berjalan); tanggal mundur → jam sekarang di tanggal itu
+  const at = tgl === dayOf() ? now.toISOString() : new Date(tgl + 'T' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds())).toISOString();
+  st().cashflow.push({ id: uid(), tipe, kategori: sel.value, nonLaba: opt.dataset.nl === '1', jumlah: jml,
+    sumber: document.querySelector('#cfSrc .pay-chip.active').dataset.v, tanggal: at, ket: $('cfKet').value.trim() });
+  saveDB(); closeModal(); toastMsg('Catatan tersimpan');
+  if (typeof renderView === 'function') renderView(navStack[navStack.length - 1]);
+};
+P.openCfDetail = function (id) {
+  const c = st().cashflow.find(x => x.id === id); if (!c) return;
+  openModal(`
+    <div class="modal-head"><h2>Detail Catatan</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="total-row"><span>Tipe</span><span>${c.tipe === 'masuk' ? 'Pemasukan' : 'Pengeluaran'}</span></div>
+    <div class="total-row"><span>Jenis</span><span>${esc(c.kategori)}</span></div>
+    <div class="total-row"><span>Tanggal</span><span>${fmtD(c.tanggal)}</span></div>
+    <div class="total-row"><span>${c.tipe === 'keluar' ? 'Diambil dari' : 'Masuk ke'}</span><span>${esc(c.sumber)}</span></div>
+    ${c.nonLaba ? '<div class="total-row"><span>' + esc(NETW.charAt(0).toUpperCase() + NETW.slice(1)) + '</span><span>Tidak dihitung</span></div>' : ''}
+    <div class="total-row big"><span>Jumlah</span><span>${rp(c.jumlah)}</span></div>
+    ${c.ket ? `<hr class="sep"><p class="muted">${esc(c.ket)}</p>` : ''}
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-danger" onclick="Platform.askDelCf('${c.id}')">🗑️ Hapus</button></div>`);
+};
+P.askDelCf = function (id) {
+  openModal(`<div class="pf-lock"><div class="big">⚠️</div><h2 style="margin:4px 0 6px;">Yakin?</h2><p class="muted">Catatan ini akan dihapus permanen.</p></div>
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-secondary" onclick="closeModal()">Batal</button><button class="btn btn-danger" onclick="Platform.delCf('${id}')">Ya, Hapus</button></div>`);
+};
+P.delCf = function (id) {
+  st().cashflow = st().cashflow.filter(x => x.id !== id); saveDB(); closeModal(); toastMsg('Catatan dihapus');
+  if (typeof renderView === 'function') renderView(navStack[navStack.length - 1]);
+};
+
+/* ---------- ekstra dashboard / laporan ---------- */
+function ensureBox(viewId, boxId, afterSel, where) {
+  const v = $(viewId); if (!v) return null;
+  let b = $(boxId);
+  if (!b) { b = document.createElement('div'); b.id = boxId; const ref = afterSel ? v.querySelector(afterSel) : null;
+    if (ref && where !== 'end') ref.insertAdjacentElement('afterend', b); else v.appendChild(b); }
+  return b;
+}
+const startOfDay = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime(); };
+P.dashExtras = function () {
+  if (A.mode === 'masjid') {
+    const b = ensureBox('view-dashboard', 'pfDash', '.stat-grid'); if (!b) return;
+    const all = DB.kas, sum = s => all.reduce((a, k) => a + (((k.sumber || 'Tunai') === s) ? (k.tipe === 'masuk' ? k.jumlah : -k.jumlah) : 0), 0);
+    const tunai = sum('Tunai'), rek = sum('Rekening Bank'), qr = sum('QRIS / Dompet Digital');
+    b.innerHTML = `<div class="card" style="margin-top:10px;">
+      <div class="total-row"><span>💵 Tunai (brankas)</span><b>${rp(tunai)}</b></div>
+      <div class="total-row"><span>🏦 Rekening bank</span><b>${rp(rek)}</b></div>
+      <div class="total-row"><span>📱 QRIS / dompet digital</span><b>${rp(qr)}</b></div></div>`;
+    return;
+  }
+  const b = ensureBox('view-dashboard', 'pfDash', '.stat-grid'); if (!b) return;
+  const f = startOfDay(), t = Date.now(), s = cfSum(f, t), gp = A.gross(f, t), lb = gp - s.keluar + s.masuk;
+  let kas = '';
+  if (kasOn()) {
+    const sh = st().shift;
+    kas = sh
+      ? `<div class="card pf-kas open" style="margin-top:10px;"><div class="st"><b>🔓 Kas Terbuka</b><span>Sejak ${fmtShort(sh.start)} · modal ${rp(sh.modal)}</span></div><button class="btn btn-secondary btn-sm" onclick="Platform.openKasClose()">Tutup Kas</button></div>`
+      : `<div class="card pf-kas closed" style="margin-top:10px;"><div class="st"><b>🔒 Kas Belum Dibuka</b><span>Buka kas untuk mulai mencatat transaksi</span></div><button class="btn btn-primary btn-sm" onclick="Platform.openKasOpen()">Buka Kas</button></div>`;
+  }
+  b.innerHTML = kas + `
+    <div class="stat-grid half" style="margin-top:10px;">
+      <div class="stat-card red"><div class="lbl">🧾 Pengeluaran Hari Ini</div><div class="val">${rp(s.keluar)}</div></div>
+      <div class="stat-card ${lb >= 0 ? 'green' : 'red'}"><div class="lbl">📈 ${esc(NET)} Hari Ini</div><div class="val">${rp(lb)}</div></div>
+    </div>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn btn-secondary btn-sm" onclick="Platform.openCfForm('keluar')">➖ Catat Pengeluaran</button>
+      <button class="btn btn-secondary btn-sm" onclick="Platform.openCfForm('masuk')">➕ Catat Pemasukan</button>
+    </div>`;
+};
+function rangeBounds(r) {
+  const n = new Date(), to = Date.now(); let from;
+  if (r === 'hari') from = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
+  else if (r === 'minggu') from = to - 7 * 864e5;
+  else if (r === 'tahun') from = new Date(n.getFullYear(), 0, 1).getTime();
+  else from = new Date(n.getFullYear(), n.getMonth(), 1).getTime();
+  return [from, to];
+}
+P.lapExtras = function () {
+  const b = ensureBox('view-laporan', 'pfLap', null, 'end'); if (!b) return;
+  const r = typeof lapRange !== 'undefined' ? lapRange : 'bulan', [f, t] = rangeBounds(r);
+  if (A.mode === 'masjid') {
+    const kas = DB.kas.filter(k => inWin(k.tanggal, f, t));
+    const by = s => kas.reduce((a, k) => a + (((k.sumber || 'Tunai') === s) ? (k.tipe === 'masuk' ? k.jumlah : -k.jumlah) : 0), 0);
+    const last = st().opnameLog.slice(-1)[0];
+    b.innerHTML = `<div class="section-title">Perubahan Kas per Sumber Dana</div><div class="card">
+      <div class="total-row"><span>💵 Tunai</span><span>${rp(by('Tunai'))}</span></div>
+      <div class="total-row"><span>🏦 Rekening bank</span><span>${rp(by('Rekening Bank'))}</span></div>
+      <div class="total-row"><span>📱 QRIS / dompet digital</span><span>${rp(by('QRIS / Dompet Digital'))}</span></div>
+      ${last ? `<hr class="sep"><div class="muted">Opname terakhir ${fmtD(last.tanggal)}: fisik ${rp(last.fisik)}, selisih ${rp(last.selisih)}</div>` : ''}</div>`;
+    return;
+  }
+  const s = cfSum(f, t), gp = A.gross(f, t), lb = gp - s.keluar + s.masuk;
+  b.innerHTML = `<div class="section-title">${esc(NET)}</div><div class="card">
+    <div class="total-row"><span>${esc(A.grossLabel)}</span><span>${rp(gp)}</span></div>
+    <div class="total-row"><span>Pengeluaran operasional</span><span>- ${rp(s.keluar)}</span></div>
+    <div class="total-row"><span>Pemasukan lain</span><span>+ ${rp(s.masuk)}</span></div>
+    <div class="total-row big"><span>${esc(NET)}</span><span style="color:${lb >= 0 ? 'var(--success)' : 'var(--danger)'};">${rp(lb)}</span></div>
+    ${(s.nlK || s.nlM) ? `<div class="pf-note">Tidak dihitung ke ${esc(NETW)}: keluar ${rp(s.nlK)} (kulakan/setor/prive) · masuk ${rp(s.nlM)} (modal tambahan).</div>` : ''}</div>`;
+  if (A.afterLaporan) A.afterLaporan(f, t);
+};
+
+/* ---------- nota & printer ---------- */
+const clean = s => String(s == null ? '' : s).replace(/[—–]/g, '-').replace(/[·•]/g, '|').replace(/×/g, 'x').replace(/✓/g, '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '');
+function wrapTxt(s, w) { const out = []; s = clean(s); while (s.length > w) { let i = s.lastIndexOf(' ', w); if (i <= 0) i = w; out.push(s.slice(0, i)); s = s.slice(i).trim(); } out.push(s); return out; }
+P.rowsToText = function (rows, W) {
+  W = W || 32; const L = [];
+  rows.forEach(r => {
+    if (r.t === 'hr') L.push('-'.repeat(W));
+    else if (r.t === 'c') wrapTxt(r.s, W).forEach(x => L.push(' '.repeat(Math.max(0, Math.floor((W - x.length) / 2))) + x));
+    else if (r.t === 'lr') { const l = clean(r.l), rr = clean(r.r);
+      if (l.length + rr.length + 1 <= W) L.push(l + ' '.repeat(W - l.length - rr.length) + rr);
+      else { wrapTxt(l, W).forEach(x => L.push(x)); L.push(' '.repeat(Math.max(0, W - rr.length)) + rr); } }
+    else if (r.t === 'p') wrapTxt(r.s, W).forEach(x => L.push(x));
+    else if (r.t === 'n') L.push('');
+  });
+  return L.join('\n');
+};
+function head() {
+  const nm = A.storeName(), rows = [{ t: 'c', s: nm.toUpperCase() }];
+  const al = DB.settings && DB.settings.alamat, wa = DB.settings && DB.settings.wa;
+  if (al) rows.push({ t: 'c', s: al }); if (wa) rows.push({ t: 'c', s: 'WA ' + wa });
+  rows.push({ t: 'hr' }); return rows;
+}
+P.buildReceipt = (kind, rec) => P.rowsToText(head().concat(A.receipt(kind, rec, { rp, fmtD })).concat([{ t: 'hr' }, { t: 'c', s: 'Dicetak dengan Kasir Solo' }, { t: 'n' }]));
+let bt = { dev: null, ch: null };
+const BT_SERVICES = ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-4ae5-8fa9-9fafd205e455', '0000ff00-0000-1000-8000-00805f9b34fb'];
+function browserPrint(text) {
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(f);
+  const d = f.contentWindow.document; d.open();
+  d.write('<!doctype html><html><head><meta charset="utf-8"><style>@page{size:58mm auto;margin:2mm}body{margin:0;font:11px/1.35 "Courier New",monospace}pre{margin:0;white-space:pre-wrap}</style></head><body><pre>' + esc(text) + '</pre></body></html>');
+  d.close();
+  setTimeout(() => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toastMsg('Gagal membuka dialog cetak'); } setTimeout(() => f.remove(), 3000); }, 250);
+}
+async function btSend(text) {
+  const data = new Uint8Array([0x1B, 0x40, ...new TextEncoder().encode(text + '\n\n\n\n')]);
+  for (let i = 0; i < data.length; i += 20) {
+    const c = data.slice(i, i + 20);
+    if (bt.ch.writeValueWithoutResponse) await bt.ch.writeValueWithoutResponse(c); else await bt.ch.writeValue(c);
+    await sleep(20);
+  }
+}
+P.print = async function (text) {
+  if (bt.ch) { try { await btSend(text); toastMsg('Nota dikirim ke printer'); return; } catch (e) { toastMsg('Printer gagal, memakai cetak browser'); } }
+  browserPrint(text);
+};
+P.btConnect = async function () {
+  if (!navigator.bluetooth) { openModal(`<div class="modal-head"><h2>📡 Printer Bluetooth</h2><button class="modal-close" onclick="closeModal()">✕</button></div><p class="muted" style="line-height:1.6">Browser ini belum mendukung Bluetooth. Pakai <b>Chrome di Android</b> (alamat harus https), atau cetak lewat browser dengan tombol <b>Cetak Nota</b>.</p>`); return; }
+  try {
+    const dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: BT_SERVICES });
+    toastMsg('Menghubungkan…');
+    const srv = await dev.gatt.connect(), svcs = await srv.getPrimaryServices(); let ch = null;
+    for (const s of svcs) { for (const c of await s.getCharacteristics()) { if (c.properties.write || c.properties.writeWithoutResponse) { ch = c; break; } } if (ch) break; }
+    if (!ch) throw new Error('no-write');
+    bt = { dev, ch };
+    dev.addEventListener('gattserverdisconnected', () => { bt = { dev: null, ch: null }; P.settingsExtras(); });
+    toastMsg('Printer terhubung: ' + (dev.name || 'Bluetooth')); P.settingsExtras();
+  } catch (e) { if (e && e.name === 'NotFoundError') return; toastMsg('Gagal menghubungkan printer'); }
+};
+P.btDisconnect = function () { try { if (bt.dev && bt.dev.gatt.connected) bt.dev.gatt.disconnect(); } catch (e) { } bt = { dev: null, ch: null }; toastMsg('Printer diputuskan'); P.settingsExtras(); };
+P.testPrint = function () {
+  P.print(P.rowsToText(head().concat([{ t: 'c', s: 'TES CETAK' }, { t: 'lr', l: 'Printer', r: bt.ch ? 'Bluetooth' : 'Browser' }, { t: 'lr', l: 'Waktu', r: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) }, { t: 'hr' }, { t: 'c', s: 'Printer berfungsi' }, { t: 'n' }])));
+};
+let _rcpt = '';
+P.offerReceipt = function (title, kind, rec) {
+  _rcpt = P.buildReceipt(kind, rec);
+  openModal(`
+    <div class="modal-head"><h2>✅ ${esc(title)}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="pf-receipt">${esc(_rcpt)}</div>
+    <div class="btn-row"><button class="btn btn-secondary" onclick="closeModal()">Selesai</button><button class="btn btn-primary" onclick="Platform.printLast()">🖨️ Cetak Nota</button></div>`);
+};
+P.printLast = () => P.print(_rcpt);
+P.printRecord = (kind, rec) => { _rcpt = P.buildReceipt(kind, rec); P.print(_rcpt); };
+
+/* ---------- pengaturan tambahan ---------- */
+const VERSIONS = [
+  ['1.2.2', '6 November 2026', ['Keamanan: semua data kini di-escape saat ditampilkan (tahan skrip jahat dari file backup)', 'Perbaikan: konfirmasi sebelum hapus transaksi, validasi file backup, tolak tanggal masa depan', 'Baru: publikasi profil, jadwal kajian & laporan bulan berjalan ke website masjid', 'Perbaikan: data contoh tidak lagi otomatis masuk — kini tombol opsional di Pengaturan', 'Perbaikan: label saldo diperjelas (gabungan Tunai + Bank + QRIS)']],
+  ['1.2.1', '6 November 2026', ['Perbaikan: pendaftaran PWA tidak lagi memunculkan error SyntaxError saat file sw.js tidak tersedia (mis. dibuka sebagai satu file di pratinjau)']],
+  ['1.2.0', '6 November 2026', ['Aplikasi baru: Kasir Solo - Pesantren (santri, SPP & tabungan, tahfidz, absensi, perizinan, kesehatan, kedisiplinan)', 'Label laba bersih kini menyesuaikan jenis usaha']],
+  ['1.1.0', '4 November 2026', ['Model baru: kuota transaksi gratis tiap bulan + lisensi per perangkat (menggantikan trial 7 hari)', 'Buka/Tutup Kas dengan hitung selisih uang laci (Konter HP & Laundry), Opname Kas (Masjid)', 'Catat pengeluaran & pemasukan lain, laba bersih di laporan', 'Cetak nota/bukti: printer Bluetooth atau lewat browser', 'Diagnosa data, Panduan, Syarat & Ketentuan, dialog versi baru, pemasangan PWA', 'Perbaikan: "hari ini" kini mengikuti tanggal lokal (sebelumnya berganti pukul 07.00 WIB)']],
+  ['1.0.0', 'Rilis awal', ['Rilis pertama aplikasi']]
+];
+P.settingsExtras = function () {
+  const b = ensureBox('view-settings', 'pfSet', null, 'end'); if (!b) return;
+  const ftr = document.querySelector('#view-settings .app-footer');
+  if (ftr && ftr.previousElementSibling !== b) ftr.parentNode.insertBefore(b, ftr);
+  const row = (ic, t, s, on) => `<div class="pf-row" onclick="${on}"><div class="ic">${ic}</div><div class="tx"><b>${t}</b><span>${s}</span></div><span class="go">›</span></div>`;
+  b.innerHTML = `
+    ${A.hasKas ? `<div class="card"><h3>⚙️ Aktifkan Fitur</h3>
+      <div class="pf-row static"><div class="ic">💰</div><div class="tx"><b>Buka / Tutup Kas</b><span>Laci punya modal awal; transaksi diblok kalau kas belum dibuka</span></div>
+      <label class="pf-switch" style="margin:0;"><input type="checkbox" ${st().settings.kas ? 'checked' : ''} onchange="Platform.toggleKas(this.checked)"><i></i></label></div></div>` : ''}
+    <div class="card"><h3>📱 Perangkat</h3>
+      ${row('📡', 'Hubungkan Printer', bt.dev ? 'Terhubung: ' + esc(bt.dev.name || 'Bluetooth') : 'Belum terhubung', 'Platform.btConnect()')}
+      ${row('📄', 'Cetak Tes', 'Cek apakah printer berfungsi', 'Platform.testPrint()')}
+      ${row('❌', 'Putuskan Printer', 'Lepas koneksi Bluetooth', 'Platform.btDisconnect()')}
+      ${row('📲', 'Pasang Aplikasi', 'Buka kayak app native di HP', 'Platform.install()')}
+      ${row('🩺', 'Diagnosa', 'Pastikan data usaha aman & tersimpan', 'Platform.openDiag()')}</div>
+    <div class="card"><h3>📖 Bantuan & Informasi</h3>
+      ${row('📖', 'Panduan Singkat', 'Cara memakai ' + esc(CFG.name), 'Platform.openHelp()')}
+      ${row('📜', 'Syarat & Ketentuan', 'v1.0 · diperbarui 4 Nov 2026', 'Platform.openTerms()')}
+      ${row('🕓', 'Riwayat Versi', 'Versi ' + CFG.version, 'Platform.openVersions()')}
+      <div class="muted" style="text-align:center;margin-top:12px;line-height:1.7;">${esc(CFG.name)} · Versi ${CFG.version}<br>PT Mesin Kasir Solo · <a href="https://wa.me/${CFG.wa}" target="_blank" style="color:var(--brand-orange-dark);font-weight:700;">0881-6566-935</a></div></div>`;
+};
+P.toggleKas = function (on) { st().settings.kas = !!on; saveDB(); renderDashboard(); toastMsg(on ? 'Buka/Tutup Kas diaktifkan' : 'Buka/Tutup Kas dimatikan'); };
+let deferred = null;
+P.install = function () {
+  if (deferred) { deferred.prompt(); deferred = null; return; }
+  if (window.matchMedia && matchMedia('(display-mode: standalone)').matches) { toastMsg('Aplikasi sudah terpasang'); return; }
+  openModal(`<div class="modal-head"><h2>📲 Pasang Aplikasi</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p class="muted" style="line-height:1.7"><b>Android (Chrome):</b> menu ⋮ → <i>Tambahkan ke layar utama</i>.<br><b>iPhone (Safari):</b> tombol Bagikan → <i>Tambah ke Layar Utama</i>.<br><br>Pemasangan butuh aplikasi dibuka lewat alamat web (https), bukan dari file lokal.</p>`);
+};
+P.openHelp = function () {
+  openModal(`<div class="modal-head"><h2>📖 Panduan</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="pf-doc">${A.help.map(h => `<h4>${h[0]}</h4><p>${h[1]}</p>`).join('')}</div>`);
+};
+P.openVersions = function () {
+  openModal(`<div class="modal-head"><h2>🕓 Riwayat Versi</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="pf-ver">${VERSIONS.map(v => `<b>v${v[0]}</b> <span class="muted">· ${v[1]}</span><ul>${v[2].map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('')}</div>`);
+};
+P.openTerms = function () {
+  const q = CFG.quota + ' ' + CFG.unit;
+  openModal(`<div class="modal-head"><h2>📜 Syarat & Ketentuan</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p class="muted">🕒 Terakhir diperbarui: <b>4 November 2026</b> · v1.0</p>
+    <div class="pf-doc">
+      <h4>1. Layanan</h4><p><b>${esc(CFG.name)}</b> adalah ${A.termsService} Aplikasi langsung bisa dipakai tanpa masa uji coba berhitung hari — yang dibatasi hanyalah kuota gratis bulanan sesuai pasal 2.</p>
+      <h4>2. Kuota Gratis & Lisensi</h4><p>Versi gratis memberi kuota <b>${q}</b> setiap bulan tanpa batas waktu; kuota segar kembali di awal bulan. Saat kuota habis, aplikasi tetap bisa dibuka dan dilihat, namun pencatatan baru terkunci sampai bulan berikutnya — atau buka lebih awal dengan <b>membeli lisensi</b>. Lisensi berlaku <b>per perangkat</b> (terikat ID Perangkat); menyebarkan atau menggandakan kode lisensi tanpa izin dapat menyebabkan penonaktifan.</p>
+      <h4>3. Data Anda</h4><p>Seluruh data tersimpan <b>lokal di perangkat Anda</b> (mode offline penuh) dan tidak dikirim ke server kami. ${A.termsData} Gunakan <b>Backup</b> (ekspor JSON) untuk memindahkan atau mengamankan data.</p>
+      <h4>4. Pencadangan</h4><p>Anda bertanggung jawab melakukan backup berkala. Menghapus data browser, memformat perangkat, atau berganti perangkat tanpa backup dapat menghilangkan data secara permanen.</p>
+      <h4>5. Tanggung Jawab</h4><p>Anda bertanggung jawab atas penggunaan aplikasi pada perangkat Anda. Kami tidak bertanggung jawab atas kehilangan data akibat tindakan manual (hapus data, reset/pergantian perangkat) atau kerusakan perangkat.</p>
+      <h4>6. Bantuan & Perubahan</h4><p>Butuh bantuan? Hubungi kami lewat WhatsApp <b>0881-6566-935</b> (sertakan ID Perangkat: ${devFmt(deviceId())}). Kami dapat memperbarui Syarat & Ketentuan sewaktu-waktu; penggunaan berkelanjutan berarti Anda menyetujui versi terbaru. — <b>PT Mesin Kasir Solo</b></p>
+    </div>`);
+};
+
+/* ---------- diagnosa ---------- */
+P.openDiag = async function () {
+  const r = []; const add = (ok, t, d) => r.push([ok === true ? '✅' : ok === false ? '❌' : '⚠️', t, d]);
+  const k = '__ks_test__'; add(LS.set(k, '1') && LS.get(k) === '1', 'Penyimpanan lokal', 'Browser bisa menyimpan data'); try { localStorage.removeItem(k); } catch (e) { }
+  try { const raw = localStorage.getItem(DB_KEY); JSON.parse(raw || '{}'); add(true, 'Data aplikasi', (raw ? (raw.length / 1024).toFixed(1) + ' KB' : 'kosong') + ' · ' + A.counts()); } catch (e) { add(false, 'Data aplikasi', 'Data rusak — segera restore dari backup'); }
+  add(true, 'ID Perangkat', devFmt(deviceId()));
+  add(P.isLicensed() ? true : null, 'Lisensi', P.isLicensed() ? 'Aktif' : 'Versi gratis · ' + P.used() + '/' + CFG.quota + ' ' + CFG.unit + ' bulan ini');
+  const lb = st().lastBackup; add(lb ? true : null, 'Backup terakhir', lb ? fmtD(lb) : 'Belum pernah — sebaiknya backup sekarang');
+  try { if (navigator.storage && navigator.storage.persisted) { const ps = await navigator.storage.persisted(); add(ps ? true : null, 'Penyimpanan permanen', ps ? 'Dilindungi dari pembersihan otomatis' : 'Belum dilindungi — browser bisa menghapus data saat memori penuh'); } } catch (e) { }
+  try { if ('serviceWorker' in navigator && location.protocol !== 'file:') { const g = await navigator.serviceWorker.getRegistration(); add(g ? true : null, 'Mode offline', g ? 'Siap (service worker aktif)' : 'Belum aktif — buka lewat alamat web (https)'); } else add(null, 'Mode offline', 'Tidak tersedia saat dibuka dari file lokal'); } catch (e) { }
+  if (A.hasKas && kasOn()) add(true, 'Kas', st().shift ? 'Terbuka sejak ' + fmtShort(st().shift.start) : 'Tertutup');
+  window.__pfDiag = r;
+  openModal(`<div class="modal-head"><h2>🩺 Diagnosa</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${r.map(x => `<div class="pf-diag"><div class="s">${x[0]}</div><div><b>${esc(x[1])}</b><span>${esc(x[2])}</span></div></div>`).join('')}
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-secondary" onclick="Platform.openDiag()">🔄 Periksa Ulang</button><button class="btn btn-primary" onclick="Platform.diagWA()">📋 Kirim ke Admin</button></div>`);
+};
+P.diagWA = function () {
+  const txt = 'Diagnosa ' + CFG.name + ' v' + CFG.version + '\n' + (window.__pfDiag || []).map(x => x[0] + ' ' + x[1] + ': ' + x[2]).join('\n');
+  window.open('https://wa.me/' + CFG.wa + '?text=' + encodeURIComponent(txt), '_blank');
+};
+
+/* ---------- PWA & update ---------- */
+let swReg = null, updateAsked = false;
+function showUpdate() {
+  openModal(`<div class="pf-lock"><div class="big">🔄</div><h2 style="margin:4px 0 6px;">Ada Versi Baru!</h2><p class="muted">Perbarui sekarang untuk fitur & perbaikan terbaru. Data kamu tetap aman.</p></div>
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-secondary" onclick="closeModal()">Nanti</button><button class="btn btn-primary" onclick="Platform.applyUpdate()">OKE</button></div>`);
+}
+P.applyUpdate = function () {
+  updateAsked = true;
+  if (swReg && swReg.waiting) swReg.waiting.postMessage('SKIP_WAITING'); else location.reload();
+};
+function registerSW() {
+  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  // daftar hanya jika sw.js benar-benar berisi JavaScript (pratinjau/hosting yang tidak menyertakan sw.js tidak memicu SyntaxError)
+  fetch('sw.js', { cache: 'no-store' }).then(r => { if (!r.ok || !/javascript/i.test(r.headers.get('content-type') || '')) throw new Error('no-sw'); return navigator.serviceWorker.register('sw.js'); }).then(reg => {
+    swReg = reg;
+    if (reg.waiting && navigator.serviceWorker.controller) showUpdate();
+    reg.addEventListener('updatefound', () => { const nw = reg.installing; if (nw) nw.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdate(); }); });
+  }).catch(() => { });
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloading || !updateAsked) return; reloading = true; location.reload(); });
+}
+
+/* ---------- pemasangan hook ---------- */
+function after(name, fn) {
+  const o = window[name]; if (typeof o !== 'function') { console.warn('Platform: fungsi tidak ada', name); return; }
+  window[name] = function () { const r = o.apply(this, arguments); try { fn.apply(this, arguments); } catch (e) { console.error(e); } return r; };
+}
+function hook(h) {
+  const o = window[h.fn]; if (typeof o !== 'function') { console.warn('Platform: hook gagal', h.fn); return; }
+  window[h.fn] = function () {
+    if (!P.guard({ needKas: !!h.needKas })) return;
+    const ctx = h.pre ? h.pre() : {}, before = DB[h.arr].length;
+    const r = o.apply(this, arguments);
+    if (DB[h.arr].length > before) { const rec = DB[h.arr][DB[h.arr].length - 1]; try { h.onNew && h.onNew(rec, ctx); } catch (e) { console.error(e); } P.hit(); }
+    return r;
+  };
+}
+P.wrapGuard = function (name, o) {
+  const f = window[name]; if (typeof f !== 'function') { console.warn('Platform: wrapGuard gagal', name); return; }
+  window[name] = function () { if (!P.guard(o)) return; return f.apply(this, arguments); };
+};
+P.helpers = { esc, rp, fmtD, inWin, uid, st, saveRef: () => saveDB(), after, ensureBox };
+
+P.start = function () {
+  st(); deviceId();
+  VIEW_TITLES.keuangan = '💸 Pengeluaran & Pemasukan';
+  if (A.hasCashflow) { const s = document.createElement('section'); s.className = 'view'; s.id = 'view-keuangan'; $('appMain').appendChild(s); }
+  const grid = document.querySelector('#moreSheet .sheet-grid');
+  if (grid && A.hasCashflow) grid.insertAdjacentHTML('beforeend', `<div class="sheet-item" onclick="closeMoreSheet();go('keuangan')"><div class="ic" style="background:var(--success-bg);color:var(--success);">💸</div><span>Keuangan</span></div>`);
+  A.hooks.forEach(hook);
+  if (A.install) A.install(P);
+  const rv = window.renderView;
+  window.renderView = function (view) { rv.apply(this, arguments); if (view === 'keuangan') P.renderKeuangan(); };
+  after('renderDashboard', () => P.dashExtras());
+  after('renderLaporan', () => P.lapExtras());
+  after('fillSettingsForm', () => P.settingsExtras());
+  after('backupData', () => { st().lastBackup = new Date().toISOString(); saveDB(); });
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; });
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
+  registerSW();
+  P.refresh();
+  renderView(navStack[navStack.length - 1]);
+};
+})();
+
+</script>
+<script>
+/* =========================================================
+   KASIR SOLO — MASJID
+   Single-file offline app. Data disimpan di localStorage.
+   ========================================================= */
+const DB_KEY = 'ksmasjid_db_v1';
+const nowISO = () => new Date().toISOString();
+const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+const localDay = iso => { const d = new Date(iso); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+const fmtRp = n => (n<0?'-':'') + 'Rp' + Math.round(Math.abs(n||0)).toLocaleString('id-ID');
+const uid = (p='') => p + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let DB = loadDB();
+function defaultDB(){
+  return {
+    settings:{ namaMasjid:'Masjid Saya', alamat:'', takmir:'', wa:'' },
+    kas:[], jamaah:[], kegiatan:[], inventaris:[],
+    license:{ status:'trial', trialStart: nowISO(), shareCount:0, code:null }
+  };
+}
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(DB_KEY);
+    if(!raw) return defaultDB();
+    const d = JSON.parse(raw);
+    return Object.assign(defaultDB(), d, {
+      settings:Object.assign(defaultDB().settings, d.settings||{}),
+      license:Object.assign(defaultDB().license, d.license||{})
+    });
+  }catch(e){ return defaultDB(); }
+}
+function saveDB(){ localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
+
+const KATEGORI_MASUK = ['Infaq Jumat','Donasi/Sedekah','Zakat','Wakaf','Kotak Amal Harian','Lainnya'];
+const KATEGORI_KELUAR = ['Listrik & Air','Kebersihan','Honor Marbot/Imam','Perbaikan & Perawatan','Kegiatan/Konsumsi','Sosial/Bantuan','Lainnya'];
+
+/* ---------- SEED DATA (contoh awal, hanya jika kosong) ---------- */
+function seedIfEmpty(){
+  if(DB.kas.length || DB.jamaah.length) return false;
+  const d = new Date();
+  DB.kas = [
+    {id:uid('k'), tanggal: nowISO(), tipe:'masuk', kategori:'Infaq Jumat', jumlah:1250000, keterangan:'Infaq shalat Jumat'},
+    {id:uid('k'), tanggal: nowISO(), tipe:'keluar', kategori:'Listrik & Air', jumlah:350000, keterangan:'Tagihan listrik bulan ini'},
+  ];
+  DB.jamaah = [
+    {id:uid('j'), nama:'Bpk. Suherman', telp:'0812xxxxxxx', alamat:'RT 02/RW 05', statusKeluarga:'Kepala Keluarga', catatan:''},
+  ];
+  DB.kegiatan = [
+    {id:uid('e'), nama:'Kajian Rutin Ba\'da Maghrib', tanggal: new Date(d.getTime()+3*86400000).toISOString().slice(0,10), waktu:'18:15', pengisi:'Ust. Ahmad', tempat:'Aula Utama', catatan:'Tema: Adab Bertetangga', status:'akandatang'},
+  ];
+  DB.inventaris = [
+    {id:uid('i'), nama:'Sound System Toa', kategori:'Elektronik', jumlah:1, kondisi:'baik', lokasi:'Ruang Sound', catatan:''},
+    {id:uid('i'), nama:'Karpet Sajadah', kategori:'Perlengkapan', jumlah:15, kondisi:'ringan', lokasi:'Gudang', catatan:'2 lembar mulai usang'},
+  ];
+  saveDB();
+  return true;
+}
+
+/* ---------- NAVIGASI ---------- */
+const VIEW_TITLES = {
+  dashboard:'Beranda', kas:'💰 Kas & Keuangan', kegiatan:'📅 Kegiatan & Kajian',
+  jamaah:'🧑‍🤝‍🧑 Data Jamaah', inventaris:'📦 Inventaris', laporan:'📊 Laporan', settings:'⚙️ Pengaturan',
+  website:'🌐 Website Masjid', bantuan:'📖 Bantuan'
+};
+let navStack = ['dashboard'];
+function go(view){
+  if(navStack[navStack.length-1] !== view) navStack.push(view);
+  renderView(view);
+}
+function renderView(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const el = document.getElementById('view-'+view);
+  if(el) el.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const navBtn = document.querySelector(`.nav-item[data-view="${view}"]`);
+  if(navBtn) navBtn.classList.add('active');
+  if(el && view!=='dashboard'){
+    let t = el.querySelector('.view-title');
+    if(!t){ t = document.createElement('div'); t.className = 'view-title'; el.prepend(t); }
+    t.textContent = VIEW_TITLES[view] || '';
+  }
+  document.getElementById('appMain').scrollTop = 0;
+  window.scrollTo(0,0);
+
+  if(view==='dashboard') renderDashboard();
+  if(view==='kas') renderKasList();
+  if(view==='kegiatan') renderKegiatanList();
+  if(view==='jamaah') renderJamaahList();
+  if(view==='inventaris') renderInventarisList();
+  if(view==='laporan') renderLaporan();
+  if(view==='website') renderWebsiteView();
+  if(view==='settings') fillSettingsForm();
+  if(view==='bantuan') renderBantuan();
+}
+
+/* ---------- BANTUAN (selaras kaki5: Tutorial | Video | S & K) ---------- */
+const TUTORIALS = [
+  {
+    icon: '🚀',
+    title: 'Memulai Pakai Aplikasi',
+    content: `
+      <p><b>Langkah Pertama:</b></p>
+      <ol>
+        <li>Buka aplikasinya — langsung bisa dipakai; baca <b>Syarat & Ketentuan</b> kapan saja lewat tab <b>"📜 S & K"</b> di halaman Bantuan ini</li>
+        <li>Isi <b>Nama Masjid</b>, <b>Alamat</b>, <b>Nama Ketua Takmir</b>, dan <b>No. WhatsApp Pengurus</b> di <b>Pengaturan → kartu 🕌 Data Masjid</b></li>
+      </ol>
+      <p><b>Isi Halaman Beranda:</b></p>
+      <ul>
+        <li>Kartu ringkasan kas: <b>💵 Tunai (brankas)</b>, <b>🏦 Rekening bank</b>, <b>📱 QRIS / dompet digital</b></li>
+        <li>Kartu statistik hari ini & ringkasan kegiatan terdekat</li>
+      </ul>
+      <p><b>💡 Tips:</b> Menu bawah: <b>🏠 Beranda · 💰 Kas · 📅 Kegiatan · 📊 Laporan · ☰ Lainnya</b>.
+      Halaman Bantuan ini dibuka dari tombol <b>📖</b> di pojok kanan atas.</p>`
+  },
+  {
+    icon: '💰',
+    title: 'Kas & Catat Transaksi',
+    content: `
+      <p><b>Halaman Kas</b> (tab <b>💰 Kas</b> di menu bawah) berisi tab <b>Semua / Pemasukan / Pengeluaran</b>, kartu <b>Saldo Semua Sumber</b>, dan daftar transaksi.</p>
+      <p><b>Mencatat transaksi:</b></p>
+      <ol>
+        <li>Tekan tombol <b>"+ Catat Transaksi"</b> di bar bawah halaman Kas</li>
+        <li>Pilih jenis: <b>⬇️ Pemasukan</b> atau <b>⬆️ Pengeluaran</b></li>
+        <li>Isi <b>Kategori</b> (Infaq Jumat, Donasi/Sedekah, Listrik & Air, Honor Marbot/Imam, dll.), <b>Jumlah</b>, <b>Tanggal</b>, dan <b>Keterangan</b> (opsional)</li>
+        <li>Tekan <b>Simpan</b> — saldo & laporan langsung terbarui</li>
+      </ol>
+      <p><b>Melihat / menghapus:</b> ketuk salah satu baris transaksi untuk membuka <b>Detail Transaksi</b> (tipe, kategori, tanggal, jumlah) — dari sana ada tombol <b>Hapus Transaksi</b>.</p>`
+  },
+  {
+    icon: '🧮',
+    title: 'Opname Kas',
+    content: `
+      <p><b>Opname Kas</b> = mencocokkan uang tunai fisik di brankas/kotak amal dengan catatan aplikasi. Hanya transaksi bersumber <b>Tunai</b> yang dihitung.</p>
+      <ol>
+        <li>Buka halaman <b>💰 Kas</b>, tekan tombol <b>"🧮 Opname Kas"</b> di bar bawah (berdampingan dengan Catat Transaksi)</li>
+        <li>Bandingkan <b>Saldo tunai (catatan)</b> dengan hasil hitung manual</li>
+        <li>Isi <b>Uang tunai fisik (hitung manual)</b> — baris <b>Selisih (fisik − catatan)</b> terisi otomatis</li>
+        <li>Boleh isi <b>Catatan</b> (misal: dihitung bersama bendahara)</li>
+        <li>Centang <b>"Catat selisih sebagai penyesuaian kas"</b> bila ingin selisih otomatis masuk sebagai transaksi penyesuaian, lalu tekan <b>Simpan Opname</b></li>
+      </ol>
+      <p>Riwayat opname terakhir (tanggal & selisih) tampil di bagian atas modal.</p>`
+  },
+  {
+    icon: '📅',
+    title: 'Kegiatan & Kajian',
+    content: `
+      <p>Halaman <b>📅 Kegiatan</b> punya tab <b>Akan Datang / Selesai / Semua</b>.</p>
+      <ol>
+        <li>Tekan tombol tambah kegiatan, isi <b>nama kegiatan</b>, <b>tanggal</b>, dan keterangan</li>
+        <li>Kegiatan lewat tanggal otomatis pindah ke tab <b>Selesai</b></li>
+        <li>Ketuk kartu kegiatan untuk mengubah atau menghapus</li>
+      </ol>
+      <p>Kegiatan yang dipublikasikan ikut tampil di <b>website masjid</b> (lihat tutorial 🌐).</p>`
+  },
+  {
+    icon: '🧑‍🤝‍🧑',
+    title: 'Data Jamaah & Inventaris',
+    content: `
+      <p><b>Jamaah</b> dan <b>Inventaris</b> dibuka dari menu <b>☰ Lainnya</b> di pojok kanan bawah.</p>
+      <p><b>🧑‍🤝‍🧑 Data Jamaah:</b> simpan data jamaah/takmir; gunakan kotak <b>🔎 Cari jamaah...</b> di atas untuk mencari cepat berdasarkan nama.</p>
+      <p><b>📦 Inventaris:</b> catat aset masjid (sound system, karpet, dll.) beserta jumlah & kondisinya. Ketuk item untuk mengubah, atau tambah lewat tombol tambah.</p>`
+  },
+  {
+    icon: '📊',
+    title: 'Laporan',
+    content: `
+      <p>Halaman <b>📊 Laporan</b> merangkum pemasukan, pengeluaran, dan saldo per periode.</p>
+      <ul>
+        <li>Pilih periode yang tersedia di halaman (mingguan/bulanan)</li>
+        <li>Rincian per <b>kategori</b> membantu takmir menyusun laporan pertanggungjawaban</li>
+        <li>Laporan bulan berjalan juga bisa dikirim ke <b>website masjid</b> lewat modul Website</li>
+      </ul>`
+  },
+  {
+    icon: '⚙️',
+    title: 'Pengaturan & Website Masjid',
+    content: `
+      <p><b>Pengaturan</b> dibuka dari menu <b>☰ Lainnya → ⚙️ Pengaturan</b>.</p>
+      <ul>
+        <li><b>🕌 Data Masjid</b> — nama, alamat, ketua takmir, WhatsApp pengurus</li>
+        <li><b>🌐 Website Masjid</b> — aktifkan modul, isi <b>ID Website</b> & <b>Token Publikasi</b> dari pengelola website, lalu tekan <b>"🚀 Publikasikan"</b> untuk mengirim profil, jadwal kajian & laporan ke website publik. Bisa juga <b>"⬇️ Unduh JSON"</b> untuk arsip manual</li>
+        <li><b>🔐 Lisensi</b> — status kuota gratis & aktivasi lisensi per perangkat</li>
+      </ul>
+      <p>💬 <b>Butuh bantuan lain?</b> Hubungi kami di <b>0881-6566-935</b> (WhatsApp).</p>`
+  }
+];
+const BANTUAN_VIDEOS = [];
+function renderBantuan(){
+  const box = document.getElementById('bantuanContent');
+  if(box && !box.dataset.done){
+    box.innerHTML = TUTORIALS.map((t,i)=>`
+      <div class="card">
+        <div class="tut-head" onclick="toggleTutorial(${i})">
+          <span class="tut-ic">${t.icon}</span>
+          <div style="flex:1;font-weight:700;font-size:15px;">${t.title}</div>
+          <span id="tut-${i}-arrow" class="tut-arrow">›</span>
+        </div>
+        <div id="tut-${i}" class="tut-body" style="display:none;">${t.content}</div>
+      </div>`).join('');
+    box.dataset.done = '1';
+  }
+  renderBantuanVideos();
+}
+function toggleTutorial(i){
+  const body = document.getElementById('tut-'+i), arrow = document.getElementById('tut-'+i+'-arrow');
+  const open = body.style.display !== 'none';
+  document.querySelectorAll('#bantuanContent .tut-body').forEach(el=>el.style.display='none');
+  document.querySelectorAll('#bantuanContent .tut-arrow').forEach(el=>el.classList.remove('open'));
+  if(!open){ body.style.display='block'; arrow.classList.add('open'); }
+}
+function setBantuanTab(t){
+  document.querySelectorAll('#view-bantuan .tab').forEach(el=>el.classList.toggle('active', el.dataset.b===t));
+  document.getElementById('bantuanPanelTutorial').style.display = t==='tutorial'?'block':'none';
+  document.getElementById('bantuanPanelVideo').style.display = t==='video'?'block':'none';
+  document.getElementById('bantuanPanelTc').style.display = t==='tc'?'block':'none';
+}
+function renderBantuanVideos(){
+  const box = document.getElementById('bantuanVideoList');
+  if(!box) return;
+  box.innerHTML = BANTUAN_VIDEOS.length ? BANTUAN_VIDEOS.map(v=>{
+    const judul = esc(v.judul||'Video Tutorial');
+    return `<div class="card"><div style="font-weight:700;margin-bottom:8px;">🎬 ${judul}</div><div class="vid-wrap"><iframe src="https://www.youtube-nocookie.com/embed/${v.id}" title="${judul}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div></div>`;
+  }).join('') : `<div class="card"><p class="muted">🎬 Video tutorial akan segera hadir. Sementara ini, panduan lengkap tersedia di tab <b>📖 Tutorial</b>.</p></div>`;
+}
+
+/* ---------- SHEETS / MODAL ---------- */
+function openMoreSheet(){ document.getElementById('moreBackdrop').classList.add('open'); document.getElementById('moreSheet').classList.add('open'); }
+function closeMoreSheet(){ document.getElementById('moreBackdrop').classList.remove('open'); document.getElementById('moreSheet').classList.remove('open'); }
+function openModal(html){ document.getElementById('modalBox').innerHTML = html; document.getElementById('modalBackdrop').classList.add('open'); }
+function closeModal(){ document.getElementById('modalBackdrop').classList.remove('open'); }
+function toast(msg){
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function saldoKas(){ return DB.kas.reduce((a,k)=> a + (k.tipe==='masuk'?k.jumlah:-k.jumlah), 0); }
+function fmtDateTime(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short'}) + ' ' + d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+function fmtDateOnly(str){
+  if(!str) return '-';
+  const d = new Date(str+'T00:00:00');
+  return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+function renderDashboard(){
+  const now = new Date();
+  const monthKas = DB.kas.filter(k=>{ const d=new Date(k.tanggal); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); });
+  const masuk = monthKas.filter(k=>k.tipe==='masuk').reduce((a,k)=>a+k.jumlah,0);
+  const keluar = monthKas.filter(k=>k.tipe==='keluar').reduce((a,k)=>a+k.jumlah,0);
+  document.getElementById('statSaldo').textContent = fmtRp(saldoKas());
+  document.getElementById('statMasuk').textContent = fmtRp(masuk);
+  document.getElementById('statKeluar').textContent = fmtRp(keluar);
+  document.getElementById('statJamaah').textContent = DB.jamaah.length;
+
+  const upcoming = DB.kegiatan.filter(e=>e.status==='akandatang').sort((a,b)=>a.tanggal.localeCompare(b.tanggal)).slice(0,4);
+  document.getElementById('dashKegiatanList').innerHTML = upcoming.length ? upcoming.map(kegiatanRowHTML).join('') :
+    `<div class="empty"><div class="ic">📅</div><div class="t">Belum ada kegiatan mendatang</div></div>`;
+
+  const lastKas = DB.kas.slice(-5).reverse();
+  document.getElementById('dashKasList').innerHTML = lastKas.length ? lastKas.map(kasRowHTML).join('') :
+    `<div class="empty"><div class="ic">💰</div><div class="t">Belum ada transaksi kas</div></div>`;
+}
+
+/* =========================================================
+   KAS & KEUANGAN
+   ========================================================= */
+let kasTab = 'semua';
+function setKasTab(t){ kasTab=t; document.querySelectorAll('#view-kas .tab').forEach(el=>el.classList.toggle('active', el.dataset.k===t)); renderKasList(); }
+function kasRowHTML(k){
+  const isMasuk = k.tipe==='masuk';
+  return `<div class="list-item" style="cursor:pointer;" onclick="openTransaksiDetail('${k.id}')">
+    <div class="avatar" style="background:${isMasuk?'var(--success-bg)':'var(--danger-bg)'};color:${isMasuk?'var(--success)':'var(--danger)'};">${isMasuk?'⬇️':'⬆️'}</div>
+    <div class="meta"><div class="t">${esc(k.kategori)}</div><div class="s">${esc(k.keterangan||fmtDateTime(k.tanggal))}</div></div>
+    <div class="right"><div class="amt ${isMasuk?'plus':'minus'}">${isMasuk?'+':'-'}${fmtRp(k.jumlah)}</div><div class="s">${fmtDateTime(k.tanggal)}</div></div>
+  </div>`;
+}
+function renderKasList(){
+  document.getElementById('kasSaldoInline').textContent = fmtRp(saldoKas());
+  let list = DB.kas.slice().reverse();
+  if(kasTab!=='semua') list = list.filter(k=>k.tipe===kasTab);
+  const wrap = document.getElementById('kasListWrap');
+  wrap.innerHTML = (list.length ? list.map(kasRowHTML).join('') : `<div class="empty"><div class="ic">💰</div><div class="t">Belum ada transaksi</div></div>`);
+}
+function openTransaksiForm(tipe){
+  tipe = tipe==='keluar' ? 'keluar' : 'masuk';
+  openModal(`
+    <div class="modal-head"><h2>Catat Transaksi</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="tabs" style="margin-bottom:12px;">
+      <div class="tab${tipe==='masuk'?' active':''}" id="txTabMasuk" onclick="setTxTab('masuk')">⬇️ Pemasukan</div>
+      <div class="tab${tipe==='keluar'?' active':''}" id="txTabKeluar" onclick="setTxTab('keluar')">⬆️ Pengeluaran</div>
+    </div>
+    <input type="hidden" id="txTipe" value="${tipe}">
+    <label>Kategori</label>
+    <select id="txKategori"></select>
+    <label>Jumlah (Rp)</label><input type="number" id="txJumlah" placeholder="0">
+    <label>Tanggal</label><input type="date" id="txTanggal" value="${todayStr()}">
+    <label>Keterangan (opsional)</label><textarea id="txKeterangan" placeholder="cth: Infaq shalat Jumat minggu ini"></textarea>
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-primary" onclick="saveTransaksi()">Simpan</button></div>
+  `);
+  fillTxKategori(tipe);
+}
+function fillTxKategori(tipe){
+  const kategoris = tipe==='masuk' ? KATEGORI_MASUK : KATEGORI_KELUAR;
+  document.getElementById('txKategori').innerHTML = kategoris.map(k=>`<option value="${k}">${k}</option>`).join('');
+}
+function setTxTab(t){
+  const cur = document.getElementById('txTipe');
+  if(!cur || cur.value===t) return;
+  cur.value = t;
+  document.getElementById('txTabMasuk').classList.toggle('active', t==='masuk');
+  document.getElementById('txTabKeluar').classList.toggle('active', t==='keluar');
+  fillTxKategori(t);
+  const sum = document.getElementById('txSumber');
+  if(sum){ const lbl = sum.previousElementSibling; if(lbl && lbl.tagName==='LABEL') lbl.textContent = t==='masuk' ? 'Masuk ke' : 'Dibayar dari'; }
+}
+function saveTransaksi(){
+  const tipe = document.getElementById('txTipe').value;
+  const jumlah = Number(document.getElementById('txJumlah').value)||0;
+  if(jumlah<=0){ toast('Jumlah harus lebih dari 0'); return; }
+  const tgl = document.getElementById('txTanggal').value || todayStr();
+  if(tgl > todayStr()){ toast('Tanggal tidak boleh di masa depan'); return; }
+  DB.kas.push({
+    id: uid('k'), tanggal: new Date(tgl+'T'+new Date().toTimeString().slice(0,8)).toISOString(),
+    tipe, kategori: document.getElementById('txKategori').value,
+    jumlah, keterangan: document.getElementById('txKeterangan').value.trim()
+  });
+  saveDB(); closeModal();
+  toast('Transaksi tersimpan');
+  renderKasList(); renderDashboard();
+}
+function openTransaksiDetail(id){
+  const k = DB.kas.find(x=>x.id===id);
+  if(!k) return;
+  openModal(`
+    <div class="modal-head"><h2>Detail Transaksi</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="total-row"><span>Tipe</span><span class="badge ${k.tipe}">${k.tipe==='masuk'?'Pemasukan':'Pengeluaran'}</span></div>
+    <div class="total-row"><span>Kategori</span><span>${esc(k.kategori)}</span></div>
+    <div class="total-row"><span>Tanggal</span><span>${fmtDateTime(k.tanggal)}</span></div>
+    <div class="total-row big"><span>Jumlah</span><span>${fmtRp(k.jumlah)}</span></div>
+    ${k.keterangan?`<hr class="sep"><p class="muted">${esc(k.keterangan)}</p>`:''}
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-danger" onclick="askDeleteTransaksi('${k.id}')">Hapus Transaksi</button></div>
+  `);
+}
+function deleteTransaksi(id){
+  DB.kas = DB.kas.filter(x=>x.id!==id); saveDB(); closeModal(); renderKasList(); renderDashboard(); toast('Transaksi dihapus');
+}
+function askDeleteTransaksi(id){
+  openModal(`
+    <div class="modal-head"><h2>Hapus Transaksi?</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p class="muted">Transaksi ini akan dihapus permanen.</p>
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-secondary" onclick="closeModal()">Batal</button><button class="btn btn-danger" onclick="deleteTransaksi('${id}')">Ya, Hapus</button></div>
+  `);
+}
+
+/* =========================================================
+   KEGIATAN & KAJIAN
+   ========================================================= */
+const KEGIATAN_LABELS = {akandatang:'Akan Datang', selesai:'Selesai'};
+let kegiatanTab = 'akandatang';
+function setKegiatanTab(t){ kegiatanTab=t; document.querySelectorAll('#view-kegiatan .tab').forEach(el=>el.classList.toggle('active', el.dataset.e===t)); renderKegiatanList(); }
+function kegiatanRowHTML(e){
+  return `<div class="list-item" style="cursor:pointer;" onclick="openKegiatanDetail('${e.id}')">
+    <div class="avatar" style="background:var(--info-bg);color:var(--info);">📅</div>
+    <div class="meta"><div class="t">${esc(e.nama)}</div><div class="s">${fmtDateOnly(e.tanggal)} ${esc(e.waktu||'')} · ${esc(e.pengisi||'-')}</div></div>
+    <div class="right"><div class="badge ${e.status}">${KEGIATAN_LABELS[e.status]}</div></div>
+  </div>`;
+}
+function renderKegiatanList(){
+  let list = DB.kegiatan.slice().sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
+  if(kegiatanTab==='akandatang') list = list.filter(e=>e.status==='akandatang');
+  if(kegiatanTab==='selesai') list = list.filter(e=>e.status==='selesai').reverse();
+  const wrap = document.getElementById('kegiatanListWrap');
+  wrap.innerHTML = (list.length ? list.map(kegiatanRowHTML).join('') : `<div class="empty"><div class="ic">📅</div><div class="t">Belum ada kegiatan</div></div>`);
+}
+function openKegiatanForm(id){
+  const e = id ? DB.kegiatan.find(x=>x.id===id) : null;
+  openModal(`
+    <div class="modal-head"><h2>${e?'Edit':'Tambah'} Kegiatan</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Nama Kegiatan</label><input type="text" id="efNama" value="${e?esc(e.nama):''}" placeholder="cth: Kajian Rutin Ba'da Maghrib">
+    <div class="field-row">
+      <div><label>Tanggal</label><input type="date" id="efTanggal" value="${e?e.tanggal:todayStr()}"></div>
+      <div><label>Waktu</label><input type="time" id="efWaktu" value="${e?e.waktu||'':''}"></div>
+    </div>
+    <div class="field-row">
+      <div><label>Pengisi/Penceramah</label><input type="text" id="efPengisi" value="${e?esc(e.pengisi||''):''}"></div>
+      <div><label>Tempat</label><input type="text" id="efTempat" value="${e?esc(e.tempat||''):''}" placeholder="cth: Aula Utama"></div>
+    </div>
+    <label>Catatan (opsional)</label><textarea id="efCatatan">${e?esc(e.catatan||''):''}</textarea>
+    <div class="btn-row" style="margin-top:14px;">
+      ${e?`<button class="btn btn-danger" onclick="deleteKegiatan('${e.id}')">Hapus</button>`:''}
+      <button class="btn btn-primary" onclick="saveKegiatan('${e?e.id:''}')">Simpan</button>
+    </div>
+  `);
+}
+function saveKegiatan(id){
+  const data = {
+    nama: document.getElementById('efNama').value.trim(),
+    tanggal: document.getElementById('efTanggal').value || todayStr(),
+    waktu: document.getElementById('efWaktu').value,
+    pengisi: document.getElementById('efPengisi').value.trim(),
+    tempat: document.getElementById('efTempat').value.trim(),
+    catatan: document.getElementById('efCatatan').value.trim(),
+  };
+  if(!data.nama){ toast('Nama kegiatan wajib diisi'); return; }
+  if(id) Object.assign(DB.kegiatan.find(x=>x.id===id), data);
+  else DB.kegiatan.push(Object.assign({id:uid('e'), status:'akandatang'}, data));
+  saveDB(); closeModal(); renderKegiatanList(); renderDashboard(); toast('Kegiatan disimpan');
+}
+function deleteKegiatan(id){ DB.kegiatan = DB.kegiatan.filter(x=>x.id!==id); saveDB(); closeModal(); renderKegiatanList(); renderDashboard(); }
+function openKegiatanDetail(id){
+  const e = DB.kegiatan.find(x=>x.id===id);
+  if(!e) return;
+  openModal(`
+    <div class="modal-head"><h2>${esc(e.nama)}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="total-row"><span>Tanggal</span><span>${fmtDateOnly(e.tanggal)}</span></div>
+    <div class="total-row"><span>Waktu</span><span>${e.waktu||'-'}</span></div>
+    <div class="total-row"><span>Pengisi</span><span>${esc(e.pengisi||'-')}</span></div>
+    <div class="total-row"><span>Tempat</span><span>${esc(e.tempat||'-')}</span></div>
+    ${e.catatan?`<hr class="sep"><p class="muted">${esc(e.catatan)}</p>`:''}
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-secondary" onclick="closeModal();openKegiatanForm('${e.id}')">✏️ Edit</button>
+      ${e.status==='akandatang'
+        ? `<button class="btn btn-primary" onclick="markKegiatanSelesai('${e.id}')">Tandai Selesai</button>`
+        : `<button class="btn btn-secondary" onclick="markKegiatanAkanDatang('${e.id}')">Tandai Akan Datang</button>`}
+    </div>
+  `);
+}
+function markKegiatanSelesai(id){ DB.kegiatan.find(x=>x.id===id).status='selesai'; saveDB(); closeModal(); renderKegiatanList(); renderDashboard(); toast('Kegiatan ditandai selesai'); }
+function markKegiatanAkanDatang(id){ DB.kegiatan.find(x=>x.id===id).status='akandatang'; saveDB(); closeModal(); renderKegiatanList(); renderDashboard(); }
+
+/* =========================================================
+   JAMAAH
+   ========================================================= */
+function renderJamaahList(){
+  const q = (document.getElementById('jamaahSearch').value||'').toLowerCase();
+  const list = DB.jamaah.filter(j=>!q||j.nama.toLowerCase().includes(q));
+  const wrap = document.getElementById('jamaahListWrap');
+  wrap.innerHTML = (list.length ? list.map(j=>`
+    <div class="list-item" style="cursor:pointer;" onclick="openJamaahForm('${j.id}')">
+      <div class="avatar" style="background:var(--c-jamaah-bg);color:var(--c-jamaah);">🧑</div>
+      <div class="meta"><div class="t">${esc(j.nama)}</div><div class="s">${esc(j.statusKeluarga||'-')} · ${esc(j.telp||'-')}</div></div>
+    </div>`).join('') : `<div class="empty"><div class="ic">🧑‍🤝‍🧑</div><div class="t">Belum ada data jamaah</div></div>`);
+}
+function openJamaahForm(id){
+  const j = id ? DB.jamaah.find(x=>x.id===id) : null;
+  openModal(`
+    <div class="modal-head"><h2>${j?'Edit':'Tambah'} Jamaah</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Nama</label><input type="text" id="jfNama" value="${j?esc(j.nama):''}">
+    <label>No. HP</label><input type="tel" id="jfTelp" value="${j?esc(j.telp||''):''}">
+    <label>Status</label>
+    <select id="jfStatus">
+      <option value="Kepala Keluarga" ${j&&j.statusKeluarga==='Kepala Keluarga'?'selected':''}>Kepala Keluarga</option>
+      <option value="Anggota Keluarga" ${j&&j.statusKeluarga==='Anggota Keluarga'?'selected':''}>Anggota Keluarga</option>
+      <option value="Pengurus/Takmir" ${j&&j.statusKeluarga==='Pengurus/Takmir'?'selected':''}>Pengurus/Takmir</option>
+    </select>
+    <label>Alamat</label><textarea id="jfAlamat">${j?esc(j.alamat||''):''}</textarea>
+    <label>Catatan (opsional)</label><textarea id="jfCatatan">${j?esc(j.catatan||''):''}</textarea>
+    <div class="btn-row" style="margin-top:12px;">
+      ${j?`<button class="btn btn-danger" onclick="deleteJamaah('${j.id}')">Hapus</button>`:''}
+      <button class="btn btn-primary" onclick="saveJamaah('${j?j.id:''}')">Simpan</button>
+    </div>
+  `);
+}
+function saveJamaah(id){
+  const data = {
+    nama: document.getElementById('jfNama').value.trim(),
+    telp: document.getElementById('jfTelp').value.trim(),
+    statusKeluarga: document.getElementById('jfStatus').value,
+    alamat: document.getElementById('jfAlamat').value.trim(),
+    catatan: document.getElementById('jfCatatan').value.trim(),
+  };
+  if(!data.nama){ toast('Nama wajib diisi'); return; }
+  if(id) Object.assign(DB.jamaah.find(x=>x.id===id), data);
+  else DB.jamaah.push(Object.assign({id:uid('j')}, data));
+  saveDB(); closeModal(); renderJamaahList(); renderDashboard(); toast('Data jamaah disimpan');
+}
+function deleteJamaah(id){ DB.jamaah = DB.jamaah.filter(x=>x.id!==id); saveDB(); closeModal(); renderJamaahList(); renderDashboard(); }
+
+/* =========================================================
+   INVENTARIS
+   ========================================================= */
+const KONDISI_LABELS = {baik:'Baik', ringan:'Rusak Ringan', berat:'Rusak Berat'};
+function renderInventarisList(){
+  const wrap = document.getElementById('inventarisListWrap');
+  wrap.innerHTML = (DB.inventaris.length ? DB.inventaris.map(i=>`
+    <div class="list-item" style="cursor:pointer;" onclick="openInventarisForm('${i.id}')">
+      <div class="avatar" style="background:var(--c-keluar-bg);color:var(--c-keluar);">📦</div>
+      <div class="meta"><div class="t">${esc(i.nama)}</div><div class="s">${esc(i.kategori)} · Jml: ${i.jumlah} · ${esc(i.lokasi||'-')}</div></div>
+      <div class="right"><div class="badge ${i.kondisi}">${KONDISI_LABELS[i.kondisi]}</div></div>
+    </div>`).join('') : `<div class="empty"><div class="ic">📦</div><div class="t">Belum ada data inventaris</div></div>`);
+}
+function openInventarisForm(id){
+  const i = id ? DB.inventaris.find(x=>x.id===id) : null;
+  openModal(`
+    <div class="modal-head"><h2>${i?'Edit':'Tambah'} Aset</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>Nama Aset</label><input type="text" id="ifNama" value="${i?esc(i.nama):''}">
+    <div class="field-row">
+      <div><label>Kategori</label><input type="text" id="ifKategori" value="${i?esc(i.kategori):''}" placeholder="cth: Elektronik"></div>
+      <div><label>Jumlah</label><input type="number" id="ifJumlah" value="${i?i.jumlah:1}"></div>
+    </div>
+    <label>Kondisi</label>
+    <select id="ifKondisi">
+      <option value="baik" ${i&&i.kondisi==='baik'?'selected':''}>Baik</option>
+      <option value="ringan" ${i&&i.kondisi==='ringan'?'selected':''}>Rusak Ringan</option>
+      <option value="berat" ${i&&i.kondisi==='berat'?'selected':''}>Rusak Berat</option>
+    </select>
+    <label>Lokasi</label><input type="text" id="ifLokasi" value="${i?esc(i.lokasi||''):''}">
+    <label>Catatan (opsional)</label><textarea id="ifCatatan">${i?esc(i.catatan||''):''}</textarea>
+    <div class="btn-row" style="margin-top:12px;">
+      ${i?`<button class="btn btn-danger" onclick="deleteInventaris('${i.id}')">Hapus</button>`:''}
+      <button class="btn btn-primary" onclick="saveInventaris('${i?i.id:''}')">Simpan</button>
+    </div>
+  `);
+}
+function saveInventaris(id){
+  const data = {
+    nama: document.getElementById('ifNama').value.trim(),
+    kategori: document.getElementById('ifKategori').value.trim(),
+    jumlah: Number(document.getElementById('ifJumlah').value)||1,
+    kondisi: document.getElementById('ifKondisi').value,
+    lokasi: document.getElementById('ifLokasi').value.trim(),
+    catatan: document.getElementById('ifCatatan').value.trim(),
+  };
+  if(!data.nama){ toast('Nama aset wajib diisi'); return; }
+  if(id) Object.assign(DB.inventaris.find(x=>x.id===id), data);
+  else DB.inventaris.push(Object.assign({id:uid('i')}, data));
+  saveDB(); closeModal(); renderInventarisList(); toast('Data aset disimpan');
+}
+function deleteInventaris(id){ DB.inventaris = DB.inventaris.filter(x=>x.id!==id); saveDB(); closeModal(); renderInventarisList(); }
+
+/* =========================================================
+   LAPORAN
+   ========================================================= */
+let lapRange='bulan';
+function setLaporanRange(r){ lapRange=r; document.querySelectorAll('#view-laporan .tab').forEach(t=>t.classList.toggle('active', t.dataset.r===r)); renderLaporan(); }
+function inRange(iso){
+  const d = new Date(iso), now = new Date();
+  if(lapRange==='minggu'){ const diff=(now-d)/(1000*60*60*24); return diff>=0 && diff<=7; }
+  if(lapRange==='bulan'){ return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); }
+  if(lapRange==='tahun'){ return d.getFullYear()===now.getFullYear(); }
+  return true;
+}
+function renderLaporan(){
+  const kas = DB.kas.filter(k=>inRange(k.tanggal));
+  const masuk = kas.filter(k=>k.tipe==='masuk').reduce((a,k)=>a+k.jumlah,0);
+  const keluar = kas.filter(k=>k.tipe==='keluar').reduce((a,k)=>a+k.jumlah,0);
+  document.getElementById('lapMasuk').textContent = fmtRp(masuk);
+  document.getElementById('lapKeluar').textContent = fmtRp(keluar);
+  document.getElementById('lapSelisih').textContent = fmtRp(masuk-keluar);
+  document.getElementById('lapSaldo').textContent = fmtRp(saldoKas());
+
+  const byCat = (tipe) => {
+    const m = {};
+    kas.filter(k=>k.tipe===tipe).forEach(k=>{ m[k.kategori]=(m[k.kategori]||0)+k.jumlah; });
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+  };
+  const masukCat = byCat('masuk');
+  const keluarCat = byCat('keluar');
+  document.getElementById('lapKategoriMasuk').innerHTML = masukCat.length ? masukCat.map(([k,v])=>`
+    <div class="total-row"><span>${esc(k)}</span><span>${fmtRp(v)}</span></div>`).join('') : `<p class="muted">Belum ada data pemasukan.</p>`;
+  document.getElementById('lapKategoriKeluar').innerHTML = keluarCat.length ? keluarCat.map(([k,v])=>`
+    <div class="total-row"><span>${esc(k)}</span><span>${fmtRp(v)}</span></div>`).join('') : `<p class="muted">Belum ada data pengeluaran.</p>`;
+}
+
+/* =========================================================
+   PENGATURAN
+   ========================================================= */
+function fillSettingsForm(){
+  const S = DB.settings||{};
+  const setRow = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || '—'; };
+  setRow('rowNamaMasjid', S.namaMasjid);
+  setRow('rowAlamat', S.alamat);
+  setRow('rowTakmir', S.takmir);
+  setRow('rowWA', S.wa);
+  document.getElementById('setPubSlug').value = S.pubSlug||'masjid';
+  document.getElementById('setPubToken').value = S.pubToken||'';
+  document.getElementById('licenseStatusBox').textContent = licenseInfoText();
+  const fv = document.getElementById('footerVersion'); if (fv) fv.textContent = 'Versi ' + (window.APP_VERSION||'');
+  applyWebsiteModule();
+}
+const MASJID_FIELDS = {
+  namaMasjid: { label:'Nama Masjid', icon:'🕌', type:'text' },
+  alamat: { label:'Alamat', icon:'📍', type:'textarea' },
+  takmir: { label:'Nama Ketua Takmir', icon:'👤', type:'text' },
+  wa: { label:'No. WhatsApp Pengurus', icon:'💬', type:'text' }
+};
+function openMasjidField(key){
+  const f = MASJID_FIELDS[key]; if (!f) return;
+  const cur = esc(DB.settings[key]||'');
+  const field = f.type==='textarea'
+    ? `<textarea id="mfInput" rows="3">${cur}</textarea>`
+    : `<input type="text" id="mfInput" value="${cur}">`;
+  openModal(`<div class="modal-head"><h2>${f.icon} ${f.label}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <label>${f.label}</label>${field}
+    <div class="btn-row" style="margin-top:14px;"><button class="btn btn-secondary" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveMasjidField('${key}')">Simpan</button></div>`);
+}
+function saveMasjidField(key){
+  const f = MASJID_FIELDS[key]; if (!f) return;
+  const el = document.getElementById('mfInput'); if (!el) return;
+  DB.settings[key] = el.value.trim();
+  saveDB(); closeModal(); fillSettingsForm(); toast('Pengaturan disimpan');
+}
+function backupData(){
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `backup-kasirsolo-masjid-${todayStr()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Backup berhasil diunduh');
+}
+function restoreData(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(!data || typeof data!=='object' || Array.isArray(data)) throw new Error('struktur');
+      const d = defaultDB();
+      ['settings','license'].forEach(key=>{
+        if(data[key]===undefined) return;
+        if(!data[key] || typeof data[key]!=='object' || Array.isArray(data[key])) throw new Error(key);
+        d[key] = Object.assign(d[key], data[key]);
+      });
+      ['kas','jamaah','kegiatan','inventaris'].forEach(key=>{
+        if(data[key]===undefined) return;
+        if(!Array.isArray(data[key]) || data[key].some(x=>!x || typeof x!=='object' || Array.isArray(x))) throw new Error(key);
+        d[key] = data[key];
+      });
+      DB = d;
+      saveDB();
+      toast('Data berhasil dipulihkan');
+      renderView('dashboard');
+      updateTrialUI();
+    }catch(e){ toast('File backup tidak valid'); }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+
+/* ---------- WEBSITE MASJID (publikasi data publik) ---------- */
+const PUB_URL = 'https://hhywrvedlwljawgxzpkq.supabase.co';
+const PUB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhoeXdydmVkbHdsamF3Z3h6cGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MzM4OTgsImV4cCI6MjEwMTEwOTg5OH0.GXHRDayBNRbWh1QywGkYCJ6D79qnm_mtyRSJUxw4x50';
+function buildWebsiteData(){
+  const now = new Date();
+  const bulanKas = DB.kas.filter(k=>{ const d=new Date(k.tanggal); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); });
+  const byCat = tipe => { const m={}; bulanKas.filter(k=>k.tipe===tipe).forEach(k=>{ m[k.kategori]=(m[k.kategori]||0)+k.jumlah; }); return Object.entries(m).sort((a,b)=>b[1]-a[1]); };
+  const total = tipe => bulanKas.filter(k=>k.tipe===tipe).reduce((a,k)=>a+k.jumlah,0);
+  return {
+    slug: (DB.settings.pubSlug||'masjid'),
+    diperbarui: nowISO(),
+    profil: {
+      nama: DB.settings.namaMasjid||'Masjid',
+      alamat: DB.settings.alamat||'',
+      takmir: DB.settings.takmir||'',
+      wa: DB.settings.wa||''
+    },
+    kegiatan: DB.kegiatan.filter(e=>e.status==='akandatang')
+      .sort((a,b)=>a.tanggal.localeCompare(b.tanggal))
+      .map(e=>({ nama:e.nama, tanggal:e.tanggal, waktu:e.waktu||'', pengisi:e.pengisi||'', tempat:e.tempat||'', catatan:e.catatan||'' })),
+    laporan: {
+      bulan: todayStr().slice(0,7),
+      masuk: total('masuk'),
+      keluar: total('keluar'),
+      rincianMasuk: byCat('masuk'),
+      rincianKeluar: byCat('keluar')
+    }
+  };
+}
+/* =========================================================
+   WEBSITE (MINI-CMS)
+   ========================================================= */
+const WEB_PREVIEW_URL = 'http://localhost:8091/index.html';
+const WEB_ED_SECTIONS = [
+  { k:'hero', t:'Hero Pembuka', d:'Headline, subjudul, dan foto latar bagian atas' },
+  { k:'sambutan', t:'Sambutan Pengurus', d:'Kata sambutan ketua takmir / DKM' },
+  { k:'pengumuman', t:'Pengumuman', d:'Daftar info & pengumuman untuk jamaah' },
+  { k:'galeri', t:'Galeri Foto', d:'Kumpulan foto kegiatan masjid' },
+  { k:'sections', t:'Pengaturan Tampilan', d:'Sembunyikan/tampilkan bagian website' }
+];
+function defaultWebsiteDraft(){
+  return {
+    hero:{ headline:'', sub:'', foto:'' },
+    sambutan:{ judul:'', isi:'', foto:'' },
+    pengumuman:[], galeri:[],
+    sections:{ hero:true, sambutan:true, pengumuman:true, galeri:true, jadwal:true, laporan:true }
+  };
+}
+function getDraft(){ return DB.websiteDraft || defaultWebsiteDraft(); }
+function getLiveEd(){ return (DB.websiteLive && DB.websiteLive.editorial) || null; }
+let WEB_TAB = 'hero';
+let WEB_EDIT = null;
+function ensureWebEdit(){
+  if(!WEB_EDIT) WEB_EDIT = JSON.parse(JSON.stringify(getDraft()));
+  return WEB_EDIT;
+}
+function setWebTab(t){
+  WEB_TAB = t;
+  document.querySelectorAll('#webEditTabs .tab').forEach(x=>x.classList.toggle('active', x.dataset.w===t));
+  renderWebEditPanel();
+}
+function renderWebsiteView(){
+  WEB_EDIT = null;
+  renderWebStatus(); renderWebEditPanel();
+}
+function webEdDiffCount(){
+  const live = getLiveEd();
+  if(!live) return WEB_ED_SECTIONS.length;
+  const d = WEB_EDIT || getDraft();
+  return WEB_ED_SECTIONS.filter(s => JSON.stringify(d[s.k]||null) !== JSON.stringify(live[s.k]||null)).length;
+}
+function fmtWebDate(iso){
+  const d = new Date(iso); if(isNaN(d)) return '-';
+  return d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+function renderWebStatus(){
+  const badge = document.getElementById('webStatusBadge');
+  const main = document.getElementById('webStatusMain');
+  const sub = document.getElementById('webStatusSub');
+  if(!badge) return;
+  const live = DB.websiteLive;
+  const n = webEdDiffCount();
+  if(!live || !live.publishedAt){
+    badge.textContent = 'BELUM TAYANG'; badge.className = 'web-badge';
+    main.textContent = 'Website belum pernah dipublikasikan';
+    sub.textContent = n + ' bagian siap ditayangkan';
+  } else if(n > 0){
+    badge.textContent = 'DRAFT'; badge.className = 'web-badge';
+    main.textContent = n + ' perubahan belum tayang';
+    sub.textContent = 'Terakhir tayang: ' + fmtWebDate(live.publishedAt);
+  } else {
+    badge.textContent = 'LIVE'; badge.className = 'web-badge live';
+    main.textContent = 'Semua perubahan sudah tayang';
+    sub.textContent = 'Terakhir tayang: ' + fmtWebDate(live.publishedAt);
+  }
+}
+function webEd(path, val){
+  const ed = ensureWebEdit();
+  const parts = path.split('.');
+  let o = ed;
+  for(let i=0;i<parts.length-1;i++) o = o[parts[i]];
+  o[parts[parts.length-1]] = val;
+  renderWebStatus();
+}
+function webAddItem(k){
+  const ed = ensureWebEdit();
+  if(k==='pengumuman') ed.pengumuman.push({ id:uid('pg_'), judul:'', isi:'', tanggal: todayStr() });
+  else ed.galeri.push({ id:uid('gl_'), url:'', caption:'' });
+  renderWebEditPanel(); renderWebStatus();
+}
+function webDelItem(k,i){
+  const ed = ensureWebEdit();
+  ed[k].splice(i,1);
+  renderWebEditPanel(); renderWebStatus();
+}
+function webEdItem(k,i,f,v){
+  const ed = ensureWebEdit();
+  if(!ed[k][i]) ed[k][i] = {};
+  ed[k][i][f] = v;
+  renderWebStatus();
+}
+function renderWebEditPanel(){
+  const p = document.getElementById('webEditPanel'); if(!p) return;
+  const ed = ensureWebEdit();
+  if(WEB_TAB==='hero'){
+    p.innerHTML = `
+    <div class="card">
+      <h3>🖼️ Hero Pembuka</h3>
+      <div class="web-field"><label>Headline (kosongkan = nama masjid)</label><input type="text" value="${esc(ed.hero.headline||'')}" oninput="webEd('hero.headline',this.value)"></div>
+      <div class="web-field"><label>Subjudul (kosongkan = alamat masjid)</label><input type="text" value="${esc(ed.hero.sub||'')}" oninput="webEd('hero.sub',this.value)"></div>
+      <div class="web-field"><label>URL Foto Latar</label><input type="url" placeholder="https://images.unsplash.com/..." value="${esc(ed.hero.foto||'')}" oninput="webEd('hero.foto',this.value)">${ed.hero.foto?`<img class="web-thumb" src="${esc(ed.hero.foto)}" alt="pratinjau foto" onerror="this.style.display='none'">`:''}</div>
+    </div>`;
+  } else if(WEB_TAB==='sambutan'){
+    p.innerHTML = `
+    <div class="card">
+      <h3>🗣️ Sambutan Pengurus</h3>
+      <div class="web-field"><label>Judul</label><input type="text" placeholder="Assalamu'alaikum warahmatullahi wabarakatuh" value="${esc(ed.sambutan.judul||'')}" oninput="webEd('sambutan.judul',this.value)"></div>
+      <div class="web-field"><label>Isi Sambutan</label><textarea rows="6" placeholder="Tulis sambutan dari ketua takmir / DKM..." oninput="webEd('sambutan.isi',this.value)">${esc(ed.sambutan.isi||'')}</textarea></div>
+      <div class="web-field"><label>URL Foto (opsional)</label><input type="url" placeholder="https://images.unsplash.com/..." value="${esc(ed.sambutan.foto||'')}" oninput="webEd('sambutan.foto',this.value)">${ed.sambutan.foto?`<img class="web-thumb" src="${esc(ed.sambutan.foto)}" alt="pratinjau foto" onerror="this.style.display='none'">`:''}</div>
+    </div>`;
+  } else if(WEB_TAB==='pengumuman'){
+    const list = ed.pengumuman||[];
+    p.innerHTML = `
+    <div class="card">
+      <h3>📢 Pengumuman</h3>
+      ${list.length? list.map((a,i)=>`
+      <div class="web-item">
+        <div class="web-item-head"><b>#${i+1}</b><button class="web-del" onclick="webDelItem('pengumuman',${i})" aria-label="Hapus pengumuman">🗑️</button></div>
+        <div class="web-field"><label>Judul</label><input type="text" placeholder="Jadwal kajian Ahad pagi" value="${esc(a.judul||'')}" oninput="webEdItem('pengumuman',${i},'judul',this.value)"></div>
+        <div class="web-field"><label>Isi</label><textarea rows="3" placeholder="Tulis isi pengumuman..." oninput="webEdItem('pengumuman',${i},'isi',this.value)">${esc(a.isi||'')}</textarea></div>
+        <div class="web-field"><label>Tanggal</label><input type="date" value="${esc(a.tanggal||'')}" onchange="webEdItem('pengumuman',${i},'tanggal',this.value)"></div>
+      </div>`).join('') : '<p class="muted">Belum ada pengumuman. Tambahkan info untuk jamaah.</p>'}
+      <div class="btn-row" style="margin-top:10px;"><button class="btn btn-secondary" onclick="webAddItem('pengumuman')">➕ Tambah Pengumuman</button></div>
+    </div>`;
+  } else if(WEB_TAB==='galeri'){
+    const list = ed.galeri||[];
+    p.innerHTML = `
+    <div class="card">
+      <h3>🖼️ Galeri Foto</h3>
+      ${list.length? list.map((g,i)=>`
+      <div class="web-item">
+        <div class="web-item-head"><b>Foto #${i+1}</b><button class="web-del" onclick="webDelItem('galeri',${i})" aria-label="Hapus foto">🗑️</button></div>
+        ${g.url?`<img class="web-thumb" src="${esc(g.url)}" alt="pratinjau foto" onerror="this.style.display='none'">`:''}
+        <div class="web-field"><label>URL Foto</label><input type="url" placeholder="https://images.unsplash.com/..." value="${esc(g.url||'')}" oninput="webEdItem('galeri',${i},'url',this.value)"></div>
+        <div class="web-field"><label>Keterangan</label><input type="text" placeholder="Kajian rutin Ahad pagi" value="${esc(g.caption||'')}" oninput="webEdItem('galeri',${i},'caption',this.value)"></div>
+      </div>`).join('') : '<p class="muted">Belum ada foto. Tambahkan foto kegiatan masjid.</p>'}
+      <div class="btn-row" style="margin-top:10px;"><button class="btn btn-secondary" onclick="webAddItem('galeri')">➕ Tambah Foto</button></div>
+    </div>`;
+  } else {
+    const s = ed.sections||{};
+    const rows = [
+      ['hero','Hero pembuka','Bagian atas dengan foto & headline'],
+      ['sambutan','Sambutan pengurus','Kata sambutan DKM/takmir'],
+      ['pengumuman','Pengumuman','Daftar info untuk jamaah'],
+      ['galeri','Galeri foto','Kumpulan foto kegiatan'],
+      ['jadwal','Jadwal kajian','Otomatis dari menu Kegiatan'],
+      ['laporan','Laporan kas bulan ini','Otomatis dari menu Kas']
+    ];
+    p.innerHTML = `
+    <div class="card">
+      <h3>🎛️ Tampilan Website</h3>
+      <p class="muted">Atur bagian mana yang tampil di website publik.</p>
+      ${rows.map(([k,t,d])=>`
+      <div class="web-sec-row">
+        <div><div class="t">${t}</div><div class="d">${d}</div></div>
+        <label class="pf-switch" style="margin:0;"><input type="checkbox" ${s[k]!==false?'checked':''} onchange="webEd('sections.${k}',this.checked)" aria-label="Tampilkan ${t}"><i></i></label>
+      </div>`).join('')}
+    </div>`;
+  }
+}
+function buildWebsiteDraftPayload(){
+  const base = buildWebsiteData();
+  base.editorial = JSON.parse(JSON.stringify(ensureWebEdit()));
+  return base;
+}
+async function saveWebsiteDraft(){
+  DB.websiteDraft = JSON.parse(JSON.stringify(ensureWebEdit()));
+  saveDB();
+  renderWebStatus();
+  const st = document.getElementById('webActionStatus');
+  const token = DB.settings.pubToken||'';
+  if(!token){ st.textContent = 'Draft tersimpan di perangkat. Isi Token Publikasi di Pengaturan untuk mengaktifkan preview online.'; return; }
+  st.textContent = 'Menyimpan draft ke cloud...';
+  try{
+    const res = await fetch(PUB_URL + '/rest/v1/rpc/masjid_draft', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'apikey': PUB_ANON_KEY, 'Authorization':'Bearer '+PUB_ANON_KEY },
+      body: JSON.stringify({ p_slug: DB.settings.pubSlug||'masjid', p_token: token, p_data: buildWebsiteDraftPayload() })
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const ok = await res.json();
+    st.textContent = ok === true ? '✅ Draft tersimpan. Preview siap dibuka.' : '❌ Token ditolak server. Cek Token Publikasi di Pengaturan.';
+  }catch(e){
+    st.textContent = 'Draft tersimpan di perangkat. Gagal kirim ke cloud ('+e.message+').';
+  }
+}
+async function previewWebsite(){
+  await saveWebsiteDraft();
+  window.open(WEB_PREVIEW_URL + '?preview=1', '_blank');
+}
+function openPublishSheet(){
+  const live = getLiveEd();
+  const d = WEB_EDIT || getDraft();
+  const changed = k => !live || JSON.stringify(d[k]||null) !== JSON.stringify(live[k]||null);
+  const rows = WEB_ED_SECTIONS.map(s=>{
+    const ch = changed(s.k);
+    return `<label class="web-sec-row" style="cursor:pointer;">
+      <div><div class="t">${s.t}${ch?' <span style="color:var(--warning);font-size:10px;font-weight:800;">• BERUBAH</span>':''}</div><div class="d">${s.d}</div></div>
+      <input type="checkbox" class="pub-sec" data-k="${s.k}" checked style="width:20px;height:20px;flex-shrink:0;">
+    </label>`;
+  }).join('');
+  openModal(`
+    <h2 style="margin:0 0 6px;">🚀 Publikasikan ke Website</h2>
+    <p class="muted" style="margin:0 0 12px;">Pilih bagian yang mau ditayangkan. Bagian yang tidak dipilih tetap memakai versi yang sekarang tayang.</p>
+    <div style="max-height:300px;overflow:auto;">${rows}</div>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-primary" onclick="doPublishSelected()">Publikasikan Sekarang</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+    </div>`);
+}
+async function doPublishSelected(){
+  const picked = Array.from(document.querySelectorAll('.pub-sec:checked')).map(x=>x.dataset.k);
+  if(!picked.length){ toast('Pilih minimal satu bagian'); return; }
+  closeModal();
+  const st = document.getElementById('webActionStatus');
+  const token = DB.settings.pubToken||'';
+  if(!token){ st.textContent = 'Isi Token Publikasi dulu di Pengaturan (card Website Masjid).'; return; }
+  st.textContent = 'Mempublikasikan...';
+  try{
+    const base = buildWebsiteData();
+    const live = getLiveEd() || defaultWebsiteDraft();
+    const draft = WEB_EDIT || getDraft();
+    const ed = {};
+    WEB_ED_SECTIONS.forEach(s => {
+      const src = picked.includes(s.k) ? draft : live;
+      ed[s.k] = JSON.parse(JSON.stringify(src[s.k] || defaultWebsiteDraft()[s.k]));
+    });
+    base.editorial = ed;
+    const res = await fetch(PUB_URL + '/rest/v1/rpc/masjid_publish', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'apikey': PUB_ANON_KEY, 'Authorization':'Bearer '+PUB_ANON_KEY },
+      body: JSON.stringify({ p_slug: DB.settings.pubSlug||'masjid', p_token: token, p_data: base })
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const ok = await res.json();
+    if(ok === true){
+      DB.websiteLive = { editorial: ed, publishedAt: nowISO() };
+      saveDB();
+      renderWebStatus();
+      st.textContent = '✅ Terpublikasi ke website.';
+      toast('Website diperbarui');
+    } else {
+      st.textContent = '❌ Token ditolak server. Cek Token Publikasi di Pengaturan.';
+    }
+  }catch(e){
+    st.textContent = 'Gagal mempublikasikan ('+e.message+'). Periksa koneksi internet.';
+  }
+}
+function pullWebsiteLive(){
+  const live = getLiveEd();
+  if(!live){ toast('Belum ada versi tayang'); return; }
+  DB.websiteDraft = JSON.parse(JSON.stringify(live));
+  saveDB();
+  WEB_EDIT = null;
+  renderWebStatus(); renderWebEditPanel();
+  toast('Draft disamakan dengan versi tayang');
+}
+function toggleWebsiteModule(on){
+  DB.settings.websiteEnabled = !!on;
+  saveDB();
+  applyWebsiteModule();
+  toast(on ? 'Modul Website diaktifkan' : 'Modul Website dimatikan');
+}
+function applyWebsiteModule(){
+  const on = DB.settings.websiteEnabled !== false;
+  const cb = document.getElementById('setWebsiteOn');
+  const body = document.getElementById('websiteModuleBody');
+  const note = document.getElementById('websiteOnNote');
+  if (cb) cb.checked = on;
+  if (body) body.style.display = on ? '' : 'none';
+  const nav = document.getElementById('navWebsite');
+  if (nav) nav.style.display = on ? '' : 'none';
+  if (note) note.textContent = on
+    ? 'Kirim profil, jadwal kajian, dan laporan bulan berjalan ke website publik masjid.'
+    : 'Modul website dimatikan. Nyalakan saklar untuk mengaktifkan kembali.';
+}
+function downloadWebsiteJson(){
+  if (DB.settings.websiteEnabled === false) { toast('Modul Website dimatikan'); return; }
+  const blob = new Blob([JSON.stringify(buildWebsiteData(), null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'data-website.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('data-website.json diunduh — salin ke folder web-masjid');
+}
+async function publishWebsite(){
+  if (DB.settings.websiteEnabled === false) { toast('Modul Website dimatikan'); return; }
+  const slug = (document.getElementById('setPubSlug').value||'').trim()||'masjid';
+  const token = (document.getElementById('setPubToken').value||'').trim();
+  DB.settings.pubSlug = slug; DB.settings.pubToken = token; saveDB();
+  const st = document.getElementById('pubStatus');
+  if(!token){ st.textContent = 'Isi Token Publikasi dulu (minta ke pengelola website), atau pakai Unduh JSON.'; return; }
+  st.textContent = 'Mengirim...';
+  try{
+    const payload = buildWebsiteData();
+    payload.editorial = JSON.parse(JSON.stringify(getDraft()));
+    const res = await fetch(PUB_URL + '/rest/v1/rpc/masjid_publish', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'apikey': PUB_ANON_KEY, 'Authorization':'Bearer '+PUB_ANON_KEY },
+      body: JSON.stringify({ p_slug: slug, p_token: token, p_data: payload })
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const ok = await res.json();
+    if(ok === true){
+      DB.websiteLive = { editorial: payload.editorial, publishedAt: nowISO() };
+      saveDB();
+    }
+    st.textContent = ok === true ? '✅ Terpublikasi ke website.' : '❌ Token ditolak server. Cek Token Publikasi.';
+  }catch(e){
+    st.textContent = 'Gagal mengirim ('+e.message+'). Periksa koneksi internet, atau pakai Unduh JSON.';
+  }
+}
+function loadDemoData(){
+  if(!seedIfEmpty()){ toast('Data sudah ada — data contoh hanya untuk aplikasi kosong'); return; }
+  renderView('dashboard'); toast('Data contoh dimuat');
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+function init(){
+  updateTrialUI();
+  renderView('dashboard');
+}
+init();
+Platform.start();
+</script>
+</body>
+</html>
