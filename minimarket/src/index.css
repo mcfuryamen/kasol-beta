@@ -1,0 +1,250 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { font-family: Inter, system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  body {
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+    margin: 0; padding: 0;
+  }
+}
+
+@layer components {
+  .btn-primary { @apply bg-primary-500 hover:bg-primary-600 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .card { @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700; }
+  .input-field { @apply w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all; }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { @apply bg-transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-600 rounded-full; }
+  /* Safe area (viewport-fit=cover) — bottom nav & sheet */
+  .pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px); }
+  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+  .mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
+  /* Thumb-zone: target sentuh minimal 44px (iOS HIG) */
+  .touch-target { min-height: 44px; min-width: 44px; }
+}
+
+.thermal-receipt {
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Scanner pulse animation */
+@keyframes scanner-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+}
+.scanner-active { animation: scanner-pulse 1.5s ease-in-out infinite; }
+
+/* Numpad key press */
+@keyframes numpad-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.93); }
+  100% { transform: scale(1); }
+}
+.numpad-pressed { animation: numpad-press 0.12s ease; }
+
+/* Kas status pulse */
+@keyframes kas-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.kas-pulse { animation: kas-pulse 2s ease-in-out infinite; }
+
+/* Mobile sheet naik dari bawah */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-sheet-up { animation: sheet-up 0.25s cubic-bezier(0.32, 0.72, 0, 1); }
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(156,163,175,0.15) 25%,
+    rgba(156,163,175,0.3) 50%,
+    rgba(156,163,175,0.15) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.dark .shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(75,85,99,0.3) 25%,
+    rgba(75,85,99,0.5) 50%,
+    rgba(75,85,99,0.3) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ==================== LICENSE COMPONENTS (adopsi kaki5 style.css) ==================== */
+
+/* Badge system */
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.badge.compact { font-size: 13px; padding: 6px 14px; }
+.badge.green  { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.badge.red    { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.badge.amber  { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+.badge.orange { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+
+/* Trial chip di header */
+.trial-badge {
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.35);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 10px;
+  text-align: center;
+  flex-shrink: 0;
+  min-width: 62px;
+  cursor: pointer;
+  line-height: 1.15;
+}
+.trial-badge.warn { background: #fff; color: #c2570a; border-color: #fff; }
+.trial-label-xs { font-size: 9px; opacity: .9; letter-spacing: .5px; }
+.trial-value-sm { font-weight: 700; font-size: 12px; }
+
+/* License state card (semua kartu lisensi) */
+.license-state-card {
+  border: 1px solid rgba(191,54,12,.12);
+  box-shadow: 0 8px 24px rgba(90,45,10,.08);
+  padding: 18px;
+}
+
+/* License cards */
+.license-card-trial {
+  text-align: center;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(249,115,22,.15);
+}
+.license-card-active {
+  text-align: center;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(46,125,50,.2);
+}
+.license-card-active .license-icon { font-size: 40px; margin-bottom: 8px; }
+.license-card-active .license-key { font-size: 13px; color: #6b7280; margin-top: 8px; margin-bottom: 0; word-break: break-all; }
+.license-card-active .license-expiry { font-size: 12px; color: #6b7280; margin: 4px 0 8px; }
+.license-card-active .license-desc { font-size: 12px; color: #6b7280; margin-top: 8px; line-height: 1.4; }
+.license-card-revoked {
+  text-align: center;
+  padding: 20px;
+  border: 2px solid #ef4444;
+  background: linear-gradient(180deg,#fff,#fef2f2);
+  box-shadow: 0 4px 16px rgba(198,40,40,.12);
+  border-radius: 12px;
+}
+.license-card-revoked .license-icon { font-size: 44px; margin-bottom: 6px; }
+.license-card-revoked .license-title { font-size: 16px; color: #ef4444; }
+.license-card-revoked .license-desc { font-size: 13px; color: #6b7280; line-height: 1.5; margin-top: 6px; }
+.license-card-pending {
+  text-align: center;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(234,179,8,.15);
+}
+.license-card-pending .license-icon { font-size: 40px; margin-bottom: 8px; }
+.license-card-pending .license-title { font-size: 15px; }
+
+/* License step indicator (pola kaki5) */
+.license-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 18px;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 700;
+}
+.license-step { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 40px; }
+.license-step-dot {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: #9ca3af;
+  font-size: 11px;
+}
+.license-step.is-current { color: #ea6a0a; }
+.license-step.is-current .license-step-dot {
+  background: #ea6a0a;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(249,115,22,.15);
+}
+.license-step.is-done { color: #16a34a; }
+.license-step.is-done .license-step-dot { background: #dcfce7; color: #16a34a; }
+.license-step-line { flex: 1; max-width: 30px; height: 2px; background: #e5e7eb; margin-bottom: 16px; }
+
+/* License actions grid */
+.license-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.license-actions-row { grid-template-columns: 1.25fr; }
+.license-actions-row .btn { min-height: 48px; padding: 13px 12px; font-size: 13px; }
+.license-actions-primary { grid-template-columns: 1.25fr 1fr; }
+.license-active-actions { margin-top: 14px; }
+.license-active-actions .btn { width: 100%; }
+.license-hint { color: #9ca3af; font-size: 11px; margin-top: 10px; }
+
+/* License progress bar — ISI hijau di atas track oranye (kaki5 v160) */
+.license-progress { height: 6px; border-radius: 99px; background: #ffe0b2; overflow: hidden; margin: 16px 0 4px; }
+.license-progress span { display: block; width: 66%; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#4ade80,#16a34a); animation: licenseProgress 1.6s ease-in-out infinite alternate; }
+@keyframes licenseProgress { from{width:54%}to{width:78%} }
+
+/* License structural elements */
+.license-header { margin-bottom: 12px; }
+.license-header .badge { margin-left: 6px; }
+.license-icon { font-size: 32px; margin-bottom: 8px; }
+.license-title { font-size: 14px; font-weight: 700; color: #374151; margin-bottom: 8px; }
+.license-description { font-size: 13px; color: #6b7280; margin-bottom: 8px; line-height: 1.4; }
+.license-key { font-size: 13px; color: #6b7280; margin: 4px 0; word-break: break-all; }
+.license-expiry { font-size: 12px; color: #9ca3af; margin: 4px 0; }
+
+/* Device ID baris di dalam kartu */
+.lic-unit { text-align: center; margin-top: 8px; font-size: 11px; color: #9ca3af; }
+
+/* License sheet (bottom sheet) */
+.license-sheet {
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  animation: sheetUp .3s ease;
+}
+@keyframes sheetUp { from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1} }
+
+/* Sheet overlay revoked mode */
+.license-overlay-revoked { background: #fff; align-items: center; justify-content: center; padding: 24px; }
+
+/* Quota banner (fixed di bawah header) */
+#quotaBanner { position: fixed; left: 12px; right: 12px; top: 70px; z-index: 850; pointer-events: none; }
+#quotaBanner .quota-banner-card { pointer-events: auto; background: #fff7ed; border: 1px solid #fdba74; border-radius: 14px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.14); }
+#quotaBanner .btn { width: auto; min-height: 0; }

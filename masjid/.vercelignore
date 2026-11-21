@@ -1,0 +1,8 @@
+# File dev/QA/docs tidak ikut ter-publish saat root project = masjid/ (model 1-project).
+_dev-server.mjs
+_qa/
+_qa-*.mjs
+_docs/
+README.md
+# Hasil audit/screenshot lokal (20 Nov 2026: 125 file, 37,9 MB) — jangan ikut upload.
+_audit/

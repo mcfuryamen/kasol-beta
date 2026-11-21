@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pemulihan Akun — TPA Al-Hikmah</title>
+<meta name="description" content="Halaman pemulihan password/PIN TPA Al-Hikmah.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#7c2d12 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;color:#0f172a}
+.login-wrap{width:100%;max-width:420px}
+.brand{text-align:center;margin-bottom:24px;display:block;text-decoration:none}
+.brand .logo-i{width:64px;height:64px;background:#ea580c;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;box-shadow:0 8px 24px rgba(234,88,12,.4)}
+.brand h1{color:#fff;font-size:22px;font-weight:800}
+.brand p{color:#cbd5e1;font-size:13px;margin-top:4px}
+.card{background:#fff;border-radius:24px;padding:32px;box-shadow:0 24px 64px rgba(0,0,0,.35)}
+.card h2{font-size:20px;font-weight:800;text-align:center;margin-bottom:4px}
+.card .sub{text-align:center;font-size:13px;color:#475569;margin-bottom:20px}
+#recovery-err{background:#fef2f2;color:#dc2626;padding:12px;border-radius:10px;font-size:13px;margin-bottom:12px}
+#recovery-info{background:#f0f9ff;color:#0369a1;padding:12px;border-radius:10px;font-size:13px;margin-bottom:12px}
+.ff{margin-bottom:14px}
+.ff label{display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.fi{width:100%;padding:12px 16px;border:1px solid #e2e8f0;border-radius:12px;font-size:15px;font-family:inherit;background:#fff;outline:none;transition:border .2s}
+.fi:focus{border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,.12)}
+.btn-sub{width:100%;padding:14px;background:#ea580c;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-sub:hover{background:#c2410c}
+.btn-sub:active{transform:scale(.98)}
+.btn-sub:disabled{background:#cbd5e1;cursor:not-allowed}
+.step{display:none}
+.step.active{display:block}
+.back{display:block;text-align:center;margin-top:20px;color:#cbd5e1;font-size:13px;text-decoration:none;font-weight:600}
+.back:hover{color:#fff}
+.foot{text-align:center;margin-top:16px;font-size:11px;color:#64748b}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <a href="/" class="brand" title="Kembali ke Beranda">
+    <div class="logo-i">🕌</div>
+    <h1>TPA Al-Hikmah</h1>
+    <p>Taman Pendidikan Al-Quran</p>
+  </a>
+  <div class="card">
+    <h2>Pemulihan Akun</h2>
+    <p class="sub">Reset password atau PIN Anda</p>
+    <div id="recovery-err" class="hidden" role="alert"></div>
+    <div id="recovery-info" class="hidden" role="status"></div>
+
+    <!-- Step 1: Request Recovery -->
+    <div id="step-request" class="step active">
+      <form id="recovery-request-form">
+        <div class="ff">
+          <label for="recovery-phone">Nomor WhatsApp</label>
+          <input class="fi" type="tel" id="recovery-phone" placeholder="08xxxxxxxxxx" inputmode="tel" required>
+        </div>
+        <button class="btn-sub" type="submit">Minta Pemulihan →</button>
+      </form>
+    </div>
+
+    <!-- Step 2: Wait for Approval -->
+    <div id="step-wait" class="step">
+      <div class="ff">
+        <label>Status Permintaan</label>
+        <div style="padding:12px;background:#f8fafc;border-radius:10px;text-align:center;font-size:13px">
+          <div style="margin-bottom:8px">
+            <span class="spinner"></span>
+          </div>
+          <p>Menunggu persetujuan admin...</p>
+          <p style="font-size:11px;color:#64748b;margin-top:4px">Challenge ID: <code id="challenge-id" style="font-family:monospace"></code></p>
+        </div>
+        <button class="btn-sub" style="margin-top:16px" type="button" id="poll-status-btn">Cek Status</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Enter New Credential -->
+    <div id="step-complete" class="step">
+      <form id="recovery-complete-form">
+        <div class="ff">
+          <label>Status Persetujuan</label>
+          <p style="padding:12px;background:#f8fafc;border-radius:10px;font-size:13px;color:#475569">Pemulihan disetujui admin. Token persetujuan satu kali digunakan secara otomatis untuk menyimpan credential baru.</p>
+        </div>
+        <div class="ff">
+          <label for="recovery-new-credential">Password / PIN Baru</label>
+          <input class="fi" type="password" id="recovery-new-credential" placeholder="Masukkan password atau PIN baru" required>
+        </div>
+        <div class="ff">
+          <label for="recovery-confirm-credential">Konfirmasi Password / PIN</label>
+          <input class="fi" type="password" id="recovery-confirm-credential" placeholder="Konfirmasi password atau PIN" required>
+        </div>
+        <button class="btn-sub" type="submit">Reset Password →</button>
+      </form>
+    </div>
+
+    <!-- Step 4: Success -->
+    <div id="step-success" class="step">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:48px;margin-bottom:12px">✅</div>
+        <p style="font-size:15px;font-weight:600;color:#16a34a;margin-bottom:8px">Pemulihan Berhasil</p>
+        <p style="font-size:13px;color:#475569">Password atau PIN Anda telah direset. Silakan masuk dengan credential baru.</p>
+      </div>
+      <button class="btn-sub" type="button" onclick="window.location.href='login.html'">Kembali ke Masuk →</button>
+    </div>
+
+  </div>
+  <a class="back" href="login.html">← Kembali ke Masuk</a>
+  <p class="foot">Powered by Kasir Solo - TPA</p>
+</div>
+
+<script type="module">
+  import { initRecovery } from './pages/landing/recovery.js';
+  window.addEventListener('DOMContentLoaded', initRecovery);
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}</script>
+</body>
+</html>

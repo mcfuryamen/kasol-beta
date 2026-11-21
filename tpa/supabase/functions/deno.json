@@ -1,0 +1,20 @@
+import { load } from "https://deno.land/std@0.208.0/dotenv/mod.ts";
+
+const env = await load();
+
+export default {
+  functions: [
+    {
+      glob: "identity-approve-recovery/**/*.ts",
+      memory: 512,
+      timeout: 30,
+      importMapPath: null,
+    },
+    {
+      glob: "identity-complete-recovery/**/*.ts",
+      memory: 512,
+      timeout: 30,
+      importMapPath: null,
+    },
+  ],
+};

@@ -1,0 +1,45 @@
+{
+  "outputDirectory": ".",
+  "framework": null,
+  "cleanUrls": false,
+  "redirects": [
+    { "source": "/adm", "destination": "/adm/", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/adm/", "destination": "/adm-masjid/index.html" },
+    { "source": "/adm/(.*)", "destination": "/adm-masjid/$1" },
+    { "source": "/", "destination": "/web-masjid/index.html" },
+    { "source": "/m/:slug", "destination": "/web-masjid/index.html" },
+    { "source": "/m/:slug/", "destination": "/web-masjid/index.html" },
+    { "source": "/:slug", "destination": "/web-masjid/index.html" },
+    { "source": "/:slug/", "destination": "/web-masjid/index.html" },
+    { "source": "/assets/(.*)", "destination": "/web-masjid/assets/$1" },
+    { "source": "/data-website.json", "destination": "/web-masjid/data-website.json" },
+    { "source": "/manifest.webmanifest", "destination": "/web-masjid/manifest.webmanifest" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), interest-cohort=(), bluetooth=(self)" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' blob: data:; connect-src 'self' https://hhywrvedlwljawgxzpkq.supabase.co; frame-src 'self' https://www.youtube-nocookie.com; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests" }
+      ]
+    },
+    {
+      "source": "/adm/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/adm/" }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    }
+  ]
+}

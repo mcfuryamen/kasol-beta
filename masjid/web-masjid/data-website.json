@@ -1,0 +1,21 @@
+{
+  "slug": "masjid",
+  "diperbarui": "2026-11-06T02:00:00.000Z",
+  "profil": {
+    "nama": "Masjid Al-Ikhlas",
+    "alamat": "Jl. Contoh No. 123, Surakarta, Jawa Tengah",
+    "takmir": "Bpk. Ahmad Fauzi",
+    "wa": "628816566935"
+  },
+  "kegiatan": [
+    {"nama": "Kajian Rutin Ba'da Maghrib", "tanggal": "2026-11-09", "waktu": "18:15", "pengisi": "Ust. Ahmad", "tempat": "Aula Utama", "catatan": "Tema: Adab Bertetangga"},
+    {"nama": "Kajian Tafsir Al-Qur'an", "tanggal": "2026-11-14", "waktu": "08:00", "pengisi": "Ust. Fulan", "tempat": "Ruang Utama", "catatan": ""}
+  ],
+  "laporan": {
+    "bulan": "2026-11",
+    "masuk": 1250000,
+    "keluar": 350000,
+    "rincianMasuk": [["Infaq Jumat", 1250000]],
+    "rincianKeluar": [["Listrik & Air", 350000]]
+  }
+}

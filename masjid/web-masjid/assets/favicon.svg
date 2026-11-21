@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Masjid">
+  <defs>
+    <linearGradient id="bg" x1="6" y1="2" x2="58" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#11855d"/>
+      <stop offset=".55" stop-color="#0c3b2e"/>
+      <stop offset="1" stop-color="#07271d"/>
+    </linearGradient>
+    <linearGradient id="au" x1="32" y1="10" x2="32" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f7e7b0"/>
+      <stop offset=".5" stop-color="#e3c766"/>
+      <stop offset="1" stop-color="#c9a227"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="15" fill="url(#bg)"/>
+
+  <!-- minaret kiri & kanan -->
+  <rect x="11.5" y="30" width="4.6" height="18" rx="2.3" fill="url(#au)" opacity=".92"/>
+  <rect x="47.9" y="30" width="4.6" height="18" rx="2.3" fill="url(#au)" opacity=".92"/>
+  <circle cx="13.8" cy="27.6" r="2" fill="url(#au)"/>
+  <circle cx="50.2" cy="27.6" r="2" fill="url(#au)"/>
+
+  <!-- kubah -->
+  <path d="M32 22c-9.4 0-17 7.6-17 17v7h34v-7c0-9.4-7.6-17-17-17z" fill="url(#au)"/>
+
+  <!-- finial -->
+  <rect x="31.1" y="14.5" width="1.8" height="8" rx=".9" fill="url(#au)"/>
+  <circle cx="32" cy="12.4" r="2.7" fill="url(#au)"/>
+
+  <!-- dasar -->
+  <rect x="10.5" y="45.4" width="43" height="4.2" rx="2.1" fill="url(#au)"/>
+
+  <!-- pintu -->
+  <path d="M32 50.2c-3.6 0-6.5-2.9-6.5-6.5s2.9-6.5 6.5-6.5 6.5 2.9 6.5 6.5-2.9 6.5-6.5 6.5z" fill="#07271d"/>
+</svg>

@@ -1,0 +1,8 @@
+{
+  "version": "1.0.146-beta.1",
+  "cacheBust": "v221",
+  "notes": [
+    "Kartu \"🔗 Hubungkan ke akun HUB\" kini tampil juga di kartu lisensi halaman Pengaturan, tepat di bawahnya — kode aktivasi bisa dipasang tanpa harus membuka sheet lisensi.",
+    "Label versi di seluruh aplikasi tampil bersih tanpa narasi \"beta\" (mis. \"Versi 1.0.146\")."
+  ]
+}

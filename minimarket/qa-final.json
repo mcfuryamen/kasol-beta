@@ -1,0 +1,49 @@
+{
+  "results": {
+    "MLogin": {
+      "r1": "no-match",
+      "r2": "no-match"
+    },
+    "MDash": {
+      "innerW": 390,
+      "text": "Kasir Solo\n\nMinimarket\n\nMasuk\nDaftar\nNomor WhatsApp\nKata Sandi\nMasuk\n\nKasir Solo",
+      "navExists": false,
+      "navVisible": false,
+      "asideExists": false,
+      "headerExists": false,
+      "mainPb": null,
+      "innerTextIncludesSelamat": false
+    },
+    "MDark": {
+      "htmlClass": "",
+      "isDark": false
+    },
+    "MReports": {
+      "innerW": 390,
+      "onReports": "moved",
+      "text": "Kasir Solo\n\nMinimarket\n\nMasuk\nDaftar\nNomor WhatsApp\nKata Sandi\nMasuk\n\nKasir Solo",
+      "navExists": false
+    },
+    "MPosBefore": {
+      "isKasRequired": false,
+      "click": "no-root:nav[class*=\"fixed\"][class*=\"bottom-0\"]"
+    },
+    "MPosAfter": "no-card",
+    "MCart": {
+      "subtotal": false
+    },
+    "DLogin": true,
+    "DDash": {
+      "innerW": 1360,
+      "loggedIn": false,
+      "asideExists": false,
+      "asideRect": null,
+      "wrapClasses": null,
+      "headerExists": false,
+      "bottomNavExists": false,
+      "bottomNavHeight": null,
+      "chip": null
+    }
+  },
+  "errors": []
+}

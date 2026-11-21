@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kasir Solo - Masjid</title>
+<meta name="description" content="Aplikasi manajemen masjid: kas & keuangan (infaq, donasi, pengeluaran), jamaah, kegiatan/kajian, inventaris. Offline, ringan, oleh PT Mesin Kasir Solo.">
+<meta name="theme-color" content="#F97316">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kasir Solo Masjid">
+<link rel="stylesheet" href="app.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+<a class="skip-link" href="#appMain">Lewati ke konten utama</a>
+<div class="app" id="app">
+
+  <!-- HEADER -->
+  <header class="app-header" id="appHeader">
+    <div class="row" id="headerDefault">
+      <div class="brand-mark"><img src="icon.svg" alt="Logo Kasir Solo Masjid"></div>
+      <div class="brand-txt">
+        <h1 class="brand-name" id="brandName">Kasir Solo</h1>
+        <div class="brand-sub" id="brandSub">Kasir Solo - Masjid</div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" onclick="go('bantuan')" aria-label="Bantuan" title="Bantuan">📖</button>
+        <button class="akun-chip hidden" id="akunChip" type="button" onclick="Platform.openAkun()" aria-label="Akun aktif" title="Akun aktif">
+          <span class="akun-av" id="akunAv" aria-hidden="true"><img id="akunAvImg" alt="" hidden></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="app-main" id="appMain" tabindex="-1">
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <!-- Judul halaman hanya untuk pembaca layar. Halaman lain mendapat judul
+           saat dibuka lewat renderView(), Beranda tidak — akibatnya satu-satunya
+           halaman yang tampil saat aplikasi pertama dibuka tanpa judul sama
+           sekali (perbaikan audit T5). -->
+      <h2 class="sr-only">Beranda</h2>
+      <!-- Baris "Hari Ini": tanggal hari ini + jumlah kegiatan (v1.5.2) -->
+      <div class="dash-today" id="dashToday"></div>
+
+      <!-- Pengingat backup (v1.5.2): muncul otomatis bila belum pernah backup
+           atau sudah lebih dari 30 hari; tombol Nanti menyembunyikan 30 hari. -->
+      <div class="dash-backup" id="dashBackup" hidden></div>
+
+      <div class="stat-grid">
+        <button type="button" class="stat-card orange" onclick="go('kas')"><div class="lbl">Saldo Semua Sumber</div><div class="val" id="statSaldo">Rp0</div><div class="lap-sub" id="statSaldoSub"></div></button>
+        <button type="button" class="stat-card green" onclick="setKasTab('masuk');go('kas')"><div class="lbl">Pemasukan Bulan Ini</div><div class="val" id="statMasuk">Rp0</div><div class="lap-sub" id="statMasukSub"></div></button>
+        <button type="button" class="stat-card red" onclick="setKasTab('keluar');go('kas')"><div class="lbl">Pengeluaran Bulan Ini</div><div class="val" id="statKeluar">Rp0</div><div class="lap-sub" id="statKeluarSub"></div></button>
+        <button type="button" class="stat-card blue" onclick="go('jamaah')"><div class="lbl">Jamaah Terdaftar</div><div class="val" id="statJamaah">0</div><div class="lap-sub" id="statJamaahSub"></div></button>
+      </div>
+
+      <!-- Menu Cepat: 5 tombol satu baris, tanpa judul seksi (v1.5.2) —
+           langsung di bawah kartu angka; Opname, Kegiatan, dan Laporan tetap
+           ada di tab bawah / halaman Kas / menu ☰ Lainnya -->
+      <div class="quick-grid">
+        <button type="button" class="quick-btn tone masuk" onclick="openTransaksiForm('masuk')"><div class="ic">➕</div><span>Masuk</span></button>
+        <button type="button" class="quick-btn tone keluar" onclick="openTransaksiForm('keluar')"><div class="ic">➖</div><span>Keluar</span></button>
+        <button type="button" class="quick-btn tone pinjam" onclick="openTransaksiForm('pinjam')"><div class="ic">🤝</div><span>Pinjaman</span></button>
+        <button type="button" class="quick-btn tone jamaah" onclick="openJamaahForm()"><div class="ic">👥</div><span>Jamaah</span></button>
+        <button type="button" class="quick-btn tone inv" onclick="openInventarisForm()"><div class="ic">📦</div><span>Inventaris</span></button>
+      </div>
+
+      <!-- Ringkasan uang dipinjamkan (v1.5.2): hanya tampil bila ada yang belum lunas -->
+      <div id="dashPinjWrap"></div>
+
+      <div class="section-title">7 Hari Terakhir</div>
+      <div class="card" id="dashChart7"></div>
+
+      <!-- Judul sesi + tautan "Lihat Semua" di ujung kanan (v1.5.2) -->
+      <div class="section-title">Kegiatan Mendatang<button class="st-more" onclick="go('kegiatan')">Lihat Semua</button></div>
+      <div class="card" id="dashKegiatanList"></div>
+
+      <div class="section-title">Transaksi Terakhir<button class="st-more" onclick="go('kas')">Lihat Semua</button></div>
+      <div class="card" id="dashKasList"></div>
+    </section>
+
+    <!-- KAS -->
+    <section class="view" id="view-kas">
+      <!-- Kartu Total Saldo di atas tab filter: angka saldo adalah info utama
+           halaman ini, jadi ditaruh paling atas di bawah judul. -->
+      <div class="card" style="margin-bottom:10px;">
+        <div class="card-head">
+          <div class="saldo-hero">
+            <div class="sh-label">Total Saldo</div>
+            <div class="sh-value" id="kasSaldoInline">Rp0</div>
+          </div>
+          <button class="btn btn-opname" onclick="Platform.openOpname()">🧮 Opname</button>
+        </div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-k="semua" onclick="setKasTab('semua')">Semua</button>
+        <button type="button" class="tab" data-k="masuk" onclick="setKasTab('masuk')">Pemasukan</button>
+        <button type="button" class="tab" data-k="keluar" onclick="setKasTab('keluar')">Pengeluaran</button>
+        <button type="button" class="tab" data-k="pinjaman" onclick="setKasTab('pinjaman')">Pinjaman</button>
+        <button type="button" class="tab" data-k="zakat" onclick="setKasTab('zakat')">🤲 Zakat</button>
+      </div>
+      <div class="card" id="kasListWrap"></div>
+      <button class="fab" id="kasFab" onclick="openTransaksiForm('masuk')" aria-label="Catat Transaksi">+</button>
+    </section>
+
+    <!-- BANTUAN -->
+    <section class="view" id="view-bantuan">
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-b="tutorial" onclick="setBantuanTab('tutorial')">📖 Tutorial</button>
+        <button type="button" class="tab" data-b="video" onclick="setBantuanTab('video')">🎬 Video</button>
+        <button type="button" class="tab" data-b="tc" onclick="setBantuanTab('tc')">📜 S & K</button>
+      </div>
+      <div id="bantuanPanelTutorial">
+        <p class="muted" style="margin:-4px 0 12px;">Panduan singkat cara memakai <b>Kasir Solo - Manajemen Masjid</b>. Ketuk sebuah topik untuk membukanya.</p>
+        <div id="bantuanContent"></div>
+      </div>
+      <div id="bantuanPanelVideo" style="display:none">
+        <p class="muted" style="margin:-4px 0 12px;">Video panduan singkat pemakaian aplikasi. Ketuk sebuah kartu untuk menonton.</p>
+        <div id="bantuanVideoList"></div>
+      </div>
+      <div id="bantuanPanelTc" style="display:none">
+        <div class="card">
+          <h3>📜 Syarat & Ketentuan</h3>
+          <p class="muted">🕒 Terakhir diperbarui: <b>8 November 2026</b> · v1.0</p>
+        </div>
+        <div class="card">
+          <div class="tc-clause"><b>1. Layanan</b><p class="muted" style="margin-top:3px;">Kasir Solo - Manajemen Masjid adalah aplikasi administrasi masjid: mencatat kas masuk & keluar, opname kas, kegiatan & kajian, data jamaah, inventaris, laporan, serta publikasi profil masjid ke website. Aplikasi langsung bisa dipakai tanpa masa uji coba berhitung hari — yang dibatasi hanyalah kuota transaksi gratis bulanan sesuai pasal 2.</p></div>
+          <div class="tc-clause"><b>2. Kuota Gratis & Lisensi</b><p class="muted" style="margin-top:3px;">Versi gratis memberi <b>kuota transaksi setiap bulan</b> (jumlah tertera di aplikasi) tanpa batas waktu; kuota menyegarkan diri di awal bulan. Saat kuota habis, aplikasi tetap bisa dibuka & dilihat, namun pencatatan baru terkunci sampai bulan berikutnya — atau buka lebih awal dengan <b>membeli lisensi</b> (QRIS/transfer, bukti pembayaran diverifikasi admin, lalu aktif otomatis). Lisensi berlaku <b>per perangkat</b>. Selain kuota, <b>beberapa fitur lanjutan dapat dikunci untuk versi gratis</b> dan terbuka dengan lisensi — fitur yang terkunci ditandai 🔒 di aplikasi.</p></div>
+          <div class="tc-clause"><b>3. Data Anda</b><p class="muted" style="margin-top:3px;">Seluruh data kas, kegiatan, jamaah & inventaris tersimpan <b>lokal di perangkat Anda</b> dan tidak dikirim ke server. Gunakan fitur cadangan/ekspor yang tersedia di Pengaturan untuk memindahkan atau menyalin data. Menghapus data aplikasi menghapus semuanya secara permanen.</p></div>
+          <div class="tc-clause"><b>4. Website Masjid</b><p class="muted" style="margin-top:3px;">Publikasi ke website masjid hanya mengirim profil masjid, jadwal kajian, dan laporan yang Anda pilih untuk dipublikasikan, menggunakan ID Website & Token Publikasi dari pengelola website. Data kas rinci tidak dipublikasikan tanpa tindakan Anda.</p></div>
+          <div class="tc-clause"><b>5. Tanggung Jawab</b><p class="muted" style="margin-top:3px;">Anda bertanggung jawab atas penggunaan aplikasi pada perangkat Anda. Kami tidak bertanggung jawab atas kehilangan data akibat tindakan manual (hapus data, reset/pergantian perangkat) atau kerusakan perangkat.</p></div>
+          <div class="tc-clause"><b>6. Bantuan & Perubahan</b><p class="muted" style="margin-top:3px;">Butuh bantuan? Hubungi kami melalui WhatsApp <b>0881-6566-935</b>. Kami dapat memperbarui Syarat & Ketentuan ini sewaktu-waktu; penggunaan berkelanjutan berarti Anda menyetujui versi terbaru. — <b>PT Mesin Kasir Solo</b></p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- KEGIATAN -->
+    <section class="view" id="view-kegiatan">
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-e="akandatang" onclick="setKegiatanTab('akandatang')">Akan Datang</button>
+        <button type="button" class="tab" data-e="selesai" onclick="setKegiatanTab('selesai')">Selesai</button>
+        <button type="button" class="tab" data-e="semua" onclick="setKegiatanTab('semua')">Semua</button>
+      </div>
+      <div class="card" id="kegiatanListWrap"></div>
+      <button class="fab" onclick="openKegiatanForm()" aria-label="Tambah Kegiatan">＋</button>
+    </section>
+
+    <!-- JAMAAH -->
+    <section class="view" id="view-jamaah">
+      <!-- Kolom cari diberi nama aksesibel: dulu hanya mengandalkan placeholder,
+           yang hilang begitu pengguna mulai mengetik (perbaikan audit T5). -->
+      <div class="search-box"><span aria-hidden="true">🔎</span><input type="text" id="jamaahSearch" aria-label="Cari jamaah" placeholder="Cari jamaah..." oninput="renderJamaahList()"></div>
+      <div class="card" id="jamaahListWrap"></div>
+      <button class="fab" onclick="openJamaahForm()" aria-label="Tambah Jamaah">＋</button>
+    </section>
+
+    <!-- INVENTARIS -->
+    <section class="view" id="view-inventaris">
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-inv="aset" onclick="setInvTab('aset')">📦 Aset <span class="badge baik" id="invCountAset" style="display:none;"></span></button>
+        <button type="button" class="tab" data-inv="keluar" onclick="setInvTab('keluar')">🚪 Keluar <span class="badge dipinjam" id="invCountKeluar" style="display:none;"></span></button>
+      </div>
+
+      <div id="invPaneAset">
+        <div class="card" id="inventarisListWrap"></div>
+      </div>
+
+      <div id="invPaneKeluar" style="display:none;">
+        <div class="card" id="pinjamListWrap"></div>
+      </div>
+
+      <button class="fab" id="invFab" onclick="openInventarisForm()" aria-label="Tambah Aset">＋</button>
+    </section>
+
+    <!-- LAPORAN -->
+    <section class="view" id="view-laporan">
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab" data-r="mingguan" onclick="setLaporanRange('mingguan')">Mingguan</button>
+        <button type="button" class="tab active" data-r="bulanan" onclick="setLaporanRange('bulanan')">Bulanan</button>
+        <button type="button" class="tab" data-r="custom" onclick="setLaporanRange('custom')">Custom</button>
+      </div>
+      <div class="date-nav" id="lapDateNav"></div>
+      <div class="stat-grid">
+        <div class="stat-card green"><div class="lbl">Pemasukan</div><div class="val" id="lapMasuk">Rp0</div><div class="lap-sub" id="lapMasukSub"></div></div>
+        <div class="stat-card red"><div class="lbl">Pengeluaran</div><div class="val" id="lapKeluar">Rp0</div><div class="lap-sub" id="lapKeluarSub"></div></div>
+        <div class="stat-card orange"><div class="lbl">Selisih (Surplus)</div><div class="val" id="lapSelisih">Rp0</div><div class="lap-sub" id="lapSelisihSub"></div></div>
+        <div class="stat-card blue"><div class="lbl">Saldo Akhir Periode</div><div class="val" id="lapSaldo">Rp0</div><div class="lap-sub" id="lapSaldoSub"></div></div>
+      </div>
+      <!-- Uang pinjaman dipisah dari pemasukan/pengeluaran: uang yang dipinjamkan
+           bukan belanja masjid, dan uang yang kembali bukan donasi baru. -->
+      <div class="card" id="lapPinjamCard" hidden>
+        <div class="card-head"><span style="font-weight:800;font-size:14.5px;">🤝 Uang Pinjaman</span></div>
+        <p class="muted" style="margin:2px 0 6px;font-size:12px;">Tidak dihitung sebagai pemasukan/pengeluaran di atas.</p>
+        <div class="total-row"><span>Dipinjamkan periode ini</span><span id="lapPinjamKeluar">Rp0</span></div>
+        <div class="total-row"><span>Dikembalikan periode ini</span><span id="lapPinjamMasuk">Rp0</span></div>
+        <div class="total-row"><span>Selisih pinjaman (ikut mengubah saldo)</span><span id="lapPinjamNet">Rp0</span></div>
+        <div class="total-row big"><span>Masih di luar</span><span id="lapPinjamAktif">Rp0</span></div>
+      </div>
+      <div class="section-title">Tren Pemasukan &amp; Pengeluaran</div>
+      <div class="card">
+        <div class="lap-chart" id="lapChart"></div>
+        <div class="lap-legend"><span class="in"><i></i>Pemasukan</span><span class="out"><i></i>Pengeluaran</span></div>
+      </div>
+      <div class="section-title">Rincian Pemasukan per Kategori</div>
+      <div class="card" id="lapKategoriMasuk"></div>
+      <div class="section-title">Rincian Pengeluaran per Kategori</div>
+      <div class="card" id="lapKategoriKeluar"></div>
+      <div class="section-title" id="lapTrxTitle">Transaksi Periode Ini</div>
+      <div class="card" id="lapTrxList"></div>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-primary" onclick="printLaporan()">🖨️ Cetak Laporan</button>
+        <button class="btn btn-secondary" onclick="bagikanLaporanWA()">📤 Bagikan</button>
+      </div>
+    </section>
+
+    <!-- WEBSITE (MINI-CMS) -->
+    <section class="view" id="view-website">
+      <div class="card" id="webStatusCard">
+        <div class="web-status">
+          <span class="web-badge" id="webStatusBadge">BELUM TAYANG</span>
+          <div class="web-status-txt">
+            <div class="t1" id="webStatusMain">Website belum pernah dipublikasikan</div>
+            <div class="t2" id="webStatusSub">—</div>
+          </div>
+        </div>
+        <p class="muted" id="webActionStatus" style="margin-top:8px;"></p>
+      </div>
+      <div class="tabs" role="tablist" id="webEditTabs">
+        <button type="button" class="tab active" data-w="hero" onclick="setWebTab('hero')">Hero</button>
+        <button type="button" class="tab" data-w="sambutan" onclick="setWebTab('sambutan')">Sambutan</button>
+        <button type="button" class="tab" data-w="pengumuman" onclick="setWebTab('pengumuman')">Info</button>
+        <button type="button" class="tab" data-w="galeri" onclick="setWebTab('galeri')">Galeri</button>
+        <button type="button" class="tab" data-w="tampilan" onclick="setWebTab('tampilan')">Otomatis</button>
+      </div>
+      <div id="webEditPanel"></div>
+      <div class="card sg-website" id="cardWebsite">
+        <div class="card-head">
+          <span style="font-weight:800;font-size:14.5px;">🌐 Publikasi</span>
+        </div>
+        <p class="muted" id="websiteOnNote">Atur isi website lewat tab di bawah. Publikasi memakai akun Anda — tidak ada token di perangkat ini.</p>
+        <div id="websiteModuleBody">
+          <div class="dom-box" style="margin-top:0;">
+            <div style="font-size:11.5px;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;">Alamat Website</div>
+            <div class="web-url" id="webSiteUrl">—</div>
+            <div class="dns" id="webSiteMeta">Belum disiapkan.</div>
+          </div>
+          <div class="btn-row" style="margin-top:12px;">
+            <button class="btn wb-publish" id="btnPublishWeb" data-role="owner" onclick="publishWebsite()">🚀 Publikasikan</button>
+            <button class="btn wb-ghost" onclick="downloadWebsiteJson()">⬇️ Unduh JSON</button>
+          </div>
+          <p class="muted" id="webRoleNote" style="margin-top:8px;display:none;"></p>
+          <div class="section-title" data-role="owner">Domain Custom</div>
+          <div id="webDomainList"></div>
+          <div class="btn-row" style="margin-top:10px;" data-role="owner">
+            <button class="btn wb-teal" onclick="HUB.bukaKlaimDomain()">🌐 Klaim Domain</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PENGATURAN -->
+    <section class="view" id="view-settings">
+      <div class="settings-grid">
+        <div class="card sg-data">
+          <h3>🕌 Data Masjid</h3>
+          <button type="button" class="setting-item" onclick="openMasjidField('namaMasjid')">
+            <div class="setting-icon" style="background:var(--warning-bg);color:var(--warning);">🕌</div>
+            <div class="setting-info"><div class="s-title">Nama Masjid</div><div class="s-desc" id="rowNamaMasjid">—</div></div>
+            <div class="setting-arrow">›</div>
+          </button>
+          <button type="button" class="setting-item" onclick="openMasjidField('alamat')">
+            <div class="setting-icon" style="background:var(--info-bg);color:var(--info);">📍</div>
+            <div class="setting-info"><div class="s-title">Alamat</div><div class="s-desc" id="rowAlamat">—</div></div>
+            <div class="setting-arrow">›</div>
+          </button>
+          <button type="button" class="setting-item" onclick="openMasjidField('takmir')">
+            <div class="setting-icon" style="background:var(--c-jamaah-bg);color:var(--c-jamaah);">👤</div>
+            <div class="setting-info"><div class="s-title">Nama Ketua Takmir</div><div class="s-desc" id="rowTakmir">—</div></div>
+            <div class="setting-arrow">›</div>
+          </button>
+          <button type="button" class="setting-item" onclick="openMasjidField('wa')">
+            <div class="setting-icon" style="background:var(--success-bg);color:var(--success);">💬</div>
+            <div class="setting-info"><div class="s-title">No. WhatsApp Pengurus</div><div class="s-desc" id="rowWA">—</div></div>
+            <div class="setting-arrow">›</div>
+          </button>
+        </div>
+        <div class="card sg-backup">
+          <h3>💾 Backup & Restore</h3>
+          <button type="button" class="setting-item" onclick="backupData()">
+            <div class="setting-icon" style="background:var(--success-bg);color:var(--success);">⬇️</div>
+            <div class="setting-info"><div class="s-title">Backup Data</div><div class="s-desc">Simpan seluruh data ke file JSON</div></div>
+            <div class="setting-arrow">›</div>
+          </button>
+          <button type="button" class="setting-item" onclick="document.getElementById('restoreFile').click()">
+            <div class="setting-icon" style="background:var(--info-bg);color:var(--info);">📂</div>
+            <div class="setting-info"><div class="s-title">Restore Data</div><div class="s-desc">Pulihkan data dari file cadangan</div></div>
+            <div class="setting-arrow">›</div>
+          </button>
+          <input type="file" id="restoreFile" accept=".json" aria-label="Pilih file backup JSON untuk dipulihkan" style="display:none;" onchange="restoreData(event)">
+          <button type="button" class="setting-item" onclick="loadDemoData()">
+            <div class="setting-icon" style="background:var(--c-keluar-bg);color:var(--c-keluar);">🧪</div>
+            <div class="setting-info"><div class="s-title">Muat Data Contoh</div><div class="s-desc">Isi data contoh untuk mencoba fitur · hanya saat data masih kosong</div></div>
+            <div class="setting-arrow">›</div>
+          </button>
+        </div>
+        <div class="card sg-akun">
+          <h3>👤 Akun Kasol</h3>
+          <a class="setting-item" id="rowAkunLink" data-mitra-akun href="#" target="_blank" rel="noopener" title="Kelola akun di aplikasi Mitra">
+            <div class="setting-icon" style="background:var(--info-bg);color:var(--info);">👤</div>
+            <div class="setting-info">
+              <div class="s-title" id="rowAkunWa">—</div>
+              <div class="s-desc" id="rowAkunStatus">—</div>
+              <div class="s-desc s-hint">Kelola akun & foto profil di app Mitra</div>
+            </div>
+            <div class="setting-arrow">›</div>
+          </a>
+          <button type="button" class="setting-item" onclick="openLicenseSheet()">
+            <div class="setting-icon" style="background:var(--c-masuk-bg);color:var(--c-masuk);">🔒</div>
+            <div class="setting-info"><div class="s-title">Kelola Lisensi</div><div class="s-desc" id="licenseStatusBox">—</div></div>
+            <div class="setting-arrow">›</div>
+          </button>
+          <button type="button" class="setting-item" data-role="owner" onclick="HUB.bukaKelolaAnggota()">
+            <div class="setting-icon" style="background:var(--info-bg);color:var(--info);">👥</div>
+            <div class="setting-info"><div class="s-title">Kelola Pegawai</div><div class="s-desc">Tambah / ubah peran kasir & manajer</div></div>
+            <div class="setting-arrow">›</div>
+          </button>
+          <p class="muted" style="font-size:12px;margin:12px 2px 8px;">Akhiri sesi perangkat ini — data di perangkat tetap tersimpan.</p>
+          <button class="btn btn-primary" onclick="Gerbang.keluarKonfirm()">🚪 Keluar dari Akun</button>
+        </div>
+      </div>
+      <footer class="app-footer">
+        <div class="logo"><img src="logo.png" alt="Logo Kasir Solo"></div>
+        <div class="fname">Kasir Solo - Masjid</div>
+        <div class="fver" id="footerVersion"></div>
+        <div class="fpt">PT Mesin Kasir Solo</div>
+        <div class="flinks">
+          <a href="https://wa.me/628816566935" target="_blank" rel="noopener">📱 0881-6566-935</a>
+          <a href="mailto:owner.kasirsolo@gmail.com">✉️ owner.kasirsolo@gmail.com</a>
+        </div>
+      </footer>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" data-view="dashboard" onclick="go('dashboard')"><span class="ic">🏠</span>Beranda</button>
+    <button class="nav-item" data-view="kas" onclick="go('kas')"><span class="ic">💰</span>Kas</button>
+    <button class="nav-item" data-view="kegiatan" onclick="go('kegiatan')"><span class="ic">📅</span>Kegiatan</button>
+    <button class="nav-item" data-view="laporan" onclick="go('laporan')"><span class="ic">📊</span>Laporan</button>
+    <button class="nav-item" data-view="more" onclick="openMoreSheet()"><span class="ic">☰</span>Lainnya</button>
+  </nav>
+
+  <!-- MORE SHEET -->
+  <div class="sheet-backdrop" id="moreBackdrop" aria-hidden="true" onclick="closeMoreSheet()"></div>
+  <div class="sheet" id="moreSheet">
+    <div class="sheet-handle"></div>
+    <h2>Menu Lainnya</h2>
+    <div class="sheet-grid">
+      <button type="button" class="sheet-item" data-f="jamaah" onclick="closeMoreSheet();go('jamaah')"><span class="ic" style="background:var(--c-jamaah-bg);color:var(--c-jamaah);">🧑‍🤝‍🧑</span><span>Jamaah</span></button>
+      <button type="button" class="sheet-item" data-f="inventaris" onclick="closeMoreSheet();go('inventaris')"><span class="ic" style="background:var(--c-keluar-bg);color:var(--c-keluar);">📦</span><span>Inventaris</span></button>
+      <button type="button" class="sheet-item" id="navWebsite" data-f="website" onclick="closeMoreSheet();go('website')"><span class="ic" style="background:var(--c-masuk-bg);color:var(--c-masuk);">🌐</span><span>Website</span></button>
+      <button type="button" class="sheet-item" data-f="settings" onclick="closeMoreSheet();go('settings')"><span class="ic" style="background:var(--warning-bg);color:var(--warning);">⚙️</span><span>Pengaturan</span></button>
+    </div>
+  </div>
+
+  <!-- GENERIC MODAL -->
+  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true" onclick="if(event.target===this)closeModal()">
+    <div class="modal" id="modalBox"></div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<!-- GERBANG LOGIN (wajib — layer pertama, tidak bisa ditutup tanpa masuk) -->
+<div class="locked-screen hidden" id="loginGate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="lock-card">
+    <div class="ic"><img src="logo.png" alt="Logo Kasir Solo"></div>
+    <h2 id="gateTitle" style="margin:0 0 4px;font-size:19px;">Masuk Akun Kasol</h2>
+    <p class="muted" id="gateSub">Kelola kas masjid dengan akun Kasol — lisensi &amp; akses mengikuti akunmu.</p>
+    <div class="pf-seg" style="margin-top:14px;">
+      <button type="button" id="gateTabMasuk" class="on" onclick="Gerbang.tab('masuk')">Masuk</button>
+      <button type="button" id="gateTabDaftar" onclick="Gerbang.tab('daftar')">Daftar</button>
+    </div>
+    <div id="gateFormMasuk" style="text-align:left;">
+      <label for="gateWa">No. WhatsApp</label>
+      <input type="tel" id="gateWa" inputmode="numeric" placeholder="08xx xxxx xxxx" autocomplete="tel">
+      <label for="gatePin">PIN</label>
+      <input type="password" id="gatePin" inputmode="numeric" placeholder="PIN minimal 6 digit" autocomplete="current-password">
+      <p class="gate-err hidden" id="gateErrMasuk" role="alert"></p>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px;" id="gateBtnMasuk" onclick="Gerbang.masuk()">Masuk</button>
+    </div>
+    <div id="gateFormDaftar" class="hidden" style="text-align:left;">
+      <label for="gateNama">Nama</label>
+      <input type="text" id="gateNama" placeholder="Nama pengurus / masjid" autocomplete="name">
+      <label for="gateWa2">No. WhatsApp</label>
+      <input type="tel" id="gateWa2" inputmode="numeric" placeholder="08xx xxxx xxxx" autocomplete="tel">
+      <label for="gatePin2">PIN (6 digit angka)</label>
+      <input type="password" id="gatePin2" inputmode="numeric" placeholder="Buat PIN" autocomplete="new-password">
+      <label for="gatePin3">Ulangi PIN</label>
+      <input type="password" id="gatePin3" inputmode="numeric" placeholder="Ketik PIN sekali lagi" autocomplete="new-password">
+      <p class="gate-err hidden" id="gateErrDaftar" role="alert"></p>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px;" id="gateBtnDaftar" onclick="Gerbang.daftar()">Daftar &amp; Masuk</button>
+    </div>
+    <p class="muted" id="gateNote" style="margin-top:14px;">Belum punya akun? Pilih tab <b>Daftar</b> — sekali daftar, langsung masuk.</p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>

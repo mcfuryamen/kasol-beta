@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integrasi adm-masjid ↔ web-masjid</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f5f0; --card:#ffffff; --line:#e9e3d6; --ink:#14171e; --body:#3a4256; --muted:#7c7a72;
+    --primary:#2f6f5e; --primary-soft:rgba(47,111,94,.08); --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--body);font-family:'Outfit',sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;top:-120px;right:-120px;width:420px;height:420px;border-radius:50%;
+    background:radial-gradient(circle,rgba(47,111,94,.05),transparent 70%);pointer-events:none}
+  body::after{content:"";position:fixed;bottom:-140px;left:-120px;width:380px;height:380px;border-radius:50%;
+    background:radial-gradient(circle,rgba(47,111,94,.05),transparent 70%);pointer-events:none}
+  .wrap{max-width:64rem;margin:0 auto;padding:0 1.5rem 5rem;position:relative;z-index:1}
+  header{padding:4rem 0 2.5rem}
+  .kicker{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--primary);margin-bottom:.9rem}
+  h1{font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(1.9rem,4.5vw,2.7rem);line-height:1.15;color:var(--ink);letter-spacing:-.005em;max-width:22ch}
+  .lede{margin-top:1.1rem;max-width:62ch;color:var(--body)}
+  .lede strong{color:var(--ink);font-weight:600}
+  section{margin-top:3.5rem}
+  h2{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.55rem;color:var(--ink);margin-bottom:.4rem;display:flex;align-items:center;gap:.6rem}
+  h2 svg{color:var(--primary);flex:none}
+  .sub{color:var(--muted);font-size:.9rem;margin-bottom:1.4rem;max-width:70ch}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:1rem;box-shadow:0 2px 8px rgba(0,0,0,.04);padding:1.4rem}
+  .fig-cap{font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-top:.9rem}
+  code{font-family:var(--mono);font-size:.82em;background:var(--primary-soft);color:var(--primary);padding:.1em .38em;border-radius:.35rem;white-space:nowrap}
+  pre{font-family:var(--mono);font-size:.78rem;background:#f2efe7;border:1px solid var(--line);border-radius:.6rem;padding:.8rem 1rem;overflow-x:auto;color:var(--ink);line-height:1.55}
+  /* ---- diagram ---- */
+  .diagram{width:100%;height:auto;display:block}
+  .dbox{fill:#fff;stroke:var(--line);stroke-width:1.5}
+  .dbox-acc{fill:var(--primary-soft);stroke:var(--primary);stroke-width:1.5}
+  .dtitle{font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;fill:var(--ink)}
+  .dsub{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted)}
+  .darrow{stroke:var(--primary);stroke-width:1.8;fill:none;marker-end:url(#ah)}
+  .darrow-dash{stroke:var(--muted);stroke-width:1.4;fill:none;stroke-dasharray:5 4;marker-end:url(#ahg)}
+  .dlabel{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--primary)}
+  .dlabel-g{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted)}
+  /* ---- timeline ---- */
+  .timeline{list-style:none;position:relative;padding-left:0}
+  .timeline::before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:var(--primary);opacity:.3}
+  .timeline li{position:relative;padding:0 0 1.5rem 2.1rem}
+  .timeline li:last-child{padding-bottom:0}
+  .timeline li::before{content:"";position:absolute;left:2px;top:5px;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--primary)}
+  .timeline li.done::before{background:var(--primary)}
+  .timeline strong{color:var(--ink);font-weight:600;display:block;font-size:.98rem}
+  .timeline p{font-size:.9rem;margin-top:.15rem}
+  /* ---- kv ---- */
+  .kv{display:grid;grid-template-columns:150px 1fr;row-gap:.7rem;column-gap:1rem}
+  .kv dt{color:var(--muted);font-size:.85rem;border-bottom:1px dashed var(--line);padding-bottom:.5rem;align-self:end}
+  .kv dd{border-bottom:1px dashed var(--line);padding-bottom:.5rem;font-size:.9rem;color:var(--ink)}
+  .kv dd .mono{font-family:var(--mono);font-size:.78rem;color:var(--primary)}
+  /* ---- priority list ---- */
+  .prio{display:grid;grid-template-columns:2.2rem 1fr;row-gap:0;column-gap:.9rem}
+  .prio .n{font-family:'DM Serif Display',serif;color:var(--primary);font-size:1.2rem;text-align:right;border-bottom:1px dashed var(--line);padding:.55rem 0}
+  .prio .t{border-bottom:1px dashed var(--line);padding:.55rem 0;font-size:.92rem;color:var(--ink)}
+  .prio .t small{display:block;color:var(--muted);font-size:.8rem}
+  /* ---- table ---- */
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th{font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:left;padding:.5rem .7rem;border-bottom:1.5px solid var(--line)}
+  td{padding:.55rem .7rem;border-bottom:1px solid var(--line);vertical-align:top;color:var(--body)}
+  tr:last-child td{border-bottom:none}
+  td code{white-space:normal;word-break:break-word}
+  .tag{display:inline-block;font-family:var(--mono);font-size:.68rem;padding:.12em .5em;border-radius:99px;background:var(--primary-soft);color:var(--primary)}
+  .tag.gray{background:#efede6;color:var(--muted)}
+  @media (max-width:767px){
+    .wrap{padding:0 1rem 4rem}
+    header{padding:3rem 0 2rem}
+    .kv{grid-template-columns:1fr;row-gap:0}
+    .kv dt{border-bottom:none;padding-bottom:0}
+    .kv dd{padding-bottom:.7rem;margin-bottom:.4rem}
+    .card{padding:1rem}
+    section{margin-top:2.8rem}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">kasol · modul masjid · arsitektur</div>
+  <h1>Bagaimana adm-masjid dan web-masjid sebenarnya terhubung</h1>
+  <p class="lede">Kedua aplikasi kini <strong>satu project Vercel</strong> (root = <code>masjid/</code>, mis. <code>kasolmasjid.vercel.app</code>) yang hanya bertemu di satu tempat lain: <strong>tabel <code>masjid_website</code> di Supabase</strong>. Admin di <code>/adm/</code> menulis lewat RPC sesi akun, website publik di <code>/&lt;slug&gt;</code> membaca lewat REST publik dengan anon key — dan saat slug punya domain TLD aktif, <code>/&lt;slug&gt;</code> otomatis redirect ke TLD itu.</p>
+</header>
+
+<!-- ============ DIAGRAM ARSITEKTUR ============ -->
+<section id="arsitektur">
+  <h2>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    Peta besar: satu sumber data, dua etalase
+  </h2>
+  <p class="sub">Semua yang tampil di website publik berasal dari satu baris per slug di tabel <code>masjid_website</code> — kolom <code>data</code> (live) dan <code>draft</code> (pratinjau).</p>
+
+  <div class="card">
+    <svg class="diagram" viewBox="0 0 920 430" role="img" aria-label="Diagram arsitektur adm-masjid dan web-masjid">
+      <defs>
+        <marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2f6f5e"/></marker>
+        <marker id="ahg" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#7c7a72"/></marker>
+      </defs>
+
+      <!-- Admin -->
+      <rect class="dbox" x="30" y="30" width="240" height="120" rx="12"/>
+      <text class="dtitle" x="50" y="58">Browser: adm-masjid</text>
+      <text class="dsub" x="50" y="78">kasolmasjid.vercel.app/adm/</text>
+      <text class="dsub" x="50" y="98">PWA admin v1.4.2 (index.html)</text>
+      <text class="dsub" x="50" y="118">Login sesi akun → JWT authenticated</text>
+
+      <!-- Web publik -->
+      <rect class="dbox" x="30" y="280" width="240" height="120" rx="12"/>
+      <text class="dtitle" x="50" y="308">Browser: web-masjid</text>
+      <text class="dsub" x="50" y="328">kasolmasjid.vercel.app/&lt;slug&gt;</text>
+      <text class="dsub" x="50" y="348">/&lt;slug&gt; · /m/&lt;slug&gt; · ?slug= · TLD</text>
+      <text class="dsub" x="50" y="368">Tanpa login — anon key + RLS publik</text>
+
+      <!-- Supabase -->
+      <rect class="dbox-acc" x="380" y="120" width="250" height="190" rx="12"/>
+      <text class="dtitle" x="400" y="148" fill="#2f6f5e">Supabase Postgres</text>
+      <text class="dsub" x="400" y="168">project hhywrvedlwljawgxzpkq</text>
+      <text class="dsub" x="400" y="192">masjid_website(slug, data, draft,</text>
+      <text class="dsub" x="400" y="208">  published_at)  ← inti integrasi</text>
+      <text class="dsub" x="400" y="230">masjid_sites · masjid_website_domains</text>
+      <text class="dsub" x="400" y="250">RPC: publish_by_account / draft_by_account</text>
+      <text class="dsub" x="400" y="270">RPC publik: masjid_resolve_domain,</text>
+      <text class="dsub" x="400" y="288">masjid_domain_for_slug (redirect TLD)</text>
+      <text class="dsub" x="400" y="308">RLS: tabel website boleh dibaca anon</text>
+
+      <!-- Vercel note -->
+      <rect class="dbox" x="700" y="30" width="190" height="86" rx="12"/>
+      <text class="dtitle" x="718" y="56">1 project Vercel</text>
+      <text class="dsub" x="718" y="76">root directory = masjid/</text>
+      <text class="dsub" x="718" y="94">/adm/ + /&lt;slug&gt; satu origin</text>
+
+      <!-- arrows -->
+      <path class="darrow" d="M270,80 C330,80 340,180 378,195"/>
+      <text class="dlabel" x="288" y="112">1. RPC write (sesi)</text>
+      <path class="darrow" d="M378,260 C330,300 320,330 272,335"/>
+      <text class="dlabel" x="286" y="312">2. REST read (anon)</text>
+      <path class="darrow-dash" d="M630,215 C660,215 668,120 698,90"/>
+      <text class="dlabel-g" x="640" y="170">satu deploy (vercel.json</text>
+      <text class="dlabel-g" x="640" y="184">di root masjid/)</text>
+
+      <!-- domain flow -->
+      <rect class="dbox" x="700" y="200" width="190" height="120" rx="12"/>
+      <text class="dtitle" x="718" y="226">Domain custom klien</text>
+      <text class="dsub" x="718" y="246">mis. masjidkita.my.id</text>
+      <text class="dsub" x="718" y="266">DNS + attach ke project tunggal</text>
+      <text class="dsub" x="718" y="286">host → resolve_domain → slug</text>
+      <path class="darrow-dash" d="M700,260 C660,260 640,290 500,300"/>
+      <text class="dlabel-g" x="560" y="300">3. kunjungi domain</text>
+    </svg>
+    <div class="fig-cap">Gambar 1 — Admin dan web tidak saling memanggil; keduanya hanya membaca/menulis tabel yang sama di Supabase.</div>
+  </div>
+</section>
+
+<!-- ============ ALUR PUBLISH ============ -->
+<section id="publish">
+  <h2>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Alur "Publikasikan": dari klik admin sampai tampil di web
+  </h2>
+  <p class="sub">Satu klik di admin = satu RPC <code>masjid_publish_by_account</code> = satu baris <code>masjid_website</code> yang di-upsert. Web publik langsung membaca hasilnya tanpa proses build.</p>
+
+  <div class="card">
+    <ol class="timeline">
+      <li class="done"><strong>Admin klik "Publikasikan"</strong>
+        <p>Payload dibangun lokal: <code>buildWebsiteDraftPayload()</code> = data utama + <code>editorial</code> (hero, sambutan, pengumuman, galeri). <span class="mono" style="font-family:var(--mono);font-size:.78rem;color:var(--primary)">adm-masjid/index.html:2592</span></p></li>
+      <li class="done"><strong>RPC dipanggil dengan sesi akun</strong>
+        <p><code>publishViaAkun()</code> → <code>rpc('masjid_publish_by_account', { p_slug, p_data })</code>. Slug diambil dari situs aktif server (<code>slugAktif()</code>), bukan diketik manual. <span style="font-family:var(--mono);font-size:.78rem;color:var(--primary)">index.html:3281–3307</span></p></li>
+      <li class="done"><strong>Server memeriksa identitas &amp; peran</strong>
+        <p><code>current_global_identity_id()</code> dari JWT → cari slug di <code>masjid_sites</code> → <code>masjid_site_role</code> harus <code>owner</code>, selain itu hasil <code>forbidden</code>. Token publish lama tetap di-upsert untuk kompatibilitas. <span style="font-family:var(--mono);font-size:.78rem;color:var(--primary)">migration-masjid-hub-site.sql:388–452</span></p></li>
+      <li class="done"><strong>Upsert ke tabel publik</strong>
+        <p><code>insert into masjid_website (slug, data, published_at, updated_at) … on conflict (slug) do update</code>. Satu baris per slug — publish berikutnya menimpa yang lama. <span style="font-family:var(--mono);font-size:.78rem;color:var(--primary)">migration-masjid-hub-site.sql:435–440</span></p></li>
+      <li><strong>Web publik membaca saat halaman dibuka</strong>
+        <p><code>loadData(slug)</code> → <code>GET /rest/v1/masjid_website?slug=eq.&lt;slug&gt;&amp;select=data,draft,published_at</code> dengan header <code>apikey</code> (anon). RLS mengizinkan select publik; bila gagal/ kosong, fallback ke file <code>/data-website.json</code>. <span style="font-family:var(--mono);font-size:.78rem;color:var(--primary)">web-masjid/index.html:558–575</span></p></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ DRAFT & PREVIEW ============ -->
+<section id="draft">
+  <h2>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    Draft &amp; preview: kolom terpisah, live tidak terganggu
+  </h2>
+  <p class="sub">Menyimpan draft memanggil RPC berbeda yang <strong>hanya menulis kolom <code>draft</code></strong> — kolom <code>data</code> (live) tidak disentuh. Preview membuka web dengan parameter khusus.</p>
+
+  <div class="card">
+    <div class="kv">
+      <dt>Simpan draft</dt>
+      <dd><code>draftViaAkun()</code> → <code>masjid_draft_by_account(p_slug, p_data)</code> → <code>on conflict do update set draft = excluded.draft</code> saja. <span class="mono">index.html:3308–3314 · hub-site.sql:457–499</span></dd>
+      <dt>Buka preview</dt>
+      <dd><code>window.open(webBaseUrl() + '?preview=1&amp;slug=' + slug)</code> — model 1-project: di produksi <code>webBaseUrl() = location.origin + '/'</code> (admin &amp; web satu origin), saat lokal otomatis <code>/web-masjid/</code>. <span class="mono">adm-masjid/index.html:2275–2286, 2619</span></dd>
+      <dt>Host web</dt>
+      <dd>Tidak ada lagi konstanta <code>WEB_BASE_URL</code>; URL publik yang ditampilkan admin = <code>&lt;origin&gt;/&lt;slug&gt;</code> (tanpa <code>m/</code>). <span class="mono">adm-masjid/index.html:3322</span></dd>
+      <dt>Mode preview di web</dt>
+      <dd><code>PREVIEW = ?preview=1</code>; bila aktif dan ada draft, web memakai <code>draft.editorial</code> + menampilkan banner "Mode Preview". Tanpa parameter itu, yang tampil selalu <code>data</code> live. <span class="mono">web-masjid/index.html:516, 784–792</span></dd>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RESOLUSI SLUG ============ -->
+<section id="slug">
+  <h2>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    Satu web-masjid melayani banyak masjid: resolusi slug
+  </h2>
+  <p class="sub">Web-masjid itu <strong>multi-klien</strong>: satu deploy untuk semua masjid, slug menentukan masjid mana yang ditampilkan. Urutan penentuannya (prioritas dari atas):</p>
+
+  <div class="card">
+    <div class="prio">
+      <div class="n">1</div><div class="t"><code>?slug=&lt;slug&gt;</code> di URL <small>Override manual / dipakai link preview dari admin. <span style="font-family:var(--mono);font-size:.75rem;color:var(--primary)">web-masjid/index.html:517,551</span></small></div>
+      <div class="n">2</div><div class="t">Path <code>/&lt;slug&gt;</code> (atau <code>/m/&lt;slug&gt;</code> lama) <small>Model 1-project: slug langsung di belakang origin (kecuali path cadangan <code>adm</code>, <code>assets</code>, dst.). <span style="font-family:var(--mono);font-size:.75rem;color:var(--primary)">index.html:523–535 (slugDariPath)</span></small></div>
+      <div class="n">3</div><div class="t">Host custom domain → RPC <code>masjid_resolve_domain(host)</code> <small>Host TLD klien (mis. <code>masjidkita.my.id</code>) dipetakan ke slug lewat tabel <code>masjid_website_domains</code> yang statusnya <code>active</code>. Host platform (vercel.app) dilewati — di host platform slug diambil dari path. <span style="font-family:var(--mono);font-size:.75rem;color:var(--primary)">index.html:536–575 · hardening F1</span></small></div>
+      <div class="n">4</div><div class="t">Redirect <code>/&lt;slug&gt;</code> → TLD aktif <small>Di host platform, bila slug punya domain <code>active</code>, web memanggil RPC <code>masjid_domain_for_slug(slug)</code> lalu <code>location.replace('https://&lt;tld&gt;/…')</code>. <span style="font-family:var(--mono);font-size:.75rem;color:var(--primary)">index.html:~815 · migration-masjid-one-project.sql</span></small></div>
+      <div class="n">5</div><div class="t">Default <code>'masjid'</code> <small>Bila semua di atas gagal/offline. <span style="font-family:var(--mono);font-size:.75rem;color:var(--primary)">index.html:470</span></small></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DOMAIN ============ -->
+<section id="domain">
+  <h2>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    Siklus domain custom (Claim Domain) — sudah di-hardening F1–F3
+  </h2>
+  <p class="sub">Domain klien diklaim lewat admin, diverifikasi lewat DNS, lalu dipakai <code>masjid_resolve_domain</code> saat pengunjung membuka domain tersebut.</p>
+
+  <div class="card">
+    <ol class="timeline">
+      <li class="done"><strong>Klaim</strong><p><code>masjid_claim_domain(domain, site_id)</code> → status <code>pending</code> + token verifikasi. Host platform (<code>*.vercel.app</code>, <code>vercel-dns.com</code>, daftar tabel <code>masjid_reserved_domains</code>) <strong>ditolak</strong> (<code>domain_reserved</code>) — F1. Domain yang sudah <code>active</code> tidak diturunkan diam-diam; hasilnya <code>domain_already_active</code> dan admin ditawari re-klaim eksplisit lewat <code>masjid_reclaim_domain</code> — F2.</p></li>
+      <li class="done"><strong>Set DNS di registrar klien</strong><p>Admin menampilkan box instruksi (CNAME ke host Vercel + TXT berisi token), tombol "Cek Verifikasi". <span style="font-family:var(--mono);font-size:.78rem;color:var(--primary)">adm-masjid/index.html:3339–3435 (renderDnsBox)</span></p></li>
+      <li class="done"><strong>Verifikasi</strong><p><code>masjid_verify_domain(domain, token)</code> → bila cocok, status naik <code>active</code>. Token lama yang sudah dipakai menjadi <code>invalid_token</code>.</p></li>
+      <li><strong>Pakai</strong><p>Pengunjung membuka domain → web-masjid memanggil <code>masjid_resolve_domain</code> → dapat slug → <code>loadData(slug)</code> → halaman masjid yang bersangkutan tampil. Domain terlarang selalu <code>not_found</code> walau (secara tak mungkin) ada baris aktif — F1.</p></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ TABEL RINGKASAN ============ -->
+<section id="peta">
+  <h2>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    Peta kode: di mana letak sambungannya
+  </h2>
+  <p class="sub">Kalau mau baca kodenya sendiri, ini titik masuk utama per komponen.</p>
+
+  <div class="card" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Peran</th><th>Lokasi</th><th>Catatan</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag">tulis live</span> publish via sesi</td><td><code>adm-masjid/index.html:3301</code> → <code>supabase/migration-masjid-hub-site.sql:388</code></td><td>RPC <code>masjid_publish_by_account</code>, cek role <code>owner</code>, upsert <code>masjid_website.data</code></td></tr>
+        <tr><td><span class="tag">tulis draft</span></td><td><code>adm-masjid/index.html:3308</code> → <code>hub-site.sql:457</code></td><td>RPC <code>masjid_draft_by_account</code>, kolom <code>draft</code> saja</td></tr>
+        <tr><td><span class="tag">provision situs</span></td><td><code>adm-masjid/index.html:3285</code> → <code>hub-site.sql:205</code></td><td><code>masjid_ensure_site</code>: buat site+token bila owner belum punya</td></tr>
+        <tr><td><span class="tag">baca publik</span></td><td><code>web-masjid/index.html:558</code></td><td><code>GET /rest/v1/masjid_website?slug=eq.…</code> + fallback <code>/data-website.json</code></td></tr>
+        <tr><td><span class="tag">resolusi slug</span></td><td><code>web-masjid/index.html:523–575</code></td><td>?slug= → /&lt;slug&gt; atau /m/&lt;slug&gt; → <code>masjid_resolve_domain</code> (TLD) → default</td></tr>
+        <tr><td><span class="tag">redirect TLD</span></td><td><code>web-masjid/index.html:~815</code> + <code>migration-masjid-one-project.sql</code></td><td>di host platform: <code>masjid_domain_for_slug(slug)</code> → redirect ke domain aktif</td></tr>
+        <tr><td><span class="tag">preview</span></td><td><code>adm:2619</code> ↔ <code>web:516,784</code></td><td><code>?preview=1&slug=…</code> → web pakai <code>draft.editorial</code> + banner</td></tr>
+        <tr><td><span class="tag">tabel inti</span></td><td><code>supabase/migration-masjid-website.sql:16</code></td><td><code>masjid_website(slug, data, draft, published_at)</code>, RLS: publik boleh select</td></tr>
+        <tr><td><span class="tag">domain</span></td><td><code>hub-site.sql:55,504,608,661</code> + <code>migration-masjid-domain-hardening.sql</code></td><td>tabel <code>masjid_website_domains</code>, RPC claim/verify/resolve + denylist reserved</td></tr>
+        <tr><td><span class="tag gray">deploy</span></td><td><code>masjid/vercel.json</code></td><td>1 project Vercel (root = masjid/): /adm/ → adm-masjid, /&lt;slug&gt; → web-masjid; aset web path absolut root</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ RINGKASAN ============ -->
+<section id="intisari">
+  <h2>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    Intisari satu paragraf
+  </h2>
+  <div class="card">
+    <p style="font-size:.95rem;max-width:70ch">adm-masjid dan web-masjid <strong>tidak saling memanggil secara langsung</strong> — keduanya hanya berbagi satu tabel di Supabase, meski kini di-serve dari <strong>satu project Vercel</strong> (root <code>masjid/</code>): admin di <code>/adm/</code>, website klien di <code>/&lt;slug&gt;</code>. Admin menulis lewat RPC sesi akun (<code>masjid_publish_by_account</code> untuk live, <code>masjid_draft_by_account</code> untuk draft) yang menulis baris <code>masjid_website</code> per slug setelah memeriksa bahwa pemanggil adalah <code>owner</code> situs itu. Website publik membaca baris yang sama via REST publik saat halaman dibuka, memilih slug dari <code>?slug=</code> → <code>/&lt;slug&gt;</code> → domain custom via <code>masjid_resolve_domain</code> → default <code>masjid</code>, lalu merender <code>data</code> (atau <code>draft</code> saat mode preview). Bila dibuka di host platform dan slug punya domain TLD <code>active</code>, halaman otomatis redirect ke TLD via RPC <code>masjid_domain_for_slug</code>. Domain custom klien diklaim dan diverifikasi lewat DNS di admin + di-attach ke project Vercel (DNS saja tidak cukup), dan sejak hardening F1–F3 host platform tidak bisa diklaim dan domain aktif tidak bisa "mati" tanpa konfirmasi eksplisit.</p>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

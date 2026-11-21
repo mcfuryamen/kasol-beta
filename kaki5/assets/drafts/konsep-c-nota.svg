@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Konsep C — nota kasir (identitas "Kasir Solo") -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F5821F"/><stop offset="0.55" stop-color="#D6501C"/><stop offset="1" stop-color="#B04018"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <path d="M150 96 H362 V366 L332 390 L302 366 L272 390 L242 366 L212 390 L182 366 L150 390 Z" fill="#FFFFFF"/>
+  <rect x="188" y="150" width="136" height="18" rx="9" fill="#B04018" opacity="0.5"/>
+  <rect x="188" y="196" width="136" height="14" rx="7" fill="#B04018" opacity="0.32"/>
+  <rect x="188" y="236" width="96" height="14" rx="7" fill="#B04018" opacity="0.32"/>
+  <circle cx="330" cy="380" r="62" fill="#FFFFFF"/>
+  <circle cx="330" cy="380" r="40" fill="none" stroke="#D6501C" stroke-width="14"/>
+</svg>

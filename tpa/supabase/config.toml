@@ -1,0 +1,40 @@
+# Supabase Project Configuration
+# Project: TPA (Tenant Platform Application)
+# Purpose: Identity recovery system with SMS/WhatsApp approval
+
+[project]
+project_id = "tpa-identity-recovery"
+region = "ap-southeast-1"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "auth"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+seed_file = ""
+
+[realtime]
+enabled = true
+max_bytes_per_second = 1000000
+
+[auth]
+site_url = "http://127.0.0.1:8088"
+additional_redirect_urls = ["http://127.0.0.1:8088/login", "http://127.0.0.1:8088/recovery"]
+jwt_secret = "your-jwt-secret-here"
+jwt_exp = 3600
+enable_signup = true
+enable_email_autoconfirm = false
+smtp_admin_email = "admin@example.com"
+min_password_length = 8
+
+[storage]
+file_size_limit = 52428800
+
+[functions]
+memory_limit = 1024
+verify_jwt = true
